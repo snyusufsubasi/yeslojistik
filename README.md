@@ -1,5 +1,7 @@
 # YES Lojistik – Nakliye Takip Sistemi
 
+![Ana sayfa](docs/ekranlar/pc-anasayfa.png)
+
 Seferler, araçlar, şoförler, müşteri carileri, faturalar, tahsilatlar ve giderler için web paneli
 ve şoför mobil uygulaması.
 
@@ -15,6 +17,7 @@ ve şoför mobil uygulaması.
 | [docs/KURULUM.md](docs/KURULUM.md) | Geliştirme ortamı, sunucuya kurulum, yedekleme |
 | [docs/KULLANIM.md](docs/KULLANIM.md) | Kullanım kılavuzu (kuzen için) |
 | [mobile/README.md](mobile/README.md) | Şoför uygulaması: derleme, kurulum, konum paylaşımı |
+| [docs/ekranlar](docs/ekranlar/README.md) | Bütün ekranların görüntüleri (bilgisayar + telefon) |
 
 ## Sunucuya kurulum (canlı)
 
