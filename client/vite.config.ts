@@ -10,6 +10,12 @@ export default defineConfig({
       '/api': { target: process.env.API_URL ?? 'http://localhost:5080', changeOrigin: false },
     },
   },
+  preview: {
+    port: 5173,
+    proxy: {
+      '/api': { target: process.env.API_URL ?? 'http://localhost:5080', changeOrigin: false },
+    },
+  },
   build: {
     chunkSizeWarningLimit: 1200,
   },

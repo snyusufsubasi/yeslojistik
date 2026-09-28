@@ -81,14 +81,16 @@ jobs:
         run: |
           dotnet build server/YesLojistik.sln
           cd server/YesLojistik.Api
-          ASPNETCORE_ENVIRONMENT=Development Cors__Origins__0=http://localhost:8082 \
+          ASPNETCORE_ENVIRONMENT=Development Cors__Origins__0=http://localhost:8082 RateLimit__LoginPerMinute=1000 \
             nohup dotnet run --no-build --urls http://localhost:5080 > /tmp/api.log 2>&1 &
       - name: Web paneli başlat
         working-directory: client
         run: |
           npm ci
           npx playwright install --with-deps chromium
-          nohup npx vite --port 5173 > /tmp/vite.log 2>&1 &
+          npm run build
+          # Üretim derlemesi (vite preview, /api isteklerini 5080'e yönlendirir)
+          nohup npx vite preview --port 5173 --strictPort > /tmp/vite.log 2>&1 &
       - name: Şoför uygulamasının web önizlemesini başlat
         working-directory: mobile
         run: |

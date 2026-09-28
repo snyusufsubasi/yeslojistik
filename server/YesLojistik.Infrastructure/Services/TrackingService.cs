@@ -24,7 +24,8 @@ public class TrackingService(AppDbContext db)
         if (pings.Count > MaxPingsPerRequest) throw new DomainException($"Tek seferde en fazla {MaxPingsPerRequest} konum gönderilebilir.");
 
         var active = await db.Trips.Where(t => t.DriverId == driverId && (t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad))
-            .OrderByDescending(t => t.Status).ThenByDescending(t => t.LoadingDate)
+            // Birden fazla aktif sefer varsa: önce yoldaki, sonra en yeni sefer (VehiclesAsync ile aynı sıra).
+            .OrderByDescending(t => t.Status == TripStatus.OnRoad).ThenByDescending(t => t.LoadingDate).ThenByDescending(t => t.Id)
             .Select(t => new { t.Id, t.VehicleId }).FirstOrDefaultAsync(ct);
         var vehicleId = active?.VehicleId
             ?? await db.Vehicles.Where(v => v.DefaultDriverId == driverId).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
@@ -65,7 +66,7 @@ public class TrackingService(AppDbContext db)
             {
                 v.Id, v.Plate, v.Type, v.Status, v.LastLatitude, v.LastLongitude, v.LastSpeedKmh, v.LastLocationAt,
                 Trip = db.Trips.Where(t => t.VehicleId == v.Id && (t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad))
-                    .OrderByDescending(t => t.LoadingDate)
+                    .OrderByDescending(t => t.Status == TripStatus.OnRoad).ThenByDescending(t => t.LoadingDate).ThenByDescending(t => t.Id)
                     .Select(t => new { t.Id, t.LoadingAddress, t.DeliveryAddress, t.Customer.Title, t.Driver.FullName }).FirstOrDefault(),
                 DefaultDriver = v.DefaultDriver != null ? v.DefaultDriver.FullName : null,
             }).ToListAsync(ct);

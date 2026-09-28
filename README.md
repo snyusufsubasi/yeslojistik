@@ -49,7 +49,8 @@ cd client && npm run lint && npm run build
 # Şoför uygulaması
 cd mobile && npm run typecheck
 
-# Uçtan uca (API, `npm run dev` ve şoför uygulamasının web önizlemesi çalışırken; bkz. .github/workflows/ci.yml)
+# Uçtan uca (API, web panel [`npm run build && npx vite preview`] ve şoför uygulamasının web önizlemesi
+# çalışırken; adımlar için bkz. .github/workflows/ci.yml)
 cd client && npm run test:e2e
 ```
 

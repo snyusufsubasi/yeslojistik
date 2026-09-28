@@ -106,6 +106,23 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Pings_go_to_the_newest_on_road_trip_when_driver_has_several()
+    {
+        var s = await SetupAsync("107");
+        var second = await (await s.Admin.PostJsonAsync("/api/trips", new TripSaveRequest(s.CustomerId, s.VehicleId, s.DriverId,
+            "Ankara", "Konya", Today, null, null, 1000, 2000))).ReadAsync<TripDto>();
+        foreach (var id in new[] { s.TripId, second.Id })
+            foreach (var st in new[] { TripStatus.Loaded, TripStatus.OnRoad })
+                (await s.Admin.PostJsonAsync($"/api/trips/{id}/status", new TripStatusRequest(st))).EnsureSuccessStatusCode();
+
+        (await s.Driver.PostJsonAsync("/api/driver/location", new[] { new LocationPing(39.9, 32.8, 50, null, null, null) })).EnsureSuccessStatusCode();
+        (await (await s.Admin.GetAsync($"/api/trips/{second.Id}/route")).ReadAsync<List<RoutePointDto>>()).Should().HaveCount(1);
+        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}/route")).ReadAsync<List<RoutePointDto>>()).Should().BeEmpty();
+        var v = (await (await s.Admin.GetAsync("/api/tracking/vehicles")).ReadAsync<List<VehicleLocationDto>>()).Single(x => x.VehicleId == s.VehicleId);
+        v.ActiveTripId.Should().Be(second.Id);
+    }
+
+    [Fact]
     public async Task Driver_uploads_photo_and_office_can_download_it()
     {
         var s = await SetupAsync("105");

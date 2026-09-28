@@ -22,18 +22,19 @@ export default function TripsPage() {
   const [customerId, setCustomerId] = useState<number | ''>(params.get('customerId') ? Number(params.get('customerId')) : '')
   const [from, setFrom] = useState(params.get('from') ?? '')
   const [to, setTo] = useState(params.get('to') ?? '')
+  const [invoiced, setInvoiced] = useState<'yes' | 'no' | ''>('')
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(params.get('new') ? 'new' : null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
 
-  const [page, setPage] = usePage([debounced, status, customerId, from, to])
+  const [page, setPage] = usePage([debounced, status, customerId, from, to, invoiced])
   useEffect(() => {
     if (params.get('new')) { params.delete('new'); setParams(params, { replace: true }) }
   }, [params, setParams])
 
-  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === '' ? undefined : invoiced === 'yes', sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Trip>('trips', query)
 
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
@@ -75,12 +76,14 @@ export default function TripsPage() {
         </>} />
       <Card bodyClassName="p-0" title="Sefer Listesi" icon={<Truck className="size-4" />}
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
-        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 sm:grid-cols-5">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
           <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <input className="input" type="date" aria-label="Başlangıç tarihi" value={from} onChange={(e) => setFrom(e.target.value)} />
           <input className="input" type="date" aria-label="Bitiş tarihi" value={to} onChange={(e) => setTo(e.target.value)} />
+          <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
+            options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }]} />
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(t) => t.id}
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
