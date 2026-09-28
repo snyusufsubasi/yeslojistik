@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<VehicleLocation> VehicleLocations => Set<VehicleLocation>();
     public DbSet<PushToken> PushTokens => Set<PushToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -150,6 +151,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasOne(x => x.Vehicle).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Trip).WithMany(t => t.Expenses).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => x.Date);
+        });
+        b.Entity<StoredFile>(e =>
+        {
+            e.Property(x => x.Path).HasMaxLength(300);
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.HasIndex(x => x.Path).IsUnique();
         });
         b.Entity<CompanySettings>(e =>
         {

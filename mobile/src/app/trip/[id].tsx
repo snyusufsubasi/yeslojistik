@@ -7,6 +7,7 @@ import { Badge, Button, Card, Row } from '../../components/ui'
 import { ExpenseCard } from '../../components/ExpenseCard'
 import { api } from '../../lib/api'
 import { confirm, notify } from '../../lib/dialog'
+import { compressPhoto } from '../../lib/image'
 import { sendCurrentLocation } from '../../lib/location'
 import { colors, formatDate, statusAction, statusColor, statusLabel } from '../../lib/theme'
 import type { Attachment, DriverTrip, TripStatus } from '../../lib/types'
@@ -36,12 +37,13 @@ export default function TripDetailScreen() {
   const upload = useMutation({
     mutationFn: async (asset: ImagePicker.ImagePickerAsset) => {
       const form = new FormData()
-      const name = asset.fileName ?? `teslim-${Date.now()}.jpg`
+      const name = (asset.fileName ?? `teslim-${Date.now()}`).replace(/\.\w+$/, '') + '.jpg'
       if (Platform.OS === 'web') {
         form.append('file', await (await fetch(asset.uri)).blob(), name)
       } else {
+        const photo = await compressPhoto(asset.uri, asset.width, asset.height)
         // React Native FormData dosya nesnesi
-        form.append('file', { uri: asset.uri, name, type: asset.mimeType ?? 'image/jpeg' } as unknown as Blob)
+        form.append('file', { uri: photo.uri, name, type: photo.mimeType } as unknown as Blob)
       }
       form.append('kind', 'Photo')
       if (note.trim()) form.append('note', note.trim())

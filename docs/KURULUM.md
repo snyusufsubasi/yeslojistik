@@ -47,10 +47,25 @@ Kuzeninin denemesi için, sunucu kiralamadan ücretsiz ve sabit bir adres (`http
 Kısıtlar (ücretsiz plan):
 - 15 dakika kullanılmazsa servis uyur; ilk açılış yaklaşık 1 dakika sürer.
 - Ücretsiz veritabanı 30 gün sonra silinir.
-- Yüklenen fotoğraflar servis yeniden başlayınca kaybolur.
+- Dosyalar (fotoğraf, irsaliye) veritabanında saklanır; servis yeniden başlasa da kaybolmaz ama 1 GB'lık alanı paylaşır.
 - E-posta gönderimi için SMTP ayarlarını Render panelinden (Environment) ekleyin: `Smtp__Host`, `Smtp__Port`, `Smtp__User`, `Smtp__Password`, `Smtp__From`.
 
 Bu kurulum panel ve API'yi tek konteynerde çalıştırır (`deploy/render.Dockerfile`). Gerçek kullanım için yukarıdaki VPS kurulumunu kullanın.
+
+### Render'da yedekler
+
+Render'ın ücretsiz veritabanı yedek almaz; yedekleri uygulama kendisi verir:
+
+- **Elle:** Panel → Ayarlar → Veriler → **Tam yedeği indir**. Haftada bir indirip saklayın.
+- **Otomatik (her gece 03:30):** `.github/workflows/backup.yml`. Render ortam değişkenine `Backup__Token` (en az 32 karakter rastgele) ekleyin; GitHub → Settings → Secrets and variables → Actions altına üç secret girin:
+  - `BACKUP_URL`: `https://yeslojistik.onrender.com`
+  - `BACKUP_TOKEN`: Render'daki `Backup__Token` ile aynı
+  - `BACKUP_PASSPHRASE`: yedeklerin şifresi (kaybetmeyin, yoksa yedek açılamaz)
+
+  İş akışı yedeği geçici bir veritabanına geri yükleyerek test eder ve şifreli olarak saklar (dosyasız yedek 30 gün; pazar günleri alınan tam yedeğin en yeni 2 kopyası). İndirmek için GitHub → Actions → Yedek → çalışma → Artifacts; açmak için `gpg -d yedek.dump.gpg > yedek.dump`.
+- **Geri yükleme:** Render'da `Backup__AllowRestore=true` yapın, GitHub → Actions → **Yedekten geri yükle** iş akışını `GERİ YÜKLE` onayıyla çalıştırın, bitince `Backup__AllowRestore=false` yapın. VPS'te `./deploy/restore.sh yedek.dump`.
+- **Bakım modu:** `App__MaintenanceMode=true` iken kayıt eklenemez/değiştirilemez (taşınma sırasında kullanılır); panel üstte uyarı gösterir.
+- **Canlı kontrol:** main'e her birleştirmeden sonra `.github/workflows/smoke.yml` yeni sürümün yayına çıktığını doğrular (`/api/health` yanıtındaki `commit`).
 
 ## 2. Canlıya geçiş: demo verilerden gerçek verilere
 

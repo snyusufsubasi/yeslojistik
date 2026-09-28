@@ -1,0 +1,106 @@
+# Gece yedeği: canlı sunucudan yedek çeker, geçici bir PostgreSQL'e geri yükleyerek sağlamlığını test eder,
+# şifreleyip saklar. Gerekli secret'lar: BACKUP_URL (ör. https://yeslojistik.onrender.com), BACKUP_TOKEN, BACKUP_PASSPHRASE.
+# Şifre çözme: gpg -d yedek.dump.gpg > yedek.dump  →  pg_restore ile geri yükleme (docs/KURULUM.md).
+name: Yedek
+
+on:
+  schedule:
+    - cron: "30 0 * * *" # 03:30 İstanbul
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Dosyalar dahil tam yedek"
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      BACKUP_URL: ${{ secrets.BACKUP_URL }}
+      BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Ayarları kontrol et
+        run: |
+          if [ -z "$BACKUP_URL" ] || [ -z "$BACKUP_TOKEN" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::BACKUP_URL, BACKUP_TOKEN ve BACKUP_PASSPHRASE secret'ları tanımlanmalı."; exit 1
+          fi
+
+      - name: Yedek türünü belirle
+        id: kind
+        run: |
+          # Elle çalıştırmada seçime göre; zamanlanmış çalışmada pazar günleri tam yedek.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then FULL="${{ inputs.full }}";
+          elif [ "$(TZ=Europe/Istanbul date +%u)" = "7" ]; then FULL=true; else FULL=false; fi
+          echo "full=$FULL" >> "$GITHUB_OUTPUT"
+          echo "name=yedek-$( [ "$FULL" = true ] && echo tam || echo dosyasiz )-$(TZ=Europe/Istanbul date +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+
+      - name: Sunucuyu uyandır
+        run: |
+          for i in $(seq 1 18); do
+            curl -fsS --max-time 20 "$BACKUP_URL/api/health" && exit 0
+            sleep 10
+          done
+          echo "::error::Sunucu yanıt vermiyor."; exit 1
+
+      - name: Yedeği indir
+        run: |
+          curl -fsS --retry 3 --retry-delay 20 --max-time 900 -H "X-Backup-Token: $BACKUP_TOKEN" \
+            "$BACKUP_URL/api/admin/backup?files=${{ steps.kind.outputs.full }}" -o yedek.dump
+          SIZE=$(stat -c %s yedek.dump)
+          echo "Yedek boyutu: $SIZE bayt"
+          [ "$SIZE" -gt 10000 ] || { echo "::error::Yedek dosyası beklenenden küçük."; exit 1; }
+
+      - name: Geri yükleme tatbikatı
+        run: |
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/b" postgres:16-alpine sh -c '
+            createdb -h localhost -U postgres tatbikat &&
+            pg_restore -h localhost -U postgres -d tatbikat --no-owner --no-acl --exit-on-error /b/yedek.dump &&
+            psql -h localhost -U postgres -d tatbikat -Atc "
+              SELECT '"'"'müşteri: '"'"' || count(*) FROM customers UNION ALL
+              SELECT '"'"'sefer: '"'"' || count(*) FROM trips UNION ALL
+              SELECT '"'"'fatura: '"'"' || count(*) FROM invoices UNION ALL
+              SELECT '"'"'dosya: '"'"' || count(*) FROM stored_files"'
+
+      - name: Şifrele
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 -o "${{ steps.kind.outputs.name }}.dump.gpg" yedek.dump
+          rm yedek.dump
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.kind.outputs.name }}
+          path: ${{ steps.kind.outputs.name }}.dump.gpg
+          retention-days: ${{ steps.kind.outputs.full == 'true' && 20 || 30 }}
+          compression-level: 0
+
+      - name: Eski tam yedekleri temizle (en yeni 2 kalır)
+        if: steps.kind.outputs.full == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Ücretsiz planda artifact alanı 500 MB; tam yedeklerin yalnızca en yeni iki kopyası tutulur.
+          gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | startswith("yedek-tam-")) | select(.expired == false) | "\(.created_at) \(.id)"' \
+            | sort -r | tail -n +3 | while read -r _ id; do
+              echo "Siliniyor: $id"; gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id"
+            done

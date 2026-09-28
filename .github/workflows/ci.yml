@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: PostgreSQL 16 istemcisi (yedek/geri yükleme testleri için)
+        run: pg_dump --version | grep -q " 16\." || (sudo apt-get update && sudo apt-get install -y postgresql-client-16) || true
       - run: dotnet build server/YesLojistik.sln -c Release
       - run: dotnet test server/YesLojistik.sln -c Release --no-build
 

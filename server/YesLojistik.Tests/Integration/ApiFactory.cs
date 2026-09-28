@@ -23,6 +23,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     private readonly string _baseConn = Environment.GetEnvironmentVariable("TEST_DATABASE_URL")
         ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres";
 
+    /// <summary>Bu testin veritabanına doğrudan bağlantı (sorgu ile doğrulama için).</summary>
+    public string ConnectionString => $"{_baseConn};Database={_dbName}";
+
     public FakePushSender Push { get; } = new();
     public FakeEmailSender Email { get; } = new();
 

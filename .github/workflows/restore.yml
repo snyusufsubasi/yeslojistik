@@ -1,0 +1,49 @@
+# Son başarılı yedeği canlı sunucuya geri yükler (taşınma / felaket kurtarma).
+# Sunucuda Backup__AllowRestore=true olmalı; iş bitince tekrar false yapılmalı. Uygulama geri yüklemeden sonra yeniden başlar.
+name: Yedekten geri yükle
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Belirli bir Yedek çalışmasının kimliği (boşsa son başarılı tam yedek)"
+        required: false
+      confirm:
+        description: "Onay için GERİ YÜKLE yazın"
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BACKUP_URL: ${{ secrets.BACKUP_URL }}
+      BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Onayı kontrol et
+        run: |
+          [ "${{ inputs.confirm }}" = "GERİ YÜKLE" ] || { echo "::error::Onay metni GERİ YÜKLE olmalı."; exit 1; }
+
+      - name: Yedeği indir
+        run: |
+          RUN_ID="${{ inputs.run_id }}"
+          if [ -z "$RUN_ID" ]; then
+            RUN_ID=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+              --jq '[.artifacts[] | select(.name | startswith("yedek-tam-")) | select(.expired == false)] | sort_by(.created_at) | last | .workflow_run.id')
+          fi
+          [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ] || { echo "::error::Tam yedek bulunamadı."; exit 1; }
+          gh run download "$RUN_ID" --repo "${{ github.repository }}" --dir yedek
+          FILE=$(find yedek -name '*.dump.gpg' | head -1)
+          echo "Geri yüklenecek: $FILE"
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" -d "$FILE" > yedek.dump
+
+      - name: Sunucuya gönder
+        run: |
+          curl -fsS --max-time 1500 -H "X-Backup-Token: $BACKUP_TOKEN" -F "file=@yedek.dump" "$BACKUP_URL/api/admin/restore"
+          echo; echo "Geri yükleme tamamlandı. Sunucu yeniden başlıyor; birkaç dakika sonra /api/admin/stats ile sayıları kontrol edin."

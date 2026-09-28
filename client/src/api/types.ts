@@ -372,3 +372,20 @@ export interface AuditLogEntry {
   label?: string | null
   changes?: string | null
 }
+
+export interface Health {
+  status: string
+  version?: string
+  commit?: string | null
+  maintenance?: boolean
+}
+
+export interface DataStats {
+  counts: Record<string, number>
+  customerBalanceTotal: number
+  issuedInvoiceTotal: number
+  fileCount: number
+  fileBytes: number
+  databaseBytes: number
+  lastBackupAt: string | null
+}

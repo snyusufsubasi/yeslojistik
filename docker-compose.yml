@@ -30,6 +30,9 @@ services:
       Seed__AdminPassword: ${ADMIN_PASSWORD:-}
       Seed__SampleData: ${SAMPLE_DATA:-false}
       App__PublicUrl: ${PUBLIC_URL:-}
+      # Dosyalar veritabanında (Database) ya da diskte (Local). Database'de tek yedek her şeyi kapsar.
+      Storage__Provider: ${STORAGE_PROVIDER:-Database}
+      Backup__Token: ${BACKUP_TOKEN:-}
       Tracking__RetentionDays: ${LOCATION_RETENTION_DAYS:-90}
       Smtp__Host: ${SMTP_HOST:-}
       Smtp__Port: ${SMTP_PORT:-587}
