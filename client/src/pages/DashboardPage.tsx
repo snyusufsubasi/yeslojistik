@@ -99,6 +99,12 @@ export default function DashboardPage() {
             <Row label="Brüt kâr" value={tl(data.monthRevenue - data.monthExpenses)} strong
               tone={data.monthRevenue - data.monthExpenses < 0 ? 'text-red-600' : data.monthRevenue - data.monthExpenses > 0 ? 'text-emerald-700' : undefined} />
             <Row label="Açık alacak" value={tl(data.receivableTotal)} tone={data.receivableTotal > 0 ? 'text-red-600' : undefined} />
+            {can('accounting') && (
+              <button type="button" className="block w-full text-left" onClick={() => navigate('/tedarikciler')}>
+                <Row label="Ödenecek (taşeron)" value={tl(data.payableTotal)} tone={data.payableTotal > 0 ? 'text-orange-600' : undefined} />
+                {data.payableOverdue > 0 && <p className="mt-1 text-right text-xs text-red-600">Vadesi geçen: {tl(data.payableOverdue)}</p>}
+              </button>
+            )}
           </dl>
           <TrendChart rows={data.trend} />
         </Card>

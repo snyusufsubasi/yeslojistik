@@ -1,3 +1,4 @@
+using YesLojistik.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
@@ -6,7 +7,7 @@ using YesLojistik.Infrastructure.Data;
 namespace YesLojistik.Infrastructure.Services;
 
 /// <summary>Üst bardaki bildirimler: yaklaşan bakım/muayene/sigorta, şoför belge süreleri, vadesi geçen alacaklar.</summary>
-public class AlertService(AppDbContext db, BalanceService balances)
+public class AlertService(AppDbContext db, BalanceService balances, PayableService payables)
 {
     public const int MaintenanceWarnDays = 15;
     public const int DocumentWarnDays = 30;
@@ -58,6 +59,26 @@ public class AlertService(AppDbContext db, BalanceService balances)
                     $"/musteriler/{customerId}", items.Min(b => b.DueDate)));
             }
         }
+
+        // Taşeron / tedarikçi borçları: vadesi geçmiş ödemeler.
+        var payableItems = await payables.ItemsAsync(null, ct);
+        var duePayables = payableItems.Where(i => i.Remaining > 0 && i.DueDate < today).GroupBy(i => i.SupplierId).ToList();
+        if (duePayables.Count > 0)
+        {
+            var ids = duePayables.Select(g => g.Key).ToList();
+            var titles = await db.Suppliers.AsNoTracking().Where(s => ids.Contains(s.Id)).ToDictionaryAsync(s => s.Id, s => s.Title, ct);
+            foreach (var g in duePayables)
+                alerts.Add(new AlertDto("payable", "warning", titles.GetValueOrDefault(g.Key, "?"),
+                    $"Vadesi geçmiş {Formatters.Currency(g.Sum(i => i.Remaining))} ödeme (taşeron/tedarikçi).", $"/tedarikciler/{g.Key}", g.Min(i => i.DueDate)));
+        }
+        var cutoff = today.AddDays(-15);
+        var missing = await db.Trips.AsNoTracking().Where(t => t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null
+                && (t.DeliveryDate ?? t.LoadingDate) < cutoff)
+            .GroupBy(t => new { t.CarrierSupplierId, t.CarrierSupplier!.Title })
+            .Select(g => new { g.Key.CarrierSupplierId, g.Key.Title, Count = g.Count(), FirstDate = g.Min(t => t.DeliveryDate ?? t.LoadingDate) }).ToListAsync(ct);
+        foreach (var m in missing)
+            alerts.Add(new AlertDto("carrier-invoice", "warning", m.Title,
+                $"{m.Count} teslim edilmiş seferin taşeron faturası 15 günü geçtiği halde girilmedi.", $"/tedarikciler/{m.CarrierSupplierId}", m.FirstDate));
 
         return alerts.OrderBy(a => a.Severity == "danger" ? 0 : 1).ThenBy(a => a.Date).ToList();
     }

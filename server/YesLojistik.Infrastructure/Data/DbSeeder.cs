@@ -194,6 +194,10 @@ public static class DbSeeder
             }
             vehicle.Km = Math.Max(vehicle.Km, km);
         }
+        // Taşeron ödemeleri ve servisteki vadeli (açık hesap) bakım gideri
+        db.SupplierPayments.Add(new SupplierPayment { SupplierId = suppliers[0].Id, Date = today.AddDays(-20), Amount = 30_000, Method = PaymentMethod.BankTransfer, Description = "Havale" });
+        db.SupplierPayments.Add(new SupplierPayment { SupplierId = suppliers[0].Id, Date = today.AddDays(-2), Amount = 5_000, Method = PaymentMethod.Cash, TripId = trips[6].Id, Description = "Yükleme avansı" });
+        db.Expenses.Add(new Expense { Category = ExpenseCategory.Maintenance, Amount = 12_400, Date = today.AddDays(-35), VehicleId = vehicles[2].Id, SupplierId = suppliers[2].Id, IsOnCredit = true, Description = "Fren balatası ve bakım (açık hesap)" });
         // Şoför avansları
         foreach (var (driver, i) in drivers.Select((d, i) => (d, i)))
             db.Expenses.Add(new Expense { Category = ExpenseCategory.DriverAdvance, Amount = 2_000 + i * 500, Date = today.AddDays(-7 - i), DriverId = driver.Id, Description = "Yol avansı" });

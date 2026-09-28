@@ -38,10 +38,12 @@ public record PaymentQuery : ListQuery
 
 public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId,
     string? VehiclePlate, int? TripId, string? TripLabel, string? Description,
-    int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null);
+    int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null,
+    int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
-    string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null);
+    string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null, int? SupplierId = null,
+    bool IsOnCredit = false);
 
 public record ExpenseQuery : ListQuery
 {
@@ -49,8 +51,31 @@ public record ExpenseQuery : ListQuery
     public int? VehicleId { get; init; }
     public int? TripId { get; init; }
     public int? DriverId { get; init; }
+    public int? SupplierId { get; init; }
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
 }
 
 public record InvoiceEmailRequest(string? To, string? Message);
+
+public record SupplierPaymentDto(int Id, int SupplierId, string SupplierTitle, DateOnly Date, decimal Amount, PaymentMethod Method,
+    int? TripId, string? TripLabel, string? Description);
+
+public record SupplierPaymentSaveRequest(int SupplierId, DateOnly Date, decimal Amount, PaymentMethod Method, int? TripId, string? Description);
+
+public record SupplierPaymentQuery : ListQuery
+{
+    public int? SupplierId { get; init; }
+    public DateOnly? From { get; init; }
+    public DateOnly? To { get; init; }
+}
+
+/// <summary>Tedarikçi cari özeti: Borç = devir + sefer maliyetleri + vadeli giderler; Alacak = ödemeler.</summary>
+public record SupplierSummaryDto(SupplierDto Supplier, decimal TotalDebit, decimal TotalCredit, decimal Balance, decimal OverdueAmount,
+    int TripCount, int MissingInvoiceCount);
+
+public record PayableAgingRow(int SupplierId, string Supplier, decimal NotDue, decimal Days1To30, decimal Days31To60,
+    decimal Days61To90, decimal Over90, decimal Total);
+
+public record SupplierReportRow(int SupplierId, string Supplier, int TripCount, decimal TripCost, decimal CreditExpenses,
+    decimal Paid, decimal Balance);

@@ -11,7 +11,7 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
   const target = `Takip Testi ${Date.now().toString().slice(-5)}`
   const trip = await (await office.post('/api/trips', { data: {
     customerId: customer.id, vehicleId: vehicle.id, driverId: driver.id, loadingAddress: 'İstanbul / Tuzla',
-    deliveryAddress: target, loadingDate: new Date().toISOString().slice(0, 10), vehicleCost: 18000, salePrice: 25000 } })).json()
+    deliveryAddress: target, loadingDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }), vehicleCost: 18000, salePrice: 25000 } })).json()
   for (const status of ['Loaded', 'OnRoad']) expect((await office.post(`/api/trips/${trip.id}/status`, { data: { status } })).ok()).toBeTruthy()
   const mobile = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
   const token = (await (await mobile.post('/api/auth/token', { data: { email: 'sofor@yeslojistik.com', password: 'Sofor123!' } })).json()).accessToken

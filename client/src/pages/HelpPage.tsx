@@ -53,6 +53,9 @@ export default function HelpPage() {
             <><L to="/araclar">Araçlar</L> sayfasında aracın <b>Sahiplik</b> alanını “Kiralık” yapıp araç sahibini seçin. Dorse plakasını da girebilirsiniz.</>,
             <>Bu araçla sefer açınca form “Taşeron” bölümünü gösterir; <b>Taşerona Ödenecek</b> tutarı araç sahibine borç yazılır. Şoför listede yoksa <b>+ Hızlı şoför ekle</b> deyin.</>,
             <>Borç, sefer <b>Yüklendi</b> olduğunda oluşur; planlanmış ve iptal edilen sefer borç doğurmaz. Tedarikçinin sayfasında toplam borcu ve seferleri görürsünüz.</>,
+            <>Ödeme yapınca tedarikçi sayfasında <b>Ödeme Yap</b> deyin ya da <L to="/odemeler">Ödemeler</L> sayfasını kullanın. Ödeme en eski borçtan başlayarak kapatır; bir sefere bağlarsanız önce o seferi kapatır.</>,
+            <>Veresiye yakıt, tamircide açık hesap gibi giderleri <L to="/giderler">Giderler</L>'de tedarikçiyi seçip <b>Vadeli</b> işaretleyerek girin; borca eklenir. Fişin fotoğrafını da ekleyebilirsiniz.</>,
+            <><b>Hesap Ekstresi</b> düğmesi mutabakat için PDF verir. Vadesi geçen borçlar ve 15 günü geçtiği halde faturası gelmeyen seferler ana sayfadaki uyarılarda çıkar; <L to="/raporlar">Raporlar</L>'da <b>Borç Yaşlandırma</b> ve <b>Tedarikçiler</b> sekmeleri var.</>,
           ]} />
         </Section>
 

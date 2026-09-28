@@ -15,7 +15,7 @@ internal static class AuditTrail
         nameof(User.PasswordHash), nameof(User.LastLoginAt),
         nameof(Vehicle.LastLatitude), nameof(Vehicle.LastLongitude), nameof(Vehicle.LastSpeedKmh), nameof(Vehicle.LastLocationAt),
         nameof(Trip.TrackingToken), nameof(CompanySettings.LogoDataUrl), nameof(CompanySettings.LastDigestDate), nameof(CompanySettings.LastBackupAt),
-        nameof(TripAttachment.StoragePath),
+        nameof(TripAttachment.StoragePath), nameof(Expense.ReceiptPath), nameof(Expense.ReceiptContentType),
     ];
 
     private static readonly Dictionary<string, string> Names = new()
@@ -33,7 +33,7 @@ internal static class AuditTrail
         ["CargoType"] = "Yük cinsi", ["CargoWeightKg"] = "Ağırlık (kg)", ["CargoQuantity"] = "Miktar", ["CargoUnit"] = "Birim",
         ["LoadingCity"] = "Yükleme ili", ["DeliveryCity"] = "Teslim ili", ["LoadingContact"] = "Yüklemede yetkili", ["DeliveryContact"] = "Teslimde yetkili",
         ["CarrierSupplierId"] = "Taşeron", ["CarrierInvoiceNo"] = "Taşeron fatura no", ["CarrierInvoiceDate"] = "Taşeron fatura tarihi",
-        ["ReceivedBy"] = "Teslim alan", ["DeliveredAt"] = "Teslim anı", ["IsEInvoiceUser"] = "e-Fatura mükellefi", ["EInvoiceAlias"] = "PK etiketi",
+        ["ReceivedBy"] = "Teslim alan", ["IsOnCredit"] = "Vadeli", ["TripId"] = "Sefer", ["DeliveredAt"] = "Teslim anı", ["IsEInvoiceUser"] = "e-Fatura mükellefi", ["EInvoiceAlias"] = "PK etiketi",
         ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
     };
 
@@ -74,6 +74,7 @@ internal static class AuditTrail
         Vehicle v => v.Plate,
         Driver d => d.FullName,
         Supplier s => s.Title,
+        SupplierPayment sp => $"{sp.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ödeme ({sp.Date:dd.MM.yyyy})",
         Payment p => $"{p.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({p.Date:dd.MM.yyyy})",
         Expense x => $"{EnumLabel(x.Category)} {x.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL",
         User u => u.Email,

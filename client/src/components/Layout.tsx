@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import {
-  Handshake,
+  Handshake, HandCoins,
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
   UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle,
 } from 'lucide-react'
@@ -23,6 +23,7 @@ const nav: { to: string; label: string; icon: typeof Home; perm?: Permission }[]
   { to: '/tedarikciler', label: 'Tedarikçiler', icon: Handshake },
   { to: '/faturalar', label: 'Faturalar', icon: FileText },
   { to: '/tahsilatlar', label: 'Tahsilatlar', icon: Wallet },
+  { to: '/odemeler', label: 'Ödemeler', icon: HandCoins },
   { to: '/soforler', label: 'Şoförler', icon: IdCard },
   { to: '/giderler', label: 'Giderler', icon: Receipt },
   { to: '/raporlar', label: 'Raporlar', icon: BarChart3, perm: 'accounting' },

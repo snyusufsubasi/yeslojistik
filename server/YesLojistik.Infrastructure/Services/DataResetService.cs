@@ -16,7 +16,7 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
     // Silme sırası yabancı anahtarlara göre: önce bağımlı tablolar.
     private static readonly string[] Tables =
     [
-        "vehicle_locations", "trip_events", "trip_attachments", "payments", "invoice_lines", "expenses", "trips", "invoices",
+        "vehicle_locations", "trip_events", "trip_attachments", "payments", "supplier_payments", "invoice_lines", "expenses", "trips", "invoices",
         "vehicles", "drivers", "customers", "suppliers",
     ];
 

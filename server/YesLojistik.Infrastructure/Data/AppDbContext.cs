@@ -25,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<TripEvent> TripEvents => Set<TripEvent>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -196,6 +197,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Description).HasMaxLength(500);
             e.HasOne(x => x.Vehicle).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Trip).WithMany(t => t.Expenses).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.ReceiptPath).HasMaxLength(300);
+            e.Property(x => x.ReceiptContentType).HasMaxLength(100);
             e.HasIndex(x => x.Date);
         });
         b.Entity<StoredFile>(e =>
@@ -203,6 +207,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Path).HasMaxLength(300);
             e.Property(x => x.ContentType).HasMaxLength(100);
             e.HasIndex(x => x.Path).IsUnique();
+        });
+        b.Entity<SupplierPayment>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Trip).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => x.Date);
         });
         b.Entity<CompanySettings>(e =>
         {

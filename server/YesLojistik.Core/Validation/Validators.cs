@@ -225,6 +225,17 @@ public class ExpenseSaveRequestValidator : AbstractValidator<ExpenseSaveRequest>
     }
 }
 
+public class SupplierPaymentSaveRequestValidator : AbstractValidator<SupplierPaymentSaveRequest>
+{
+    public SupplierPaymentSaveRequestValidator()
+    {
+        RuleFor(x => x.SupplierId).GreaterThan(0).WithMessage("Tedarikçi seçin.");
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+        RuleFor(x => x.Method).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(500);
+    }
+}
+
 public class CompanySettingsValidator : AbstractValidator<CompanySettingsDto>
 {
     public CompanySettingsValidator()

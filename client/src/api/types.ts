@@ -250,6 +250,10 @@ export interface Expense {
   driverName?: string | null
   liters?: number | null
   odometer?: number | null
+  supplierId?: number | null
+  supplierTitle?: string | null
+  isOnCredit?: boolean
+  hasReceipt?: boolean
 }
 
 export interface Dashboard {
@@ -268,6 +272,8 @@ export interface Dashboard {
   vehicles: Vehicle[]
   trend: { year: number; month: number; revenue: number; cost: number }[]
   setup: SetupStatus
+  payableTotal: number
+  payableOverdue: number
 }
 
 export interface Alert {
@@ -289,6 +295,8 @@ export interface MonthlySummaryRow {
   collected: number
   expenses: number
   netProfit: number
+  carrierCost: number
+  carrierPaid: number
 }
 
 export interface TripProfitRow {
@@ -478,4 +486,47 @@ export interface SetupStatus {
   lastBackupAt?: string | null
   sampleDataCleared: boolean
   companyDetails: boolean
+}
+
+export interface SupplierPayment {
+  id: number
+  supplierId: number
+  supplierTitle: string
+  date: string
+  amount: number
+  method: PaymentMethod
+  tripId?: number | null
+  tripLabel?: string | null
+  description?: string | null
+}
+
+export interface SupplierSummary {
+  supplier: Supplier
+  totalDebit: number
+  totalCredit: number
+  balance: number
+  overdueAmount: number
+  tripCount: number
+  missingInvoiceCount: number
+}
+
+export interface PayableAgingRow {
+  supplierId: number
+  supplier: string
+  notDue: number
+  days1To30: number
+  days31To60: number
+  days61To90: number
+  over90: number
+  total: number
+}
+
+export interface SupplierReportRow {
+  supplierId: number
+  supplier: string
+  tripCount: number
+  tripCost: number
+  creditExpenses: number
+  paid: number
+  balance: number
 }

@@ -10,7 +10,7 @@ namespace YesLojistik.Api.Controllers;
 [ApiController]
 [Route("api/reports")]
 [Authorize(Policy = Policies.Accounting)]
-public class ReportsController(ReportService reports) : ControllerBase
+public class ReportsController(ReportService reports, PayableService payables) : ControllerBase
 {
     private static readonly string[] Months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 
@@ -44,6 +44,8 @@ public class ReportsController(ReportService reports) : ControllerBase
             new("Sefer Cirosu", r => r.TripRevenue, ExcelExporter.MoneyFormat),
             new("Araç Maliyeti", r => r.VehicleCost, ExcelExporter.MoneyFormat),
             new("Giderler", r => r.Expenses, ExcelExporter.MoneyFormat),
+            new("Taşeron Maliyeti", r => r.CarrierCost, ExcelExporter.MoneyFormat),
+            new("Taşeron Ödemeleri", r => r.CarrierPaid, ExcelExporter.MoneyFormat),
             new("Net Kâr", r => r.NetProfit, ExcelExporter.MoneyFormat),
             new("Faturalanan", r => r.Invoiced, ExcelExporter.MoneyFormat),
             new("Tahsil Edilen", r => r.Collected, ExcelExporter.MoneyFormat)), "aylik-ozet");
@@ -130,6 +132,37 @@ public class ReportsController(ReportService reports) : ControllerBase
             new("61-90 Gün", r => r.Days61To90, ExcelExporter.MoneyFormat),
             new("90+ Gün", r => r.Over90, ExcelExporter.MoneyFormat),
             new("Toplam", r => r.Total, ExcelExporter.MoneyFormat)), "alacak-yaslandirma");
+    }
+
+    /// <summary>Tedarikçi (taşeron) borç yaşlandırma.</summary>
+    [HttpGet("payables")]
+    public async Task<IActionResult> Payables([FromQuery] string? format, CancellationToken ct)
+    {
+        var rows = await payables.AgingAsync(ct);
+        if (format != "xlsx") return Ok(rows);
+        return FileResults.Excel(ExcelExporter.Export("Borç Yaşlandırma", rows,
+            new ExcelColumn<PayableAgingRow>("Tedarikçi", r => r.Supplier),
+            new("Vadesi Gelmemiş", r => r.NotDue, ExcelExporter.MoneyFormat),
+            new("1-30 Gün", r => r.Days1To30, ExcelExporter.MoneyFormat),
+            new("31-60 Gün", r => r.Days31To60, ExcelExporter.MoneyFormat),
+            new("61-90 Gün", r => r.Days61To90, ExcelExporter.MoneyFormat),
+            new("90+ Gün", r => r.Over90, ExcelExporter.MoneyFormat),
+            new("Toplam", r => r.Total, ExcelExporter.MoneyFormat)), "borc-yaslandirma");
+    }
+
+    /// <summary>Tedarikçi bazında sefer maliyeti, vadeli gider, ödenen ve bakiye (tüm zamanlar).</summary>
+    [HttpGet("suppliers")]
+    public async Task<IActionResult> Suppliers([FromQuery] string? format, CancellationToken ct)
+    {
+        var rows = await payables.ReportAsync(ct);
+        if (format != "xlsx") return Ok(rows);
+        return FileResults.Excel(ExcelExporter.Export("Tedarikçiler", rows,
+            new ExcelColumn<SupplierReportRow>("Tedarikçi", r => r.Supplier),
+            new("Sefer", r => r.TripCount),
+            new("Sefer Maliyeti", r => r.TripCost, ExcelExporter.MoneyFormat),
+            new("Vadeli Gider", r => r.CreditExpenses, ExcelExporter.MoneyFormat),
+            new("Ödenen", r => r.Paid, ExcelExporter.MoneyFormat),
+            new("Bakiye", r => r.Balance, ExcelExporter.MoneyFormat)), "tedarikci-raporu");
     }
 
     [HttpGet("expenses")]
