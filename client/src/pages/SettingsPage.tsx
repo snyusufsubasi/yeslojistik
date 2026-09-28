@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Building2, KeyRound, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Building2, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { get, post, put } from '../api/client'
 import type { CompanySettings, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
@@ -99,7 +99,10 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             <span className="label">Logo (fatura PDF'i için)</span>
             <div className="flex items-center gap-3">
               {logo ? <img src={logo} alt="Logo" className="h-12 max-w-40 rounded border border-slate-200 object-contain p-1" /> : <span className="text-sm text-slate-400">Logo yok</span>}
-              <input type="file" accept="image/png,image/jpeg" className="text-sm" onChange={(e) => onLogo(e.target.files?.[0])} />
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+                <Upload className="size-3.5" /> {logo ? 'Logoyu Değiştir' : 'Logo Seç'}
+                <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => onLogo(e.target.files?.[0])} />
+              </label>
               {logo && <Button type="button" size="sm" variant="ghost" onClick={() => setValue('logoDataUrl', null)}>Kaldır</Button>}
             </div>
             {errors.logoDataUrl && <span className="text-xs text-red-600">{errors.logoDataUrl.message}</span>}

@@ -196,6 +196,7 @@ export interface Dashboard {
   todayTrips: Trip[]
   recentInvoices: Invoice[]
   vehicles: Vehicle[]
+  trend: { year: number; month: number; revenue: number; cost: number }[]
 }
 
 export interface Alert {

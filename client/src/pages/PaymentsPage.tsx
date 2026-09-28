@@ -4,7 +4,7 @@ import { download } from '../api/client'
 import type { Payment } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
-import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select } from '../components/ui'
+import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
@@ -60,8 +60,8 @@ export default function PaymentsPage() {
         <div className="grid grid-cols-1 gap-2 border-b border-slate-100 p-3 sm:grid-cols-3">
           <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
-          <input className="input" type="date" aria-label="Başlangıç" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <input className="input" type="date" aria-label="Bitiş" value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
+          <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}

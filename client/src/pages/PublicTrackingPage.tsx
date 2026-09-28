@@ -8,6 +8,7 @@ import { Logo } from '../components/Logo'
 import { MapView } from '../components/MapView'
 import { Spinner } from '../components/ui'
 import { ago, date } from '../lib/format'
+import { usePageTitle } from '../lib/usePageTitle'
 
 const steps: { status: TripStatus; label: string }[] = [
   { status: 'Planned', label: 'Sefer planlandı' },
@@ -26,6 +27,7 @@ export default function PublicTrackingPage() {
     refetchInterval: 60_000,
     retry: false,
   })
+  usePageTitle('Sevkiyat Takibi')
   const current = data ? steps.findIndex((s) => s.status === data.status) : -1
 
   return (

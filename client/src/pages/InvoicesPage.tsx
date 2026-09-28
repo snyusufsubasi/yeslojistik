@@ -7,7 +7,7 @@ import type { CompanySettings, Invoice, InvoiceStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, IconButton, Modal, PageHeader, Select, Spinner } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, IconButton, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
@@ -73,8 +73,8 @@ export default function InvoicesPage() {
           <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" />
-          <input className="input" type="date" aria-label="Başlangıç" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <input className="input" type="date" aria-label="Bitiş" value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
+          <DateFilter label="Bitiş" value={to} onChange={setTo} />
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <input type="checkbox" checked={unpaid} onChange={(e) => setUnpaid(e.target.checked)} /> Sadece ödenmemiş
           </label>
@@ -82,6 +82,20 @@ export default function InvoicesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty="Fatura bulunamadı."
+          mobileCard={(i) => (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-navy-900">{i.invoiceNo}</span>
+                <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge>
+              </div>
+              <div className="text-sm">{i.customerTitle}</div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">{date(i.date)} · vade {date(i.dueDate)}</span>
+                <span className="font-medium">{tl2(i.total)}</span>
+              </div>
+              {i.remaining > 0 && <div className="text-right text-xs text-red-600">Kalan {tl2(i.remaining)}</div>}
+            </div>
+          )}
           footer={data && data.items.length > 0 ? (
             <tr className="bg-slate-50 text-sm font-semibold">
               <td className="td" colSpan={4}>Sayfa toplamı</td>

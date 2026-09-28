@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Lock, Mail } from 'lucide-react'
 import { errorMessage } from '../api/client'
 import { Button } from '../components/ui'
+import { usePageTitle } from '../lib/usePageTitle'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../lib/auth'
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const from = (location.state as { from?: string } | null)?.from ?? '/'
+  usePageTitle('Giriş')
 
   if (user) return <Navigate to={from} replace />
 
@@ -53,6 +55,7 @@ export default function LoginPage() {
         </label>
         {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         <Button type="submit" className="w-full" loading={loading}>Giriş Yap</Button>
+        <p className="mt-6 text-center text-xs text-slate-400">Şifrenizi unuttuysanız yöneticinizden sıfırlamasını isteyin.</p>
       </form>
     </div>
   )

@@ -28,14 +28,26 @@ interface Props<T> {
   empty?: ReactNode
   footer?: ReactNode
   rowClassName?: (row: T) => string | undefined
+  /** Verilirse telefonda (sm altı) tablo yerine bu kartlar gösterilir. */
+  mobileCard?: (row: T) => ReactNode
 }
 
 export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort, desc, onSort, page = 1, pageSize = 20,
-  total, onPage, empty, footer, rowClassName }: Props<T>) {
+  total, onPage, empty, footer, rowClassName, mobileCard }: Props<T>) {
   const pages = total !== undefined ? Math.max(1, Math.ceil(total / pageSize)) : 1
   return (
     <div>
-      <div className="overflow-x-auto">
+      {mobileCard && rows && rows.length > 0 && (
+        <ul className={clsx('divide-y divide-slate-100 sm:hidden', loading && 'opacity-50')}>
+          {rows.map((row) => (
+            <li key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={clsx('px-4 py-3', onRowClick && 'cursor-pointer active:bg-slate-50')}>
+              {mobileCard(row)}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className={clsx('overflow-x-auto', mobileCard && 'hidden sm:block')}>
         <table className="w-full border-collapse">
           <thead>
             <tr>

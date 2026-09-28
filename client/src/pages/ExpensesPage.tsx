@@ -8,7 +8,7 @@ import { Download, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
 import { download, get } from '../api/client'
 import type { Expense, ExpenseCategory, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { date, tl2, todayIso } from '../lib/format'
@@ -82,8 +82,8 @@ export default function ExpensesPage() {
           <Select aria-label="Kategori" value={category} onChange={setCategory} options={options(expenseCategoryLabel)} placeholder="Tüm kategoriler" />
           <Select aria-label="Araç" value={vehicleId} onChange={setVehicleId} placeholder="Tüm araçlar"
             options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
-          <input className="input" type="date" aria-label="Başlangıç" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <input className="input" type="date" aria-label="Bitiş" value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
+          <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(e) => e.id} onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}

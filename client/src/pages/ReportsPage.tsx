@@ -5,7 +5,7 @@ import { BarChart3, Download } from 'lucide-react'
 import { download, get } from '../api/client'
 import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, MonthlySummaryRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { Button, Card, PageHeader, Select, Spinner, Tabs } from '../components/ui'
+import { Button, Card, PageHeader, Select, Spinner, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
@@ -43,8 +43,8 @@ export default function ReportsPage() {
           <div className="flex gap-2 pb-2">
             {tab === 'monthly' && <Select aria-label="Yıl" className="w-28" value={year} onChange={(v) => v && setYear(v)} options={years.map((y) => ({ value: y, label: String(y) }))} />}
             {usesRange && <>
-              <input className="input w-40" type="date" aria-label="Başlangıç" value={from} onChange={(e) => setFrom(e.target.value)} />
-              <input className="input w-40" type="date" aria-label="Bitiş" value={to} onChange={(e) => setTo(e.target.value)} />
+              <DateFilter label="Başlangıç" className="w-40" value={from} onChange={setFrom} />
+              <DateFilter label="Bitiş" className="w-40" value={to} onChange={setTo} />
             </>}
           </div>
         </div>
@@ -90,7 +90,7 @@ function Monthly({ year }: { year: number }) {
     { key: 'rev', header: 'Sefer Cirosu', align: 'right', render: (r) => tl(r.tripRevenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'exp', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.netProfit)}</span> },
+    { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : r.netProfit > 0 ? 'font-medium text-emerald-700' : 'text-slate-400'}>{tl(r.netProfit)}</span> },
     { key: 'inv', header: 'Faturalanan', align: 'right', render: (r) => tl(r.invoiced) },
     { key: 'col', header: 'Tahsil Edilen', align: 'right', render: (r) => tl(r.collected) },
   ]

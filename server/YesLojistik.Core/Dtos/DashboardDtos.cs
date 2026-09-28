@@ -3,7 +3,11 @@ namespace YesLojistik.Core.Dtos;
 public record DashboardDto(
     int MonthTripCount, int MonthDeliveredCount, int ActiveTripCount, int ReceivableInvoiceCount, decimal ReceivableTotal,
     int VehicleCount, int VehiclesOnRoad, int PlannedTripCount, decimal MonthRevenue, decimal MonthExpenses,
-    IReadOnlyList<TripDto> TodayTrips, IReadOnlyList<InvoiceDto> RecentInvoices, IReadOnlyList<VehicleDto> Vehicles);
+    IReadOnlyList<TripDto> TodayTrips, IReadOnlyList<InvoiceDto> RecentInvoices, IReadOnlyList<VehicleDto> Vehicles,
+    IReadOnlyList<MonthTrendRow> Trend);
+
+/// <summary>Ana sayfadaki son 6 ay grafiği: sefer cirosu ve maliyet (araç maliyeti + giderler).</summary>
+public record MonthTrendRow(int Year, int Month, decimal Revenue, decimal Cost);
 
 public record AlertDto(string Type, string Severity, string Title, string Message, string Link, DateOnly? Date);
 

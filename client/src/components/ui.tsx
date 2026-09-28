@@ -2,6 +2,7 @@ import { useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Loader2, X } from 'lucide-react'
 import type { Tone } from '../lib/labels'
+import { usePageTitle } from '../lib/usePageTitle'
 
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
 
@@ -72,6 +73,7 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+  usePageTitle(title)
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -185,5 +187,15 @@ export function StatCard({ title, value, sub, icon, color, onClick }:
         {sub && <div className="truncate text-xs text-white/80">{sub}</div>}
       </div>
     </button>
+  )
+}
+
+/** Filtre çubuklarındaki tarih kutusu: üst kenarında küçük etiket ("Başlangıç", "Bitiş"). */
+export function DateFilter({ label, value, onChange, className }: { label: string; value: string; onChange: (v: string) => void; className?: string }) {
+  return (
+    <label className={clsx('relative block', className)}>
+      <span className="pointer-events-none absolute -top-2 left-2.5 z-10 bg-white px-1 text-[10px] font-medium leading-none text-slate-500">{label}</span>
+      <input className="input" type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
+    </label>
   )
 }

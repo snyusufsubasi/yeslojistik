@@ -38,8 +38,25 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
                 v.DefaultDriver != null ? v.DefaultDriver.FullName : null))
             .ToListAsync(ct);
 
+        var trendStart = monthStart.AddMonths(-5);
+        var tripTrend = await db.Trips.Where(t => t.LoadingDate >= trendStart && t.LoadingDate <= monthEnd && t.Status != TripStatus.Cancelled)
+            .GroupBy(t => new { t.LoadingDate.Year, t.LoadingDate.Month })
+            .Select(g => new { g.Key.Year, g.Key.Month, Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost) })
+            .ToListAsync(ct);
+        var expenseTrend = await db.Expenses.Where(e => e.Date >= trendStart && e.Date <= monthEnd)
+            .GroupBy(e => new { e.Date.Year, e.Date.Month })
+            .Select(g => new { g.Key.Year, g.Key.Month, Sum = g.Sum(e => e.Amount) })
+            .ToListAsync(ct);
+        var trend = Enumerable.Range(0, 6).Select(i =>
+        {
+            var m = trendStart.AddMonths(i);
+            var t = tripTrend.FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month);
+            var e = expenseTrend.FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month)?.Sum ?? 0;
+            return new MonthTrendRow(m.Year, m.Month, t?.Revenue ?? 0, (t?.Cost ?? 0) + e);
+        }).ToList();
+
         return new DashboardDto(monthTripCount, monthDelivered, activeCount, open.Count, open.Sum(b => b.Remaining),
             vehicles.Count, vehicles.Count(v => v.Status == VehicleStatus.OnRoad), plannedCount, monthRevenue, monthExpenses,
-            todayTrips, recentInvoices, vehicles);
+            todayTrips, recentInvoices, vehicles, trend);
     }
 }

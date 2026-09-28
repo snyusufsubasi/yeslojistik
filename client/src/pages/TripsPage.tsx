@@ -4,7 +4,7 @@ import { Download, Pencil, Plus, Trash2, Truck } from 'lucide-react'
 import { download, post } from '../api/client'
 import type { Trip, TripStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { TripForm } from '../components/TripForm'
 import { useAuth } from '../lib/auth'
 import { date, tl } from '../lib/format'
@@ -43,8 +43,8 @@ export default function TripsPage() {
 
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'loadingDate', render: (t) => date(t.loadingDate) },
-    { key: 'customer', header: 'Müşteri', sortKey: 'customer', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
-    { key: 'route', header: 'Güzergah', render: (t) => <span>{t.loadingAddress} <span className="text-slate-400">→</span> {t.deliveryAddress}</span> },
+    { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
+    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{t.loadingAddress} <span className="text-slate-400">→</span> {t.deliveryAddress}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span>{t.vehiclePlate}<span className="block text-xs text-slate-500">{t.driverName}</span></span> },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'price', header: 'Tutar', sortKey: 'salePrice', align: 'right', render: (t) => tl(t.salePrice) },
@@ -80,8 +80,8 @@ export default function TripsPage() {
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
           <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
-          <input className="input" type="date" aria-label="Başlangıç tarihi" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <input className="input" type="date" aria-label="Bitiş tarihi" value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
+          <DateFilter label="Bitiş" value={to} onChange={setTo} />
           <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
             options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }]} />
         </div>
@@ -89,7 +89,21 @@ export default function TripsPage() {
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
-          empty="Bu kriterlere uygun sefer yok." />
+          empty="Bu kriterlere uygun sefer yok."
+          mobileCard={(t) => (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-slate-500">{date(t.loadingDate)} · {t.vehiclePlate}</span>
+                <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>
+              </div>
+              <div className="font-semibold text-navy-900">{t.customerTitle}</div>
+              <div className="text-sm">{t.loadingAddress} <span className="text-slate-400">→</span> {t.deliveryAddress}</div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">{t.driverName}</span>
+                <span><span className="font-medium">{tl(t.salePrice)}</span> <span className={t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}>({tl(t.profit)})</span></span>
+              </div>
+            </div>
+          )} />
       </Card>
 
       {editing && <TripForm trip={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
