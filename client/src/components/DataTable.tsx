@@ -85,15 +85,15 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
       {!rows && loading && <Spinner />}
       {rows && rows.length === 0 && <Empty>{empty}</Empty>}
       {onPage && total !== undefined && total > pageSize && (
-        <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-slate-500">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-slate-600">
           <span>Toplam {total} kayıt</span>
           <div className="flex items-center gap-1">
-            <button className="rounded p-1 hover:bg-slate-100 disabled:opacity-30" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
-              <ChevronLeft className="size-4" />
+            <button className="rounded-md border border-slate-200 p-1.5 hover:bg-slate-100 disabled:opacity-30" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
+              <ChevronLeft className="size-5" />
             </button>
-            <span>{page} / {pages}</span>
-            <button className="rounded p-1 hover:bg-slate-100 disabled:opacity-30" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
-              <ChevronRight className="size-4" />
+            <span>Sayfa {page} / {pages}</span>
+            <button className="rounded-md border border-slate-200 p-1.5 hover:bg-slate-100 disabled:opacity-30" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
+              <ChevronRight className="size-5" />
             </button>
           </div>
         </div>

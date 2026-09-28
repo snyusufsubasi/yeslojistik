@@ -98,14 +98,14 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
           <div className="sm:col-span-2">
             <span className="label">Logo (fatura PDF'i için)</span>
             <div className="flex items-center gap-3">
-              {logo ? <img src={logo} alt="Logo" className="h-12 max-w-40 rounded border border-slate-200 object-contain p-1" /> : <span className="text-sm text-slate-400">Logo yok</span>}
-              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+              {logo ? <img src={logo} alt="Logo" className="h-12 max-w-40 rounded border border-slate-200 object-contain p-1" /> : <span className="text-sm text-slate-500">Logo yok</span>}
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-700 shadow-sm hover:bg-slate-50">
                 <Upload className="size-3.5" /> {logo ? 'Logoyu Değiştir' : 'Logo Seç'}
                 <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => onLogo(e.target.files?.[0])} />
               </label>
               {logo && <Button type="button" size="sm" variant="ghost" onClick={() => setValue('logoDataUrl', null)}>Kaldır</Button>}
             </div>
-            {errors.logoDataUrl && <span className="text-xs text-red-600">{errors.logoDataUrl.message}</span>}
+            {errors.logoDataUrl && <span className="text-[13px] text-red-600">{errors.logoDataUrl.message}</span>}
           </div>
         </div>
       </Card>
@@ -148,7 +148,7 @@ function UsersTab() {
   const cols: Column<User>[] = [
     { key: 'n', header: 'Ad Soyad', render: (u) => <span className="font-medium">{u.fullName}</span> },
     { key: 'e', header: 'E-posta', render: (u) => u.email },
-    { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-xs text-slate-500">{u.driverName}</span>}</> },
+    { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-[13px] text-slate-500">{u.driverName}</span>}</> },
     { key: 'a', header: 'Durum', render: (u) => <Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge> },
     { key: 'c', header: 'Oluşturma', render: (u) => date(u.createdAt) },
     {
@@ -164,7 +164,7 @@ function UsersTab() {
     <Card title="Kullanıcılar" icon={<Users className="size-4" />} bodyClassName="p-0"
       actions={<Button size="sm" icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Kullanıcı</Button>}>
       <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(u) => u.id} />
-      <div className="border-t border-slate-100 p-3 text-xs text-slate-500">
+      <div className="border-t border-slate-100 p-3 text-[13px] text-slate-500">
         <b>Yönetici:</b> her şey · <b>Operasyon:</b> sefer, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
         <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi seferlerini görür, durum ve fotoğraf gönderir.
       </div>

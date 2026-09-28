@@ -44,7 +44,7 @@ export default function PublicTrackingPage() {
         {data && (
           <>
             <div className="card p-4">
-              <div className="text-xs text-slate-500">Sayın {data.customerTitle}</div>
+              <div className="text-[13px] text-slate-500">Sayın {data.customerTitle}</div>
               <h1 className="flex items-center gap-2 text-lg font-bold text-navy-900">
                 <Truck className="size-5 text-brand-600" /> {data.loadingAddress} → {data.deliveryAddress}
               </h1>
@@ -56,14 +56,14 @@ export default function PublicTrackingPage() {
               {steps.map((s, i) => (
                 <li key={s.status} className="flex items-center gap-3">
                   {i <= current ? <CheckCircle2 className="size-6 text-emerald-600" /> : <Circle className="size-6 text-slate-300" />}
-                  <span className={clsx('text-sm', i === current ? 'font-semibold text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-400')}>{s.label}</span>
+                  <span className={clsx('text-sm', i === current ? 'font-semibold text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>{s.label}</span>
                 </li>
               ))}
             </ol>
             {data.latitude != null && data.longitude != null && (
               <div className="card p-2">
                 <MapView className="h-80" markers={[{ id: 1, lat: data.latitude, lng: data.longitude, label: data.vehiclePlate, color: '#d97706' }]} />
-                <p className="flex items-center gap-1 px-2 pt-2 text-xs text-slate-500"><MapPin className="size-3" /> Son konum {ago(data.lastLocationAt)} alındı</p>
+                <p className="flex items-center gap-1 px-2 pt-2 text-[13px] text-slate-500"><MapPin className="size-3" /> Son konum {ago(data.lastLocationAt)} alındı</p>
               </div>
             )}
             <div className="text-center text-sm text-slate-500">

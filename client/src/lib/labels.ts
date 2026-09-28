@@ -8,13 +8,13 @@ export const tripStatusLabel: Record<TripStatus, string> = {
   Cancelled: 'İptal',
 }
 
-/** Duruma geçiş butonlarında kullanılan fiil. */
+/** Duruma geçiş düğmelerinde kullanılan ifade ("şu duruma getir"). */
 export const tripStatusAction: Record<TripStatus, string> = {
-  Planned: 'Planlandıya al',
-  Loaded: 'Yüklendi',
-  OnRoad: 'Yola Çıktı',
-  Delivered: 'Teslim Edildi',
-  Cancelled: 'İptal Et',
+  Planned: 'Planlandıya geri al',
+  Loaded: 'Yüklendi yap',
+  OnRoad: 'Yola çıktı yap',
+  Delivered: 'Teslim edildi yap',
+  Cancelled: 'Seferi iptal et',
 }
 
 export const vehicleStatusLabel: Record<VehicleStatus, string> = {

@@ -34,7 +34,7 @@ export default function PaymentsPage() {
   const columns: Column<Payment>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'date', render: (p) => date(p.date) },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', render: (p) => <span className="font-medium">{p.customerTitle}</span> },
-    { key: 'invoice', header: 'Fatura', render: (p) => p.invoiceNo ?? <span className="text-slate-400">Genel</span> },
+    { key: 'invoice', header: 'Fatura', render: (p) => p.invoiceNo ?? <span className="text-slate-500">Genel</span> },
     { key: 'method', header: 'Yöntem', sortKey: 'method', render: (p) => paymentMethodLabel[p.method] },
     { key: 'desc', header: 'Açıklama', render: (p) => p.description ?? '' },
     { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (p) => <span className="font-medium text-emerald-700">{tl2(p.amount)}</span> },
@@ -66,7 +66,7 @@ export default function PaymentsPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty="Tahsilat bulunamadı." />
+          page={page} total={data?.total} onPage={setPage} empty={debounced || customerId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz tahsilat yok. Ödeme gelince “Tahsilat Ekle” ile kaydedin."} />
       </Card>
       {editing && <PaymentForm payment={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Tahsilatı sil" loading={deleteMut.isPending} confirmText="Sil"

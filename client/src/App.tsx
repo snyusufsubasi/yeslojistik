@@ -18,6 +18,7 @@ const ExpensesPage = lazy(() => import('./pages/ExpensesPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const MapPage = lazy(() => import('./pages/MapPage'))
+const HelpPage = lazy(() => import('./pages/HelpPage'))
 const PublicTrackingPage = lazy(() => import('./pages/PublicTrackingPage'))
 
 function RequireAuth() {
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="giderler" element={<ExpensesPage />} />
           <Route path="raporlar" element={<Guard perm="accounting"><ReportsPage /></Guard>} />
           <Route path="ayarlar" element={<SettingsPage />} />
+          <Route path="yardim" element={<HelpPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

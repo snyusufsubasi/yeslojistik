@@ -11,7 +11,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
-import { date, tl2, todayIso } from '../lib/format'
+import { date, moneyHint, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { expenseCategoryLabel, options } from '../lib/labels'
 
@@ -87,7 +87,7 @@ export default function ExpensesPage() {
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(e) => e.id} onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty="Gider bulunamadı."
+          page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."}
           footer={data && data.items.length > 0 ? (
             <tr className="bg-slate-50 text-sm font-semibold"><td className="td" colSpan={5}>Sayfa toplamı</td><td className="td text-right">{tl2(pageTotal)}</td><td className="td" /></tr>
           ) : undefined} />
@@ -109,6 +109,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
       : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '' },
   })
   const vehicleId = useWatch({ control, name: 'vehicleId' })
+  const amount = useWatch({ control, name: 'amount' })
   const trips = useQuery({
     queryKey: ['trips', 'for-expense', vehicleId],
     queryFn: () => get<PagedResult<Trip>>('/trips', { vehicleId: vehicleId || undefined, pageSize: 100, sort: 'loadingDate', desc: true }),
@@ -127,7 +128,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
             {Object.entries(expenseCategoryLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </Field>
-        <Field label="Tutar (TL)" required error={errors.amount?.message}>
+        <Field label="Tutar (TL)" required error={errors.amount?.message} hint={moneyHint(amount)}>
           <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('amount', { valueAsNumber: true })} />
         </Field>
         <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>

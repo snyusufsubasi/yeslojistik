@@ -19,7 +19,7 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
   return (
     <button
       className={clsx('inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition disabled:cursor-not-allowed disabled:opacity-60',
-        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2 text-sm', variants[variant], className)}
+        size === 'sm' ? 'px-3 py-1.5 text-sm' : 'px-4 py-2 text-[15px]', variants[variant], className)}
       disabled={disabled || loading}
       {...rest}
     >
@@ -32,7 +32,7 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
 export function IconButton({ label, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
   return (
     <button title={label} aria-label={label}
-      className={clsx('inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40', className)}
+      className={clsx('inline-flex size-9 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40', className)}
       {...rest}>
       {children}
     </button>
@@ -51,7 +51,7 @@ const tones: Record<Tone, string> = {
 }
 
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={clsx('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', tones[tone])}>{children}</span>
+  return <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[13px] font-medium', tones[tone])}>{children}</span>
 }
 
 export function Card({ title, icon, actions, children, className, bodyClassName }:
@@ -60,7 +60,7 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
     <section className={clsx('card', className)}>
       {(title || actions) && (
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-navy-900">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-navy-900">
             {icon && <span className="text-brand-600">{icon}</span>}
             {title}
           </h2>
@@ -77,8 +77,8 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-bold text-navy-900">{title}</h1>
-        {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+        <h1 className="text-2xl font-bold text-navy-900">{title}</h1>
+        {subtitle && <p className="text-[15px] text-slate-600">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -91,8 +91,8 @@ export function Field({ label, error, required, children, className, hint }:
     <label className={clsx('block', className)}>
       <span className="label">{label}{required && <span className="text-red-500"> *</span>}</span>
       {children}
-      {error ? <span className="mt-1 block text-xs text-red-600">{error}</span>
-        : hint ? <span className="mt-1 block text-xs text-slate-400">{hint}</span> : null}
+      {error ? <span className="mt-1 block text-sm text-red-700">{error}</span>
+        : hint ? <span className="mt-1 block text-[13px] text-slate-500">{hint}</span> : null}
     </label>
   )
 }
@@ -142,7 +142,7 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function Empty({ children = 'Kayıt bulunamadı.' }: { children?: ReactNode }) {
-  return <div className="py-10 text-center text-sm text-slate-400">{children}</div>
+  return <div className="px-4 py-10 text-center text-[15px] text-slate-500">{children}</div>
 }
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
@@ -150,8 +150,8 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { valu
     <div className="-mb-px flex gap-1 overflow-x-auto border-b border-slate-200">
       {tabs.map((t) => (
         <button key={t.value} onClick={() => onChange(t.value)}
-          className={clsx('whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition',
-            value === t.value ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800')}>
+          className={clsx('whitespace-nowrap border-b-2 px-3 py-2.5 text-[15px] font-medium transition',
+            value === t.value ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-600 hover:text-slate-900')}>
           {t.label}
         </button>
       ))}
@@ -184,7 +184,7 @@ export function StatCard({ title, value, sub, icon, color, onClick }:
       <div className="min-w-0">
         <div className="text-sm font-medium text-white/90">{title}</div>
         <div className="text-3xl font-bold leading-tight">{value}</div>
-        {sub && <div className="truncate text-xs text-white/80">{sub}</div>}
+        {sub && <div className="truncate text-[13px] text-white/80">{sub}</div>}
       </div>
     </button>
   )

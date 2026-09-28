@@ -6,6 +6,9 @@ export const tl = (v: number | null | undefined) => `${money.format(v ?? 0)} TL`
 /** 45000 → "45.000,00 TL" */
 export const tl2 = (v: number | null | undefined) => `${money2.format(v ?? 0)} TL`
 
+/** Form kutusundaki sayıyı okunur tutara çevirir; boş/geçersizse undefined (ör. 11000 → "= 11.000 TL"). */
+export const moneyHint = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 ? `= ${tl2(v)}` : undefined
+
 /** "2026-09-06" → "06.09.2026" */
 export function date(v: string | null | undefined) {
   if (!v) return '—'

@@ -4,7 +4,10 @@ public record DashboardDto(
     int MonthTripCount, int MonthDeliveredCount, int ActiveTripCount, int ReceivableInvoiceCount, decimal ReceivableTotal,
     int VehicleCount, int VehiclesOnRoad, int PlannedTripCount, decimal MonthRevenue, decimal MonthExpenses,
     IReadOnlyList<TripDto> TodayTrips, IReadOnlyList<InvoiceDto> RecentInvoices, IReadOnlyList<VehicleDto> Vehicles,
-    IReadOnlyList<MonthTrendRow> Trend);
+    IReadOnlyList<MonthTrendRow> Trend, SetupStatus Setup);
+
+/// <summary>İlk kurulum kontrol listesi (ana sayfadaki "Başlarken" kartı).</summary>
+public record SetupStatus(bool CompanyInfo, int VehicleCount, int DriverCount, int CustomerCount, int TripCount, int UserCount);
 
 /// <summary>Ana sayfadaki son 6 ay grafiği: sefer cirosu ve maliyet (araç maliyeti + giderler).</summary>
 public record MonthTrendRow(int Year, int Month, decimal Revenue, decimal Cost);

@@ -48,12 +48,12 @@ export default function CustomersPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(c) => c.id}
           onRowClick={(c) => navigate(`/musteriler/${c.id}`)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty="Müşteri bulunamadı."
+          page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz müşteri yok. “Yeni Müşteri” ile ekleyin ya da listenizi “Excel'den Aktar” ile yükleyin."}
           mobileCard={(c) => (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate font-semibold text-navy-900">{c.title}</div>
-                <div className="truncate text-xs text-slate-500">{[c.phone, c.address].filter(Boolean).join(' · ') || `No ${c.customerNo}`}</div>
+                <div className="truncate text-[13px] text-slate-500">{[c.phone, c.address].filter(Boolean).join(' · ') || `No ${c.customerNo}`}</div>
               </div>
               <span className={c.balance > 0 ? 'shrink-0 font-semibold text-red-600' : 'shrink-0 text-slate-500'}>{tl(c.balance)}</span>
             </div>

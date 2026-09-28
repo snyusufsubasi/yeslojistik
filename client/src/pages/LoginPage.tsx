@@ -55,7 +55,7 @@ export default function LoginPage() {
         </label>
         {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         <Button type="submit" className="w-full" loading={loading}>Giriş Yap</Button>
-        <p className="mt-6 text-center text-xs text-slate-400">Şifrenizi unuttuysanız yöneticinizden sıfırlamasını isteyin.</p>
+        <p className="mt-6 text-center text-[13px] text-slate-500">Şifrenizi unuttuysanız yöneticinizden sıfırlamasını isteyin.</p>
       </form>
     </div>
   )

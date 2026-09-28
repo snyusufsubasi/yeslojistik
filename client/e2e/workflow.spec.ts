@@ -135,3 +135,13 @@ test('var olan seferin formu araç ve şoförü dolu açılır', async ({ page }
     await expect(dialog.locator(`select[name=${name}]`)).not.toHaveValue('')
   }
 })
+
+test('yardım sayfası ve kontrol listesi bağlantıları', async ({ page }) => {
+  await login(page)
+  await page.getByRole('link', { name: 'Yardım' }).click()
+  await expect(page.getByRole('heading', { name: 'Yardım' })).toBeVisible()
+  await page.getByText('Sık sorulanlar').click()
+  await expect(page.getByText('Şifremi unuttum.')).toBeVisible()
+  await page.getByRole('link', { name: 'Seferler → Yeni Sefer' }).click()
+  await expect(page.getByRole('dialog', { name: 'Sefer Oluştur' })).toBeVisible()
+})

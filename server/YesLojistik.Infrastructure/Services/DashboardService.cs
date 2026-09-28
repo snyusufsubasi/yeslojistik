@@ -7,6 +7,18 @@ namespace YesLojistik.Infrastructure.Services;
 
 public class DashboardService(AppDbContext db, BalanceService balances, TripService trips, InvoiceService invoices)
 {
+    private async Task<SetupStatus> SetupAsync(int vehicleCount, CancellationToken ct)
+    {
+        var s = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
+        return new SetupStatus(
+            !string.IsNullOrWhiteSpace(s.TaxNumber) && !string.IsNullOrWhiteSpace(s.Address),
+            vehicleCount,
+            await db.Drivers.CountAsync(ct),
+            await db.Customers.CountAsync(ct),
+            await db.Trips.CountAsync(ct),
+            await db.Users.CountAsync(ct));
+    }
+
     public async Task<DashboardDto> GetAsync(CancellationToken ct = default)
     {
         var today = Clock.Today;
@@ -57,6 +69,6 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
 
         return new DashboardDto(monthTripCount, monthDelivered, activeCount, open.Count, open.Sum(b => b.Remaining),
             vehicles.Count, vehicles.Count(v => v.Status == VehicleStatus.OnRoad), plannedCount, monthRevenue, monthExpenses,
-            todayTrips, recentInvoices, vehicles, trend);
+            todayTrips, recentInvoices, vehicles, trend, await SetupAsync(vehicles.Count, ct));
     }
 }

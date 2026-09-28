@@ -7,7 +7,7 @@ import type { CompanySettings, Invoice, InvoiceStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, IconButton, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
@@ -49,9 +49,8 @@ export default function InvoicesPage() {
     {
       key: 'actions', header: 'İşlemler', align: 'right', render: (i) => (
         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <IconButton label="Görüntüle" onClick={() => setViewing(i.id)}><Eye className="size-4" /></IconButton>
-          <IconButton label="PDF" onClick={() => pdf(i)}><Printer className="size-4" /></IconButton>
-          <IconButton label="PDF indir" onClick={() => download(`/invoices/${i.id}/pdf`, { download: true }, `${i.invoiceNo}.pdf`)}><Download className="size-4" /></IconButton>
+          <Button size="sm" variant="secondary" icon={<Eye className="size-4" />} onClick={() => setViewing(i.id)}>Aç</Button>
+          <Button size="sm" variant="secondary" icon={<Printer className="size-4" />} onClick={() => pdf(i)}>PDF</Button>
         </div>
       ),
     },
@@ -81,7 +80,10 @@ export default function InvoicesPage() {
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty="Fatura bulunamadı."
+          page={page} total={data?.total} onPage={setPage}
+          empty={debounced || status || customerId || unpaid || from || to
+            ? 'Bu filtrelere uyan fatura yok.'
+            : 'Henüz fatura yok. Seferler teslim edilince “Yeni Fatura” ile faturalayın.'}
           mobileCard={(i) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
@@ -93,7 +95,7 @@ export default function InvoicesPage() {
                 <span className="text-slate-500">{date(i.date)} · vade {date(i.dueDate)}</span>
                 <span className="font-medium">{tl2(i.total)}</span>
               </div>
-              {i.remaining > 0 && <div className="text-right text-xs text-red-600">Kalan {tl2(i.remaining)}</div>}
+              {i.remaining > 0 && <div className="text-right text-[13px] text-red-600">Kalan {tl2(i.remaining)}</div>}
             </div>
           )}
           footer={data && data.items.length > 0 ? (
@@ -169,7 +171,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
 }
 
 function KV({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div><div className="text-xs text-slate-500">{label}</div><div className="font-medium">{value}</div></div>
+  return <div><div className="text-[13px] text-slate-500">{label}</div><div className="font-medium">{value}</div></div>
 }
 
 function Sum({ label, value, bold, tone }: { label: string; value: number; bold?: boolean; tone?: string }) {
@@ -195,7 +197,7 @@ function EmailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => vo
         <label className="block"><span className="label">Ek mesaj (isteğe bağlı)</span>
           <textarea className="input min-h-20" value={message} onChange={(e) => setMessage(e.target.value)} />
         </label>
-        <p className="text-xs text-slate-500">Fatura PDF olarak eklenir; tutar, vade ve IBAN bilgisi e-postada yazılır.</p>
+        <p className="text-[13px] text-slate-500">Fatura PDF olarak eklenir; tutar, vade ve IBAN bilgisi e-postada yazılır.</p>
       </div>
     </Modal>
   )

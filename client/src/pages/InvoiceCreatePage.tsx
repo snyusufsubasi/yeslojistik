@@ -105,7 +105,7 @@ export default function InvoiceCreatePage() {
           </Card>
           <Card title="Ek Satırlar" actions={<Button size="sm" variant="secondary" icon={<Plus className="size-3.5" />} disabled={customerId === ''}
             onClick={() => setExtra((x) => [...x, { key: Date.now(), description: '', amount: '' }])}>Satır Ekle</Button>}>
-            {extra.length === 0 ? <p className="text-sm text-slate-400">Hamaliye, bekleme ücreti gibi ek kalemler ekleyebilirsiniz.</p> : (
+            {extra.length === 0 ? <p className="text-sm text-slate-500">Hamaliye, bekleme ücreti gibi ek kalemler ekleyebilirsiniz.</p> : (
               <div className="space-y-2">
                 {extra.map((l, i) => (
                   <div key={l.key} className="flex gap-2">
@@ -144,7 +144,7 @@ export default function InvoiceCreatePage() {
               <Button variant="secondary" className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === true} onClick={() => create.mutate(true)}>Taslak Kaydet</Button>
               <Button className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === false} onClick={() => create.mutate(false)}>Faturayı Kes</Button>
             </div>
-            <p className="text-xs text-slate-400">Bu fatura sistem içi kayıttır. Resmi e-Fatura/e-Arşiv mevcut muhasebe programınızdan kesilmeye devam eder.</p>
+            <p className="text-[13px] text-slate-500">Bu fatura sistem içi kayıttır. Resmi e-Fatura/e-Arşiv mevcut muhasebe programınızdan kesilmeye devam eder.</p>
           </div>
         </Card>
       </div>

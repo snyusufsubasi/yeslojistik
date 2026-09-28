@@ -99,9 +99,9 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
 function Amount({ label, value, tone, big, sub }: { label: string; value: number; tone: string; big?: boolean; sub?: string }) {
   return (
     <div className="card p-4">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
+      <div className="text-[13px] font-medium text-slate-500">{label}</div>
       <div className={`${big ? 'text-3xl' : 'text-2xl'} font-bold ${tone}`}>{tl2(value)}</div>
-      {sub && <div className="text-xs text-slate-500">{sub}</div>}
+      {sub && <div className="text-[13px] text-slate-500">{sub}</div>}
     </div>
   )
 }

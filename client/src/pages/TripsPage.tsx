@@ -44,12 +44,12 @@ export default function TripsPage() {
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'loadingDate', render: (t) => date(t.loadingDate) },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
-    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{t.loadingAddress} <span className="text-slate-400">→</span> {t.deliveryAddress}</span> },
-    { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span>{t.vehiclePlate}<span className="block text-xs text-slate-500">{t.driverName}</span></span> },
+    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{t.loadingAddress} <span className="text-slate-500">→</span> {t.deliveryAddress}</span> },
+    { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span>{t.vehiclePlate}<span className="block text-[13px] text-slate-500">{t.driverName}</span></span> },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'price', header: 'Tutar', sortKey: 'salePrice', align: 'right', render: (t) => tl(t.salePrice) },
     { key: 'profit', header: 'Kâr', align: 'right', render: (t) => <span className={t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(t.profit)}</span> },
-    { key: 'invoice', header: 'Fatura', render: (t) => t.invoiceNo ?? <span className="text-slate-400">—</span> },
+    { key: 'invoice', header: 'Fatura', render: (t) => t.invoiceNo ?? <span className="text-slate-500">—</span> },
   ]
   if (can('operations')) {
     columns.push({
@@ -57,6 +57,7 @@ export default function TripsPage() {
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           {t.nextStatuses.filter((s) => s !== 'Planned' && s !== 'Cancelled' && !(t.status === 'Delivered')).slice(0, 1).map((s) => (
             <Button key={s} size="sm" variant="secondary" loading={statusMut.isPending && statusMut.variables?.id === t.id}
+              title={`Durumu “${tripStatusLabel[s]}” yap`}
               onClick={() => statusMut.mutate({ id: t.id, s })}>{tripStatusAction[s]}</Button>
           ))}
           <IconButton label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
@@ -89,15 +90,17 @@ export default function TripsPage() {
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
-          empty="Bu kriterlere uygun sefer yok."
+          empty={debounced || status || customerId || from || to || invoiced
+            ? 'Bu filtrelere uyan sefer yok. Filtreleri temizlemeyi deneyin.'
+            : 'Henüz sefer yok. Sağ üstteki “Yeni Sefer” ile ilk seferi ekleyin.'}
           mobileCard={(t) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-slate-500">{date(t.loadingDate)} · {t.vehiclePlate}</span>
+                <span className="text-[13px] text-slate-500">{date(t.loadingDate)} · {t.vehiclePlate}</span>
                 <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>
               </div>
               <div className="font-semibold text-navy-900">{t.customerTitle}</div>
-              <div className="text-sm">{t.loadingAddress} <span className="text-slate-400">→</span> {t.deliveryAddress}</div>
+              <div className="text-sm">{t.loadingAddress} <span className="text-slate-500">→</span> {t.deliveryAddress}</div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-500">{t.driverName}</span>
                 <span><span className="font-medium">{tl(t.salePrice)}</span> <span className={t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}>({tl(t.profit)})</span></span>

@@ -58,7 +58,7 @@ export default function VehiclesPage() {
 
   const columns: Column<Vehicle>[] = [
     { key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-semibold">{v.plate}</span> },
-    { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-xs text-slate-500">{[v.brand, v.model].filter(Boolean).join(' ')}</span></> },
+    { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-[13px] text-slate-500">{[v.brand, v.model].filter(Boolean).join(' ')}</span></> },
     { key: 'year', header: 'Model', sortKey: 'modelYear', render: (v) => v.modelYear ?? '—' },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
@@ -92,7 +92,7 @@ export default function VehiclesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(v) => v.id}
           onRowClick={can('operations') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty="Araç bulunamadı." />
+          page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : "Henüz araç yok. “Yeni Araç” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
       </Card>
       {editing && <VehicleForm vehicle={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Aracı sil" loading={deleteMut.isPending} confirmText="Sil"
@@ -104,7 +104,7 @@ export default function VehiclesPage() {
 
 export function DueDate({ value, warn }: { value?: string | null; warn: number }) {
   const d = daysUntil(value)
-  if (d === null) return <span className="text-slate-400">—</span>
+  if (d === null) return <span className="text-slate-500">—</span>
   const cls = d < 0 ? 'font-medium text-red-600' : d <= warn ? 'font-medium text-amber-600' : ''
   return <span className={cls} title={d < 0 ? `${-d} gün geçti` : `${d} gün kaldı`}>{date(value)}</span>
 }

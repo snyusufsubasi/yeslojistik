@@ -197,6 +197,7 @@ export interface Dashboard {
   recentInvoices: Invoice[]
   vehicles: Vehicle[]
   trend: { year: number; month: number; revenue: number; cost: number }[]
+  setup: { companyInfo: boolean; vehicleCount: number; driverCount: number; customerCount: number; tripCount: number; userCount: number }
 }
 
 export interface Alert {

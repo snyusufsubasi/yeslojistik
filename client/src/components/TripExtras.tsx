@@ -52,7 +52,7 @@ export function TripAttachments({ trip }: { trip: Trip }) {
           onChange={(e) => e.target.files?.length && upload.mutate(e.target.files)} />
         <Button icon={<Upload className="size-4" />} loading={upload.isPending} onClick={() => input.current?.click()}>Dosya Yükle</Button>
       </div>
-      <p className="text-xs text-slate-400">JPEG, PNG, WEBP veya PDF · en fazla 10 MB. Şoförler teslim fotoğraflarını mobil uygulamadan yükler.</p>
+      <p className="text-[13px] text-slate-500">JPEG, PNG, WEBP veya PDF · en fazla 10 MB. Şoförler teslim fotoğraflarını mobil uygulamadan yükler.</p>
       {isLoading ? <Spinner /> : !data?.length ? <Empty>Bu sefere eklenmiş dosya yok.</Empty> : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {data.map((a) => (
@@ -64,9 +64,9 @@ export function TripAttachments({ trip }: { trip: Trip }) {
               </a>
               <div className="min-w-0 flex-1 text-sm">
                 <div className="truncate font-medium" title={a.fileName}>{a.fileName}</div>
-                <div className="text-xs text-slate-500">{attachmentKindLabel[a.kind]} · {fileSize(a.size)}</div>
-                {a.note && <div className="truncate text-xs text-slate-600">{a.note}</div>}
-                <div className="text-xs text-slate-400">{dateTime(a.createdAt)}{a.uploadedBy && ` · ${a.uploadedBy}`}</div>
+                <div className="text-[13px] text-slate-500">{attachmentKindLabel[a.kind]} · {fileSize(a.size)}</div>
+                {a.note && <div className="truncate text-[13px] text-slate-600">{a.note}</div>}
+                <div className="text-[13px] text-slate-500">{dateTime(a.createdAt)}{a.uploadedBy && ` · ${a.uploadedBy}`}</div>
               </div>
               <div className="flex flex-col">
                 <a href={`/api/attachments/${a.id}?download=true`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100" title="İndir" aria-label="İndir">
@@ -104,7 +104,7 @@ export function TripTracking({ trip }: { trip: Trip }) {
     <div className="space-y-4">
       <div className="rounded-lg bg-slate-50 p-3">
         <div className="mb-2 text-sm font-semibold text-navy-900">Müşteri takip linki</div>
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-[13px] text-slate-500">
           Müşteri bu linkle seferin durumunu ve araç yoldayken konumunu görür. Fiyat ve şoför bilgisi paylaşılmaz.
           Link teslimden 7 gün sonra kapanır.
         </p>
@@ -112,14 +112,14 @@ export function TripTracking({ trip }: { trip: Trip }) {
           <Button icon={<Link2 className="size-4" />} loading={create.isPending} onClick={() => create.mutate()}>Takip Linki Oluştur</Button>
         ) : (
           <div className="space-y-2">
-            <input className="input font-mono text-xs" readOnly value={link.url} onFocus={(e) => e.target.select()} aria-label="Takip linki" />
+            <input className="input font-mono text-[13px]" readOnly value={link.url} onFocus={(e) => e.target.select()} aria-label="Takip linki" />
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" icon={<Copy className="size-3.5" />} onClick={copy}>Kopyala</Button>
-              <a className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+              <a className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1.5 text-[13px] font-medium text-white hover:bg-emerald-700"
                 href={`https://wa.me/?text=${encodeURIComponent(message!)}`} target="_blank" rel="noreferrer">
                 <MessageCircle className="size-3.5" /> WhatsApp ile Gönder
               </a>
-              <a className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              <a className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
                 href={link.url} target="_blank" rel="noreferrer"><ExternalLink className="size-3.5" /> Önizle</a>
             </div>
           </div>
@@ -132,7 +132,7 @@ export function TripTracking({ trip }: { trip: Trip }) {
         ) : (
           <>
             <MapView className="h-72" route={points} markers={last ? [{ id: 'last', lat: last[0], lng: last[1], label: `${trip.vehiclePlate} · ${tripStatusLabel[trip.status]}`, color: '#d97706' }] : []} />
-            <p className="mt-1 text-xs text-slate-400">{points.length} konum · son kayıt {dateTime(route.data!.at(-1)!.recordedAt)}</p>
+            <p className="mt-1 text-[13px] text-slate-500">{points.length} konum · son kayıt {dateTime(route.data!.at(-1)!.recordedAt)}</p>
           </>
         )}
       </div>

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import {
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon,
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle,
 } from 'lucide-react'
 import { get } from '../api/client'
 import type { Alert } from '../api/types'
@@ -25,6 +25,7 @@ const nav: { to: string; label: string; icon: typeof Home; perm?: Permission }[]
   { to: '/giderler', label: 'Giderler', icon: Receipt },
   { to: '/raporlar', label: 'Raporlar', icon: BarChart3, perm: 'accounting' },
   { to: '/ayarlar', label: 'Ayarlar', icon: Settings },
+  { to: '/yardim', label: 'Yardım', icon: HelpCircle },
 ]
 
 export function Layout() {
@@ -47,14 +48,14 @@ export function Layout() {
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-2">
           {nav.filter((n) => !n.perm || can(n.perm)).map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'}
-              className={({ isActive }) => clsx('flex items-center gap-3 rounded-md px-3 py-2 text-sm transition',
-                isActive ? 'bg-brand-600 font-medium text-white' : 'text-blue-100/80 hover:bg-navy-800 hover:text-white')}>
+              className={({ isActive }) => clsx('flex items-center gap-3 rounded-md px-3 py-2.5 text-[15px] transition',
+                isActive ? 'bg-brand-600 font-medium text-white' : 'text-blue-50 hover:bg-navy-800 hover:text-white')}>
               <n.icon className="size-4" />
               {n.label}
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-white/10 p-3 text-xs text-blue-100/60">YES Lojistik · Nakliye Takip v1.0</div>
+        <div className="border-t border-white/10 p-3 text-[13px] text-blue-100/60">YES Lojistik · Nakliye Takip v1.0</div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -104,7 +105,7 @@ function AlertsBell() {
       {open && (
         <div className="fixed inset-x-2 top-14 z-50 max-h-[70vh] overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-96">
           <div className="border-b border-slate-100 px-4 py-2 text-sm font-semibold text-navy-900">Bildirimler</div>
-          {count === 0 && <div className="px-4 py-6 text-center text-sm text-slate-400">Her şey yolunda, bildirim yok.</div>}
+          {count === 0 && <div className="px-4 py-6 text-center text-sm text-slate-500">Her şey yolunda, bildirim yok.</div>}
           {data?.map((a, i) => (
             <Link key={i} to={a.link} onClick={() => setOpen(false)} className="flex gap-3 border-b border-slate-50 px-4 py-2.5 hover:bg-slate-50">
               <span className={clsx('mt-1.5 size-2 shrink-0 rounded-full', a.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400')} />
@@ -129,7 +130,7 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
         <UserCircle2 className="size-8 text-navy-800" />
         <span className="hidden text-left leading-tight sm:block">
           <span className="block text-sm font-medium text-slate-800">{name}</span>
-          <span className="block text-xs text-slate-500">{role}</span>
+          <span className="block text-[13px] text-slate-500">{role}</span>
         </span>
       </button>
       {open && (

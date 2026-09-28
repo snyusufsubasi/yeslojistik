@@ -3,10 +3,16 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
+
+/** Liste boşsa (ilk kurulum) nereden ekleneceğini gösterir. */
+function MissingHint({ show, to, text }: { show: boolean; to: string; text: string }) {
+  if (!show) return null
+  return <Link to={to} className="mt-1 block text-[13px] font-medium text-brand-700 underline underline-offset-2">{text}</Link>
+}
 import { post } from '../api/client'
 import type { Trip, TripStatus } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
-import { tl, todayIso } from '../lib/format'
+import { moneyHint, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 import { Badge, Button, Field, Modal, Tabs } from './ui'
@@ -89,9 +95,10 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
       <div className={tab === 'info' ? '' : 'hidden'}>
       {trip && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-3">
-          <span className="text-sm text-slate-600">Durum:</span>
+          <span className="text-sm text-slate-600">Şu anki durum:</span>
           <Badge tone={tripStatusTone[trip.status]}>{tripStatusLabel[trip.status]}</Badge>
           <div className="flex-1" />
+          {trip.nextStatuses.length > 0 && <span className="text-sm text-slate-600">Değiştir:</span>}
           {trip.nextStatuses.map((s) => (
             <Button key={s} size="sm" variant={s === 'Cancelled' ? 'danger' : s === 'Delivered' ? 'success' : 'secondary'}
               loading={statusMut.isPending && statusMut.variables === s} onClick={() => statusMut.mutate(s)}>
@@ -110,6 +117,7 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
           <Field label="Müşteri" required error={errors.customerId?.message}>
             <FormSelect control={control} name="customerId" disabled={invoiced}
               options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
+            <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
           </Field>
           <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
             <input className="input" placeholder="İstanbul / Sultanbeyli" {...register('loadingAddress')} />
@@ -133,20 +141,22 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
           <Field label="Araç" required error={errors.vehicleId?.message}>
             <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange}
               options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
+            <MissingHint show={vehicles.data?.length === 0} to="/araclar" text="Henüz araç yok — önce araç ekleyin →" />
           </Field>
           <Field label="Şoför" required error={errors.driverId?.message}>
             <FormSelect control={control} name="driverId" options={[
               ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
               ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
             ]} />
+            <MissingHint show={drivers.data?.length === 0} to="/soforler" text="Henüz şoför yok — önce şoför ekleyin →" />
           </Field>
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-2 text-sm font-semibold text-navy-900">Nakliye Fiyatları</div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Araç Maliyeti (TL)" error={errors.vehicleCost?.message}>
+              <Field label="Araç Maliyeti (TL)" error={errors.vehicleCost?.message} hint={moneyHint(cost)}>
                 <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('vehicleCost', { valueAsNumber: true })} />
               </Field>
-              <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message}>
+              <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message} hint={moneyHint(price)}>
                 <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" disabled={invoiced} {...register('salePrice', { valueAsNumber: true })} />
               </Field>
             </div>

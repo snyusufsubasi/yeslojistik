@@ -66,7 +66,7 @@ function useReport<T>(name: string, params: object) {
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg">
+    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-lg">
       <div className="mb-1 font-semibold text-slate-800">{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2 text-slate-600">
@@ -90,7 +90,7 @@ function Monthly({ year }: { year: number }) {
     { key: 'rev', header: 'Sefer Cirosu', align: 'right', render: (r) => tl(r.tripRevenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'exp', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : r.netProfit > 0 ? 'font-medium text-emerald-700' : 'text-slate-400'}>{tl(r.netProfit)}</span> },
+    { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : r.netProfit > 0 ? 'font-medium text-emerald-700' : 'text-slate-500'}>{tl(r.netProfit)}</span> },
     { key: 'inv', header: 'Faturalanan', align: 'right', render: (r) => tl(r.invoiced) },
     { key: 'col', header: 'Tahsil Edilen', align: 'right', render: (r) => tl(r.collected) },
   ]
@@ -123,7 +123,7 @@ function Monthly({ year }: { year: number }) {
 function Kpi({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="rounded-lg bg-slate-50 p-3">
-      <div className="text-xs text-slate-500">{label}</div>
+      <div className="text-[13px] text-slate-500">{label}</div>
       <div className={`text-xl font-bold ${tone ?? 'text-navy-900'}`}>{value}</div>
     </div>
   )
@@ -209,7 +209,7 @@ function Expenses({ from, to }: { from: string; to: string }) {
   return (
     <div className="grid gap-4 p-4 lg:grid-cols-2">
       <div style={{ height: Math.max(160, chart.length * 40 + 40) }}>
-        {chart.length === 0 ? <p className="py-10 text-center text-sm text-slate-400">Bu aralıkta gider yok.</p> : (
+        {chart.length === 0 ? <p className="py-10 text-center text-sm text-slate-500">Bu aralıkta gider yok.</p> : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chart} layout="vertical" margin={{ left: 8, right: 24 }}>
               <CartesianGrid horizontal={false} stroke="#e2e8f0" />
@@ -233,7 +233,7 @@ function Expenses({ from, to }: { from: string; to: string }) {
           <tfoot><tr className="bg-slate-50 font-semibold"><td className="td">Toplam</td><td className="td text-right">{tl2(total)}</td><td className="td" /></tr></tfoot>
         </table>
       </div>
-      <div className="flex items-center gap-2 text-xs text-slate-400 lg:col-span-2"><BarChart3 className="size-3.5" /> Araç maliyetleri sefer kârlılığı raporunda ayrıca gösterilir.</div>
+      <div className="flex items-center gap-2 text-[13px] text-slate-500 lg:col-span-2"><BarChart3 className="size-3.5" /> Araç maliyetleri sefer kârlılığı raporunda ayrıca gösterilir.</div>
     </div>
   )
 }

@@ -1,5 +1,8 @@
 # Kullanım Kılavuzu
 
+> Bu kılavuzun kısa hali panelin içinde de var: sol menüde **Yardım**.
+> Sistem ilk açıldığında ana sayfadaki **Başlarken** kartı ne yapılacağını adım adım gösterir.
+
 ## Giriş
 Tarayıcıdan panel adresine girin, e-posta ve şifrenizle giriş yapın. Telefonda da aynı adres çalışır;
 sol üstteki ☰ düğmesi menüyü açar. Şifrenizi sağ üstteki isminize tıklayıp **Şifre Değiştir** ile değiştirebilirsiniz.

@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, CalendarClock, CheckCircle2, CircleDollarSign, Clock, FileText, Plus, Route, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CalendarClock, CheckCircle2, CircleDollarSign, Clock, FileText, Plus, Route, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
@@ -25,7 +26,7 @@ export default function DashboardPage() {
   const tripCols: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', render: (t) => date(t.loadingDate) },
     { key: 'customer', header: 'Müşteri', render: (t) => t.customerTitle },
-    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-44', render: (t) => <>{t.loadingAddress} <span className="text-slate-400">→</span> {t.deliveryAddress}</> },
+    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-44', render: (t) => <>{t.loadingAddress} <span className="text-slate-500">→</span> {t.deliveryAddress}</> },
     { key: 'plate', header: 'Araç', render: (t) => t.vehiclePlate },
     { key: 'status', header: 'Durum', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'price', header: 'Tutar', align: 'right', render: (t) => tl(t.salePrice) },
@@ -45,7 +46,7 @@ export default function DashboardPage() {
     },
   ]
   const invoiceCols: Column<Invoice>[] = [
-    { key: 'no', header: 'Fatura', render: (i) => <><span className="font-medium">{i.invoiceNo}</span><span className="block max-w-36 truncate text-xs text-slate-500">{i.customerTitle}</span></> },
+    { key: 'no', header: 'Fatura', render: (i) => <><span className="font-medium">{i.invoiceNo}</span><span className="block max-w-36 truncate text-[13px] text-slate-500">{i.customerTitle}</span></> },
     { key: 'total', header: 'Tutar', align: 'right', render: (i) => <>{tl(i.total)}<span className="mt-0.5 block"><Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge></span></> },
   ]
 
@@ -63,6 +64,8 @@ export default function DashboardPage() {
           {can('accounting') && <Button variant="secondary" icon={<BarChart3 className="size-4" />} onClick={() => navigate('/raporlar')}>Raporlar</Button>}
         </div>
       </div>
+
+      <SetupCard setup={data.setup} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard color="blue" title="Toplam Sefer" value={data.monthTripCount} sub="Bu ay" icon={<Truck className="size-7" />}
@@ -90,8 +93,8 @@ export default function DashboardPage() {
             <Row label="Sefer cirosu" value={tl(data.monthRevenue)} />
             <Row label="Araç maliyeti + giderler" value={tl(data.monthExpenses)} />
             <Row label="Brüt kâr" value={tl(data.monthRevenue - data.monthExpenses)} strong
-              tone={data.monthRevenue - data.monthExpenses < 0 ? 'text-red-600' : 'text-emerald-700'} />
-            <Row label="Açık alacak" value={tl(data.receivableTotal)} tone="text-red-600" />
+              tone={data.monthRevenue - data.monthExpenses < 0 ? 'text-red-600' : data.monthRevenue - data.monthExpenses > 0 ? 'text-emerald-700' : undefined} />
+            <Row label="Açık alacak" value={tl(data.receivableTotal)} tone={data.receivableTotal > 0 ? 'text-red-600' : undefined} />
           </dl>
           <TrendChart rows={data.trend} />
         </Card>
@@ -104,7 +107,7 @@ export default function DashboardPage() {
         </Card>
         <div className="space-y-4">
           <Card title="Dikkat Edilecekler" icon={<AlertTriangle className="size-4" />} bodyClassName="p-0">
-            {alerts.data?.length === 0 && <p className="px-4 py-6 text-center text-sm text-slate-400">Her şey yolunda.</p>}
+            {alerts.data?.length === 0 && <p className="px-4 py-6 text-center text-sm text-slate-500">Her şey yolunda.</p>}
             <ul className="divide-y divide-slate-100">
               {alerts.data?.slice(0, 5).map((a, i) => (
                 <li key={i}>
@@ -118,7 +121,7 @@ export default function DashboardPage() {
                 </li>
               ))}
             </ul>
-            {(alerts.data?.length ?? 0) > 5 && <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">+{alerts.data!.length - 5} uyarı daha (zil simgesi)</p>}
+            {(alerts.data?.length ?? 0) > 5 && <p className="border-t border-slate-100 px-4 py-2 text-[13px] text-slate-500">+{alerts.data!.length - 5} uyarı daha (zil simgesi)</p>}
           </Card>
           <Card title="Son Faturalar" icon={<FileText className="size-4" />} bodyClassName="p-0"
             actions={<Button size="sm" variant="ghost" onClick={() => navigate('/faturalar')}>Tümünü Gör →</Button>}>
@@ -136,7 +139,7 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
     <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
       <span className="text-brand-600">{icon}</span>
       <div>
-        <div className="text-xs text-slate-500">{label}</div>
+        <div className="text-[13px] text-slate-500">{label}</div>
         <div className="text-lg font-bold text-navy-900">{value}</div>
       </div>
     </div>
@@ -158,7 +161,7 @@ function TrendChart({ rows }: { rows: Dashboard['trend'] }) {
   if (rows.every((r) => r.revenue === 0 && r.cost === 0)) return null
   return (
     <div className="mt-4 border-t border-slate-100 pt-3">
-      <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+      <div className="mb-1 flex items-center justify-between text-[13px] text-slate-500">
         <span>Son 6 ay</span>
         <span className="flex gap-3">
           <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#2a78d6]" />Ciro</span>
@@ -176,5 +179,48 @@ function TrendChart({ rows }: { rows: Dashboard['trend'] }) {
         </ResponsiveContainer>
       </div>
     </div>
+  )
+}
+
+const SETUP_HIDDEN_KEY = 'yl.setupHidden'
+
+/** İlk kurulumda ne yapılacağını adım adım gösterir; hepsi tamamlanınca (veya kapatılınca) kaybolur. */
+function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
+  const { can } = useAuth()
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem(SETUP_HIDDEN_KEY) === '1' } catch { return false }
+  })
+  const steps = [
+    { done: setup.companyInfo, title: 'Firma bilgilerini girin', text: 'VKN, adres ve IBAN faturalarda görünür.', to: '/ayarlar', show: can('admin') },
+    { done: setup.vehicleCount > 0, title: 'Araçları ekleyin', text: 'Tek tek ya da Excel listesinden toplu aktarın.', to: '/araclar', show: true },
+    { done: setup.driverCount > 0, title: 'Şoförleri ekleyin', text: 'Ehliyet ve SRC bitiş tarihleri için uyarı alırsınız.', to: '/soforler', show: true },
+    { done: setup.customerCount > 0, title: 'Müşterileri ekleyin', text: 'Eski borçları “Devir Bakiyesi” olarak girebilirsiniz.', to: '/musteriler', show: true },
+    { done: setup.tripCount > 0, title: 'İlk seferi oluşturun', text: 'Sefer bitince “Fatura Kes” ile faturalayın.', to: '/seferler?new=1', show: true },
+    { done: setup.userCount > 1, title: 'Çalışan hesaplarını açın', text: 'Operasyon, muhasebe ve şoför (mobil) hesapları.', to: '/ayarlar?tab=users', show: can('admin') },
+  ].filter((s) => s.show)
+  const doneCount = steps.filter((s) => s.done).length
+  if (hidden || doneCount === steps.length) return null
+  const hide = () => {
+    setHidden(true)
+    try { localStorage.setItem(SETUP_HIDDEN_KEY, '1') } catch { /* tarayıcı depolamayı engelliyor olabilir */ }
+  }
+  return (
+    <Card title={`Başlarken · ${doneCount}/${steps.length} tamamlandı`} icon={<CheckCircle className="size-5" />}
+      actions={<button onClick={hide} className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><X className="size-4" /> Gizle</button>}>
+      <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {steps.map((s, i) => (
+          <li key={s.title}>
+            <Link to={s.to} className={clsx('flex h-full gap-3 rounded-lg border p-3 transition hover:border-brand-500 hover:bg-brand-50',
+              s.done ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200')}>
+              {s.done ? <CheckCircle2 className="size-6 shrink-0 text-emerald-600" /> : <Circle className="size-6 shrink-0 text-slate-400" />}
+              <span>
+                <span className={clsx('block font-semibold', s.done ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-navy-900')}>{i + 1}. {s.title}</span>
+                <span className="block text-sm text-slate-600">{s.text}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </Card>
   )
 }

@@ -27,7 +27,7 @@ export default function MapPage() {
     id: v.vehicleId, lat: v.latitude!, lng: v.longitude!, label: v.plate, color: statusColor[v.status],
     onClick: () => setSelected(v.vehicleId),
     popup: (
-      <div className="text-xs">
+      <div className="text-[13px]">
         <div className="font-semibold">{v.plate} · {v.type}</div>
         {v.driverName && <div>Şoför: {v.driverName}</div>}
         {v.activeTripLabel && <div>{v.activeTripLabel}</div>}
@@ -56,8 +56,8 @@ export default function MapPage() {
                     <span className="font-semibold">{v.plate}</span>
                     <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge>
                   </div>
-                  {v.activeTripLabel && <div className="truncate text-xs text-slate-600">{v.activeTripLabel}</div>}
-                  <div className="flex items-center gap-1 text-xs text-slate-400">
+                  {v.activeTripLabel && <div className="truncate text-[13px] text-slate-600">{v.activeTripLabel}</div>}
+                  <div className="flex items-center gap-1 text-[13px] text-slate-500">
                     <MapPin className="size-3" />
                     {v.lastLocationAt ? <>{ago(v.lastLocationAt)}{v.speedKmh != null && v.speedKmh > 0 && ` · ${Math.round(v.speedKmh)} km/s`}</> : 'Konum bilgisi yok'}
                   </div>

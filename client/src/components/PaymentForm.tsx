@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { get } from '../api/client'
 import type { Invoice, PagedResult, Payment } from '../api/types'
 import { applyServerErrors, idField, nullify, optStr, req } from '../lib/forms'
-import { tl, todayIso } from '../lib/format'
+import { moneyHint, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 import { Button, Field, Modal } from './ui'
@@ -32,6 +32,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
   })
   const customerId = useWatch({ control, name: 'customerId' })
   const invoiceId = useWatch({ control, name: 'invoiceId' })
+  const amount = useWatch({ control, name: 'amount' })
   const invoices = useQuery({
     queryKey: ['invoices', 'open', customerId],
     queryFn: () => get<PagedResult<Invoice>>('/invoices', { customerId, status: 'Issued', pageSize: 200, sort: 'date', desc: false }),
@@ -64,7 +65,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
             options={selectable.map((i) => ({ value: i.id, label: `${i.invoiceNo} · Kalan ${tl(i.remaining)}` }))} />
         </Field>
         <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
-        <Field label="Tutar (TL)" required error={errors.amount?.message}>
+        <Field label="Tutar (TL)" required error={errors.amount?.message} hint={moneyHint(amount)}>
           <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('amount', { valueAsNumber: true })} />
         </Field>
         <Field label="Ödeme Yöntemi" error={errors.method?.message}>
@@ -74,7 +75,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
         </Field>
         <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
         {invoiceId && selectable.find((i) => i.id === invoiceId) && (
-          <p className="text-xs text-slate-500 sm:col-span-2">Faturanın kalan tutarı: {tl(selectable.find((i) => i.id === invoiceId)!.remaining)}</p>
+          <p className="text-[13px] text-slate-500 sm:col-span-2">Faturanın kalan tutarı: {tl(selectable.find((i) => i.id === invoiceId)!.remaining)}</p>
         )}
         <button type="submit" className="hidden" />
       </form>

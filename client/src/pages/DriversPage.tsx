@@ -85,7 +85,7 @@ export default function DriversPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(d) => d.id}
           onRowClick={can('operations') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty="Şoför bulunamadı." />
+          page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz şoför yok. “Yeni Şoför” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
       </Card>
       {editing && <DriverForm driver={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Şoförü sil" loading={deleteMut.isPending} confirmText="Sil"
