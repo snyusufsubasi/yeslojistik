@@ -32,8 +32,9 @@ function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap()
   const key = points.map((p) => p.join(',')).join('|')
   useEffect(() => {
-    if (points.length === 1) map.setView(points[0], 11)
-    else if (points.length > 1) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 13 })
+    // Animasyonsuz: yakınlaştırma animasyonu sürerken gelen rota çizgisi yanlış yerde hesaplanıp boş kalabiliyordu.
+    if (points.length === 1) map.setView(points[0], 11, { animate: false })
+    else if (points.length > 1) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 13, animate: false })
     // key değişince yeniden sığdır
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, map])
