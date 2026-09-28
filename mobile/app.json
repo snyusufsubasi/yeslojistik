@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "YES Lojistik Şoför",
+    "slug": "yeslojistik-sofor",
+    "scheme": "yeslojistik",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yeslojistik.sofor",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.yeslojistik.sofor",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b2a55",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Sefer sırasında aracın konumu, müşteriye ve ofise gösterilmek üzere paylaşılır.",
+          "locationWhenInUsePermission": "Sefer sırasında aracın konumu, müşteriye ve ofise gösterilmek üzere paylaşılır.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Teslim belgelerini galeriden seçmek için fotoğraflarınıza erişim gerekir.",
+          "cameraPermission": "Teslim fotoğrafı çekmek için kameraya erişim gerekir."
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://panel.yeslojistik.com"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

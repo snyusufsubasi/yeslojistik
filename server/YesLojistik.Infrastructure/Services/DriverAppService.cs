@@ -9,8 +9,13 @@ namespace YesLojistik.Infrastructure.Services;
 /// <summary>Şoför mobil uygulamasının iş kuralları. Şoför yalnızca kendisine atanmış seferleri görür.</summary>
 public class DriverAppService(AppDbContext db, TripService trips)
 {
-    /// <summary>Şoförün mobilden yapabileceği durum geçişleri (geri alma ve iptal yalnızca ofisten).</summary>
-    private static readonly TripStatus[] DriverStatuses = [TripStatus.Loaded, TripStatus.OnRoad, TripStatus.Delivered];
+    /// <summary>Şoför yalnızca bir sonraki adıma geçebilir; geri alma ve iptal yalnızca ofisten yapılır.</summary>
+    private static readonly Dictionary<TripStatus, TripStatus> Forward = new()
+    {
+        [TripStatus.Planned] = TripStatus.Loaded,
+        [TripStatus.Loaded] = TripStatus.OnRoad,
+        [TripStatus.OnRoad] = TripStatus.Delivered,
+    };
 
     public async Task<List<DriverTripDto>> TripsAsync(int driverId, bool active, CancellationToken ct = default)
     {
@@ -33,7 +38,9 @@ public class DriverAppService(AppDbContext db, TripService trips)
     public async Task<DriverTripDto> ChangeStatusAsync(int driverId, int tripId, TripStatus status, CancellationToken ct = default)
     {
         await EnsureOwnAsync(driverId, tripId, ct);
-        if (!DriverStatuses.Contains(status)) throw new DomainException("Bu durum değişikliği yalnızca ofisten yapılabilir.");
+        var current = await db.Trips.Where(t => t.Id == tripId).Select(t => t.Status).FirstAsync(ct);
+        if (!Forward.TryGetValue(current, out var next) || next != status)
+            throw new DomainException("Bu durum değişikliği yalnızca ofisten yapılabilir.");
         await trips.ChangeStatusAsync(tripId, status, ct);
         return await GetAsync(driverId, tripId, ct);
     }
@@ -50,5 +57,5 @@ public class DriverAppService(AppDbContext db, TripService trips)
 
     private static DriverTripDto Map(Row r) => new(r.Trip.Id, r.Customer, r.Phone, r.Trip.LoadingAddress, r.Trip.DeliveryAddress,
         r.Trip.LoadingDate, r.Trip.DeliveryDate, r.Trip.Description, r.Plate, r.Trip.Status,
-        TripStatusRules.NextStatuses(r.Trip.Status).Where(DriverStatuses.Contains).ToList(), r.Attachments);
+        Forward.TryGetValue(r.Trip.Status, out var next) ? [next] : [], r.Attachments);
 }

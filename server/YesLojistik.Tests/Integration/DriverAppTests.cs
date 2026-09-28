@@ -70,6 +70,13 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         t.NextStatuses.Should().Equal(TripStatus.OnRoad);
         (await (await s.Admin.GetAsync($"/api/vehicles/{s.VehicleId}")).ReadAsync<VehicleDto>()).Status.Should().Be(VehicleStatus.OnRoad);
 
+        // Teslimden sonra şoför geri alamaz.
+        await (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(TripStatus.OnRoad))).ReadAsync<DriverTripDto>();
+        var delivered = await (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(TripStatus.Delivered))).ReadAsync<DriverTripDto>();
+        delivered.NextStatuses.Should().BeEmpty();
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(TripStatus.OnRoad)))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
         var others = await (await s.Admin.GetAsync($"/api/trips?driverId={s.OtherDriverId}")).ReadAsync<PagedResult<TripDto>>();
         (await s.Driver.PostJsonAsync($"/api/driver/trips/{others.Items[0].Id}/status", new TripStatusRequest(TripStatus.Loaded)))
             .StatusCode.Should().Be(HttpStatusCode.NotFound);
