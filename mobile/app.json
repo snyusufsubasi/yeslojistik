@@ -52,7 +52,7 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://panel.yeslojistik.com",
+      "apiUrl": "https://yeslojistik.onrender.com",
       "eas": {
         "projectId": ""
       }

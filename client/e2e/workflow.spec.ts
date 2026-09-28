@@ -205,3 +205,15 @@ test('işlem geçmişi yapılan değişikliği gösterir', async ({ page }) => {
   await expect(row.getByText('Değiştirdi')).toBeVisible()
   await expect(row.getByText('Yönetici')).toBeVisible()
 })
+
+test('yedek kartı depolama durumunu gösterir ve yedek iner', async ({ page }) => {
+  await login(page)
+  await page.goto('/ayarlar?tab=data')
+  await expect(page.getByText('Yedekler ve depolama')).toBeVisible()
+  await expect(page.getByRole('progressbar', { name: 'Veritabanı doluluğu' })).toBeVisible()
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Dosyasız yedeği indir' }).click()])
+  expect(dl.suggestedFilename()).toMatch(/^yeslojistik-\d{8}-\d{4}-dosyasiz\.dump$/)
+  await dl.path() // indirme bitsin
+  await page.reload()
+  await expect(page.getByText(/Son yedek: \d/)).toBeVisible()
+})

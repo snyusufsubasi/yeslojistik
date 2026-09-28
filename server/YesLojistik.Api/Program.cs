@@ -32,7 +32,9 @@ var connectionString = HostingSupport.NormalizeConnectionString(builder.Configur
 // Render sitenin dış adresini RENDER_EXTERNAL_URL ile bildirir (takip linkleri için).
 if (string.IsNullOrWhiteSpace(builder.Configuration["App:PublicUrl"]) && builder.Configuration["RENDER_EXTERNAL_URL"] is { Length: > 0 } externalUrl)
     builder.Configuration["App:PublicUrl"] = externalUrl;
-builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads");
+builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads",
+    builder.Configuration["Storage:Provider"] ?? "Database");
+builder.Services.AddSingleton<MaintenanceState>();
 builder.Services.AddHostedService<LocationRetentionService>();
 builder.Services.AddHostedService<DailyDigestWorker>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<SmtpOptions>() ?? new SmtpOptions());
@@ -91,6 +93,10 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy("public", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
+    // Yedek indirme ağır bir işlem: IP başına dakikada 2.
+    o.AddPolicy("backup", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 2, Window = TimeSpan.FromMinutes(1) }));
     o.OnRejected = async (ctx, ct) =>
         await ctx.HttpContext.Response.WriteAsJsonAsync(new ProblemDetails
         {
@@ -162,9 +168,15 @@ if (corsOrigins.Length > 0) app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMaintenanceMode();
 
-app.MapGet("/api/health", async (AppDbContext db) =>
-    await db.Database.CanConnectAsync() ? Results.Ok(new { status = "ok" }) : Results.StatusCode(503)).AllowAnonymous();
+// Sürüm/commit: Render RENDER_GIT_COMMIT verir; diğer ortamlarda APP_COMMIT ayarlanabilir.
+var commit = app.Configuration["RENDER_GIT_COMMIT"] ?? app.Configuration["APP_COMMIT"];
+var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
+app.MapGet("/api/health", async (AppDbContext db, MaintenanceState maintenance) =>
+    await db.Database.CanConnectAsync()
+        ? Results.Ok(new { status = "ok", version, commit, maintenance = maintenance.IsOn })
+        : Results.StatusCode(503)).AllowAnonymous();
 app.MapControllers();
 if (bundledPanel) app.MapBundledPanel();
 

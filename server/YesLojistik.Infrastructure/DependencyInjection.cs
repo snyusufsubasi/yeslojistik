@@ -8,7 +8,7 @@ namespace YesLojistik.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads")
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads", string storageProvider = "Database")
     {
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<TripService>();
         services.AddScoped<InvoiceService>();
         services.AddScoped<DataResetService>();
+        services.AddScoped<BackupService>();
         services.AddScoped<WaybillPdfGenerator>();
         services.AddScoped<CustomerNotifier>();
         services.AddScoped<ExpenseService>();
@@ -34,7 +35,11 @@ public static class DependencyInjection
         services.AddScoped<DriverNotifier>();
         services.AddScoped<InvoiceMailer>();
         services.AddHttpClient<IPushSender, ExpoPushSender>(c => c.Timeout = TimeSpan.FromSeconds(5));
-        services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
+        // Database: dosyalar PostgreSQL'de (varsayılan, yedeğe dahil). Local: disk (Docker volume).
+        if (string.Equals(storageProvider, "Local", StringComparison.OrdinalIgnoreCase))
+            services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
+        else
+            services.AddScoped<IFileStorage, DatabaseFileStorage>();
         services.AddSingleton<IEInvoiceProvider, NullEInvoiceProvider>();
         return services;
     }

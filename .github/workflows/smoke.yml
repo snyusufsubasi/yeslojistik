@@ -1,0 +1,38 @@
+# Canlı ortam kontrolü: main'e her birleştirmeden sonra yeni sürümün yayında olduğunu ve temel sayfaların açıldığını doğrular.
+# Gerekli secret: BACKUP_URL (canlı adres).
+name: Canlı kontrol
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      URL: ${{ secrets.BACKUP_URL }}
+      EXPECTED: ${{ github.sha }}
+    steps:
+      - name: Yeni sürümün yayına çıkmasını bekle
+        run: |
+          [ -n "$URL" ] || { echo "::warning::BACKUP_URL tanımlı değil, kontrol atlandı."; exit 0; }
+          # CI + Render derlemesi birlikte ~15-20 dakika sürer.
+          for i in $(seq 1 60); do
+            BODY=$(curl -fsS --max-time 20 "$URL/api/health" || true)
+            echo "$BODY"
+            if echo "$BODY" | grep -q "\"commit\":\"$EXPECTED\""; then exit 0; fi
+            [ "${{ github.event_name }}" = "workflow_dispatch" ] && echo "$BODY" | grep -q '"status":"ok"' && exit 0
+            sleep 30
+          done
+          echo "::error::Yeni sürüm 30 dakikada yayına çıkmadı."; exit 1
+
+      - name: Sayfaları kontrol et
+        if: env.URL != ''
+        run: |
+          curl -fsS --max-time 30 "$URL/" | grep -qi "<div id=\"root\"" || { echo "::error::Panel açılmıyor."; exit 1; }
+          curl -fsS --max-time 30 -o /dev/null "$URL/takip/olmayan-kod" || { echo "::error::Takip sayfası açılmıyor."; exit 1; }
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/customers")
+          [ "$CODE" = "401" ] || { echo "::error::Giriş yapılmamış istek 401 dönmeli, $CODE döndü."; exit 1; }
+          echo "Canlı ortam sağlıklı."

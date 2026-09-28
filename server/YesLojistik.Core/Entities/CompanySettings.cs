@@ -24,5 +24,7 @@ public class CompanySettings
     public DateOnly? LastDigestDate { get; set; }
     /// <summary>Demo veriler temizlendiyse zamanı; bir daha örnek veri yüklenmez.</summary>
     public DateTime? SampleDataClearedAt { get; set; }
+    /// <summary>Son yedeğin (panelden ya da otomatik) alındığı an.</summary>
+    public DateTime? LastBackupAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

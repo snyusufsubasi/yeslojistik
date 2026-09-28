@@ -4,9 +4,9 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Bell, Building2, DatabaseZap, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { Bell, Building2, DatabaseZap, Download, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
-import type { CompanySettings, User, UserRole } from '../api/types'
+import type { CompanySettings, DataStats, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
@@ -14,7 +14,7 @@ import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { AuditLogTable } from '../components/AuditLog'
-import { date } from '../lib/format'
+import { date, dateTime, fileSize } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
@@ -41,7 +41,12 @@ export default function SettingsPage() {
           <AuditLogTable />
         </Card>
       )}
-      {tab === 'data' && can('admin') && <ResetDataCard />}
+      {tab === 'data' && can('admin') && (
+        <div className="flex flex-col gap-4">
+          <BackupCard />
+          <ResetDataCard />
+        </div>
+      )}
       {tab === 'password' && <PasswordForm />}
     </>
   )
@@ -331,6 +336,40 @@ function ResetDataCard() {
         </label>
         {error && <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         <Button variant="danger" disabled={!ok} loading={busy} onClick={run}>Tüm demo verilerini sil</Button>
+      </div>
+    </Card>
+  )
+}
+
+/** Ücretsiz Render veritabanı 1 GB; %80'de uyarılır. */
+const DB_LIMIT_BYTES = 1024 * 1024 * 1024
+
+function BackupCard() {
+  const { data } = useQuery({ queryKey: ['admin', 'stats'], queryFn: () => get<DataStats>('/admin/stats') })
+  const used = data ? Math.min(100, Math.round((data.databaseBytes / DB_LIMIT_BYTES) * 100)) : 0
+  return (
+    <Card title="Yedekler ve depolama" icon={<HardDrive className="size-4" />} className="max-w-2xl">
+      <div className="space-y-4 text-[15px] text-slate-700">
+        <p>Yedek dosyası tüm kayıtları ve yüklenen dosyaları (fotoğraf, irsaliye) içerir. Haftada bir indirip telefonunuza
+          veya bilgisayarınıza kaydetmeniz önerilir. Her gece ayrıca otomatik yedek alınır.</p>
+        <div className="flex flex-wrap gap-2">
+          <a className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-[15px] font-medium transition shadow-sm bg-brand-600 text-white hover:bg-brand-700" href="/api/admin/backup?files=true" download><Download className="size-4" />Tam yedeği indir</a>
+          <a className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-[15px] font-medium transition shadow-sm border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" href="/api/admin/backup?files=false" download><Download className="size-4" />Dosyasız yedeği indir</a>
+        </div>
+        <div className="text-sm text-slate-600">Son yedek: {data?.lastBackupAt ? dateTime(data.lastBackupAt) : 'henüz alınmadı'}</div>
+        {data && (
+          <div>
+            <div className="mb-1 flex justify-between text-sm">
+              <span>Veritabanı: {fileSize(data.databaseBytes)} / 1 GB</span>
+              <span>{data.fileCount} dosya · {fileSize(data.fileBytes)}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow={used} aria-valuemin={0} aria-valuemax={100}
+              aria-label="Veritabanı doluluğu">
+              <div className={used >= 80 ? 'h-full bg-red-500' : 'h-full bg-brand-600'} style={{ width: `${Math.max(used, 1)}%` }} />
+            </div>
+            {used >= 80 && <p role="alert" className="mt-2 text-sm text-red-700">Ücretsiz veritabanı alanı dolmak üzere. Yedek indirin ve sunucuya geçişi planlayın.</p>}
+          </div>
+        )}
       </div>
     </Card>
   )

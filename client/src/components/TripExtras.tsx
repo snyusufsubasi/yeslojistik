@@ -8,6 +8,7 @@ import { attachmentKindLabel, tripStatusLabel } from '../lib/labels'
 import { MapView } from './MapView'
 import { useToast } from './Toast'
 import { Button, ConfirmDialog, Empty, IconButton, Select, Spinner } from './ui'
+import { compressImage } from '../lib/image'
 
 export function TripAttachments({ trip }: { trip: Trip }) {
   const qc = useQueryClient()
@@ -23,7 +24,7 @@ export function TripAttachments({ trip }: { trip: Trip }) {
     mutationFn: async (files: FileList) => {
       for (const file of Array.from(files)) {
         const form = new FormData()
-        form.append('file', file)
+        form.append('file', await compressImage(file))
         form.append('kind', kind)
         if (note) form.append('note', note)
         await api.post(`/trips/${trip.id}/attachments`, form)

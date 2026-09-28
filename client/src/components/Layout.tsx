@@ -7,7 +7,7 @@ import {
   UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle,
 } from 'lucide-react'
 import { get } from '../api/client'
-import type { Alert } from '../api/types'
+import type { Alert, Health } from '../api/types'
 import { useAuth, type Permission } from '../lib/auth'
 import { longDate } from '../lib/format'
 import { roleLabel } from '../lib/labels'
@@ -35,6 +35,7 @@ export function Layout() {
   const [openAt, setOpenAt] = useState<string | null>(null)
   const open = openAt === location.pathname
   const setOpen = (v: boolean) => setOpenAt(v ? location.pathname : null)
+  const { data: health } = useQuery({ queryKey: ['health'], queryFn: () => get<Health>('/health'), refetchInterval: 60_000 })
 
   return (
     <div className="flex min-h-full">
@@ -55,7 +56,9 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-white/10 p-3 text-[13px] text-blue-100/60">YES Lojistik · Nakliye Takip v1.0</div>
+        <div className="border-t border-white/10 p-3 text-[13px] text-blue-100/60">
+          YES Lojistik · Nakliye Takip v{health?.version ?? '2'}{health?.commit && ` (${health.commit.slice(0, 7)})`}
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -69,6 +72,11 @@ export function Layout() {
           <AlertsBell />
           <UserMenu name={user!.fullName} role={roleLabel[user!.role]} onLogout={logout} />
         </header>
+        {health?.maintenance && (
+          <div role="status" className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-900">
+            Bakım çalışması yapılıyor: şu an yalnızca görüntüleme yapılabilir, kayıt eklenemez ve değiştirilemez.
+          </div>
+        )}
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 lg:p-6">
           <Outlet />
         </main>
