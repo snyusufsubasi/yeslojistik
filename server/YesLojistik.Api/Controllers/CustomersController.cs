@@ -103,6 +103,7 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
         c.Notes = NullIfEmpty(r.Notes);
         c.OpeningBalance = Money.Round(r.OpeningBalance);
         c.OpeningBalanceDate = r.OpeningBalance > 0 ? r.OpeningBalanceDate : null;
+        c.NotifyStatusByEmail = r.NotifyStatusByEmail;
     }
 
     internal static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

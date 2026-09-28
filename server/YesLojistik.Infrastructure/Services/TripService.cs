@@ -7,7 +7,7 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public class TripService(AppDbContext db, DriverNotifier notifier)
+public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotifier customerNotifier)
 {
     private static readonly Dictionary<string, Expression<Func<Trip, object?>>> SortMap = new()
     {
@@ -137,6 +137,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier)
         if (status == TripStatus.Cancelled)
             await notifier.NotifyAsync(trip.DriverId, trip.Id, "Sefer iptal edildi",
                 DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate), ct);
+        await customerNotifier.StatusChangedAsync(trip.Id, status, ct);
         return await GetAsync(id, ct);
     }
 

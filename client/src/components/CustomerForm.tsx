@@ -16,6 +16,7 @@ const schema = z.object({
   notes: optStr,
   openingBalance: z.number({ error: 'Tutar girin.' }).min(0, 'Negatif olamaz.').or(z.nan().transform(() => 0)),
   openingBalanceDate: optStr,
+  notifyStatusByEmail: z.boolean(),
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<CustomerSummary, FormValues>('customers')
@@ -27,6 +28,7 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
       title: customer?.title ?? '', taxNumber: customer?.taxNumber ?? '', taxOffice: customer?.taxOffice ?? '',
       phone: customer?.phone ?? '', email: customer?.email ?? '', address: customer?.address ?? '', notes: customer?.notes ?? '',
       openingBalance: customer?.openingBalance ?? 0, openingBalanceDate: customer?.openingBalanceDate ?? '',
+      notifyStatusByEmail: customer?.notifyStatusByEmail ?? false,
     },
   })
   const save = useSave((v: FormValues) => customer ? api.update(customer.id, nullify(v)) : api.create(nullify(v)), {
@@ -50,6 +52,13 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
         </Field>
         <Field label="Devir Tarihi" error={errors.openingBalanceDate?.message}><input className="input" type="date" {...register('openingBalanceDate')} /></Field>
         <Field className="sm:col-span-2" label="Notlar" error={errors.notes?.message}><textarea className="input min-h-16" {...register('notes')} /></Field>
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-2">
+          <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('notifyStatusByEmail')} />
+          <span>
+            <span className="block text-[15px] font-medium text-slate-800">Sefer durumu değişince müşteriye e-posta gönder</span>
+            <span className="block text-sm text-slate-600">Yük araca yüklendiğinde, yola çıktığında ve teslim edildiğinde yukarıdaki e-posta adresine takip linkiyle bilgi gider. Fiyat bilgisi gönderilmez. (Sunucuda e-posta ayarı yapılmış olmalı.)</span>
+          </span>
+        </label>
         <button type="submit" className="hidden" />
       </form>
     </Modal>

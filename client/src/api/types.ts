@@ -55,6 +55,7 @@ export interface Customer {
   balance: number
   openingBalance: number
   openingBalanceDate?: string | null
+  notifyStatusByEmail?: boolean
 }
 
 export interface CustomerSummary {

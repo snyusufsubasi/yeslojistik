@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<InvoiceService>();
         services.AddScoped<DataResetService>();
         services.AddScoped<WaybillPdfGenerator>();
+        services.AddScoped<CustomerNotifier>();
         services.AddScoped<StatementPdfGenerator>();
         services.AddScoped<InvoicePdfGenerator>();
         services.AddScoped<CustomerAccountService>();

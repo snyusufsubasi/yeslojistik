@@ -21,7 +21,8 @@ public class TrackingController(TrackingService tracking, IConfiguration config)
     public async Task<TrackingLinkDto> Link(int id, CancellationToken ct)
     {
         var token = await tracking.GetOrCreateTokenAsync(id, ct);
-        var baseUrl = config["App:PublicUrl"]?.TrimEnd('/') ?? $"{Request.Scheme}://{Request.Host}";
+        var configured = config["App:PublicUrl"];
+        var baseUrl = string.IsNullOrWhiteSpace(configured) ? $"{Request.Scheme}://{Request.Host}" : configured.TrimEnd('/');
         return new TrackingLinkDto(token, $"{baseUrl}/takip/{token}");
     }
 
