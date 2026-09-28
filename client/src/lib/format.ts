@@ -40,6 +40,24 @@ export function daysUntil(iso: string | null | undefined) {
   return Math.round((target - now) / 86_400_000)
 }
 
+/** "2026-09-28T10:15:00Z" → "28.09.2026 13:15" (yerel saat) */
+export function dateTime(v: string | null | undefined) {
+  if (!v) return '—'
+  return new Date(v).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+/** "5 dk önce", "3 saat önce" */
+export function ago(v: string | null | undefined) {
+  if (!v) return '—'
+  const min = Math.round((Date.now() - new Date(v).getTime()) / 60_000)
+  if (min < 1) return 'az önce'
+  if (min < 60) return `${min} dk önce`
+  if (min < 60 * 24) return `${Math.round(min / 60)} saat önce`
+  return `${Math.round(min / 60 / 24)} gün önce`
+}
+
+export const fileSize = (b: number) => b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`
+
 export const longDate = (d = new Date()) =>
   d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' })
 

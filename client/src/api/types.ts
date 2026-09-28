@@ -1,4 +1,5 @@
-export type UserRole = 'Admin' | 'Operations' | 'Accounting'
+export type UserRole = 'Admin' | 'Operations' | 'Accounting' | 'Driver'
+export type AttachmentKind = 'Photo' | 'Document' | 'Signature'
 export type VehicleStatus = 'Available' | 'OnRoad' | 'Maintenance'
 export type TripStatus = 'Planned' | 'Loaded' | 'OnRoad' | 'Delivered' | 'Cancelled'
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Cancelled'
@@ -37,6 +38,8 @@ export interface CurrentUser {
 export interface User extends CurrentUser {
   isActive: boolean
   createdAt: string
+  driverId?: number | null
+  driverName?: string | null
 }
 
 export interface Customer {
@@ -269,4 +272,57 @@ export interface CompanySettings {
   defaultVatRate: number
   defaultWithholdingTenths: number
   defaultPaymentTermDays: number
+}
+
+export interface Attachment {
+  id: number
+  tripId: number
+  kind: AttachmentKind
+  fileName: string
+  contentType: string
+  size: number
+  note?: string | null
+  uploadedBy?: string | null
+  createdAt: string
+}
+
+export interface VehicleLocation {
+  vehicleId: number
+  plate: string
+  type: string
+  status: VehicleStatus
+  latitude?: number | null
+  longitude?: number | null
+  speedKmh?: number | null
+  lastLocationAt?: string | null
+  activeTripId?: number | null
+  activeTripLabel?: string | null
+  driverName?: string | null
+}
+
+export interface RoutePoint {
+  latitude: number
+  longitude: number
+  speedKmh?: number | null
+  recordedAt: string
+}
+
+export interface TrackingLink {
+  token: string
+  url: string
+}
+
+export interface PublicTracking {
+  companyName: string
+  companyPhone?: string | null
+  customerTitle: string
+  loadingAddress: string
+  deliveryAddress: string
+  loadingDate: string
+  deliveryDate?: string | null
+  status: TripStatus
+  vehiclePlate: string
+  latitude?: number | null
+  longitude?: number | null
+  lastLocationAt?: string | null
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,7 +9,8 @@ import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/
 import { tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
-import { Badge, Button, Field, Modal } from './ui'
+import { Badge, Button, Field, Modal, Tabs } from './ui'
+import { TripAttachments, TripTracking } from './TripExtras'
 
 const schema = z.object({
   customerId: idField('Müşteri seçin.'),
@@ -29,6 +31,7 @@ type FormValues = z.infer<typeof schema>
 const api = crud<Trip, FormValues>('trips')
 
 export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues> }) {
+  const [tab, setTab] = useState<'info' | 'files' | 'tracking'>('info')
   const customers = useLookup('customers')
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
@@ -66,10 +69,22 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
 
   return (
     <Modal open onClose={onClose} title={trip ? 'Sefer Düzenle' : 'Sefer Oluştur'} size="lg"
-      footer={<>
+      footer={tab === 'info' ? <>
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button>
         <Button onClick={handleSubmit((v) => save.mutate(v))} loading={save.isPending}>Kaydet</Button>
-      </>}>
+      </> : <Button variant="secondary" onClick={onClose}>Kapat</Button>}>
+      {trip && (
+        <div className="mb-4">
+          <Tabs value={tab} onChange={setTab} tabs={[
+            { value: 'info', label: 'Sefer Bilgileri' },
+            { value: 'files', label: 'Dosyalar / Fotoğraflar' },
+            { value: 'tracking', label: 'Takip ve Rota' },
+          ]} />
+        </div>
+      )}
+      {trip && tab === 'files' && <TripAttachments trip={trip} />}
+      {trip && tab === 'tracking' && <TripTracking trip={trip} />}
+      <div className={tab === 'info' ? '' : 'hidden'}>
       {trip && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-3">
           <span className="text-sm text-slate-600">Durum:</span>
@@ -152,6 +167,7 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
         </div>
         <button type="submit" className="hidden" />
       </form>
+      </div>
     </Modal>
   )
 }

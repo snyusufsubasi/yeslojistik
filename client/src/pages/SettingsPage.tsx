@@ -13,7 +13,7 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { date } from '../lib/format'
-import { crud, useSave } from '../lib/hooks'
+import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
 type Tab = 'company' | 'users' | 'password'
@@ -126,7 +126,8 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
 const userSchema = z.object({
   fullName: req('Ad soyad zorunlu.'),
   email: z.string().trim().email('Geçerli bir e-posta girin.'),
-  role: z.enum(['Admin', 'Operations', 'Accounting']),
+  role: z.enum(['Admin', 'Operations', 'Accounting', 'Driver']),
+  driverId: z.number().nullable().or(z.nan().transform(() => null)),
   isActive: z.boolean(),
   password: z.string(),
 })
@@ -143,7 +144,7 @@ function UsersTab() {
   const cols: Column<User>[] = [
     { key: 'n', header: 'Ad Soyad', render: (u) => <span className="font-medium">{u.fullName}</span> },
     { key: 'e', header: 'E-posta', render: (u) => u.email },
-    { key: 'r', header: 'Rol', render: (u) => <Badge tone={u.role === 'Admin' ? 'purple' : 'blue'}>{roleLabel[u.role]}</Badge> },
+    { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-xs text-slate-500">{u.driverName}</span>}</> },
     { key: 'a', header: 'Durum', render: (u) => <Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge> },
     { key: 'c', header: 'Oluşturma', render: (u) => date(u.createdAt) },
     {
@@ -161,6 +162,7 @@ function UsersTab() {
       <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(u) => u.id} />
       <div className="border-t border-slate-100 p-3 text-xs text-slate-500">
         <b>Yönetici:</b> her şey · <b>Operasyon:</b> sefer, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
+        <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi seferlerini görür, durum ve fotoğraf gönderir.
       </div>
       {editing && <UserForm user={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Kullanıcıyı sil" loading={del.isPending} confirmText="Sil"
@@ -173,11 +175,17 @@ function UsersTab() {
 function UserForm({ user, onClose }: { user: User | null; onClose: () => void }) {
   const schema = userSchema.refine((v) => (user && !v.password) || strong(v.password),
     { path: ['password'], message: 'Şifre en az 8 karakter olmalı ve harf ile rakam içermeli.' })
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<UserValues>({
+    .refine((v) => v.role !== 'Driver' || !!v.driverId, { path: ['driverId'], message: 'Şoför seçin.' })
+  const drivers = useLookup('drivers')
+  const { register, handleSubmit, setError, watch, formState: { errors } } = useForm<UserValues>({
     resolver: zodResolver(schema),
-    defaultValues: { fullName: user?.fullName ?? '', email: user?.email ?? '', role: user?.role ?? 'Operations', isActive: user?.isActive ?? true, password: '' },
+    defaultValues: { fullName: user?.fullName ?? '', email: user?.email ?? '', role: user?.role ?? 'Operations', isActive: user?.isActive ?? true, password: '', driverId: user?.driverId ?? null },
   })
-  const save = useSave((v: UserValues) => user ? usersApi.update(user.id, v) : usersApi.create(v), {
+  const role = watch('role')
+  const save = useSave((v: UserValues) => {
+    const body = { ...v, driverId: v.role === 'Driver' ? v.driverId : null }
+    return user ? usersApi.update(user.id, body) : usersApi.create(body)
+  }, {
     invalidate: ['users'], success: user ? 'Kullanıcı güncellendi.' : 'Kullanıcı eklendi.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
@@ -193,6 +201,14 @@ function UserForm({ user, onClose }: { user: User | null; onClose: () => void })
             {(Object.keys(roleLabel) as UserRole[]).map((r) => <option key={r} value={r}>{roleLabel[r]}</option>)}
           </select>
         </Field>
+        {role === 'Driver' && (
+          <Field label="Bağlı Şoför" required error={errors.driverId?.message} hint="Şoför bu hesapla mobil uygulamaya girer ve yalnızca kendi seferlerini görür.">
+            <select className="input" {...register('driverId', { valueAsNumber: true })}>
+              <option value="">Seçiniz</option>
+              {drivers.data?.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+            </select>
+          </Field>
+        )}
         <Field label={user ? 'Yeni Şifre (değiştirmek için)' : 'Şifre'} required={!user} error={errors.password?.message}>
           <input className="input" type="password" autoComplete="new-password" {...register('password')} />
         </Field>

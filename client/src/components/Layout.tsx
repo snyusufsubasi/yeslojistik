@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import {
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard,
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon,
 } from 'lucide-react'
 import { get } from '../api/client'
 import type { Alert } from '../api/types'
@@ -17,6 +17,7 @@ const nav: { to: string; label: string; icon: typeof Home; perm?: Permission }[]
   { to: '/', label: 'Ana Sayfa', icon: Home },
   { to: '/seferler', label: 'Seferler', icon: Truck },
   { to: '/araclar', label: 'Araçlar', icon: Building2 },
+  { to: '/harita', label: 'Araç Takip Haritası', icon: MapIcon },
   { to: '/musteriler', label: 'Müşteriler / Cari', icon: Users },
   { to: '/faturalar', label: 'Faturalar', icon: FileText },
   { to: '/tahsilatlar', label: 'Tahsilatlar', icon: Wallet },

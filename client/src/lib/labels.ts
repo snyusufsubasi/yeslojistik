@@ -1,4 +1,4 @@
-import type { ExpenseCategory, InvoiceStatus, PaymentMethod, TripStatus, UserRole, VehicleStatus } from '../api/types'
+import type { AttachmentKind, ExpenseCategory, InvoiceStatus, PaymentMethod, TripStatus, UserRole, VehicleStatus } from '../api/types'
 
 export const tripStatusLabel: Record<TripStatus, string> = {
   Planned: 'Planlandı',
@@ -51,6 +51,13 @@ export const roleLabel: Record<UserRole, string> = {
   Admin: 'Yönetici',
   Operations: 'Operasyon',
   Accounting: 'Muhasebe',
+  Driver: 'Şoför (mobil)',
+}
+
+export const attachmentKindLabel: Record<AttachmentKind, string> = {
+  Photo: 'Fotoğraf',
+  Document: 'Belge / İrsaliye',
+  Signature: 'İmza',
 }
 
 export type Tone = 'yellow' | 'green' | 'blue' | 'gray' | 'red' | 'teal' | 'orange' | 'purple'
