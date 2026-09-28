@@ -34,6 +34,20 @@ npx eas-cli@latest build --profile production --platform ios    # App Store / Te
 Android için `preview` profili bir APK üretir; linki şoförlere WhatsApp'tan gönderip kurdurabilirsiniz.
 Mağazaya koymak için Google Play (tek sefer 25 $) / Apple Developer (yıllık 99 $) hesabı gerekir.
 
+## Bildirimler
+
+Ofis şoföre sefer atadığında, seferin güzergâhını/tarihini değiştirdiğinde, seferi başka şoföre aktardığında veya iptal
+ettiğinde şoförün telefonuna bildirim gider; bildirime dokununca sefer açılır. Ücretsiz Expo Push servisi kullanılır.
+
+Bir kerelik kurulum:
+1. `npx eas-cli@latest init` → `app.json` içindeki `expo.extra.eas.projectId` otomatik dolar.
+2. Android: Firebase projesi açıp FCM V1 anahtarını `npx eas-cli@latest credentials` ile yükleyin
+   ([adımlar](https://docs.expo.dev/push-notifications/fcm-credentials/)).
+3. iOS: ilk `eas build` sırasında “Setup Push Notifications” sorusuna evet deyin (Apple geliştirici hesabı gerekir).
+
+`projectId` boşken uygulama çalışmaya devam eder, sadece bildirim kaydı yapılmaz. Sunucuda göndermeyi kapatmak için
+`Push__Enabled=false` ortam değişkeni kullanılabilir.
+
 ## Konum ve pil
 
 - Konum yalnızca **yüklendi** veya **yolda** durumunda sefer varken paylaşılır; teslimden sonra otomatik durur.

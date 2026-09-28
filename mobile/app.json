@@ -42,10 +42,20 @@
           "photosPermission": "Teslim belgelerini galeriden seçmek için fotoğraflarınıza erişim gerekir.",
           "cameraPermission": "Teslim fotoğrafı çekmek için kameraya erişim gerekir."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0b2a55",
+          "defaultChannel": "trips"
+        }
       ]
     ],
     "extra": {
-      "apiUrl": "https://panel.yeslojistik.com"
+      "apiUrl": "https://panel.yeslojistik.com",
+      "eas": {
+        "projectId": ""
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -6,6 +6,7 @@ import { Badge, Card } from '../components/ui'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { sendCurrentLocation, startTracking, stopTracking, type TrackingState } from '../lib/location'
+import { registerForPush } from '../lib/notifications'
 import { colors, formatDate, statusColor, statusLabel } from '../lib/theme'
 import type { DriverProfile, DriverTrip } from '../lib/types'
 
@@ -21,6 +22,8 @@ export default function TripsScreen() {
   })
   const active = useQuery({ queryKey: ['trips', 'active'], queryFn: () => api.get<DriverTrip[]>('/driver/trips?scope=active') })
   const onTheRoad = active.data?.some((t) => t.status === 'Loaded' || t.status === 'OnRoad') ?? false
+
+  useEffect(() => { registerForPush().catch(() => undefined) }, [])
 
   // Yüklenmiş veya yoldaki sefer varsa konum paylaşımını aç, yoksa kapat.
   useEffect(() => {

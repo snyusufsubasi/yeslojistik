@@ -27,3 +27,5 @@ public record PublicTrackingDto(string CompanyName, string? CompanyPhone, string
 public record TokenLoginResponse(string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt, CurrentUserDto User);
 
 public record RefreshTokenRequest(string RefreshToken);
+
+public record PushTokenRequest(string Token, string? Platform);

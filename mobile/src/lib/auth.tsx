@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from '@tanstack/react-query'
 import * as api from './api'
 import { stopTracking } from './location'
+import { unregisterPush } from './notifications'
 
 interface AuthState {
   ready: boolean
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await stopTracking()
+    await unregisterPush()
     await api.logout()
     qc.clear()
     setSignedIn(false)

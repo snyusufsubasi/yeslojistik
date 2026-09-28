@@ -7,7 +7,7 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public class TripService(AppDbContext db)
+public class TripService(AppDbContext db, DriverNotifier notifier)
 {
     private static readonly Dictionary<string, Expression<Func<Trip, object?>>> SortMap = new()
     {
@@ -80,6 +80,8 @@ public class TripService(AppDbContext db)
         Apply(trip, req);
         db.Trips.Add(trip);
         await db.SaveChangesAsync(ct);
+        await notifier.NotifyAsync(trip.DriverId, trip.Id, "Yeni sefer atandı",
+            DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate), ct);
         return await GetAsync(trip.Id, ct);
     }
 
@@ -91,6 +93,8 @@ public class TripService(AppDbContext db)
             throw new DomainException("Faturalanmış seferin müşterisi veya satış fiyatı değiştirilemez. Önce faturayı iptal edin.");
 
         var oldVehicleId = trip.VehicleId;
+        var oldDriverId = trip.DriverId;
+        var oldRoute = (trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate);
         Apply(trip, req);
         if (oldVehicleId != trip.VehicleId && TripStatusRules.OccupiesVehicle(trip.Status))
         {
@@ -100,6 +104,17 @@ public class TripService(AppDbContext db)
             await SyncVehicleStatusAsync(trip.VehicleId, ct);
         }
         await db.SaveChangesAsync(ct);
+
+        var route = DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate);
+        if (oldDriverId != trip.DriverId)
+        {
+            await notifier.NotifyAsync(trip.DriverId, trip.Id, "Yeni sefer atandı", route, ct);
+            await notifier.NotifyAsync(oldDriverId, trip.Id, "Sefer başka şoföre aktarıldı", route, ct);
+        }
+        else if (oldRoute != (trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate))
+        {
+            await notifier.NotifyAsync(trip.DriverId, trip.Id, "Sefer bilgileri güncellendi", route, ct);
+        }
         return await GetAsync(id, ct);
     }
 
@@ -118,6 +133,9 @@ public class TripService(AppDbContext db)
         await db.SaveChangesAsync(ct);
         await SyncVehicleStatusAsync(trip.VehicleId, ct);
         await db.SaveChangesAsync(ct);
+        if (status == TripStatus.Cancelled)
+            await notifier.NotifyAsync(trip.DriverId, trip.Id, "Sefer iptal edildi",
+                DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate), ct);
         return await GetAsync(id, ct);
     }
 

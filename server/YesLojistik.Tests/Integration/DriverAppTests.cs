@@ -165,6 +165,36 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Driver_gets_push_notifications_for_assignment_and_cancel()
+    {
+        var s = await SetupAsync("108");
+        (await s.Driver.PostJsonAsync("/api/driver/push-token", new PushTokenRequest("gecersiz", "android")))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await s.Driver.PostJsonAsync("/api/driver/push-token", new PushTokenRequest("ExponentPushToken[sofor108]", "android")))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await s.Driver.PostJsonAsync("/api/driver/push-token", new PushTokenRequest("ExponentPushToken[silinmis108]", "ios")))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var trip = await (await s.Admin.PostJsonAsync("/api/trips", new TripSaveRequest(s.CustomerId, s.VehicleId, s.DriverId,
+            "Gebze", "Manisa", Today, null, null, 1000, 2000))).ReadAsync<TripDto>();
+        factory.Push.Sent.Should().Contain(m => m.Token == "ExponentPushToken[sofor108]" && m.Title == "Yeni sefer atandı"
+            && m.Body.Contains("Gebze → Manisa") && m.Data!["tripId"] == trip.Id.ToString());
+
+        // Silinmiş uygulamanın token'ı temizlenir; iptal bildirimi yalnızca geçerli telefona gider.
+        (await s.Admin.PostJsonAsync($"/api/trips/{trip.Id}/status", new TripStatusRequest(TripStatus.Cancelled))).EnsureSuccessStatusCode();
+        factory.Push.Sent.Where(m => m.Title == "Sefer iptal edildi").Select(m => m.Token).Should().Equal("ExponentPushToken[sofor108]");
+
+        // Başka şoföre aktarma: diğer şoförün hesabı yok, eski şoföre bilgi gider.
+        var t2 = await (await s.Admin.PostJsonAsync("/api/trips", new TripSaveRequest(s.CustomerId, s.VehicleId, s.DriverId,
+            "Tuzla", "Sakarya", Today, null, null, 1000, 2000))).ReadAsync<TripDto>();
+        await (await s.Admin.PutJsonAsync($"/api/trips/{t2.Id}", new TripSaveRequest(s.CustomerId, s.VehicleId, s.OtherDriverId,
+            "Tuzla", "Sakarya", Today, null, null, 1000, 2000))).ReadAsync<TripDto>();
+        factory.Push.Sent.Should().Contain(m => m.Title == "Sefer başka şoföre aktarıldı" && m.Body.Contains("Tuzla → Sakarya"));
+
+        (await s.Driver.DeleteAsync("/api/driver/push-token?token=ExponentPushToken%5Bsofor108%5D")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task Mobile_refresh_token_rotates()
     {
         var admin = await factory.LoginAsync();

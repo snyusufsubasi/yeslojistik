@@ -1,5 +1,8 @@
 import '../lib/location' // arka plan konum görevini kaydeder
-import { Stack } from 'expo-router'
+import { useEffect } from 'react'
+import { Platform } from 'react-native'
+import { Stack, router } from 'expo-router'
+import * as Notifications from 'expo-notifications'
 import { StatusBar } from 'expo-status-bar'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ActivityIndicator, View } from 'react-native'
@@ -10,6 +13,15 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, sta
 
 function RootStack() {
   const { ready, signedIn } = useAuth()
+  // Platform.OS çalışma anında sabit olduğundan hook sırası değişmez; web önizlemesinde bildirim yok.
+  const lastResponse = Platform.OS === 'web' ? null : Notifications.useLastNotificationResponse()
+
+  // Bildirime dokunulunca ilgili seferi aç.
+  useEffect(() => {
+    const tripId = lastResponse?.notification.request.content.data?.tripId
+    if (signedIn && typeof tripId === 'string') router.push({ pathname: '/trip/[id]', params: { id: tripId } })
+  }, [lastResponse, signedIn])
+
   if (!ready) {
     return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy }}><ActivityIndicator color="#fff" /></View>
   }

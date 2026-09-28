@@ -3,6 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using YesLojistik.Core.Abstractions;
 using Npgsql;
 
 namespace YesLojistik.Tests.Integration;
@@ -20,6 +23,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     private readonly string _baseConn = Environment.GetEnvironmentVariable("TEST_DATABASE_URL")
         ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres";
 
+    public FakePushSender Push { get; } = new();
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -32,6 +37,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Seed:SampleData", "false");
         builder.UseSetting("RateLimit:LoginPerMinute", "1000");
         builder.UseSetting("Storage:Path", Path.Combine(Path.GetTempPath(), _dbName));
+        builder.ConfigureTestServices(s => s.AddSingleton<IPushSender>(Push));
     }
 
     public async Task<HttpClient> LoginAsync(string email = AdminEmail, string password = AdminPassword)

@@ -29,6 +29,8 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default ayarlanmamış.");
 builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads");
 builder.Services.AddHostedService<LocationRetentionService>();
+if (!builder.Configuration.GetValue("Push:Enabled", true))
+    builder.Services.AddSingleton<YesLojistik.Core.Abstractions.IPushSender, YesLojistik.Infrastructure.Services.NullPushSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TokenService>();

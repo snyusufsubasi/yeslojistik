@@ -61,6 +61,30 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
         return await attachments.UploadAsync(id, stream, file.Length, file.FileName, kind, note, ct);
     }
 
+    /// <summary>Telefonun bildirim adresini kaydeder (yeni sefer, iptal vb. bildirimleri için).</summary>
+    [HttpPost("push-token")]
+    public async Task<IActionResult> RegisterPush(PushTokenRequest req, CancellationToken ct)
+    {
+        await DriverIdAsync(ct);
+        if (string.IsNullOrWhiteSpace(req.Token) || req.Token.Length > 200 || !req.Token.StartsWith("ExponentPushToken["))
+            throw new DomainException("Geçersiz bildirim adresi.");
+        var existing = await db.PushTokens.FirstOrDefaultAsync(p => p.Token == req.Token, ct);
+        if (existing == null) db.PushTokens.Add(existing = new PushToken { Token = req.Token });
+        // Aynı telefon başka şoför hesabıyla kullanılıyorsa bildirimi yeni hesaba taşı.
+        existing.UserId = current.Id!.Value;
+        existing.Platform = req.Platform?.Length > 20 ? req.Platform[..20] : req.Platform;
+        existing.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpDelete("push-token")]
+    public async Task<IActionResult> RemovePush([FromQuery] string token, CancellationToken ct)
+    {
+        await db.PushTokens.Where(p => p.Token == token && p.UserId == current.Id).ExecuteDeleteAsync(ct);
+        return NoContent();
+    }
+
     /// <summary>Konum gönderimi. Uygulama çevrimdışıyken biriktirdiği konumları toplu gönderebilir.</summary>
     [HttpPost("location")]
     public async Task<object> Location(List<LocationPing> pings, CancellationToken ct)

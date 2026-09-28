@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     public DbSet<TripAttachment> TripAttachments => Set<TripAttachment>();
     public DbSet<VehicleLocation> VehicleLocations => Set<VehicleLocation>();
+    public DbSet<PushToken> PushTokens => Set<PushToken>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -98,6 +99,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.StoragePath).HasMaxLength(300);
             e.Property(x => x.Note).HasMaxLength(500);
             e.HasOne(x => x.Trip).WithMany(t => t.Attachments).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<PushToken>(e =>
+        {
+            e.Property(x => x.Token).HasMaxLength(200);
+            e.Property(x => x.Platform).HasMaxLength(20);
+            e.HasIndex(x => x.Token).IsUnique();
+            e.HasOne(x => x.User).WithMany().OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<VehicleLocation>(e =>
         {
