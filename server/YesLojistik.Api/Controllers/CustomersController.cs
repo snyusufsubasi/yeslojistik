@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using YesLojistik.Api.Auth;
 using Microsoft.EntityFrameworkCore;
 using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
@@ -42,6 +44,20 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
 
     [HttpGet("{id:int}/movements")]
     public Task<List<AccountMovementDto>> Movements(int id, CancellationToken ct) => accounts.MovementsAsync(id, ct);
+
+    /// <summary>Hesap ekstresi PDF'i (isteğe bağlı tarih aralığıyla).</summary>
+    [HttpGet("{id:int}/statement")]
+    public async Task<IActionResult> Statement(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] bool download,
+        [FromServices] StatementPdfGenerator pdf, CancellationToken ct)
+    {
+        var (content, name, _, _) = await pdf.GenerateAsync(id, from, to, ct);
+        return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
+    }
+
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("{id:int}/statement/email")]
+    public async Task<object> EmailStatement(int id, StatementEmailRequest req, [FromServices] StatementPdfGenerator pdf, CancellationToken ct) =>
+        new { sentTo = await pdf.SendAsync(id, req.From, req.To, req.Recipient, req.Message, ct) };
 
     [HttpPost]
     public async Task<ActionResult<CustomerSummaryDto>> Create(CustomerSaveRequest req, CancellationToken ct)

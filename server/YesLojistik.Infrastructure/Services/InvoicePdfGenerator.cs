@@ -17,7 +17,7 @@ public class InvoicePdfGenerator(AppDbContext db)
         var inv = await db.Invoices.AsNoTracking().Include(i => i.Customer).Include(i => i.Lines)
             .FirstOrDefaultAsync(i => i.Id == invoiceId, ct) ?? throw new NotFoundException("Fatura bulunamadı.");
         var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
-        var logo = DecodeLogo(company.LogoDataUrl);
+        var logo = PdfKit.DecodeLogo(company.LogoDataUrl);
 
         var pdf = Document.Create(doc => doc.Page(page =>
         {
@@ -122,14 +122,5 @@ public class InvoicePdfGenerator(AppDbContext db)
         })).GeneratePdf();
 
         return (pdf, $"{inv.InvoiceNo}.pdf");
-    }
-
-    private static byte[]? DecodeLogo(string? dataUrl)
-    {
-        if (string.IsNullOrEmpty(dataUrl)) return null;
-        var comma = dataUrl.IndexOf(',');
-        if (comma < 0) return null;
-        try { return Convert.FromBase64String(dataUrl[(comma + 1)..]); }
-        catch (FormatException) { return null; }
     }
 }

@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, FileText, Mail, MapPin, Pencil, Phone, Plus, Trash2, UserCircle2, Wallet } from 'lucide-react'
-import { get } from '../api/client'
-import type { AccountMovement, CustomerSummary, Invoice, Payment, Trip } from '../api/types'
+import { ArrowLeft, FileSpreadsheet, FileText, Mail, MapPin, Pencil, Phone, Plus, Trash2, UserCircle2, Wallet } from 'lucide-react'
+import { errorMessage, get, openPdf, post } from '../api/client'
+import type { AccountMovement, CompanySettings, CustomerSummary, Invoice, Payment, Trip } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
 import { DataTable, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
-import { Badge, Button, Card, ConfirmDialog, PageHeader, Spinner, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
+import { useToast } from '../components/Toast'
 import { useAuth } from '../lib/auth'
 import { date, tl, tl2 } from '../lib/format'
 import { crud, usePaged, useSave } from '../lib/hooks'
@@ -23,6 +24,7 @@ export default function CustomerDetailPage() {
   const [editing, setEditing] = useState(false)
   const [paying, setPaying] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [statement, setStatement] = useState(false)
   const summary = useQuery({ queryKey: ['customers', 'summary', id], queryFn: () => get<CustomerSummary>(`/customers/${id}`) })
   const deleteMut = useSave(() => crud('customers').remove(id), { invalidate: ['customers'], success: 'Müşteri silindi.', onSuccess: () => navigate('/musteriler') })
 
@@ -37,6 +39,7 @@ export default function CustomerDetailPage() {
         actions={<>
           <Button variant="secondary" icon={<ArrowLeft className="size-4" />} onClick={() => navigate('/musteriler')}>Geri</Button>
           <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>Düzenle</Button>
+          <Button variant="secondary" icon={<FileSpreadsheet className="size-4" />} onClick={() => setStatement(true)}>Hesap Ekstresi</Button>
           {s.tripCount === 0 && s.totalDebit === 0 && s.totalCredit === 0 &&
             <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>}
           {can('accounting') && <Button variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
@@ -80,6 +83,7 @@ export default function CustomerDetailPage() {
       </Card>
 
       {editing && <CustomerForm customer={c} onClose={() => setEditing(false)} />}
+      {statement && <StatementDialog customerId={id} title={c.title} email={c.email} onClose={() => setStatement(false)} />}
       {paying && <PaymentForm payment={null} defaults={{ customerId: id }} onClose={() => setPaying(false)} />}
       <ConfirmDialog open={deleting} title="Müşteriyi sil" message={<>{c.title} silinecek. Emin misiniz?</>} confirmText="Sil"
         loading={deleteMut.isPending} onClose={() => setDeleting(false)} onConfirm={() => deleteMut.mutate(undefined)} />
@@ -160,4 +164,51 @@ function CustomerPayments({ id }: { id: number }) {
     { key: 'amount', header: 'Tutar', align: 'right', render: (p) => tl2(p.amount) },
   ]
   return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(p) => p.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
+}
+
+function firstOfYear() {
+  return `${new Date().getFullYear()}-01-01`
+}
+
+function StatementDialog({ customerId, title, email, onClose }: { customerId: number; title: string; email?: string | null; onClose: () => void }) {
+  const { can } = useAuth()
+  const toast = useToast()
+  const settings = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings') })
+  const [from, setFrom] = useState(firstOfYear())
+  const [to, setTo] = useState('')
+  const [recipient, setRecipient] = useState(email ?? '')
+  const [message, setMessage] = useState('')
+  const range = { from: from || null, to: to || null }
+  const query = new URLSearchParams(Object.entries(range).filter(([, v]) => v) as [string, string][]).toString()
+  const send = useSave(() => post<{ sentTo: string }>(`/customers/${customerId}/statement/email`, { ...range, recipient: recipient || null, message: message || null }), {
+    invalidate: [], success: 'Hesap ekstresi e-postayla gönderildi.', onSuccess: onClose,
+  })
+  const canMail = can('accounting') && !!settings.data?.emailEnabled
+
+  return (
+    <Modal open onClose={onClose} title={`${title} – Hesap Ekstresi`} size="sm"
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Kapat</Button>
+        {canMail && <Button variant="secondary" icon={<Mail className="size-4" />} disabled={!recipient} loading={send.isPending} onClick={() => send.mutate(undefined)}>E-postayla Gönder</Button>}
+        <Button icon={<FileText className="size-4" />}
+          onClick={() => openPdf(`/customers/${customerId}/statement${query ? `?${query}` : ''}`, 'ekstre.pdf').catch((e) => toast.error(errorMessage(e)))}>PDF Aç</Button>
+      </>}>
+      <div className="space-y-3">
+        <p className="text-[15px] text-slate-700">Seçilen dönemdeki faturalar ve tahsilatlar, devreden bakiye ve güncel bakiyeyle listelenir. Mutabakat için müşteriye gönderebilirsiniz.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block"><span className="label">Başlangıç</span>
+            <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+          <label className="block"><span className="label">Bitiş</span>
+            <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        </div>
+        <p className="text-sm text-slate-600">Tarihleri boş bırakırsanız bütün hareketler alınır.</p>
+        {canMail && <>
+          <label className="block"><span className="label">Alıcı e-posta</span>
+            <input className="input" type="email" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="muhasebe@musteri.com" /></label>
+          <label className="block"><span className="label">Ek mesaj (isteğe bağlı)</span>
+            <textarea className="input min-h-16" value={message} onChange={(e) => setMessage(e.target.value)} /></label>
+        </>}
+      </div>
+    </Modal>
+  )
 }

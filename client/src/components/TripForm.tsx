@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Copy, FileText, Trash2 } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,13 +10,14 @@ function MissingHint({ show, to, text }: { show: boolean; to: string; text: stri
   if (!show) return null
   return <Link to={to} className="mt-1 block text-[13px] font-medium text-brand-700 underline underline-offset-2">{text}</Link>
 }
-import { post } from '../api/client'
+import { errorMessage, openPdf, post } from '../api/client'
 import type { Trip, TripStatus } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
 import { moneyHint, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 import { Badge, Button, Field, Modal, Tabs } from './ui'
+import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
 import { TripAttachments, TripTracking } from './TripExtras'
 
@@ -38,7 +39,14 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 const api = crud<Trip, FormValues>('trips')
 
-export function TripForm({ trip, onClose, defaults, onDelete }: { trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues>; onDelete?: (trip: Trip) => void }) {
+export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: {
+  trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues>; onDelete?: (trip: Trip) => void
+  /** Düzenlenen seferin kopyasıyla yeni sefer formu açar. */
+  onCopy?: (trip: Trip) => void
+  /** Yeni sefer bu seferden kopyalanır (tarih bugüne alınır). */
+  copyOf?: Trip | null
+}) {
+  const toast = useToast()
   const [tab, setTab] = useState<'info' | 'files' | 'tracking'>('info')
   const customers = useLookup('customers')
   const vehicles = useLookup('vehicles')
@@ -51,6 +59,11 @@ export function TripForm({ trip, onClose, defaults, onDelete }: { trip: Trip | n
       loadingAddress: trip.loadingAddress, deliveryAddress: trip.deliveryAddress,
       loadingDate: trip.loadingDate, deliveryDate: trip.deliveryDate ?? '', description: trip.description ?? '',
       vehicleCost: trip.vehicleCost, salePrice: trip.salePrice,
+    } : copyOf ? {
+      customerId: copyOf.customerId, vehicleId: copyOf.vehicleId, driverId: copyOf.driverId,
+      loadingAddress: copyOf.loadingAddress, deliveryAddress: copyOf.deliveryAddress,
+      loadingDate: todayIso(), deliveryDate: '', description: copyOf.description ?? '',
+      vehicleCost: copyOf.vehicleCost, salePrice: copyOf.salePrice,
     } : { loadingDate: todayIso(), deliveryDate: '', description: '', ...defaults },
   })
 
@@ -77,10 +90,17 @@ export function TripForm({ trip, onClose, defaults, onDelete }: { trip: Trip | n
   }
 
   return (
-    <Modal open onClose={onClose} title={trip ? 'Sefer Düzenle' : 'Sefer Oluştur'} size="lg"
+    <Modal open onClose={onClose} title={trip ? 'Sefer Düzenle' : copyOf ? 'Sefer Oluştur (kopya)' : 'Sefer Oluştur'} size="lg"
       footer={tab === 'info' ? <>
-        {trip && onDelete && !trip.invoiceId && (
-          <Button variant="ghost" className="mr-auto text-red-700 hover:bg-red-50" icon={<Trash2 className="size-4" />} onClick={() => onDelete(trip)}>Seferi Sil</Button>
+        {trip && (
+          <div className="mr-auto flex flex-wrap gap-2">
+            {onDelete && !trip.invoiceId && (
+              <Button variant="ghost" className="text-red-700 hover:bg-red-50" icon={<Trash2 className="size-4" />} onClick={() => onDelete(trip)}>Seferi Sil</Button>
+            )}
+            <Button variant="secondary" icon={<FileText className="size-4" />} title="Araçta taşınacak, teslimde imzalatılacak belge (fiyat içermez)"
+              onClick={() => openPdf(`/trips/${trip.id}/waybill`, `S-${String(trip.id).padStart(6, '0')}.pdf`).catch((e) => toast.error(errorMessage(e)))}>Sevk Belgesi</Button>
+            {onCopy && <Button variant="secondary" icon={<Copy className="size-4" />} title="Aynı müşteri, güzergah ve fiyatla yeni sefer" onClick={() => onCopy(trip)}>Kopyala</Button>}
+          </div>
         )}
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button>
         <Button onClick={handleSubmit((v) => save.mutate(v))} loading={save.isPending}>Kaydet</Button>

@@ -28,3 +28,5 @@ public record DriverDto(int Id, string FullName, string? Phone, string? National
 
 public record DriverSaveRequest(string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive);
+
+public record StatementEmailRequest(DateOnly? From, DateOnly? To, string? Recipient, string? Message);

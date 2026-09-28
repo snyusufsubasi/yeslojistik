@@ -145,3 +145,28 @@ test('yardım sayfası ve kontrol listesi bağlantıları', async ({ page }) => 
   await page.getByRole('link', { name: 'Seferler → Yeni Sefer' }).click()
   await expect(page.getByRole('dialog', { name: 'Sefer Oluştur' })).toBeVisible()
 })
+
+test('sefer kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async ({ page, context }) => {
+  await login(page)
+  await page.goto('/seferler')
+  await page.getByRole('row').nth(1).click()
+  const edit = page.getByRole('dialog', { name: 'Sefer Düzenle' })
+  const from = await edit.getByLabel('Yükleme Adresi').inputValue()
+
+  const [waybill] = await Promise.all([context.waitForEvent('page'), edit.getByRole('button', { name: 'Sevk Belgesi' }).click()])
+  await expect.poll(() => waybill.url()).toMatch(/^blob:/)
+  await waybill.close()
+
+  await edit.getByRole('button', { name: 'Kopyala' }).click()
+  const copy = page.getByRole('dialog', { name: 'Sefer Oluştur (kopya)' })
+  await expect(copy.getByLabel('Yükleme Adresi')).toHaveValue(from)
+  await expect(copy.locator('select[name=customerId]')).not.toHaveValue('')
+  await copy.getByRole('button', { name: 'Vazgeç' }).click()
+
+  await page.goto('/musteriler')
+  await page.locator('tbody tr').first().click()
+  await page.getByRole('button', { name: 'Hesap Ekstresi' }).click()
+  const dlg = page.getByRole('dialog', { name: /Hesap Ekstresi/ })
+  const [statement] = await Promise.all([context.waitForEvent('page'), dlg.getByRole('button', { name: 'PDF Aç' }).click()])
+  await expect.poll(() => statement.url()).toMatch(/^blob:/)
+})

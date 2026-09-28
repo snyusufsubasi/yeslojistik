@@ -25,6 +25,7 @@ export default function TripsPage() {
   const [invoiced, setInvoiced] = useState<'yes' | 'no' | ''>('')
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(params.get('new') ? 'new' : null)
+  const [copyOf, setCopyOf] = useState<Trip | null>(null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
@@ -106,8 +107,10 @@ export default function TripsPage() {
           )} />
       </Card>
 
-      {editing && <TripForm trip={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
-        onDelete={(t) => { setEditing(null); setDeleting(t) }} />}
+      {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
+        onClose={() => { setEditing(null); setCopyOf(null) }}
+        onDelete={(t) => { setEditing(null); setDeleting(t) }}
+        onCopy={(t) => { setCopyOf(t); setEditing('new') }} />}
       <ConfirmDialog open={!!deleting} title="Seferi sil" loading={deleteMut.isPending}
         message={<>“{deleting?.customerTitle} – {deleting?.loadingAddress} → {deleting?.deliveryAddress}” seferi silinecek. Emin misiniz?</>}
         confirmText="Sil" onClose={() => setDeleting(null)} onConfirm={() => deleting && deleteMut.mutate(deleting.id)} />

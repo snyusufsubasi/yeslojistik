@@ -38,6 +38,14 @@ public class TripsController(TripService trips) : ControllerBase
     [HttpGet("{id:int}")]
     public Task<TripDto> Get(int id, CancellationToken ct) => trips.GetAsync(id, ct);
 
+    /// <summary>Sevk belgesi (irsaliye) PDF'i; fiyat bilgisi içermez.</summary>
+    [HttpGet("{id:int}/waybill")]
+    public async Task<IActionResult> Waybill(int id, [FromServices] WaybillPdfGenerator pdf, [FromQuery] bool download, CancellationToken ct)
+    {
+        var (content, name) = await pdf.GenerateAsync(id, ct);
+        return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
+    }
+
     [Authorize(Policy = Policies.Operations)]
     [HttpPost]
     public Task<TripDto> Create(TripSaveRequest req, CancellationToken ct) => trips.CreateAsync(req, ct);
