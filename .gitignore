@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+server/**/logs/
+
+# Node
+node_modules/
+client/dist/
+
+# Ortam / gizli bilgiler
+.env
+*.env.local
+
+# Yedekler
+backups/
+
+.DS_Store
+.vscode/
+.idea/
+server/YesLojistik.Api/data/
+client/e2e/zz-*.spec.ts
+
+# Sunucu dışı yedek ayarı (rclone config, gizli anahtar içerir)
+deploy/rclone/

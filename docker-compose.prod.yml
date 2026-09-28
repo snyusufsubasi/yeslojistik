@@ -1,0 +1,64 @@
+# Canlı sunucu: HTTPS'i Caddy otomatik alır (Let's Encrypt).
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  api:
+    environment:
+      Jwt__SecureCookies: "true"
+      # Demo veriyle açmak için .env'de SAMPLE_DATA=true; Ayarlar → Veriler'den temizlendikten sonra bir daha yüklenmez.
+      Seed__SampleData: ${SAMPLE_DATA:-false}
+
+  web:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN ayarlanmalı (ör. panel.yeslojistik.com)}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PGHOST: db
+      PGUSER: yeslojistik
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: yeslojistik
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      TZ: Europe/Istanbul
+    volumes:
+      - ./backups:/backups
+      - ./deploy/backup.sh:/backup.sh:ro
+      - uploads:/uploads:ro
+    # Her gece 03:00'te yedek alır.
+    entrypoint: ["/bin/sh", "-c", "echo '0 3 * * * /bin/sh /backup.sh >> /backups/backup.log 2>&1' | crontab - && crond -f -l 8"]
+
+  # Yedekleri sunucu dışına kopyalar (Google Drive, Backblaze B2, S3, başka sunucu...). RCLONE_REMOTE boşsa bekler.
+  # Kurulum: docs/KURULUM.md → "Yedekleri sunucu dışına kopyalama".
+  offsite:
+    image: rclone/rclone:1.68
+    restart: unless-stopped
+    environment:
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
+      TZ: Europe/Istanbul
+    volumes:
+      - ./backups:/backups
+      - ./deploy/rclone:/config/rclone
+      - ./deploy/offsite.sh:/offsite.sh:ro
+    # Gece yedeğinden (03:00) sonra, 04:00'te kopyalar.
+    entrypoint: ["/bin/sh", "-c", "echo '0 4 * * * /bin/sh /offsite.sh >> /backups/offsite.log 2>&1' | crontab - && crond -f -l 8"]
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: Host=localhost;Port=5432;Username=postgres;Password=postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet build server/YesLojistik.sln -c Release
+      - run: dotnet test server/YesLojistik.sln -c Release --no-build
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx expo export --platform android --output-dir /tmp/android-bundle
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [server, client]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: yeslojistik
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: API'yi örnek veriyle başlat
+        run: |
+          dotnet build server/YesLojistik.sln
+          cd server/YesLojistik.Api
+          ASPNETCORE_ENVIRONMENT=Development Cors__Origins__0=http://localhost:8082 RateLimit__LoginPerMinute=1000 \
+            nohup dotnet run --no-build --urls http://localhost:5080 > /tmp/api.log 2>&1 &
+      - name: Web paneli başlat
+        working-directory: client
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+          # Üretim derlemesi (vite preview, /api isteklerini 5080'e yönlendirir)
+          nohup npx vite preview --port 5173 --strictPort > /tmp/vite.log 2>&1 &
+      - name: Şoför uygulamasının web önizlemesini başlat
+        working-directory: mobile
+        run: |
+          npm ci
+          npx expo export --platform web --output-dir /tmp/driver-web
+          nohup npx --yes serve -s -l 8082 /tmp/driver-web > /tmp/serve.log 2>&1 &
+      - name: Servisleri bekle
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5080/api/health && curl -sf http://localhost:5173 >/dev/null && curl -sf http://localhost:8082 >/dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/api.log; exit 1
+      - name: Uçtan uca testler
+        working-directory: client
+        run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            client/test-results
+            /tmp/api.log
