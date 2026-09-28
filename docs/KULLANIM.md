@@ -22,6 +22,31 @@ sol üstteki ☰ düğmesi menüyü açar. Şifrenizi sağ üstteki isminize tı
 7. **Tahsilat gir** → faturanın içinden *Tahsilat Ekle* ya da *Tahsilatlar* sayfasından. Faturaya bağlamazsanız
    ödeme en eski açık faturalardan başlayarak kapatılır.
 
+## İlk kurulum: Excel'den aktarım
+*Müşteriler*, *Araçlar* ve *Şoförler* sayfalarındaki **Excel'den Aktar** düğmesiyle mevcut listeleri toplu aktarabilirsiniz:
+1. **Şablonu İndir** → Excel'de doldurun (örnek satırı silin).
+2. **Dosya Seç** → **Kontrol Et**. Hatalı satırlar satır numarasıyla listelenir; hata varsa hiçbir kayıt aktarılmaz.
+3. Hata yoksa **Aktar**. Sistemde zaten kayıtlı olanlar (aynı plaka, aynı ünvan/VKN, aynı ad soyad) atlanır.
+
+Müşteri şablonundaki **Devir Bakiyesi** sütununa müşterinin eski sistemden kalan borcunu yazın. Devir, cari bakiyeye ve
+alacak yaşlandırmasına eklenir; faturaya bağlanmayan tahsilatlar önce devri kapatır. Müşteri formundan da girilebilir.
+
+## Şoför uygulaması
+Şoförler **YES Lojistik Şoför** uygulamasını kullanır (kurulum: `mobile/README.md`).
+- Hesap açma: *Ayarlar → Kullanıcılar → Yeni Kullanıcı*, rol **Şoför (mobil)**, **Bağlı Şoför** seçilir.
+- Şoför yalnızca kendisine atanan seferleri görür, fiyat bilgisi görmez.
+- Seferde sırasıyla **Yükü Aldım → Yola Çıktım → Teslim Ettim** düğmelerine basar. Geri alma ve iptal yalnızca ofisten yapılır.
+- **Fotoğraf Çek / Galeriden** ile teslim fotoğrafı veya imzalı irsaliye yükler; ofis bunu seferin *Dosyalar* sekmesinde görür.
+- Yük alındığı andan teslime kadar telefonun konumu otomatik paylaşılır.
+
+## Araç takip haritası ve müşteri takip linki
+- **Araç Takip Haritası** sayfası araçların son konumunu gösterir (30 saniyede bir yenilenir). Listeden bir araca
+  tıklayınca aktif seferinin izlediği rota çizilir.
+- Sefere tıklayıp **Takip ve Rota** sekmesinden **Takip Linki Oluştur** → **WhatsApp ile Gönder**. Müşteri, giriş
+  yapmadan seferin aşamasını ve araç yoldayken konumunu görür. Fiyat, şoför adı/telefonu gösterilmez, plakanın son
+  hanesi gizlenir. Link teslimden 7 gün sonra kapanır.
+- **Dosyalar / Fotoğraflar** sekmesinden ofis de irsaliye, CMR vb. belge yükleyebilir (JPEG, PNG, WEBP, PDF; en fazla 10 MB).
+
 ## Cari kartı
 Müşteriye tıklayınca: toplam borç (kesilen faturalar), toplam alacak (tahsilatlar), bakiye ve vadesi geçen tutar.
 *Hareketler* sekmesi fatura ve tahsilatları yürüyen bakiyeyle gösterir.
@@ -44,6 +69,7 @@ Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle 
 | Yönetici | Her şey, kullanıcı ve firma ayarları |
 | Operasyon | Sefer, araç, şoför ekleme/düzenleme |
 | Muhasebe | Fatura, tahsilat, raporlar |
+| Şoför (mobil) | Yalnızca şoför uygulaması: kendi seferleri, durum, fotoğraf |
 
 Herkes tüm kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
 

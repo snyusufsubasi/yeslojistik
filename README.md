@@ -1,9 +1,10 @@
 # YES Lojistik – Nakliye Takip Sistemi
 
-Seferler, araçlar, şoförler, müşteri carileri, faturalar, tahsilatlar ve giderler için web paneli.
-Masaüstü ve telefonda çalışır.
+Seferler, araçlar, şoförler, müşteri carileri, faturalar, tahsilatlar ve giderler için web paneli
+ve şoför mobil uygulaması.
 
-- **Ön yüz:** React 19 + TypeScript + Vite + Tailwind CSS (`client/`)
+- **Web panel:** React 19 + TypeScript + Vite + Tailwind CSS, Leaflet/OpenStreetMap harita (`client/`)
+- **Şoför uygulaması:** Expo / React Native, Android + iOS (`mobile/`) — bkz. [mobile/README.md](mobile/README.md)
 - **API:** .NET 8 Web API + EF Core (`server/`)
 - **Veritabanı:** PostgreSQL 16
 - **Kurulum:** Docker Compose + Caddy (otomatik HTTPS)
@@ -13,6 +14,7 @@ Masaüstü ve telefonda çalışır.
 | [docs/PLAN.md](docs/PLAN.md) | Proje planı ve kapsam (v1 / v2) |
 | [docs/KURULUM.md](docs/KURULUM.md) | Geliştirme ortamı, sunucuya kurulum, yedekleme |
 | [docs/KULLANIM.md](docs/KULLANIM.md) | Kullanım kılavuzu (kuzen için) |
+| [mobile/README.md](mobile/README.md) | Şoför uygulaması: derleme, kurulum, konum paylaşımı |
 
 ## Hızlı başlangıç (geliştirme)
 
@@ -30,7 +32,8 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-Giriş: `admin@yeslojistik.com` / `Admin123!` (yalnızca geliştirme ortamı).
+Giriş: `admin@yeslojistik.com` / `Admin123!`, şoför uygulaması için `sofor@yeslojistik.com` / `Sofor123!`
+(yalnızca geliştirme ortamındaki örnek veri).
 
 Swagger: http://localhost:5080/swagger
 
@@ -43,7 +46,10 @@ dotnet test server/YesLojistik.sln
 # Ön yüz
 cd client && npm run lint && npm run build
 
-# Uçtan uca (API ve `npm run dev` çalışırken)
+# Şoför uygulaması
+cd mobile && npm run typecheck
+
+# Uçtan uca (API, `npm run dev` ve şoför uygulamasının web önizlemesi çalışırken; bkz. .github/workflows/ci.yml)
 cd client && npm run test:e2e
 ```
 
@@ -54,7 +60,8 @@ client/                      React uygulaması
   src/api/                   axios istemcisi (otomatik token yenileme) + tipler
   src/components/            Layout, DataTable, formlar, UI bileşenleri
   src/pages/                 Sayfalar
-  e2e/                       Playwright testleri
+  e2e/                       Playwright testleri (web panel + şoför uygulaması)
+mobile/                      Expo şoför uygulaması (src/app: ekranlar, src/lib: API, konum)
 server/
   YesLojistik.Core/          Entity'ler, DTO'lar, doğrulama, iş kuralları (fatura hesabı, sefer durumları, VKN/TCKN)
   YesLojistik.Infrastructure/ EF Core, migration'lar, servisler (fatura, bakiye, rapor, PDF, Excel)

@@ -25,6 +25,8 @@ nano .env
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | İlk yönetici hesabı. İlk girişten sonra şifreyi panelden değiştirin |
 | `DOMAIN` | Ör. `panel.yeslojistik.com` — DNS'te A kaydı sunucu IP'sini göstermeli |
 | `SAMPLE_DATA` | Canlıda `false` |
+| `PUBLIC_URL` | Müşteri takip linklerinde kullanılacak adres, ör. `https://panel.yeslojistik.com` |
+| `LOCATION_RETENTION_DAYS` | GPS kayıtlarının saklanacağı gün (varsayılan 90) |
 
 ## 2. Çalıştırma
 
@@ -47,7 +49,8 @@ Loglar: `docker compose logs -f api`
 
 ## 3. Yedekleme (zorunlu!)
 
-`docker-compose.prod.yml` içindeki `backup` servisi her gece 03:00'te `./backups/` klasörüne yedek alır ve
+`docker-compose.prod.yml` içindeki `backup` servisi her gece 03:00'te `./backups/` klasörüne veritabanı yedeğini
+(`yeslojistik-*.dump`) ve yüklenen dosyaların (teslim fotoğrafları, irsaliyeler) arşivini (`uploads-*.tar.gz`) alır,
 30 günden eski yedekleri siler. **Sunucu çökerse bu yedekler de gider**, bu yüzden sunucu dışına kopyalayın:
 
 ```bash
@@ -65,6 +68,8 @@ Elle yedek: `docker compose exec backup sh /backup.sh`
 ./deploy/restore.sh backups/yeslojistik-20260101-030000.dump
 ```
 
+Dosyaları geri yüklemek için: `docker run --rm -v yeslojistik_uploads:/u -v $PWD/backups:/b alpine tar -xzf /b/uploads-<tarih>.tar.gz -C /u`
+
 Yedeğin gerçekten açıldığını görmek için geri yüklemeyi ayrı bir makinede/test ortamında periyodik olarak deneyin.
 
 ## 4. Güvenlik notları
@@ -73,7 +78,11 @@ Yedeğin gerçekten açıldığını görmek için geri yüklemeyi ayrı bir mak
   Yenileme token'ları veritabanında hash'li saklanır ve her kullanımda yenilenir.
 - Giriş denemeleri IP başına dakikada 10 ile sınırlı.
 - Şifreler ASP.NET Identity PBKDF2 ile hash'lenir; en az 8 karakter, harf + rakam.
-- Roller: **Yönetici** (her şey), **Operasyon** (sefer/araç/şoför), **Muhasebe** (fatura/tahsilat/rapor).
+- Roller: **Yönetici** (her şey), **Operasyon** (sefer/araç/şoför), **Muhasebe** (fatura/tahsilat/rapor),
+  **Şoför** (yalnızca `/api/driver` uçları; ofis verilerine erişemez). Mobil uygulama cookie yerine Bearer token kullanır.
+- Yüklenen dosyaların türü uzantıya değil içeriğe bakılarak doğrulanır (JPEG/PNG/WEBP/PDF), en fazla 10 MB.
+- Herkese açık takip sayfası IP başına dakikada 60 istekle sınırlıdır; fiyat/şoför bilgisi içermez.
+- GPS kayıtları `LOCATION_RETENTION_DAYS` gün sonra otomatik silinir.
 - KVKK: Kişisel veriler (şoför TCKN, telefon) yalnızca giriş yapmış kullanıcılara açıktır. Kullanıcı hesaplarını
   kişiye özel açın, ayrılan personelin hesabını pasife alın.
 - Sunucuda yalnızca 22, 80, 443 portlarını açık bırakın (`ufw allow OpenSSH && ufw allow 80,443/tcp && ufw enable`).
@@ -88,7 +97,12 @@ cd server
 ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add <Ad> -p YesLojistik.Infrastructure -s YesLojistik.Api -o Data/Migrations
 ```
 
-## 6. e-Fatura entegrasyonu (v2)
+## 6. Şoför uygulaması
+
+Derleme ve dağıtım adımları [mobile/README.md](../mobile/README.md) içinde. Uygulamadaki varsayılan sunucu adresi
+`mobile/app.json` → `expo.extra.apiUrl`; canlı alan adınızla güncelleyip derleyin.
+
+## 7. e-Fatura entegrasyonu
 
 `YesLojistik.Core/Abstractions/IEInvoiceProvider.cs` arayüzü hazır. Seçilecek özel entegratörün (Paraşüt, Uyumsoft,
 Logo vb.) API'si için bu arayüzü uygulayan bir sınıf yazılıp `DependencyInjection.cs` içinde

@@ -1,6 +1,8 @@
 # YES Lojistik – Nakliye Takip Sistemi · Proje Planı
 
-> **Durum:** v1'in tüm fazları (1–6) uygulandı. Kurulum için [KURULUM.md](KURULUM.md), kullanım için [KULLANIM.md](KULLANIM.md).
+> **Durum:** v1'in tüm fazları (1–6) ve v2'nin şoför uygulaması, GPS takip, müşteri takip linki maddeleri uygulandı;
+> ek olarak Excel'den toplu aktarım ve müşteri devir bakiyesi eklendi. Kalan: GİB e-Fatura (entegratör seçimi bekliyor),
+> SMS bildirimleri (sağlayıcı seçimi bekliyor; şimdilik WhatsApp paylaşım linki var). Kurulum için [KURULUM.md](KURULUM.md), kullanım için [KULLANIM.md](KULLANIM.md).
 > Plandan sapmalar: tablo için TanStack Table yerine hafif özel `DataTable` bileşeni; Serilog yalnızca konsola yazar (Docker logları).
 
 ## Context
