@@ -72,12 +72,12 @@ public class ReportService(AppDbContext db, BalanceService balances)
     public async Task<List<CustomerAgingRow>> AgingAsync(CancellationToken ct = default)
     {
         var today = Clock.Today;
-        var bal = await balances.InvoiceBalancesAsync(null, ct);
-        var invoiceCustomers = await db.Invoices.AsNoTracking().Where(i => i.Status == InvoiceStatus.Issued)
-            .Select(i => new { i.Id, i.CustomerId, i.Customer.Title }).ToListAsync(ct);
+        var byCustomer = await balances.BalancesByCustomerAsync(null, ct);
+        var ids = byCustomer.Select(g => g.Key).ToList();
+        var titles = await db.Customers.AsNoTracking().Where(c => ids.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Title, ct);
 
-        return invoiceCustomers.GroupBy(i => (i.CustomerId, i.Title))
-            .Select(g => (g.Key, Buckets: PaymentAllocator.Age(g.Select(i => bal[i.Id]), today)))
+        return byCustomer
+            .Select(g => (Key: (CustomerId: g.Key, Title: titles.GetValueOrDefault(g.Key, "?")), Buckets: PaymentAllocator.Age(g, today)))
             .Where(x => x.Buckets.Total > 0)
             .Select(x => new CustomerAgingRow(x.Key.CustomerId, x.Key.Title, x.Buckets.NotDue, x.Buckets.Days1To30,
                 x.Buckets.Days31To60, x.Buckets.Days61To90, x.Buckets.Over90, x.Buckets.Total))

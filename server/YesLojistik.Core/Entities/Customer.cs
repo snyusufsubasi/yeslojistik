@@ -9,6 +9,9 @@ public class Customer : BaseEntity
     public string? Email { get; set; }
     public string? Address { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Sisteme geçişte devreden borç bakiyesi (devir). Cari bakiyeye ve alacak yaşlandırmaya dahildir.</summary>
+    public decimal OpeningBalance { get; set; }
+    public DateOnly? OpeningBalanceDate { get; set; }
 
     public List<Trip> Trips { get; set; } = new();
     public List<Invoice> Invoices { get; set; } = new();

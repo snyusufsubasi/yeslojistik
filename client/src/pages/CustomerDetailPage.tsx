@@ -52,6 +52,7 @@ export default function CustomerDetailPage() {
             <Info label="E-posta" value={c.email && <a className="text-brand-600" href={`mailto:${c.email}`}><Mail className="mr-1 inline size-3" />{c.email}</a>} />
             <Info label="Adres" value={c.address && <><MapPin className="mr-1 inline size-3" />{c.address}</>} />
             {c.notes && <Info label="Not" value={c.notes} />}
+            {c.openingBalance > 0 && <Info label="Devir Bakiyesi" value={<>{tl2(c.openingBalance)} ({date(c.openingBalanceDate)})</>} />}
           </dl>
         </Card>
         <div className="grid grid-cols-2 gap-4 lg:col-span-2">
@@ -109,13 +110,13 @@ function Movements({ id }: { id: number }) {
   const { data, isLoading } = useQuery({ queryKey: ['customers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/customers/${id}/movements`) })
   const cols: Column<AccountMovement>[] = [
     { key: 'date', header: 'Tarih', render: (m) => date(m.date) },
-    { key: 'type', header: 'İşlem', render: (m) => <span className="inline-flex items-center gap-1">{m.type === 'Fatura' ? <FileText className="size-3.5 text-brand-600" /> : <Wallet className="size-3.5 text-emerald-600" />}{m.type}</span> },
+    { key: 'type', header: 'İşlem', render: (m) => <span className="inline-flex items-center gap-1">{m.type !== 'Tahsilat' ? <FileText className="size-3.5 text-brand-600" /> : <Wallet className="size-3.5 text-emerald-600" />}{m.type}</span> },
     { key: 'ref', header: 'Belge', render: (m) => m.reference },
     { key: 'desc', header: 'Açıklama', render: (m) => m.description ?? '' },
     { key: 'debit', header: 'Borç', align: 'right', render: (m) => m.debit ? tl2(m.debit) : '' },
     { key: 'credit', header: 'Alacak', align: 'right', render: (m) => m.credit ? tl2(m.credit) : '' },
     { key: 'balance', header: 'Bakiye', align: 'right', render: (m) => <span className="font-medium">{tl2(m.runningBalance)}</span> },
-    { key: 'status', header: 'Durum', render: (m) => <Badge tone={m.type === 'Fatura' ? paymentStatusTone(m.status) : 'green'}>{m.status}</Badge> },
+    { key: 'status', header: 'Durum', render: (m) => <Badge tone={m.type !== 'Tahsilat' ? paymentStatusTone(m.status) : 'green'}>{m.status}</Badge> },
   ]
   return <DataTable columns={cols} rows={data ? [...data].reverse() : undefined} loading={isLoading} rowKey={(m) => m.type + m.reference} empty="Henüz hareket yok." />
 }

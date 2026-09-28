@@ -80,6 +80,7 @@ public class CustomerSaveRequestValidator : AbstractValidator<CustomerSaveReques
         RuleFor(x => x.Phone).ValidPhone();
         RuleFor(x => x.Email).OptionalEmail().When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.Address).MaximumLength(500);
+        RuleFor(x => x.OpeningBalance).Amount();
     }
 }
 

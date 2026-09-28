@@ -17,7 +17,7 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
     {
         ["title"] = c => c.Title,
         ["id"] = c => c.Id,
-        ["balance"] = c => (c.Invoices.Where(i => i.Status == InvoiceStatus.Issued).Sum(i => (decimal?)i.Total) ?? 0)
+        ["balance"] = c => c.OpeningBalance + (c.Invoices.Where(i => i.Status == InvoiceStatus.Issued).Sum(i => (decimal?)i.Total) ?? 0)
             - (c.Payments.Sum(p => (decimal?)p.Amount) ?? 0),
     };
 
@@ -83,6 +83,8 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
         c.Email = NullIfEmpty(r.Email)?.ToLowerInvariant();
         c.Address = NullIfEmpty(r.Address);
         c.Notes = NullIfEmpty(r.Notes);
+        c.OpeningBalance = Money.Round(r.OpeningBalance);
+        c.OpeningBalanceDate = r.OpeningBalance > 0 ? r.OpeningBalanceDate : null;
     }
 
     internal static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

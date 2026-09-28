@@ -42,18 +42,19 @@ public class AlertService(AppDbContext db, BalanceService balances)
             Check(d.PsychotechnicExpiry, DocumentWarnDays, "psychotechnic", d.FullName, "Psikoteknik belgesi", $"/soforler?id={d.Id}");
         }
 
-        var overdue = (await balances.InvoiceBalancesAsync(null, ct)).Values.Where(b => b.Remaining > 0 && b.DueDate < today).ToList();
+        var overdue = (await balances.BalancesByCustomerAsync(null, ct))
+            .Select(g => (CustomerId: g.Key, Items: g.Where(b => b.Remaining > 0 && b.DueDate < today).ToList()))
+            .Where(x => x.Items.Count > 0).ToList();
         if (overdue.Count > 0)
         {
-            var ids = overdue.Select(b => b.InvoiceId).ToList();
-            var byCustomer = await db.Invoices.AsNoTracking().Where(i => ids.Contains(i.Id))
-                .Select(i => new { i.Id, i.CustomerId, i.Customer.Title }).ToListAsync(ct);
-            foreach (var g in byCustomer.GroupBy(x => (x.CustomerId, x.Title)))
+            var ids = overdue.Select(x => x.CustomerId).ToList();
+            var titles = await db.Customers.AsNoTracking().Where(c => ids.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Title, ct);
+            foreach (var (customerId, items) in overdue)
             {
-                var amount = g.Sum(x => overdue.First(b => b.InvoiceId == x.Id).Remaining);
-                var oldest = g.Min(x => overdue.First(b => b.InvoiceId == x.Id).DueDate);
-                alerts.Add(new AlertDto("receivable", "danger", g.Key.Title,
-                    $"{g.Count()} faturada vadesi geçmiş {Formatters.Currency(amount)} alacak.", $"/musteriler/{g.Key.CustomerId}", oldest));
+                var what = items.Any(b => b.InvoiceId < 0) ? "fatura/devir kaleminde" : "faturada";
+                alerts.Add(new AlertDto("receivable", "danger", titles.GetValueOrDefault(customerId, "?"),
+                    $"{items.Count} {what} vadesi geçmiş {Formatters.Currency(items.Sum(b => b.Remaining))} alacak.",
+                    $"/musteriler/{customerId}", items.Min(b => b.DueDate)));
             }
         }
 

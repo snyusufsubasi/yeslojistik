@@ -14,6 +14,8 @@ const schema = z.object({
   email: z.string().trim().email('Geçerli bir e-posta girin.').or(z.literal('')),
   address: optStr,
   notes: optStr,
+  openingBalance: z.number({ error: 'Tutar girin.' }).min(0, 'Negatif olamaz.').or(z.nan().transform(() => 0)),
+  openingBalanceDate: optStr,
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<CustomerSummary, FormValues>('customers')
@@ -24,6 +26,7 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
     defaultValues: {
       title: customer?.title ?? '', taxNumber: customer?.taxNumber ?? '', taxOffice: customer?.taxOffice ?? '',
       phone: customer?.phone ?? '', email: customer?.email ?? '', address: customer?.address ?? '', notes: customer?.notes ?? '',
+      openingBalance: customer?.openingBalance ?? 0, openingBalanceDate: customer?.openingBalanceDate ?? '',
     },
   })
   const save = useSave((v: FormValues) => customer ? api.update(customer.id, nullify(v)) : api.create(nullify(v)), {
@@ -42,6 +45,10 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
         <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0216 555 44 33" {...register('phone')} /></Field>
         <Field label="E-posta" error={errors.email?.message}><input className="input" type="email" {...register('email')} /></Field>
         <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" placeholder="İstanbul / Sultanbeyli" {...register('address')} /></Field>
+        <Field label="Devir Bakiyesi (TL)" error={errors.openingBalance?.message} hint="Eski sistemden devreden borç. Cari bakiyeye eklenir.">
+          <input className="input text-right" type="number" step="0.01" min="0" {...register('openingBalance', { valueAsNumber: true })} />
+        </Field>
+        <Field label="Devir Tarihi" error={errors.openingBalanceDate?.message}><input className="input" type="date" {...register('openingBalanceDate')} /></Field>
         <Field className="sm:col-span-2" label="Notlar" error={errors.notes?.message}><textarea className="input min-h-16" {...register('notes')} /></Field>
         <button type="submit" className="hidden" />
       </form>

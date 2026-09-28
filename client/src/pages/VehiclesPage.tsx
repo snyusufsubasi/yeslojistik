@@ -8,6 +8,7 @@ import { get } from '../api/client'
 import type { Vehicle, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { date, daysUntil } from '../lib/format'
@@ -79,7 +80,10 @@ export default function VehiclesPage() {
   return (
     <>
       <PageHeader title="Araçlar" subtitle="Filo, bakım ve belge takibi"
-        actions={can('operations') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>} />
+        actions={can('operations') && <>
+          <ImportButton entity="vehicles" />
+          <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>
+        </>} />
       <Card title="Araç Listesi" icon={<Truck className="size-4" />} bodyClassName="p-0"
         actions={<>
           <Select aria-label="Durum" className="sm:w-40" value={status} onChange={setStatus} options={options(vehicleStatusLabel)} placeholder="Tüm durumlar" />

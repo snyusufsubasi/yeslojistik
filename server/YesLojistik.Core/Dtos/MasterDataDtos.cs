@@ -3,10 +3,11 @@ using YesLojistik.Core.Entities;
 namespace YesLojistik.Core.Dtos;
 
 public record CustomerDto(int Id, string CustomerNo, string Title, string? TaxNumber, string? TaxOffice,
-    string? Phone, string? Email, string? Address, string? Notes, decimal Balance);
+    string? Phone, string? Email, string? Address, string? Notes, decimal Balance, decimal OpeningBalance = 0,
+    DateOnly? OpeningBalanceDate = null);
 
 public record CustomerSaveRequest(string Title, string? TaxNumber, string? TaxOffice, string? Phone,
-    string? Email, string? Address, string? Notes);
+    string? Email, string? Address, string? Notes, decimal OpeningBalance = 0, DateOnly? OpeningBalanceDate = null);
 
 public record CustomerSummaryDto(CustomerDto Customer, decimal TotalDebit, decimal TotalCredit, decimal Balance,
     decimal OverdueAmount, int TripCount);

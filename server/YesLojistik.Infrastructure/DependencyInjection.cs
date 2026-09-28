@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<AttachmentService>();
         services.AddScoped<TrackingService>();
         services.AddScoped<DriverAppService>();
+        services.AddScoped<ImportService>();
         services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
         services.AddSingleton<IEInvoiceProvider, NullEInvoiceProvider>();
         return services;

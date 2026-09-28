@@ -53,6 +53,8 @@ export interface Customer {
   address?: string | null
   notes?: string | null
   balance: number
+  openingBalance: number
+  openingBalanceDate?: string | null
 }
 
 export interface CustomerSummary {

@@ -8,6 +8,7 @@ import { get } from '../api/client'
 import type { Driver } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader } from '../components/ui'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useDebounce, usePaged, useSave } from '../lib/hooks'
@@ -71,7 +72,10 @@ export default function DriversPage() {
   return (
     <>
       <PageHeader title="Şoförler" subtitle="Şoför bilgileri ve belge süreleri"
-        actions={can('operations') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Şoför</Button>} />
+        actions={can('operations') && <>
+          <ImportButton entity="drivers" />
+          <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Şoför</Button>
+        </>} />
       <Card title="Şoför Listesi" icon={<IdCard className="size-4" />} bodyClassName="p-0"
         actions={<>
           <label className="flex items-center gap-2 text-sm text-slate-600">

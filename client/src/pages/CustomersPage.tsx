@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Users } from 'lucide-react'
 import type { Customer } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
+import { ImportButton } from '../components/ImportDialog'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader } from '../components/ui'
 import { tl } from '../lib/format'
@@ -39,7 +40,10 @@ export default function CustomersPage() {
   return (
     <>
       <PageHeader title="Müşteriler / Cari" subtitle="Müşteri kartları ve cari bakiyeler"
-        actions={<Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>} />
+        actions={<>
+          <ImportButton entity="customers" />
+          <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>
+        </>} />
       <Card title="Müşteri Listesi" icon={<Users className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />}>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(c) => c.id}
