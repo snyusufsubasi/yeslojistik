@@ -11,6 +11,11 @@ public class CompanySettings
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? Iban { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public string? MersisNo { get; set; }
+    public string? TradeRegistryNo { get; set; }
+    public string? Website { get; set; }
     public string? LogoDataUrl { get; set; }
     public string InvoicePrefix { get; set; } = "F";
     public int NextInvoiceNumber { get; set; } = 1;

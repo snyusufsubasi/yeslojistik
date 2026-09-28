@@ -91,6 +91,35 @@ public class CustomerSaveRequestValidator : AbstractValidator<CustomerSaveReques
         RuleFor(x => x.Email).OptionalEmail().When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.Address).MaximumLength(500);
         RuleFor(x => x.OpeningBalance).Amount();
+        RuleFor(x => x.City).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.District).MaximumLength(50);
+        RuleFor(x => x.ContactName).MaximumLength(100);
+        RuleFor(x => x.EInvoiceAlias).MaximumLength(200);
+        RuleFor(x => x.PaymentTermDays).InclusiveBetween(0, 365).WithMessage("Vade 0-365 gün arasında olmalı.").When(x => x.PaymentTermDays.HasValue);
+    }
+}
+
+public class SupplierSaveRequestValidator : AbstractValidator<SupplierSaveRequest>
+{
+    public SupplierSaveRequestValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().WithMessage("Tedarikçi ünvanı zorunlu.").MaximumLength(200);
+        RuleFor(x => x.Kind).IsInEnum();
+        RuleFor(x => x.TaxNumber)
+            .Must(TaxNumberValidator.IsValid).WithMessage("Geçersiz VKN (10 hane) veya TCKN (11 hane).")
+            .When(x => !string.IsNullOrWhiteSpace(x.TaxNumber));
+        RuleFor(x => x.TaxOffice).MaximumLength(100);
+        RuleFor(x => x.Phone).ValidPhone();
+        RuleFor(x => x.Email).OptionalEmail().When(x => !string.IsNullOrWhiteSpace(x.Email));
+        RuleFor(x => x.Address).MaximumLength(500);
+        RuleFor(x => x.City).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.District).MaximumLength(50);
+        RuleFor(x => x.Iban).Must(IbanValidator.IsValid).WithMessage("Geçersiz IBAN (TR ile başlayan 26 karakter).")
+            .When(x => !string.IsNullOrWhiteSpace(x.Iban));
+        RuleFor(x => x.ContactName).MaximumLength(100);
+        RuleFor(x => x.PaymentTermDays).InclusiveBetween(0, 365).WithMessage("Vade 0-365 gün arasında olmalı.");
+        RuleFor(x => x.Notes).MaximumLength(1000);
+        RuleFor(x => x.OpeningBalance).Amount();
     }
 }
 
@@ -105,6 +134,10 @@ public class VehicleSaveRequestValidator : AbstractValidator<VehicleSaveRequest>
             .When(x => x.ModelYear.HasValue);
         RuleFor(x => x.Km).GreaterThanOrEqualTo(0).WithMessage("Km negatif olamaz.");
         RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.Ownership).IsInEnum();
+        RuleFor(x => x.SupplierId).NotNull().WithMessage("Kiralık araç için araç sahibini (tedarikçi) seçin.")
+            .When(x => x.Ownership == VehicleOwnership.Rented);
+        RuleFor(x => x.TrailerPlate).MaximumLength(15);
     }
 }
 
@@ -134,6 +167,17 @@ public class TripSaveRequestValidator : AbstractValidator<TripSaveRequest>
         RuleFor(x => x.VehicleCost).Amount();
         RuleFor(x => x.SalePrice).Amount();
         RuleFor(x => x.Description).MaximumLength(1000);
+        RuleFor(x => x.LoadingCity).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.DeliveryCity).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.CustomerReference).MaximumLength(50);
+        RuleFor(x => x.CargoType).MaximumLength(100);
+        RuleFor(x => x.CargoWeightKg).InclusiveBetween(0, 1_000_000).WithMessage("Ağırlık 0-1.000.000 kg arasında olmalı.").When(x => x.CargoWeightKg.HasValue);
+        RuleFor(x => x.CargoQuantity).InclusiveBetween(0, 1_000_000).WithMessage("Geçersiz miktar.").When(x => x.CargoQuantity.HasValue);
+        RuleFor(x => x.CargoUnit).MaximumLength(20);
+        RuleFor(x => x.TrailerPlate).MaximumLength(15);
+        RuleFor(x => x.LoadingContact).MaximumLength(150);
+        RuleFor(x => x.DeliveryContact).MaximumLength(150);
+        RuleFor(x => x.CarrierInvoiceNo).MaximumLength(50);
     }
 }
 
@@ -194,6 +238,11 @@ public class CompanySettingsValidator : AbstractValidator<CompanySettingsDto>
         RuleFor(x => x.DefaultVatRate).InclusiveBetween(0, 100);
         RuleFor(x => x.DefaultWithholdingTenths).InclusiveBetween(0, 10);
         RuleFor(x => x.DefaultPaymentTermDays).InclusiveBetween(0, 365);
+        RuleFor(x => x.City).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.District).MaximumLength(50);
+        RuleFor(x => x.MersisNo).Matches("^[0-9]{16}$").WithMessage("MERSİS numarası 16 hane olmalı.").When(x => !string.IsNullOrWhiteSpace(x.MersisNo));
+        RuleFor(x => x.TradeRegistryNo).MaximumLength(30);
+        RuleFor(x => x.Website).MaximumLength(200);
         RuleFor(x => x.LogoDataUrl).Must(v => (v!.StartsWith("data:image/png;base64,") || v.StartsWith("data:image/jpeg;base64,")) && v.Length < 700_000)
             .WithMessage("Logo 500 KB'dan küçük PNG veya JPEG olmalı.").When(x => !string.IsNullOrEmpty(x.LogoDataUrl));
     }

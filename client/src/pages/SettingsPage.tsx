@@ -1,20 +1,21 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Bell, Building2, DatabaseZap, Download, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { Bell, Building2, CheckCircle2, Circle, DatabaseZap, Download, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
-import type { CompanySettings, DataStats, User, UserRole } from '../api/types'
+import type { CompanySettings, Dashboard, DataStats, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
+import { CityOptions } from '../components/CityOptions'
 import { AuditLogTable } from '../components/AuditLog'
-import { date, dateTime, fileSize } from '../lib/format'
+import { date, dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
@@ -43,6 +44,7 @@ export default function SettingsPage() {
       )}
       {tab === 'data' && can('admin') && (
         <div className="flex flex-col gap-4">
+          <GoLiveCard />
           <BackupCard />
           <ResetDataCard />
         </div>
@@ -68,6 +70,11 @@ const companySchema = z.object({
   defaultWithholdingTenths: z.number().int().min(0).max(10),
   defaultPaymentTermDays: z.number({ error: 'Sayı girin.' }).int().min(0).max(365),
   dailyDigestEnabled: z.boolean(),
+  city: optStr,
+  district: optStr,
+  mersisNo: z.string().trim().regex(/^(\d{16})?$/, 'MERSİS no 16 hane olmalı.'),
+  tradeRegistryNo: optStr,
+  website: optStr,
 })
 type CompanyValues = z.infer<typeof companySchema>
 
@@ -108,7 +115,12 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
           <Field label="Vergi Dairesi"><input className="input" {...register('taxOffice')} /></Field>
           <Field label="Telefon" error={errors.phone?.message}><input className="input" {...register('phone')} /></Field>
           <Field label="E-posta" error={errors.email?.message}><input className="input" {...register('email')} /></Field>
+          <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
+          <Field label="İlçe" error={errors.district?.message}><input className="input" {...register('district')} /></Field>
           <Field className="sm:col-span-2" label="Adres"><input className="input" {...register('address')} /></Field>
+          <Field label="MERSİS No" error={errors.mersisNo?.message} hint="e-Fatura için"><input className="input" inputMode="numeric" maxLength={16} {...register('mersisNo')} /></Field>
+          <Field label="Ticaret Sicil No" error={errors.tradeRegistryNo?.message}><input className="input" {...register('tradeRegistryNo')} /></Field>
+          <Field className="sm:col-span-2" label="Web Sitesi" error={errors.website?.message}><input className="input" placeholder="www.yeslojistik.com" {...register('website')} /></Field>
           <Field className="sm:col-span-2" label="IBAN" hint="Fatura PDF'inde gösterilir."><input className="input" {...register('iban')} /></Field>
           <div className="sm:col-span-2">
             <span className="label">Logo (fatura PDF'i için)</span>
@@ -371,6 +383,52 @@ function BackupCard() {
           </div>
         )}
       </div>
+    </Card>
+  )
+}
+
+/** Demo verilerden gerçek kullanıma geçiş adımları; çoğu kendiliğinden işaretlenir. */
+function GoLiveCard() {
+  const { data } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard') })
+  const settings = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings') })
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('yl.golive') ?? '{}') } catch { return {} }
+  })
+  if (!data || !settings.data) return null
+  const s = data.setup
+  const toggle = (k: string) => {
+    const next = { ...checked, [k]: !checked[k] }
+    setChecked(next)
+    try { localStorage.setItem('yl.golive', JSON.stringify(next)) } catch { /* depolama kapalı olabilir */ }
+  }
+  const steps: { key: string; done: boolean; title: string; text: React.ReactNode; manual?: boolean }[] = [
+    { key: 'demo', done: s.sampleDataCleared || !s.sampleData, title: 'Demo verilerini temizleyin', text: 'Aşağıdaki “Demo verilerini temizle” kartından.' },
+    { key: 'company', done: s.companyInfo && s.companyDetails, title: 'Firma bilgileri, logo, il ve IBAN', text: <Link className="text-brand-600" to="/ayarlar?tab=company">Firma Bilgileri sekmesi</Link> },
+    { key: 'users', done: s.userCount > 1, title: 'Kullanıcı hesapları', text: <Link className="text-brand-600" to="/ayarlar?tab=users">Ofis ve şoför hesaplarını açın</Link> },
+    { key: 'import', done: s.customerCount > 0 && s.vehicleCount > 0 && s.driverCount > 0,
+      title: 'Excel aktarımları', text: `Sırayla: tedarikçiler (${s.supplierCount}) → müşteriler (${s.customerCount}) → şoförler (${s.driverCount}) → araçlar (${s.vehicleCount}) → seferler (${s.tripCount})` },
+    { key: 'opening', done: !!checked.opening, manual: true, title: 'Devir bakiyelerini kontrol edin',
+      text: <>Müşteri alacakları toplamı <b>{tl2(s.customerOpeningTotal)}</b>, taşeron borçları toplamı <b>{tl2(s.supplierOpeningTotal)}</b>. Eski defterinizle aynı mı?</> },
+    { key: 'invoice', done: !!checked.invoice, manual: true, title: 'Fatura numarası devam ediyor mu?',
+      text: <>Sıradaki fatura: <b>{settings.data.invoicePrefix}-{String(settings.data.nextInvoiceNumber).padStart(6, '0')}</b>. Eski numaralarınızın devamı değilse Firma Bilgileri'nden düzeltin.</> },
+    { key: 'backup', done: !!s.lastBackupAt, title: 'İlk tam yedeği indirin', text: 'Aşağıdaki “Tam yedeği indir” düğmesiyle.' },
+  ]
+  const done = steps.filter((x) => x.done).length
+  return (
+    <Card title={`Canlıya geçiş · ${done}/${steps.length}`} icon={<CheckCircle2 className="size-4" />} className="max-w-2xl">
+      <ol className="space-y-2">
+        {steps.map((x) => (
+          <li key={x.key} className={`flex gap-3 rounded-lg border p-3 ${x.done ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
+            {x.manual
+              ? <input type="checkbox" className="mt-1 size-5 accent-emerald-600" checked={x.done} onChange={() => toggle(x.key)} aria-label={x.title} />
+              : x.done ? <CheckCircle2 className="size-5 shrink-0 text-emerald-600" /> : <Circle className="size-5 shrink-0 text-slate-400" />}
+            <div>
+              <div className={`font-semibold ${x.done ? 'text-emerald-800' : 'text-navy-900'}`}>{x.title}</div>
+              <div className="text-sm text-slate-600">{x.text}</div>
+            </div>
+          </li>
+        ))}
+      </ol>
     </Card>
   )
 }

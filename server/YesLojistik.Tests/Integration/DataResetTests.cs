@@ -22,6 +22,7 @@ public class DataResetTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await c.PutAsync("/api/settings", JsonContent.Create(settings with { TaxNumber = DemoCompany.TaxNumber, Iban = DemoCompany.Iban, Address = "Gerçek Adres" },
             options: ApiFactory.Json))).EnsureSuccessStatusCode();
         var customer = await (await c.PostJsonAsync("/api/customers", new CustomerSaveRequest("Demo Müşteri", null, null, null, null, null, null))).ReadAsync<CustomerSummaryDto>();
+        await (await c.PostJsonAsync("/api/suppliers", new SupplierSaveRequest("Demo Taşeron", SupplierKind.Carrier, null, null, null, null, null, null, null, null, null, 30, null))).ReadAsync<SupplierDto>();
         var driver = await (await c.PostJsonAsync("/api/drivers", new DriverSaveRequest("Demo Şoför", null, null, null, null, null, null, true))).ReadAsync<DriverDto>();
         var vehicle = await (await c.PostJsonAsync("/api/vehicles", new VehicleSaveRequest("34 DMO 01", "Kamyon", null, null, null, 0, null, null, null, null, VehicleStatus.Available, driver.Id))).ReadAsync<VehicleDto>();
         var trip = await (await c.PostJsonAsync("/api/trips", new TripSaveRequest(customer.Customer.Id, vehicle.Id, driver.Id, "A", "B", Today, null, null, 100, 200))).ReadAsync<TripDto>();
@@ -50,6 +51,8 @@ public class DataResetTests(ApiFactory factory) : IClassFixture<ApiFactory>
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await DbSeeder.SeedSampleDataAsync(db, scope.ServiceProvider.GetRequiredService<InvoiceService>());
             (await db.Customers.CountAsync()).Should().Be(0);
+            (await db.Suppliers.IgnoreQueryFilters().CountAsync()).Should().Be(0);
+            (await db.TripEvents.IgnoreQueryFilters().CountAsync()).Should().Be(0);
         }
 
         // Numaralar baştan başlar.

@@ -4,7 +4,7 @@ import { login } from './helpers'
 
 test('Excel şablonu indir → yükle → kontrol et', async ({ page }) => {
   await login(page)
-  await page.getByRole('link', { name: 'Şoförler' }).click()
+  await page.getByRole('link', { name: 'Şoförler', exact: true }).click()
   await page.getByRole('button', { name: "Excel'den Aktar" }).click()
   const dialog = page.getByRole('dialog', { name: /Şoför Aktarımı/ })
   const dl = page.waitForEvent('download')

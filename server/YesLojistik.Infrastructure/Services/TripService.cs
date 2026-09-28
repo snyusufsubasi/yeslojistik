@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using YesLojistik.Core.Abstractions;
 using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
 using YesLojistik.Core.Entities;
@@ -7,7 +8,7 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotifier customerNotifier)
+public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotifier customerNotifier, ICurrentUser? current = null)
 {
     private static readonly Dictionary<string, Expression<Func<Trip, object?>>> SortMap = new()
     {
@@ -22,11 +23,12 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     };
 
     private record Row(Trip Trip, string CustomerTitle, string Plate, string VehicleType, string DriverName,
-        decimal ExpenseTotal, string? InvoiceNo);
+        decimal ExpenseTotal, string? InvoiceNo, string? CarrierTitle, VehicleOwnership Ownership);
 
     private static readonly Expression<Func<Trip, Row>> Projection = t => new Row(
         t, t.Customer.Title, t.Vehicle.Plate, t.Vehicle.Type, t.Driver.FullName,
-        t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null);
+        t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null,
+        t.CarrierSupplier != null ? t.CarrierSupplier.Title : null, t.Vehicle.Ownership);
 
     private static TripDto ToDto(Row r)
     {
@@ -34,7 +36,9 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return new TripDto(t.Id, t.CustomerId, r.CustomerTitle, t.VehicleId, r.Plate, r.VehicleType, t.DriverId,
             r.DriverName, t.LoadingAddress, t.DeliveryAddress, t.LoadingDate, t.DeliveryDate, t.Description,
             t.VehicleCost, t.SalePrice, r.ExpenseTotal, t.SalePrice - t.VehicleCost - r.ExpenseTotal, t.Status,
-            TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo);
+            TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
+            t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
+            t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership);
     }
 
     public IQueryable<Trip> Filter(TripQuery q)
@@ -47,10 +51,14 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (q.From is { } from) query = query.Where(t => t.LoadingDate >= from);
         if (q.To is { } to) query = query.Where(t => t.LoadingDate <= to);
         if (q.Invoiced is { } inv) query = inv ? query.Where(t => t.InvoiceId != null) : query.Where(t => t.InvoiceId == null);
+        if (q.CarrierSupplierId is { } cs) query = query.Where(t => t.CarrierSupplierId == cs);
+        if (q.MissingCarrierInvoice == true)
+            query = query.Where(t => t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(t => EF.Functions.ILike(t.Customer.Title, like) || EF.Functions.ILike(t.Vehicle.Plate, like)
                 || EF.Functions.ILike(t.Driver.FullName, like) || EF.Functions.ILike(t.LoadingAddress, like)
-                || EF.Functions.ILike(t.DeliveryAddress, like));
+                || EF.Functions.ILike(t.DeliveryAddress, like) || EF.Functions.ILike(t.CustomerReference ?? "", like)
+                || EF.Functions.ILike(t.LoadingCity ?? "", like) || EF.Functions.ILike(t.DeliveryCity ?? "", like));
         return query;
     }
 
@@ -79,7 +87,10 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         await ValidateReferencesAsync(req, ct);
         var trip = new Trip();
         Apply(trip, req);
+        await ApplyVehicleDefaultsAsync(trip, req, ct);
         db.Trips.Add(trip);
+        await db.SaveChangesAsync(ct);
+        AddEvent(trip.Id, TripStatus.Planned, TripEventSource.Panel);
         await db.SaveChangesAsync(ct);
         await notifier.NotifyAsync(trip.DriverId, trip.Id, "Yeni sefer atandı",
             DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate), ct);
@@ -97,6 +108,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         var oldDriverId = trip.DriverId;
         var oldRoute = (trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate);
         Apply(trip, req);
+        await ApplyVehicleDefaultsAsync(trip, req, ct);
         if (oldVehicleId != trip.VehicleId && TripStatusRules.OccupiesVehicle(trip.Status))
         {
             await EnsureVehicleUsableAsync(trip.VehicleId, ct);
@@ -119,7 +131,12 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return await GetAsync(id, ct);
     }
 
-    public async Task<TripDto> ChangeStatusAsync(int id, TripStatus status, CancellationToken ct = default)
+    public Task<TripDto> ChangeStatusAsync(int id, TripStatus status, CancellationToken ct = default) =>
+        ChangeStatusAsync(id, status, TripEventSource.Panel, null, null, ct);
+
+    /// <param name="occurredAt">Olayın gerçek zamanı (şoför çevrimdışıyken). Gelecekteki ya da 7 günden eski saatler yok sayılır.</param>
+    public async Task<TripDto> ChangeStatusAsync(int id, TripStatus status, TripEventSource source, DateTime? occurredAt, string? note,
+        CancellationToken ct = default)
     {
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id, ct) ?? throw new NotFoundException("Sefer bulunamadı.");
         if (!TripStatusRules.CanTransition(trip.Status, status))
@@ -130,7 +147,13 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             await EnsureVehicleUsableAsync(trip.VehicleId, ct);
 
         trip.Status = status;
-        if (status == TripStatus.Delivered) trip.DeliveryDate ??= Clock.Today;
+        var at = ClampOccurredAt(occurredAt);
+        if (status == TripStatus.Delivered)
+        {
+            trip.DeliveryDate ??= Clock.Today;
+            trip.DeliveredAt = at;
+        }
+        AddEvent(trip.Id, status, source, at, note);
         await db.SaveChangesAsync(ct);
         await SyncVehicleStatusAsync(trip.VehicleId, ct);
         await db.SaveChangesAsync(ct);
@@ -180,8 +203,59 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (driverActive == false) throw new DomainException("Pasif durumdaki şoföre sefer atanamaz.");
     }
 
+    public async Task<List<TripEventDto>> EventsAsync(int id, CancellationToken ct = default)
+    {
+        if (!await db.Trips.AnyAsync(t => t.Id == id, ct)) throw new NotFoundException("Sefer bulunamadı.");
+        return await db.TripEvents.AsNoTracking().Where(e => e.TripId == id).OrderBy(e => e.OccurredAt).ThenBy(e => e.Id)
+            .Select(e => new TripEventDto(e.Id, e.Status, e.OccurredAt, e.RecordedAt, e.UserName, e.Source, e.Note)).ToListAsync(ct);
+    }
+
+    public static DateTime ClampOccurredAt(DateTime? occurredAt)
+    {
+        var now = DateTime.UtcNow;
+        return occurredAt is { } o && o.ToUniversalTime() <= now.AddMinutes(5) && o.ToUniversalTime() > now.AddDays(-7) ? o.ToUniversalTime() : now;
+    }
+
+    private void AddEvent(int tripId, TripStatus status, TripEventSource source, DateTime? at = null, string? note = null) =>
+        db.TripEvents.Add(new TripEvent
+        {
+            TripId = tripId, Status = status, Source = source, OccurredAt = at ?? DateTime.UtcNow, RecordedAt = DateTime.UtcNow,
+            UserId = current?.Id, UserName = current?.Name, Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+        });
+
+    /// <summary>Kiralık araçta taşeron ve dorse varsayılan olarak araçtan gelir.</summary>
+    private async Task ApplyVehicleDefaultsAsync(Trip trip, TripSaveRequest req, CancellationToken ct)
+    {
+        var v = await db.Vehicles.AsNoTracking().Where(x => x.Id == trip.VehicleId)
+            .Select(x => new { x.Ownership, x.SupplierId, x.TrailerPlate }).FirstAsync(ct);
+        if (req.CarrierSupplierId is { } cs)
+        {
+            if (!await db.Suppliers.AnyAsync(s => s.Id == cs, ct)) throw new DomainException("Taşeron (tedarikçi) bulunamadı.");
+            trip.CarrierSupplierId = cs;
+        }
+        else
+        {
+            trip.CarrierSupplierId = v.Ownership == VehicleOwnership.Rented ? v.SupplierId : null;
+        }
+        trip.TrailerPlate ??= v.TrailerPlate;
+    }
+
+    private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
     private static void Apply(Trip t, TripSaveRequest r)
     {
+        t.CustomerReference = Clean(r.CustomerReference);
+        t.CargoType = Clean(r.CargoType);
+        t.CargoWeightKg = r.CargoWeightKg;
+        t.CargoQuantity = r.CargoQuantity;
+        t.CargoUnit = Clean(r.CargoUnit);
+        t.TrailerPlate = Formatters.NormalizePlate(r.TrailerPlate) ?? Clean(r.TrailerPlate)?.ToUpper(Formatters.Tr);
+        t.LoadingCity = Cities.Normalize(r.LoadingCity);
+        t.DeliveryCity = Cities.Normalize(r.DeliveryCity);
+        t.LoadingContact = Clean(r.LoadingContact);
+        t.DeliveryContact = Clean(r.DeliveryContact);
+        t.CarrierInvoiceNo = Clean(r.CarrierInvoiceNo);
+        t.CarrierInvoiceDate = r.CarrierInvoiceNo == null ? null : r.CarrierInvoiceDate;
         t.CustomerId = r.CustomerId;
         t.VehicleId = r.VehicleId;
         t.DriverId = r.DriverId;

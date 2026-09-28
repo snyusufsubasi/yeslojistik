@@ -28,6 +28,13 @@ internal static class AuditTrail
         ["Km"] = "Km", ["FullName"] = "Ad soyad", ["Role"] = "Rol", ["IsActive"] = "Aktif", ["OpeningBalance"] = "Devir bakiyesi",
         ["NextInvoiceNumber"] = "Sıradaki fatura no", ["Category"] = "Kategori", ["Liters"] = "Litre", ["Odometer"] = "Km",
         ["NextMaintenanceDate"] = "Sonraki bakım", ["InspectionExpiry"] = "Muayene", ["InsuranceExpiry"] = "Sigorta", ["Notes"] = "Not",
+        ["Kind"] = "Tür", ["City"] = "İl", ["District"] = "İlçe", ["Iban"] = "IBAN", ["ContactName"] = "Yetkili", ["PaymentTermDays"] = "Vade (gün)",
+        ["Ownership"] = "Sahiplik", ["SupplierId"] = "Tedarikçi", ["TrailerPlate"] = "Dorse", ["CustomerReference"] = "Müşteri ref. no",
+        ["CargoType"] = "Yük cinsi", ["CargoWeightKg"] = "Ağırlık (kg)", ["CargoQuantity"] = "Miktar", ["CargoUnit"] = "Birim",
+        ["LoadingCity"] = "Yükleme ili", ["DeliveryCity"] = "Teslim ili", ["LoadingContact"] = "Yüklemede yetkili", ["DeliveryContact"] = "Teslimde yetkili",
+        ["CarrierSupplierId"] = "Taşeron", ["CarrierInvoiceNo"] = "Taşeron fatura no", ["CarrierInvoiceDate"] = "Taşeron fatura tarihi",
+        ["ReceivedBy"] = "Teslim alan", ["DeliveredAt"] = "Teslim anı", ["IsEInvoiceUser"] = "e-Fatura mükellefi", ["EInvoiceAlias"] = "PK etiketi",
+        ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
     };
 
     public static bool Tracks(EntityEntry e) =>
@@ -66,6 +73,7 @@ internal static class AuditTrail
         Customer c => c.Title,
         Vehicle v => v.Plate,
         Driver d => d.FullName,
+        Supplier s => s.Title,
         Payment p => $"{p.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({p.Date:dd.MM.yyyy})",
         Expense x => $"{EnumLabel(x.Category)} {x.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL",
         User u => u.Email,
@@ -85,6 +93,8 @@ internal static class AuditTrail
         ["ExpenseCategory.DriverAllowance"] = "Şoför harcırahı", ["ExpenseCategory.DriverAdvance"] = "Şoför avansı",
         ["ExpenseCategory.Tire"] = "Lastik", ["ExpenseCategory.Insurance"] = "Sigorta/Kasko", ["ExpenseCategory.Tax"] = "Vergi/Harç",
         ["ExpenseCategory.Other"] = "Diğer",
+        ["SupplierKind.Carrier"] = "Taşeron", ["SupplierKind.Service"] = "Servis", ["SupplierKind.Fuel"] = "Akaryakıt", ["SupplierKind.Other"] = "Diğer",
+        ["VehicleOwnership.Own"] = "Özmal", ["VehicleOwnership.Rented"] = "Kiralık",
         ["AttachmentKind.Photo"] = "Fotoğraf", ["AttachmentKind.Document"] = "Belge", ["AttachmentKind.Signature"] = "İmza",
     };
 

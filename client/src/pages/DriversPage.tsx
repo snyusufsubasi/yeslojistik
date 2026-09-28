@@ -11,7 +11,8 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
-import { crud, useDebounce, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { FormSelect } from '../components/FormSelect'
 import { DueDate } from './VehiclesPage'
 
 const schema = z.object({
@@ -23,6 +24,7 @@ const schema = z.object({
   srcExpiry: optStr,
   psychotechnicExpiry: optStr,
   isActive: z.boolean(),
+  supplierId: z.number().nullable().or(z.nan().transform(() => null)),
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<Driver, FormValues>('drivers')
@@ -51,7 +53,7 @@ export default function DriversPage() {
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['drivers', 'vehicles'], success: 'Şoför silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Driver>[] = [
-    { key: 'name', header: 'Ad Soyad', sortKey: 'fullName', render: (d) => <span className="font-medium">{d.fullName}</span> },
+    { key: 'name', header: 'Ad Soyad', sortKey: 'fullName', render: (d) => <span className="font-medium">{d.fullName}{d.supplierTitle && <span className="block text-[13px] font-normal text-slate-500">Taşeron: {d.supplierTitle}</span>}</span> },
     { key: 'phone', header: 'Telefon', render: (d) => d.phone ? <a className="text-brand-600" href={`tel:${d.phone.replace(/\s/g, '')}`} onClick={(e) => e.stopPropagation()}>{d.phone}</a> : '—' },
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
     { key: 'license', header: 'Ehliyet Bitiş', sortKey: 'licenseExpiry', render: (d) => <DueDate value={d.licenseExpiry} warn={30} /> },
@@ -96,12 +98,13 @@ export default function DriversPage() {
 }
 
 function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () => void }) {
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
+  const suppliers = useLookup('suppliers')
+  const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       fullName: driver?.fullName ?? '', phone: driver?.phone ?? '', nationalId: driver?.nationalId ?? '',
       licenseClass: driver?.licenseClass ?? '', licenseExpiry: driver?.licenseExpiry ?? '', srcExpiry: driver?.srcExpiry ?? '',
-      psychotechnicExpiry: driver?.psychotechnicExpiry ?? '', isActive: driver?.isActive ?? true,
+      psychotechnicExpiry: driver?.psychotechnicExpiry ?? '', isActive: driver?.isActive ?? true, supplierId: driver?.supplierId ?? null,
     },
   })
   const save = useSave((v: FormValues) => driver ? api.update(driver.id, nullify(v)) : api.create(nullify(v)), {
@@ -120,6 +123,9 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
         <Field label="Ehliyet Bitiş"><input className="input" type="date" {...register('licenseExpiry')} /></Field>
         <Field label="SRC Belgesi Bitiş"><input className="input" type="date" {...register('srcExpiry')} /></Field>
         <Field label="Psikoteknik Bitiş"><input className="input" type="date" {...register('psychotechnicExpiry')} /></Field>
+        <Field label="Çalıştığı taşeron" hint="Boş: firmanın kendi şoförü. Taşeron şoförleri belge uyarılarına girmez.">
+          <FormSelect control={control} name="supplierId" placeholder="Kendi şoförümüz" options={(suppliers.data ?? []).filter((s) => s.extra === 'Carrier').map((s) => ({ value: s.id, label: s.label }))} />
+        </Field>
         <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" {...register('isActive')} /> Aktif</label>
         <button type="submit" className="hidden" />
       </form>

@@ -17,6 +17,12 @@ public class Vehicle : BaseEntity
     public double? LastLongitude { get; set; }
     public double? LastSpeedKmh { get; set; }
     public DateTime? LastLocationAt { get; set; }
+    /// <summary>Özmal ya da kiralık (taşeron). Kiralıksa araç sahibi (tedarikçi) zorunludur.</summary>
+    public VehicleOwnership Ownership { get; set; } = VehicleOwnership.Own;
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
+    /// <summary>Dorse plakası.</summary>
+    public string? TrailerPlate { get; set; }
     public int? DefaultDriverId { get; set; }
     public Driver? DefaultDriver { get; set; }
 }

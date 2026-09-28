@@ -10,4 +10,7 @@ public class Driver : BaseEntity
     public DateOnly? SrcExpiry { get; set; }
     public DateOnly? PsychotechnicExpiry { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>Boşsa firmanın kendi şoförü; doluysa bu taşeronun şoförü (belge uyarılarına girmez).</summary>
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
 }

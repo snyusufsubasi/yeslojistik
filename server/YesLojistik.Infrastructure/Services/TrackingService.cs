@@ -101,6 +101,7 @@ public class TrackingService(AppDbContext db)
         var t = await db.Trips.AsNoTracking().Where(x => x.TrackingToken == token)
             .Select(x => new
             {
+                x.Id, x.CustomerReference,
                 x.Status, x.LoadingAddress, x.DeliveryAddress, x.LoadingDate, x.DeliveryDate, Customer = x.Customer.Title,
                 x.Vehicle.Plate, x.Vehicle.LastLatitude, x.Vehicle.LastLongitude, x.Vehicle.LastLocationAt,
             }).FirstOrDefaultAsync(ct);
@@ -108,11 +109,15 @@ public class TrackingService(AppDbContext db)
         if (t.Status == TripStatus.Delivered && t.DeliveryDate is { } d && Clock.Today.DayNumber - d.DayNumber > LinkValidDaysAfterDelivery) return null;
 
         var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
+        // Aynı durum birden çok kez yazılmışsa (geri alınıp tekrar ilerletme) en son olanı gösterilir.
+        var events = (await db.TripEvents.AsNoTracking().Where(e => e.TripId == t.Id).OrderBy(e => e.OccurredAt)
+                .Select(e => new PublicTripEvent(e.Status, e.OccurredAt)).ToListAsync(ct))
+            .GroupBy(e => e.Status).Select(g => g.Last()).OrderBy(e => e.OccurredAt).ToList();
         // Konum yalnızca araç bu sefer için yoldayken paylaşılır.
         var share = TripStatusRules.OccupiesVehicle(t.Status);
         return new PublicTrackingDto(company.CompanyName, company.Phone, t.Customer, t.LoadingAddress, t.DeliveryAddress,
             t.LoadingDate, t.DeliveryDate, t.Status, MaskPlate(t.Plate),
-            share ? t.LastLatitude : null, share ? t.LastLongitude : null, share ? t.LastLocationAt : null);
+            share ? t.LastLatitude : null, share ? t.LastLongitude : null, share ? t.LastLocationAt : null, events, t.CustomerReference);
     }
 
     public async Task<int> PurgeAsync(int retentionDays, CancellationToken ct = default)

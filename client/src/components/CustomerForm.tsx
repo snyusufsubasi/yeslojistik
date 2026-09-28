@@ -1,9 +1,10 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { Customer, CustomerSummary } from '../api/types'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useSave } from '../lib/hooks'
+import { CityOptions } from './CityOptions'
 import { Button, Field, Modal } from './ui'
 
 const schema = z.object({
@@ -17,18 +18,28 @@ const schema = z.object({
   openingBalance: z.number({ error: 'Tutar girin.' }).min(0, 'Negatif olamaz.').or(z.nan().transform(() => 0)),
   openingBalanceDate: optStr,
   notifyStatusByEmail: z.boolean(),
+  city: optStr,
+  district: optStr,
+  contactName: optStr,
+  isEInvoiceUser: z.boolean(),
+  eInvoiceAlias: optStr,
+  paymentTermDays: z.number().int().min(0, '0-365 gün').max(365, '0-365 gün').nullable().or(z.nan().transform(() => null)),
+  isActive: z.boolean(),
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<CustomerSummary, FormValues>('customers')
 
 export function CustomerForm({ customer, onClose, onSaved }: { customer: Customer | null; onClose: () => void; onSaved?: (c: CustomerSummary) => void }) {
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: customer?.title ?? '', taxNumber: customer?.taxNumber ?? '', taxOffice: customer?.taxOffice ?? '',
       phone: customer?.phone ?? '', email: customer?.email ?? '', address: customer?.address ?? '', notes: customer?.notes ?? '',
       openingBalance: customer?.openingBalance ?? 0, openingBalanceDate: customer?.openingBalanceDate ?? '',
       notifyStatusByEmail: customer?.notifyStatusByEmail ?? false,
+      city: customer?.city ?? '', district: customer?.district ?? '', contactName: customer?.contactName ?? '',
+      isEInvoiceUser: customer?.isEInvoiceUser ?? false, eInvoiceAlias: customer?.eInvoiceAlias ?? '',
+      paymentTermDays: customer?.paymentTermDays ?? null, isActive: customer?.isActive ?? true,
     },
   })
   const save = useSave((v: FormValues) => customer ? api.update(customer.id, nullify(v)) : api.create(nullify(v)), {
@@ -37,6 +48,7 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
     onError: (e) => applyServerErrors(e, setError),
   })
   const submit = handleSubmit((v) => save.mutate(v))
+  const isEInvoice = useWatch({ control, name: 'isEInvoiceUser' })
   return (
     <Modal open onClose={onClose} title={customer ? customer.title : 'Yeni Müşteri'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
@@ -46,7 +58,21 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
         <Field label="Vergi Dairesi" error={errors.taxOffice?.message}><input className="input" {...register('taxOffice')} /></Field>
         <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0216 555 44 33" {...register('phone')} /></Field>
         <Field label="E-posta" error={errors.email?.message}><input className="input" type="email" {...register('email')} /></Field>
-        <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" placeholder="İstanbul / Sultanbeyli" {...register('address')} /></Field>
+        <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
+        <Field label="İlçe" error={errors.district?.message}><input className="input" placeholder="Sultanbeyli" {...register('district')} /></Field>
+        <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" placeholder="Mahalle, cadde, no" {...register('address')} /></Field>
+        <Field label="Yetkili Kişi" error={errors.contactName?.message}><input className="input" {...register('contactName')} /></Field>
+        <Field label="Vade (gün)" error={errors.paymentTermDays?.message} hint="Boşsa firma ayarındaki vade kullanılır.">
+          <input className="input" type="number" min="0" max="365" {...register('paymentTermDays', { valueAsNumber: true })} />
+        </Field>
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-2">
+          <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('isEInvoiceUser')} />
+          <span className="flex-1">
+            <span className="block text-[15px] font-medium text-slate-800">e-Fatura mükellefi</span>
+            <span className="block text-sm text-slate-600">İşaretliyse fatura e-Fatura, değilse e-Arşiv olarak kesilir.</span>
+            {isEInvoice && <input className="input mt-2" placeholder="PK etiketi (ör. urn:mail:defaultpk@firma.com)" {...register('eInvoiceAlias')} />}
+          </span>
+        </label>
         <Field label="Devir Bakiyesi (TL)" error={errors.openingBalance?.message} hint="Eski sistemden devreden borç. Cari bakiyeye eklenir.">
           <input className="input text-right" type="number" step="0.01" min="0" {...register('openingBalance', { valueAsNumber: true })} />
         </Field>
@@ -58,6 +84,10 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
             <span className="block text-[15px] font-medium text-slate-800">Sefer durumu değişince müşteriye e-posta gönder</span>
             <span className="block text-sm text-slate-600">Yük araca yüklendiğinde, yola çıktığında ve teslim edildiğinde yukarıdaki e-posta adresine takip linkiyle bilgi gider. Fiyat bilgisi gönderilmez. (Sunucuda e-posta ayarı yapılmış olmalı.)</span>
           </span>
+        </label>
+        <label className="flex items-center gap-3 sm:col-span-2">
+          <input type="checkbox" className="size-4 accent-brand-600" {...register('isActive')} />
+          <span className="text-[15px] text-slate-800">Aktif müşteri <span className="text-sm text-slate-500">(pasif müşteriler yeni seferde listelenmez)</span></span>
         </label>
         <button type="submit" className="hidden" />
       </form>

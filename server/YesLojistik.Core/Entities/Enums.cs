@@ -12,4 +12,10 @@ public enum InvoiceStatus { Draft, Issued, Cancelled }
 
 public enum PaymentMethod { Cash, BankTransfer, Check, CreditCard }
 
+public enum SupplierKind { Carrier, Service, Fuel, Other }
+
+public enum VehicleOwnership { Own, Rented }
+
+public enum TripEventSource { Panel, Driver, Import }
+
 public enum ExpenseCategory { Fuel, Maintenance, Toll, DriverAllowance, Tire, Insurance, Tax, Other, DriverAdvance }

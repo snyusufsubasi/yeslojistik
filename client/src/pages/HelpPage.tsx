@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, Bell, Copy, DatabaseZap, FileSpreadsheet, FileText, Fuel, HelpCircle, History, Link2, Mail, MapPin, Smartphone, Truck, Users, Wallet } from 'lucide-react'
+import { BarChart3, Bell, Copy, DatabaseZap, FileSpreadsheet, Handshake, HardDrive, FileText, Fuel, HelpCircle, History, Link2, Mail, MapPin, Smartphone, Truck, Users, Wallet } from 'lucide-react'
 import { Badge, PageHeader } from '../components/ui'
 
 function Section({ icon, title, children, open }: { icon: ReactNode; title: string; children: ReactNode; open?: boolean }) {
@@ -38,12 +38,39 @@ export default function HelpPage() {
       <div className="space-y-3">
         <Section icon={<Truck className="size-5" />} title="Günlük iş akışı" open>
           <Steps items={[
-            <>Sefer açın: <L to="/seferler?new=1">Seferler → Yeni Sefer</L>. Müşteri, araç, adresler ve fiyatları girin; tahmini kâr hemen görünür.</>,
+            <>Sefer açın: <L to="/seferler?new=1">Seferler → Yeni Sefer</L>. Müşteri, araç, il ve adresler, yük bilgisi ve fiyatları girin; tahmini kâr hemen görünür. Müşterinin sipariş numarasını “Müşteri Referans No”ya yazarsanız faturaya da basılır.</>,
             <>Sefer ilerledikçe listedeki düğmeyle durumu güncelleyin (ya da şoför mobil uygulamadan günceller).</>,
             <>Masrafları <L to="/giderler">Giderler</L> sayfasından girin; sefere bağlarsanız o seferin kârından düşülür.</>,
             <>Sefer bitince <L to="/faturalar/yeni">Faturalar → Yeni Fatura</L> ile müşteriyi seçin, teslim edilen seferler kendiliğinden işaretlenir.</>,
             <>Ödeme gelince faturanın içinden <b>Tahsilat Ekle</b> deyin. Müşterinin cari bakiyesi kendiliğinden güncellenir.</>,
           ]} />
+        </Section>
+
+        <Section icon={<Handshake className="size-5" />} title="Kiralık araç (taşeron) ve tedarikçiler">
+          <p>Dışarıdan tutulan araçların sahipleri <L to="/tedarikciler">Tedarikçiler</L> sayfasında tutulur. Servis ve akaryakıt istasyonları da buraya eklenebilir.</p>
+          <Steps items={[
+            <>Araç sahibini <b>Yeni Tedarikçi</b> ile ekleyin (IBAN'ı yazarsanız ödeme yaparken tek tuşla kopyalanır).</>,
+            <><L to="/araclar">Araçlar</L> sayfasında aracın <b>Sahiplik</b> alanını “Kiralık” yapıp araç sahibini seçin. Dorse plakasını da girebilirsiniz.</>,
+            <>Bu araçla sefer açınca form “Taşeron” bölümünü gösterir; <b>Taşerona Ödenecek</b> tutarı araç sahibine borç yazılır. Şoför listede yoksa <b>+ Hızlı şoför ekle</b> deyin.</>,
+            <>Borç, sefer <b>Yüklendi</b> olduğunda oluşur; planlanmış ve iptal edilen sefer borç doğurmaz. Tedarikçinin sayfasında toplam borcu ve seferleri görürsünüz.</>,
+          ]} />
+        </Section>
+
+        <Section icon={<FileSpreadsheet className="size-5" />} title="Gerçek verilere geçiş (canlıya geçiş)">
+          <p><L to="/ayarlar?tab=data">Ayarlar → Veriler</L> sayfasındaki <b>Canlıya geçiş</b> kartı adımları sırayla gösterir ve yapılanları kendiliğinden işaretler:</p>
+          <Steps items={[
+            <>Demo verilerini temizleyin.</>,
+            <>Firma bilgilerini, logoyu, il/ilçeyi ve IBAN'ı girin.</>,
+            <>Ofis ve şoför hesaplarını açın.</>,
+            <>Excel'den aktarın, bu sırayla: <b>Tedarikçiler → Müşteriler → Şoförler → Araçlar → Seferler</b>. Her sayfadaki “Excel'den Aktar” düğmesi şablonu verir; önce “Kontrol Et”, hata yoksa aktarılır.</>,
+            <>Devir bakiyelerinin toplamını eski defterinizle karşılaştırın ve sıradaki fatura numarasını kontrol edin.</>,
+            <>İlk tam yedeği indirin.</>,
+          ]} />
+        </Section>
+
+        <Section icon={<HardDrive className="size-5" />} title="Yedekler">
+          <p>Her gece otomatik yedek alınır ve sağlamlığı denenir. Ayrıca haftada bir <L to="/ayarlar?tab=data">Ayarlar → Veriler → Tam yedeği indir</L> ile yedeği indirip telefonunuza ya da bilgisayarınıza kaydedin. Yedek, tüm kayıtları ve yüklenen fotoğrafları içerir.</p>
+          <p>Aynı kartta veritabanının doluluğu görünür; ücretsiz sunucuda sınır 1 GB'tır.</p>
         </Section>
 
         <Section icon={<Truck className="size-5" />} title="Sefer durumları ne anlama geliyor?">

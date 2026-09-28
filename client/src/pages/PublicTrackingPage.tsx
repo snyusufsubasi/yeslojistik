@@ -7,7 +7,7 @@ import type { PublicTracking, TripStatus } from '../api/types'
 import { Logo } from '../components/Logo'
 import { MapView } from '../components/MapView'
 import { Spinner } from '../components/ui'
-import { ago, date } from '../lib/format'
+import { ago, date, dateTime } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
 
 const headline: Record<TripStatus, { text: string; tone: string }> = {
@@ -37,6 +37,7 @@ export default function PublicTrackingPage() {
   })
   usePageTitle('Sevkiyat Takibi')
   const current = data ? steps.findIndex((s) => s.status === data.status) : -1
+  const eventAt = (status: TripStatus) => data?.events?.find((e) => e.status === status)?.occurredAt
 
   return (
     <div className="min-h-full bg-slate-100">
@@ -63,6 +64,7 @@ export default function PublicTrackingPage() {
               <div><dt className="text-sm text-slate-600">Yükleme tarihi</dt><dd className="text-slate-800">{date(data.loadingDate)}</dd></div>
               <div><dt className="text-sm text-slate-600">{data.status === 'Delivered' ? 'Teslim tarihi' : 'Tahmini teslim'}</dt><dd className="text-slate-800">{data.deliveryDate ? date(data.deliveryDate) : '—'}</dd></div>
               <div><dt className="text-sm text-slate-600">Araç plakası</dt><dd className="text-slate-800">{data.vehiclePlate}</dd></div>
+              {data.customerReference && <div><dt className="text-sm text-slate-600">Sipariş / referans no</dt><dd className="text-slate-800">{data.customerReference}</dd></div>}
             </dl>
             {data.status !== 'Cancelled' && <ol className="card space-y-4 p-5" aria-label="Sevkiyat aşamaları">
               {steps.map((s, i) => (
@@ -70,6 +72,7 @@ export default function PublicTrackingPage() {
                   {i <= current ? <CheckCircle2 className="size-7 shrink-0 text-emerald-600" /> : <Circle className="size-7 shrink-0 text-slate-400" />}
                   <span className={clsx('text-base', i === current ? 'font-semibold text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>
                     {s.label}{i === current && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">şu an</span>}
+                    {i <= current && eventAt(s.status) && <span className="block text-sm font-normal text-slate-500">{dateTime(eventAt(s.status)!)}</span>}
                   </span>
                 </li>
               ))}

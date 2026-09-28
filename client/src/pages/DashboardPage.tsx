@@ -195,12 +195,14 @@ function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
     try { return localStorage.getItem(SETUP_HIDDEN_KEY) === '1' } catch { return false }
   })
   const steps = [
-    { done: setup.companyInfo, title: 'Firma bilgilerini girin', text: 'VKN, adres ve IBAN faturalarda görünür.', to: '/ayarlar', show: can('admin') },
+    { done: setup.companyInfo && setup.companyDetails, title: 'Firma bilgilerini girin', text: 'VKN, adres, il ve IBAN faturalarda görünür.', to: '/ayarlar', show: can('admin') },
+    { done: setup.supplierCount > 0, title: 'Kiralık araç sahiplerini ekleyin', text: 'Taşeronlara borç ve ödemeler için (kiralık araç yoksa atlayın).', to: '/tedarikciler', show: true },
     { done: setup.vehicleCount > 0, title: 'Araçları ekleyin', text: 'Tek tek ya da Excel listesinden toplu aktarın.', to: '/araclar', show: true },
     { done: setup.driverCount > 0, title: 'Şoförleri ekleyin', text: 'Ehliyet ve SRC bitiş tarihleri için uyarı alırsınız.', to: '/soforler', show: true },
     { done: setup.customerCount > 0, title: 'Müşterileri ekleyin', text: 'Eski borçları “Devir Bakiyesi” olarak girebilirsiniz.', to: '/musteriler', show: true },
     { done: setup.tripCount > 0, title: 'İlk seferi oluşturun', text: 'Sefer bitince “Fatura Kes” ile faturalayın.', to: '/seferler?new=1', show: true },
     { done: setup.userCount > 1, title: 'Çalışan hesaplarını açın', text: 'Operasyon, muhasebe ve şoför (mobil) hesapları.', to: '/ayarlar?tab=users', show: can('admin') },
+    { done: !!setup.lastBackupAt, title: 'İlk yedeği indirin', text: 'Ayarlar → Veriler → Tam yedeği indir. Haftada bir tekrarlayın.', to: '/ayarlar?tab=data', show: can('admin') },
   ].filter((s) => s.show)
   const doneCount = steps.filter((s) => s.done).length
   if (hidden || doneCount === steps.length) return null

@@ -42,7 +42,7 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
 
     [HttpPost("trips/{id:int}/status")]
     public async Task<DriverTripDto> Status(int id, TripStatusRequest req, CancellationToken ct) =>
-        await app.ChangeStatusAsync(await DriverIdAsync(ct), id, req.Status, ct);
+        await app.ChangeStatusAsync(await DriverIdAsync(ct), id, req.Status, ct, req.OccurredAt, req.Note);
 
     /// <summary>Şoförün bu sefer için girdiği masraflar.</summary>
     [HttpGet("trips/{id:int}/expenses")]

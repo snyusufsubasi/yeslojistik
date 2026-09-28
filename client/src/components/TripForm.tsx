@@ -10,12 +10,14 @@ function MissingHint({ show, to, text }: { show: boolean; to: string; text: stri
   if (!show) return null
   return <Link to={to} className="mt-1 block text-[13px] font-medium text-brand-700 underline underline-offset-2">{text}</Link>
 }
-import { errorMessage, openPdf, post } from '../api/client'
-import type { Trip, TripStatus } from '../api/types'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage, get, openPdf, post } from '../api/client'
+import type { Driver, Trip, TripEvent, TripStatus, Vehicle } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
-import { moneyHint, tl, todayIso } from '../lib/format'
+import { dateTime, moneyHint, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
-import { tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import { tripEventSourceLabel, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import { CityOptions } from './CityOptions'
 import { Badge, Button, Field, Modal, Tabs } from './ui'
 import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
@@ -34,6 +36,19 @@ const schema = z.object({
   description: optStr,
   vehicleCost: money(),
   salePrice: money(),
+  customerReference: optStr,
+  cargoType: optStr,
+  cargoWeightKg: z.number().min(0, 'Negatif olamaz.').nullable().or(z.nan().transform(() => null)),
+  cargoQuantity: z.number().int('Tam sayı girin.').min(0, 'Negatif olamaz.').nullable().or(z.nan().transform(() => null)),
+  cargoUnit: optStr,
+  trailerPlate: optStr,
+  loadingCity: optStr,
+  deliveryCity: optStr,
+  loadingContact: optStr,
+  deliveryContact: optStr,
+  carrierSupplierId: z.number().nullable().or(z.nan().transform(() => null)),
+  carrierInvoiceNo: optStr,
+  carrierInvoiceDate: optStr,
 }).refine((v) => !v.deliveryDate || v.deliveryDate >= v.loadingDate, {
   path: ['deliveryDate'], message: 'Teslim tarihi yükleme tarihinden önce olamaz.',
 })
@@ -54,6 +69,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const customers = useLookup('customers')
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
+  const suppliers = useLookup('suppliers')
+  const [quickDriver, setQuickDriver] = useState(false)
 
   const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -62,12 +79,22 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       loadingAddress: trip.loadingAddress, deliveryAddress: trip.deliveryAddress,
       loadingDate: trip.loadingDate, deliveryDate: trip.deliveryDate ?? '', description: trip.description ?? '',
       vehicleCost: trip.vehicleCost, salePrice: trip.salePrice,
+      customerReference: trip.customerReference ?? '', cargoType: trip.cargoType ?? '', cargoWeightKg: trip.cargoWeightKg ?? null,
+      cargoQuantity: trip.cargoQuantity ?? null, cargoUnit: trip.cargoUnit ?? '', trailerPlate: trip.trailerPlate ?? '',
+      loadingCity: trip.loadingCity ?? '', deliveryCity: trip.deliveryCity ?? '', loadingContact: trip.loadingContact ?? '',
+      deliveryContact: trip.deliveryContact ?? '', carrierSupplierId: trip.carrierSupplierId ?? null,
+      carrierInvoiceNo: trip.carrierInvoiceNo ?? '', carrierInvoiceDate: trip.carrierInvoiceDate ?? '',
     } : copyOf ? {
       customerId: copyOf.customerId, vehicleId: copyOf.vehicleId, driverId: copyOf.driverId,
       loadingAddress: copyOf.loadingAddress, deliveryAddress: copyOf.deliveryAddress,
       loadingDate: todayIso(), deliveryDate: '', description: copyOf.description ?? '',
       vehicleCost: copyOf.vehicleCost, salePrice: copyOf.salePrice,
-    } : { loadingDate: todayIso(), deliveryDate: '', description: '', ...defaults },
+      customerReference: '', cargoType: copyOf.cargoType ?? '', cargoWeightKg: copyOf.cargoWeightKg ?? null,
+      cargoQuantity: copyOf.cargoQuantity ?? null, cargoUnit: copyOf.cargoUnit ?? '', trailerPlate: copyOf.trailerPlate ?? '',
+      loadingCity: copyOf.loadingCity ?? '', deliveryCity: copyOf.deliveryCity ?? '', loadingContact: copyOf.loadingContact ?? '',
+      deliveryContact: copyOf.deliveryContact ?? '', carrierSupplierId: copyOf.carrierSupplierId ?? null,
+      carrierInvoiceNo: '', carrierInvoiceDate: '',
+    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, ...defaults },
   })
 
   const save = useSave((v: FormValues) => {
@@ -86,7 +113,17 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const profit = (Number(price) || 0) - (Number(cost) || 0) - (trip?.expenseTotal ?? 0)
   const invoiced = !!trip?.invoiceId
 
+  const vehicleId = useWatch({ control, name: 'vehicleId' })
+  const vehicle = useQuery({
+    queryKey: ['vehicles', 'detail', vehicleId], queryFn: () => get<Vehicle>(`/vehicles/${vehicleId}`),
+    enabled: !!vehicleId && !Number.isNaN(vehicleId),
+  })
+  const rented = vehicle.data?.ownership === 'Rented'
+
   const onVehicleChange = (id: number) => {
+    // Taşeron ve dorse yeni aracın bilgisinden gelsin (sunucu boş alanları araçtan doldurur).
+    setValue('carrierSupplierId', null)
+    setValue('trailerPlate', '')
     const v = vehicles.data?.find((x) => x.id === id)
     const current = getValues('driverId')
     if (v?.extra && (current == null || Number.isNaN(current))) setValue('driverId', Number(v.extra))
@@ -114,13 +151,16 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             { value: 'info', label: 'Sefer Bilgileri' },
             { value: 'files', label: 'Dosyalar / Fotoğraflar' },
             { value: 'tracking', label: 'Takip ve Rota' },
-            ...(can('admin') ? [{ value: 'history' as const, label: 'Geçmiş' }] : []),
+            { value: 'history' as const, label: 'Geçmiş' },
           ]} />
         </div>
       )}
       {trip && tab === 'files' && <TripAttachments trip={trip} />}
       {trip && tab === 'tracking' && <TripTracking trip={trip} />}
-      {trip && tab === 'history' && <AuditLogTable entityType="Trip" entityId={trip.id} />}
+      {trip && tab === 'history' && <>
+        <TripTimeline tripId={trip.id} />
+        {can('admin') && <div className="mt-4"><div className="mb-2 text-sm font-semibold text-navy-900">Değişiklik kaydı</div><AuditLogTable entityType="Trip" entityId={trip.id} /></div>}
+      </>}
       <div className={tab === 'info' ? '' : 'hidden'}>
       {trip && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-3">
@@ -148,12 +188,23 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
             <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
           </Field>
-          <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
-            <input className="input" placeholder="İstanbul / Sultanbeyli" {...register('loadingAddress')} />
+          <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
+            <input className="input" placeholder="4500123" {...register('customerReference')} />
           </Field>
-          <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
-            <input className="input" placeholder="İzmir / Balçova" {...register('deliveryAddress')} />
-          </Field>
+          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+            <Field label="Yükleme İli" error={errors.loadingCity?.message}><select className="input" {...register('loadingCity')}><CityOptions placeholder="İl" /></select></Field>
+            <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
+              <input className="input" placeholder="Tuzla OSB" {...register('loadingAddress')} />
+            </Field>
+          </div>
+          <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
+          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+            <Field label="Teslim İli" error={errors.deliveryCity?.message}><select className="input" {...register('deliveryCity')}><CityOptions placeholder="İl" /></select></Field>
+            <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
+              <input className="input" placeholder="Balçova" {...register('deliveryAddress')} />
+            </Field>
+          </div>
+          <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Yükleme Tarihi" required error={errors.loadingDate?.message}>
               <input className="input" type="date" {...register('loadingDate')} />
@@ -162,8 +213,13 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               <input className="input" type="date" {...register('deliveryDate')} />
             </Field>
           </div>
+          {trip?.receivedBy && (
+            <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              Teslim alan: <b>{trip.receivedBy}</b>{trip.deliveredAt && ` · ${dateTime(trip.deliveredAt)}`}
+            </p>
+          )}
           <Field label="Açıklama" error={errors.description?.message}>
-            <textarea className="input min-h-20" placeholder="Mobilya sevkiyatı" {...register('description')} />
+            <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
           </Field>
         </div>
         <div className="space-y-3">
@@ -172,17 +228,54 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
             <MissingHint show={vehicles.data?.length === 0} to="/araclar" text="Henüz araç yok — önce araç ekleyin →" />
           </Field>
-          <Field label="Şoför" required error={errors.driverId?.message}>
-            <FormSelect control={control} name="driverId" options={[
-              ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
-              ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
-            ]} />
-            <MissingHint show={drivers.data?.length === 0} to="/soforler" text="Henüz şoför yok — önce şoför ekleyin →" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Şoför" required error={errors.driverId?.message}>
+              <FormSelect control={control} name="driverId" options={[
+                ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
+                ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
+              ]} />
+              <button type="button" className="mt-1 text-[13px] font-medium text-brand-700 underline underline-offset-2" onClick={() => setQuickDriver(true)}>+ Hızlı şoför ekle</button>
+            </Field>
+            <Field label="Dorse Plakası" error={errors.trailerPlate?.message}>
+              <input className="input uppercase" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
+            </Field>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-3">
+            <div className="mb-2 text-sm font-semibold text-navy-900">Yük Bilgisi</div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field className="col-span-2" label="Yük Cinsi" error={errors.cargoType?.message}>
+                <input className="input" placeholder="Mobilya" list="cargo-types" {...register('cargoType')} />
+                <datalist id="cargo-types">{['Mobilya', 'Genel kargo', 'İnşaat malzemesi', 'Gıda', 'Tekstil', 'Otomotiv parçası', 'Makine'].map((t) => <option key={t} value={t} />)}</datalist>
+              </Field>
+              <Field label="Miktar" error={errors.cargoQuantity?.message}>
+                <div className="flex gap-2">
+                  <input className="input min-w-0" type="number" min="0" {...register('cargoQuantity', { valueAsNumber: true })} />
+                  <input className="input w-24" placeholder="palet" list="cargo-units" {...register('cargoUnit')} />
+                  <datalist id="cargo-units">{['palet', 'koli', 'adet', 'ton', 'm³'].map((t) => <option key={t} value={t} />)}</datalist>
+                </div>
+              </Field>
+              <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
+                <input className="input" type="number" min="0" step="1" {...register('cargoWeightKg', { valueAsNumber: true })} />
+              </Field>
+            </div>
+          </div>
+          {(rented || trip?.carrierSupplierId) && (
+            <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3">
+              <div className="mb-2 text-sm font-semibold text-navy-900">Taşeron (kiralık araç)</div>
+              <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi.">
+                <FormSelect control={control} name="carrierSupplierId" placeholder={vehicle.data?.supplierTitle ? `Araç sahibi: ${vehicle.data.supplierTitle}` : 'Aracın sahibi'}
+                  options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))} />
+              </Field>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Field label="Taşeron Fatura No" error={errors.carrierInvoiceNo?.message}><input className="input" {...register('carrierInvoiceNo')} /></Field>
+                <Field label="Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><input className="input" type="date" {...register('carrierInvoiceDate')} /></Field>
+              </div>
+            </div>
+          )}
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-2 text-sm font-semibold text-navy-900">Nakliye Fiyatları</div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Araç Maliyeti (TL)" error={errors.vehicleCost?.message} hint={moneyHint(cost)}>
+              <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message} hint={moneyHint(cost)}>
                 <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('vehicleCost', { valueAsNumber: true })} />
               </Field>
               <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message} hint={moneyHint(price)}>
@@ -204,6 +297,50 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
         <button type="submit" className="hidden" />
       </form>
       </div>
+      {quickDriver && <QuickDriverDialog supplierId={rented ? vehicle.data?.supplierId ?? null : null} onClose={() => setQuickDriver(false)}
+        onSaved={(d) => { drivers.refetch(); setValue('driverId', d.id, { shouldValidate: true }) }} />}
     </Modal>
+  )
+}
+
+/** Sefer formundan çıkmadan şoför ekleme (kiralık araçta taşeronun şoförü olarak). */
+function QuickDriverDialog({ supplierId, onClose, onSaved }: { supplierId: number | null; onClose: () => void; onSaved: (d: Driver) => void }) {
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const save = useSave(() => post<Driver>('/drivers', { fullName, phone: phone || null, isActive: true, supplierId }), {
+    invalidate: ['drivers'], success: 'Şoför eklendi.', onSuccess: (d) => { onSaved(d); onClose() },
+  })
+  return (
+    <Modal open onClose={onClose} title="Hızlı şoför ekle" size="sm"
+      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button disabled={fullName.trim().length < 3} loading={save.isPending} onClick={() => save.mutate(undefined)}>Ekle</Button></>}>
+      <div className="space-y-3">
+        <Field label="Ad Soyad" required><input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus /></Field>
+        <Field label="Telefon"><input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0532 123 45 67" /></Field>
+        {supplierId && <p className="text-sm text-slate-600">Şoför, aracın sahibi olan taşerona bağlı olarak eklenir.</p>}
+      </div>
+    </Modal>
+  )
+}
+
+/** Seferin durum zaman çizelgesi: ne zaman, kim, nereden (panel / şoför uygulaması / Excel). */
+function TripTimeline({ tripId }: { tripId: number }) {
+  const { data } = useQuery({ queryKey: ['trips', 'events', tripId], queryFn: () => get<TripEvent[]>(`/trips/${tripId}/events`) })
+  if (!data) return null
+  if (data.length === 0) return <p className="text-sm text-slate-500">Henüz durum kaydı yok.</p>
+  return (
+    <ol className="relative space-y-3 border-l-2 border-slate-200 pl-4" aria-label="Durum geçmişi">
+      {data.map((e) => (
+        <li key={e.id}>
+          <span className="absolute -left-[7px] mt-1.5 size-3 rounded-full bg-brand-600" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={tripStatusTone[e.status]}>{tripStatusLabel[e.status]}</Badge>
+            <span className="text-sm font-medium text-slate-800">{dateTime(e.occurredAt)}</span>
+          </div>
+          <div className="text-[13px] text-slate-500">
+            {[e.userName, tripEventSourceLabel[e.source]].filter(Boolean).join(' · ')}{e.note && ` · ${e.note}`}
+          </div>
+        </li>
+      ))}
+    </ol>
   )
 }

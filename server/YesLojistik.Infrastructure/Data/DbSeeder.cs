@@ -68,7 +68,7 @@ public static class DbSeeder
 
         var customers = new[]
         {
-            new Customer { Title = "Yıldız Mobilya", Phone = "0216 555 44 33", Email = "info@yildizmobilya.com", Address = "İstanbul / Sultanbeyli", TaxOffice = "Sultanbeyli", TaxNumber = "1234567890" },
+            new Customer { Title = "Yıldız Mobilya", Phone = "0216 555 44 33", Email = "info@yildizmobilya.com", Address = "İstanbul / Sultanbeyli", TaxOffice = "Sultanbeyli", TaxNumber = "1234567890", City = "İstanbul", District = "Sultanbeyli", IsEInvoiceUser = true, EInvoiceAlias = "urn:mail:defaultpk@yildizmobilya.com" },
             new Customer { Title = "ABC İnşaat", Phone = "0312 444 55 66", Address = "Ankara / Çankaya", TaxOffice = "Çankaya" },
             new Customer { Title = "Dekor A.Ş.", Phone = "0262 333 22 11", Address = "Kocaeli / Gebze", TaxOffice = "Gebze" },
             new Customer { Title = "Haser Oto", Phone = "0216 222 33 44", Address = "İstanbul / Pendik" },
@@ -78,6 +78,14 @@ public static class DbSeeder
         };
         db.Customers.AddRange(customers);
 
+        var suppliers = new[]
+        {
+            new Supplier { Title = "Demir Nakliyat", Kind = SupplierKind.Carrier, Phone = "0532 444 55 66", ContactName = "Hasan Demir", City = "İstanbul", District = "Kartal", PaymentTermDays = 15, OpeningBalance = 8_500, OpeningBalanceDate = today.AddDays(-30) },
+            new Supplier { Title = "Öz Güven Taşımacılık", Kind = SupplierKind.Carrier, Phone = "0533 777 88 99", City = "Kocaeli", PaymentTermDays = 30 },
+            new Supplier { Title = "Anadolu Oto Servis", Kind = SupplierKind.Service, Phone = "0216 444 11 22", City = "İstanbul", PaymentTermDays = 30 },
+        };
+        db.Suppliers.AddRange(suppliers);
+
         var drivers = new[]
         {
             new Driver { FullName = "Mehmet Yılmaz", Phone = "0532 111 22 33", LicenseClass = "CE", SrcExpiry = today.AddDays(20), LicenseExpiry = today.AddYears(3) },
@@ -85,6 +93,7 @@ public static class DbSeeder
             new Driver { FullName = "Murat Kaya", Phone = "0534 333 44 55", LicenseClass = "C", SrcExpiry = today.AddYears(1) },
             new Driver { FullName = "Ahmet Çelik", Phone = "0535 444 55 66", LicenseClass = "C", SrcExpiry = today.AddYears(1) },
             new Driver { FullName = "İsmail Arslan", Phone = "0536 555 66 77", LicenseClass = "C", SrcExpiry = today.AddYears(1) },
+            new Driver { FullName = "Kemal Öztürk", Phone = "0537 666 77 88", LicenseClass = "CE", Supplier = suppliers[0] },
         };
         db.Drivers.AddRange(drivers);
 
@@ -95,6 +104,7 @@ public static class DbSeeder
             new Vehicle { Plate = "16 KZ 528", Type = "Kamyon", Brand = "Iveco", Model = "Eurocargo", ModelYear = 2018, Km = 780_000, LastMaintenanceDate = today.AddMonths(-2), NextMaintenanceDate = today.AddMonths(4), DefaultDriver = drivers[2] },
             new Vehicle { Plate = "34 VES 02", Type = "Kamyonet", Brand = "Ford", Model = "Transit", ModelYear = 2021, Km = 310_000, LastMaintenanceDate = today.AddMonths(-1), NextMaintenanceDate = today.AddMonths(5), InspectionExpiry = today.AddDays(25), DefaultDriver = drivers[3] },
             new Vehicle { Plate = "34 VK 03", Type = "Kamyonet", Brand = "Ford", Model = "Transit", ModelYear = 2022, Km = 210_000, LastMaintenanceDate = today.AddMonths(-3), NextMaintenanceDate = today.AddMonths(3), DefaultDriver = drivers[4] },
+            new Vehicle { Plate = "34 DMR 34", Type = "Tır", Brand = "Volvo", Model = "FH", ModelYear = 2019, Km = 540_000, Ownership = VehicleOwnership.Rented, Supplier = suppliers[0], TrailerPlate = "34 DRS 34", DefaultDriver = drivers[5] },
         };
         db.Vehicles.AddRange(vehicles);
         await db.SaveChangesAsync();
@@ -105,6 +115,9 @@ public static class DbSeeder
             LoadingAddress = from, DeliveryAddress = to, LoadingDate = today.AddDays(dayOffset),
             DeliveryDate = status == TripStatus.Delivered ? today.AddDays(dayOffset + 1) : null,
             VehicleCost = cost, SalePrice = price, Status = status, Description = "Genel yük",
+            LoadingCity = Cities.Normalize(from.Split('/')[0]), DeliveryCity = Cities.Normalize(to.Split('/')[0]),
+            CarrierSupplierId = vehicles[v].Ownership == VehicleOwnership.Rented ? vehicles[v].SupplierId : null,
+            TrailerPlate = vehicles[v].TrailerPlate,
         };
 
         var trips = new List<Trip>
@@ -115,7 +128,11 @@ public static class DbSeeder
             T(3, 3, "İstanbul", "Kırşehir", 1, 26_000, 38_000, TripStatus.Planned),
             T(4, 4, "Bursa", "İstanbul", 2, 15_000, 22_500, TripStatus.Planned),
             T(5, 2, "Kocaeli", "Düzce", 2, 11_000, 17_000, TripStatus.Planned),
+            T(6, 5, "İstanbul / Tuzla", "Ankara / Sincan", -1, 21_000, 27_500, TripStatus.OnRoad),
         };
+        // Kiralık araçla (taşeron) yapılmış geçmiş seferler: taşeron borcu oluşsun.
+        for (var i = 0; i < 4; i++)
+            trips.Add(T(i, 5, i % 2 == 0 ? "İstanbul" : "Kocaeli", i % 2 == 0 ? "İzmir" : "Ankara", -10 - i * 12, 20_000 + i * 1_000, 27_000 + i * 1_500, TripStatus.Delivered));
         // Geçmiş, teslim edilmiş seferler (son 4 ay).
         var rnd = new Random(42);
         string[] cities = ["İstanbul", "Ankara", "İzmir", "Bursa", "Kocaeli", "Kayseri", "Konya", "Eskişehir", "Sakarya", "Tekirdağ"];
@@ -131,6 +148,10 @@ public static class DbSeeder
         db.Trips.AddRange(trips);
         vehicles[0].Status = VehicleStatus.OnRoad;
         vehicles[1].Status = VehicleStatus.OnRoad;
+        vehicles[5].Status = VehicleStatus.OnRoad;
+        await db.SaveChangesAsync();
+        foreach (var t in trips)
+            db.TripEvents.Add(new TripEvent { TripId = t.Id, Status = t.Status, Source = TripEventSource.Panel, OccurredAt = t.LoadingDate.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Utc), RecordedAt = DateTime.UtcNow, UserName = "Demo" });
         await db.SaveChangesAsync();
 
         // Demo GPS: İstanbul → İzmir yolundaki araç ve Ankara'da yüklenen araç.

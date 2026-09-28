@@ -18,7 +18,8 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         var s = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         return new CompanySettingsDto(s.CompanyName, s.Slogan, s.TaxNumber, s.TaxOffice, s.Address, s.Phone, s.Email, s.Iban,
             s.LogoDataUrl, s.InvoicePrefix, s.NextInvoiceNumber, s.DefaultVatRate, s.DefaultWithholdingTenths, s.DefaultPaymentTermDays,
-            email.IsConfigured, s.DailyDigestEnabled);
+            email.IsConfigured, s.DailyDigestEnabled, s.City, s.District, s.MersisNo, s.TradeRegistryNo, s.Website,
+            s.LastBackupAt, s.SampleDataClearedAt);
     }
 
     [Authorize(Policy = Policies.Admin)]
@@ -43,6 +44,11 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         s.DefaultWithholdingTenths = req.DefaultWithholdingTenths;
         s.DefaultPaymentTermDays = req.DefaultPaymentTermDays;
         s.DailyDigestEnabled = req.DailyDigestEnabled;
+        s.City = Cities.Normalize(req.City);
+        s.District = CustomersController.NullIfEmpty(req.District);
+        s.MersisNo = CustomersController.NullIfEmpty(req.MersisNo);
+        s.TradeRegistryNo = CustomersController.NullIfEmpty(req.TradeRegistryNo);
+        s.Website = CustomersController.NullIfEmpty(req.Website);
         await db.SaveChangesAsync(ct);
         return await Get(ct);
     }

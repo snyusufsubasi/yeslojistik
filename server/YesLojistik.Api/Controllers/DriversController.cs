@@ -14,6 +14,7 @@ namespace YesLojistik.Api.Controllers;
 public record DriverQuery : ListQuery
 {
     public bool? Active { get; init; }
+    public int? SupplierId { get; init; }
 }
 
 [ApiController]
@@ -28,14 +29,14 @@ public class DriversController(AppDbContext db) : ControllerBase
         ["isActive"] = d => d.IsActive,
     };
 
-    private static readonly Expression<Func<Driver, DriverDto>> Projection = d => new DriverDto(d.Id, d.FullName, d.Phone,
-        d.NationalId, d.LicenseClass, d.LicenseExpiry, d.SrcExpiry, d.PsychotechnicExpiry, d.IsActive);
+    private static readonly Expression<Func<Driver, DriverDto>> Projection = Projections.Driver;
 
     [HttpGet]
     public async Task<PagedResult<DriverDto>> List([FromQuery] DriverQuery q, CancellationToken ct)
     {
         var query = db.Drivers.AsNoTracking();
         if (q.Active is { } a) query = query.Where(d => d.IsActive == a);
+        if (q.SupplierId is { } sup) query = query.Where(d => d.SupplierId == sup);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(d => EF.Functions.ILike(d.FullName, like) || EF.Functions.ILike(d.Phone ?? "", like));
         var (items, total, page, size) = await query.ApplySort(q.Sort, q.Desc, SortMap, "fullName", defaultDesc: false)
@@ -46,7 +47,7 @@ public class DriversController(AppDbContext db) : ControllerBase
     [HttpGet("lookup")]
     public async Task<List<LookupItem>> Lookup(CancellationToken ct) =>
         await db.Drivers.AsNoTracking().Where(d => d.IsActive).OrderBy(d => d.FullName)
-            .Select(d => new LookupItem(d.Id, d.FullName, d.Phone)).ToListAsync(ct);
+            .Select(d => new LookupItem(d.Id, d.FullName + (d.Supplier != null ? " (" + d.Supplier.Title + ")" : ""), d.SupplierId.ToString())).ToListAsync(ct);
 
     [HttpGet("{id:int}")]
     public async Task<DriverDto> Get(int id, CancellationToken ct) =>
@@ -58,6 +59,7 @@ public class DriversController(AppDbContext db) : ControllerBase
     public async Task<DriverDto> Create(DriverSaveRequest req, CancellationToken ct)
     {
         var d = new Driver();
+        await EnsureSupplierAsync(req.SupplierId, ct);
         Apply(d, req);
         db.Drivers.Add(d);
         await db.SaveChangesAsync(ct);
@@ -69,6 +71,7 @@ public class DriversController(AppDbContext db) : ControllerBase
     public async Task<DriverDto> Update(int id, DriverSaveRequest req, CancellationToken ct)
     {
         var d = await db.Drivers.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Şoför bulunamadı.");
+        await EnsureSupplierAsync(req.SupplierId, ct);
         Apply(d, req);
         await db.SaveChangesAsync(ct);
         return await Get(id, ct);
@@ -89,8 +92,14 @@ public class DriversController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    private async Task EnsureSupplierAsync(int? supplierId, CancellationToken ct)
+    {
+        if (supplierId is { } s && !await db.Suppliers.AnyAsync(x => x.Id == s, ct)) throw new DomainException("Tedarikçi bulunamadı.");
+    }
+
     private static void Apply(Driver d, DriverSaveRequest r)
     {
+        d.SupplierId = r.SupplierId;
         d.FullName = r.FullName.Trim();
         d.Phone = Formatters.NormalizePhone(r.Phone);
         d.NationalId = CustomersController.NullIfEmpty(r.NationalId);

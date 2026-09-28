@@ -66,10 +66,12 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
         if (trips.Any(t => t.InvoiceId != null)) throw new DomainException("Seçilen seferlerden bazıları zaten faturalanmış.");
         if (trips.Any(t => t.Status == TripStatus.Cancelled)) throw new DomainException("İptal edilmiş sefer faturalanamaz.");
 
+        static string Fit(string s) => s.Length <= 300 ? s : s[..297] + "...";
         var lines = trips.Select(t => new InvoiceLine
         {
             TripId = t.Id,
-            Description = $"{Formatters.Date(t.LoadingDate)} {t.LoadingAddress} → {t.DeliveryAddress} nakliye bedeli ({t.Vehicle.Plate})",
+            Description = Fit($"{Formatters.Date(t.LoadingDate)} {t.LoadingAddress} → {t.DeliveryAddress} nakliye bedeli ({t.Vehicle.Plate})"
+                + (t.CustomerReference is { } r ? $" (Ref: {r})" : "")),
             Amount = t.SalePrice,
         }).ToList();
         lines.AddRange((req.ExtraLines ?? []).Select(l => new InvoiceLine { Description = l.Description.Trim(), Amount = Money.Round(l.Amount) }));
@@ -80,7 +82,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
             InvoiceNo = await NextInvoiceNoAsync(ct),
             CustomerId = req.CustomerId,
             Date = req.Date,
-            DueDate = req.DueDate ?? req.Date.AddDays(settings.DefaultPaymentTermDays),
+            DueDate = req.DueDate ?? req.Date.AddDays(await db.Customers.Where(c => c.Id == req.CustomerId).Select(c => c.PaymentTermDays).FirstAsync(ct) ?? settings.DefaultPaymentTermDays),
             VatRate = req.VatRate,
             WithholdingTenths = req.WithholdingTenths,
             Subtotal = totals.Subtotal,
