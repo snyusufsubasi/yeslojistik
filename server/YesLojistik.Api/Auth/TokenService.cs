@@ -20,6 +20,8 @@ public class TokenService(AppDbContext db, IOptions<JwtOptions> options)
 
     public static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
+    public DateTime AccessTokenExpiry() => DateTime.UtcNow.AddMinutes(_opt.AccessTokenMinutes);
+
     public string CreateAccessToken(User user)
     {
         var claims = new[]

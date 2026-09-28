@@ -39,6 +39,7 @@ services:
     volumes:
       - ./backups:/backups
       - ./deploy/backup.sh:/backup.sh:ro
+      - uploads:/uploads:ro
     # Her gece 03:00'te yedek alır.
     entrypoint: ["/bin/sh", "-c", "echo '0 3 * * * /bin/sh /backup.sh >> /backups/backup.log 2>&1' | crontab - && crond -f -l 8"]
 

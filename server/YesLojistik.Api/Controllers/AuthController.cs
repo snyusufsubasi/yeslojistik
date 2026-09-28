@@ -60,6 +60,44 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
         return NoContent();
     }
 
+    /// <summary>Mobil uygulama girişi: token'ları cookie yerine gövdede döner.</summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    [HttpPost("token")]
+    public async Task<ActionResult<TokenLoginResponse>> Token(LoginRequest req, CancellationToken ct)
+    {
+        var email = req.Email.Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        if (user == null || hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password) == PasswordVerificationResult.Failed)
+            return Problem(title: "E-posta veya şifre hatalı.", statusCode: StatusCodes.Status401Unauthorized);
+        if (!user.IsActive)
+            return Problem(title: "Hesabınız pasif durumda. Yöneticinizle iletişime geçin.", statusCode: StatusCodes.Status403Forbidden);
+        user.LastLoginAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return await TokenResponseAsync(user, ct);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("token/refresh")]
+    public async Task<ActionResult<TokenLoginResponse>> TokenRefresh(RefreshTokenRequest req, CancellationToken ct)
+    {
+        var user = await tokens.ConsumeRefreshTokenAsync(req.RefreshToken, ct);
+        if (user == null) return Problem(title: "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.", statusCode: StatusCodes.Status401Unauthorized);
+        return await TokenResponseAsync(user, ct);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("token/revoke")]
+    public async Task<IActionResult> TokenRevoke(RefreshTokenRequest req, CancellationToken ct)
+    {
+        await tokens.ConsumeRefreshTokenAsync(req.RefreshToken, ct);
+        return NoContent();
+    }
+
+    private async Task<TokenLoginResponse> TokenResponseAsync(User user, CancellationToken ct) =>
+        new(tokens.CreateAccessToken(user), await tokens.CreateRefreshTokenAsync(user, ct), tokens.AccessTokenExpiry(), ToDto(user));
+
+    [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<CurrentUserDto>> Me(CancellationToken ct)
     {
@@ -68,6 +106,7 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
         return ToDto(user);
     }
 
+    [Authorize]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest req, CancellationToken ct)
     {

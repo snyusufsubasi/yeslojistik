@@ -18,6 +18,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<TripAttachment> TripAttachments => Set<TripAttachment>();
+    public DbSet<VehicleLocation> VehicleLocations => Set<VehicleLocation>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -41,6 +43,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.FullName).HasMaxLength(100);
             e.Property(x => x.Email).HasMaxLength(200);
             e.HasIndex(x => x.Email).IsUnique().HasFilter("is_deleted = false");
+            e.HasOne(x => x.Driver).WithMany().OnDelete(DeleteBehavior.SetNull);
         });
         b.Entity<RefreshToken>(e =>
         {
@@ -85,6 +88,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasOne(x => x.Invoice).WithMany(i => i.Trips).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => x.LoadingDate);
             e.HasIndex(x => x.Status);
+            e.Property(x => x.TrackingToken).HasMaxLength(40);
+            e.HasIndex(x => x.TrackingToken).IsUnique();
+        });
+        b.Entity<TripAttachment>(e =>
+        {
+            e.Property(x => x.FileName).HasMaxLength(200);
+            e.Property(x => x.ContentType).HasMaxLength(100);
+            e.Property(x => x.StoragePath).HasMaxLength(300);
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasOne(x => x.Trip).WithMany(t => t.Attachments).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<VehicleLocation>(e =>
+        {
+            e.HasIndex(x => new { x.VehicleId, x.RecordedAt });
+            e.HasIndex(x => new { x.TripId, x.RecordedAt });
+            e.HasIndex(x => x.RecordedAt);
         });
         b.Entity<Invoice>(e =>
         {

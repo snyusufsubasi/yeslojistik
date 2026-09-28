@@ -8,6 +8,9 @@ public class User : BaseEntity
     public UserRole Role { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
+    /// <summary>Şoför rolündeki kullanıcının bağlı olduğu şoför kaydı (mobil uygulama).</summary>
+    public int? DriverId { get; set; }
+    public Driver? Driver { get; set; }
 }
 
 public class RefreshToken

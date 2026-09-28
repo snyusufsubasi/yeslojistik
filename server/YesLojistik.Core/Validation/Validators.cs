@@ -44,6 +44,18 @@ public class UserSaveRequestValidator : AbstractValidator<UserSaveRequest>
         RuleFor(x => x.Role).IsInEnum();
         RuleFor(x => x.Password).Must(PasswordPolicy.IsValid).WithMessage(PasswordPolicy.Message)
             .When(x => !string.IsNullOrEmpty(x.Password));
+        RuleFor(x => x.DriverId).NotNull().WithMessage("Şoför rolündeki kullanıcı bir şoföre bağlanmalı.")
+            .When(x => x.Role == Entities.UserRole.Driver);
+    }
+}
+
+public class LocationPingValidator : AbstractValidator<LocationPing>
+{
+    public LocationPingValidator()
+    {
+        RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
+        RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
+        RuleFor(x => x.SpeedKmh).InclusiveBetween(0, 300).When(x => x.SpeedKmh.HasValue);
     }
 }
 

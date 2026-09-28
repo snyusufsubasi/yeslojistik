@@ -1,6 +1,8 @@
 namespace YesLojistik.Core.Entities;
 
-public enum UserRole { Admin, Operations, Accounting }
+public enum UserRole { Admin, Operations, Accounting, Driver }
+
+public enum AttachmentKind { Photo, Document, Signature }
 
 public enum VehicleStatus { Available, OnRoad, Maintenance }
 

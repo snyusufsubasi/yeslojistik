@@ -27,7 +27,8 @@ builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configurati
 // --- Veritabanı ve servisler ---
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default ayarlanmamış.");
-builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads");
+builder.Services.AddHostedService<LocationRetentionService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TokenService>();
@@ -62,18 +63,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 builder.Services.AddAuthorizationBuilder()
-    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+    // Özel bir [Authorize] belirtilmeyen tüm uç noktalar yalnızca ofis kullanıcılarına açıktır (şoförler hariç).
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().RequireRole(Policies.StaffRoles).Build())
     .AddPolicy(Policies.Operations, p => p.RequireRole(Policies.OperationsRoles))
     .AddPolicy(Policies.Accounting, p => p.RequireRole(Policies.AccountingRoles))
     .AddPolicy(Policies.Admin, p => p.RequireRole(nameof(UserRole.Admin)));
 
-// --- Giriş denemesi sınırı: IP başına dakikada 10 ---
+// --- Giriş denemesi sınırı: IP başına dakikada 10 (RateLimit:LoginPerMinute) ---
+var loginLimit = builder.Configuration.GetValue("RateLimit:LoginPerMinute", 10);
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = loginLimit, Window = TimeSpan.FromMinutes(1) }));
+    // Herkese açık takip sayfası: IP başına dakikada 60 istek.
+    o.AddPolicy("public", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
     o.OnRejected = async (ctx, ct) =>
         await ctx.HttpContext.Response.WriteAsJsonAsync(new ProblemDetails
         {

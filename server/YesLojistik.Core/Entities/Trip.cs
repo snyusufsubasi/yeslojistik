@@ -22,5 +22,9 @@ public class Trip : BaseEntity
     public int? InvoiceId { get; set; }
     public Invoice? Invoice { get; set; }
 
+    /// <summary>Müşteriye gönderilen herkese açık takip linkinin anahtarı.</summary>
+    public string? TrackingToken { get; set; }
+
     public List<Expense> Expenses { get; set; } = new();
+    public List<TripAttachment> Attachments { get; set; } = new();
 }

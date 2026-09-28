@@ -83,6 +83,8 @@ public class DriversController(AppDbContext db) : ControllerBase
             throw new DomainException("Seferlerde görev almış şoför silinemez. Bunun yerine pasife alın.");
         d.IsDeleted = true;
         await db.Vehicles.Where(v => v.DefaultDriverId == id).ExecuteUpdateAsync(s => s.SetProperty(v => v.DefaultDriverId, (int?)null), ct);
+        // Şoföre bağlı mobil uygulama hesabı varsa pasife al.
+        await db.Users.Where(u => u.DriverId == id).ExecuteUpdateAsync(s => s.SetProperty(u => u.IsActive, false).SetProperty(u => u.DriverId, (int?)null), ct);
         await db.SaveChangesAsync(ct);
         return NoContent();
     }

@@ -19,14 +19,15 @@ public class UsersController(AppDbContext db, IPasswordHasher<User> hasher, Toke
     [HttpGet]
     public async Task<List<UserDto>> List(CancellationToken ct) =>
         await db.Users.AsNoTracking().OrderBy(u => u.FullName)
-            .Select(u => new UserDto(u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.CreatedAt)).ToListAsync(ct);
+            .Select(u => new UserDto(u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.CreatedAt, u.DriverId,
+                u.Driver != null ? u.Driver.FullName : null)).ToListAsync(ct);
 
     [HttpPost]
     public async Task<ActionResult<UserDto>> Create(UserSaveRequest req, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(req.Password)) throw new DomainException("Yeni kullanıcı için şifre zorunlu.");
         var user = new User();
-        Apply(user, req);
+        await ApplyAsync(user, req, ct);
         user.PasswordHash = hasher.HashPassword(user, req.Password);
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
@@ -39,10 +40,11 @@ public class UsersController(AppDbContext db, IPasswordHasher<User> hasher, Toke
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) ?? throw new NotFoundException("Kullanıcı bulunamadı.");
         if (id == current.Id && (req.Role != UserRole.Admin || !req.IsActive))
             throw new DomainException("Kendi yönetici yetkinizi kaldıramaz veya hesabınızı pasife alamazsınız.");
-        Apply(user, req);
+        var roleChanged = user.Role != req.Role;
+        await ApplyAsync(user, req, ct);
         if (!string.IsNullOrEmpty(req.Password)) user.PasswordHash = hasher.HashPassword(user, req.Password);
         await db.SaveChangesAsync(ct);
-        if (!user.IsActive || !string.IsNullOrEmpty(req.Password)) await tokens.RevokeAllAsync(user.Id, ct);
+        if (!user.IsActive || !string.IsNullOrEmpty(req.Password) || roleChanged) await tokens.RevokeAllAsync(user.Id, ct);
         return ToDto(user);
     }
 
@@ -57,13 +59,20 @@ public class UsersController(AppDbContext db, IPasswordHasher<User> hasher, Toke
         return NoContent();
     }
 
-    private static void Apply(User u, UserSaveRequest r)
+    private async Task ApplyAsync(User u, UserSaveRequest r, CancellationToken ct)
     {
+        if (r.Role == UserRole.Driver)
+        {
+            if (!await db.Drivers.AnyAsync(d => d.Id == r.DriverId, ct)) throw new DomainException("Şoför bulunamadı.");
+            if (await db.Users.AnyAsync(x => x.DriverId == r.DriverId && x.Id != u.Id, ct))
+                throw new DomainException("Bu şoföre bağlı başka bir kullanıcı hesabı zaten var.");
+        }
+        u.DriverId = r.Role == UserRole.Driver ? r.DriverId : null;
         u.FullName = r.FullName.Trim();
         u.Email = r.Email.Trim().ToLowerInvariant();
         u.Role = r.Role;
         u.IsActive = r.IsActive;
     }
 
-    private static UserDto ToDto(User u) => new(u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.CreatedAt);
+    private static UserDto ToDto(User u) => new(u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.CreatedAt, u.DriverId);
 }

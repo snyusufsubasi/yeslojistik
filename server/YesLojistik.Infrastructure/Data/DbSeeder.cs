@@ -17,6 +17,27 @@ public static class DbSeeder
         await db.SaveChangesAsync();
     }
 
+    private static void SeedRoute(AppDbContext db, Trip trip, Vehicle vehicle, (double Lat, double Lng) from, (double Lat, double Lng) to, int points)
+    {
+        var start = DateTime.UtcNow.AddMinutes(-10 * points);
+        for (var i = 0; i < points; i++)
+        {
+            var f = points == 1 ? 1 : i / (double)(points - 1);
+            db.VehicleLocations.Add(new VehicleLocation
+            {
+                VehicleId = vehicle.Id, DriverId = trip.DriverId, TripId = trip.Id,
+                Latitude = from.Lat + (to.Lat - from.Lat) * f + Math.Sin(f * 9) * 0.05,
+                Longitude = from.Lng + (to.Lng - from.Lng) * f,
+                SpeedKmh = points == 1 ? 0 : 75 + (i % 5) * 4, RecordedAt = start.AddMinutes(10 * i), CreatedAt = DateTime.UtcNow,
+            });
+        }
+        var last = db.ChangeTracker.Entries<VehicleLocation>().Select(e => e.Entity).Where(l => l.VehicleId == vehicle.Id).MaxBy(l => l.RecordedAt)!;
+        vehicle.LastLatitude = last.Latitude;
+        vehicle.LastLongitude = last.Longitude;
+        vehicle.LastSpeedKmh = last.SpeedKmh;
+        vehicle.LastLocationAt = last.RecordedAt;
+    }
+
     /// <summary>Geliştirme/demo için örnek veri. Veritabanında müşteri varsa hiçbir şey yapmaz.</summary>
     public static async Task SeedSampleDataAsync(AppDbContext db, InvoiceService invoices)
     {
@@ -96,6 +117,17 @@ public static class DbSeeder
         db.Trips.AddRange(trips);
         vehicles[0].Status = VehicleStatus.OnRoad;
         vehicles[1].Status = VehicleStatus.OnRoad;
+        await db.SaveChangesAsync();
+
+        // Demo GPS: İstanbul → İzmir yolundaki araç ve Ankara'da yüklenen araç.
+        SeedRoute(db, trips[0], vehicles[0], (40.93, 29.30), (39.20, 27.60), 24);
+        SeedRoute(db, trips[1], vehicles[1], (39.93, 32.85), (39.93, 32.85), 1);
+        vehicles[3].LastLatitude = 40.99; vehicles[3].LastLongitude = 29.12; vehicles[3].LastLocationAt = DateTime.UtcNow.AddHours(-3);
+
+        // Demo şoför hesabı (mobil uygulama): Mehmet Yılmaz
+        var driverUser = new User { FullName = drivers[0].FullName, Email = "sofor@yeslojistik.com", Role = UserRole.Driver, DriverId = drivers[0].Id };
+        driverUser.PasswordHash = new PasswordHasher<User>().HashPassword(driverUser, "Sofor123!");
+        db.Users.Add(driverUser);
         await db.SaveChangesAsync();
 
         var expenseCats = new[] { ExpenseCategory.Fuel, ExpenseCategory.Toll, ExpenseCategory.DriverAllowance, ExpenseCategory.Maintenance };

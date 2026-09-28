@@ -8,7 +8,7 @@ namespace YesLojistik.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads")
     {
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -21,6 +21,10 @@ public static class DependencyInjection
         services.AddScoped<DashboardService>();
         services.AddScoped<AlertService>();
         services.AddScoped<ReportService>();
+        services.AddScoped<AttachmentService>();
+        services.AddScoped<TrackingService>();
+        services.AddScoped<DriverAppService>();
+        services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
         services.AddSingleton<IEInvoiceProvider, NullEInvoiceProvider>();
         return services;
     }

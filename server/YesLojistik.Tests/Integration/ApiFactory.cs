@@ -30,6 +30,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Seed:AdminEmail", AdminEmail);
         builder.UseSetting("Seed:AdminPassword", AdminPassword);
         builder.UseSetting("Seed:SampleData", "false");
+        builder.UseSetting("RateLimit:LoginPerMinute", "1000");
+        builder.UseSetting("Storage:Path", Path.Combine(Path.GetTempPath(), _dbName));
     }
 
     public async Task<HttpClient> LoginAsync(string email = AdminEmail, string password = AdminPassword)

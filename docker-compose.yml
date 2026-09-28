@@ -29,6 +29,10 @@ services:
       Seed__AdminEmail: ${ADMIN_EMAIL:-admin@yeslojistik.com}
       Seed__AdminPassword: ${ADMIN_PASSWORD:-}
       Seed__SampleData: ${SAMPLE_DATA:-false}
+      App__PublicUrl: ${PUBLIC_URL:-}
+      Tracking__RetentionDays: ${LOCATION_RETENTION_DAYS:-90}
+    volumes:
+      - uploads:/app/data/uploads
 
   web:
     build: ./client
@@ -40,3 +44,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

@@ -18,3 +18,4 @@ backups/
 .DS_Store
 .vscode/
 .idea/
+server/YesLojistik.Api/data/
