@@ -18,6 +18,7 @@ sol üstteki ☰ düğmesi menüyü açar. Şifrenizi sağ üstteki isminize tı
    otomatik işaretli). KDV ve tevkifat (varsayılan %20 ve 2/10) seçilir, toplam anında hesaplanır.
    - **Taslak Kaydet**: sonradan kesmek için saklar (cari bakiyeye yansımaz).
    - **Faturayı Kes**: faturayı kesinleştirir, cari borca yazılır. PDF düğmesiyle yazdırabilir/gönderebilirsiniz.
+   - SMTP ayarlıysa fatura detayındaki **E-posta Gönder** ile PDF müşteriye gönderilir (varsayılan alıcı cari kartındaki e-posta).
    - Hatalı fatura **silinmez, iptal edilir** (numara boşluğu olmasın diye). İptal edilince seferler tekrar faturalanabilir.
 7. **Tahsilat gir** → faturanın içinden *Tahsilat Ekle* ya da *Tahsilatlar* sayfasından. Faturaya bağlamazsanız
    ödeme en eski açık faturalardan başlayarak kapatılır.
@@ -61,7 +62,7 @@ Müşteriye tıklayınca: toplam borç (kesilen faturalar), toplam alacak (tahsi
 
 ## Raporlar
 *Aylık Özet* (ciro, maliyet, net kâr, faturalanan, tahsil edilen), *Sefer Kârlılığı*, *Araç Bazlı* gelir-gider,
-*Alacak Yaşlandırma* (0-30 / 31-60 / 61-90 / 90+ gün) ve *Gider Dağılımı*. Her rapor **Excel'e Aktar** ile indirilebilir.
+*Şoför Bazlı* (sefer sayısı, gelir, kâr), *Alacak Yaşlandırma* (0-30 / 31-60 / 61-90 / 90+ gün) ve *Gider Dağılımı*. Her rapor **Excel'e Aktar** ile indirilebilir.
 Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle Excel'e aktarılabilir.
 
 ## Kullanıcılar ve yetkiler (Ayarlar)

@@ -19,4 +19,7 @@ public record VehicleReportRow(int VehicleId, string Plate, string Type, int Tri
 public record CustomerAgingRow(int CustomerId, string Customer, decimal NotDue, decimal Days1To30, decimal Days31To60,
     decimal Days61To90, decimal Over90, decimal Total);
 
+public record DriverReportRow(int DriverId, string Driver, int TripCount, int DeliveredCount, decimal Revenue,
+    decimal VehicleCost, decimal Expenses, decimal Profit);
+
 public record ExpenseCategoryRow(string Category, decimal Amount);

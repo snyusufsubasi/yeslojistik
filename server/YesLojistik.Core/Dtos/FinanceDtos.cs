@@ -50,3 +50,5 @@ public record ExpenseQuery : ListQuery
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
 }
+
+public record InvoiceEmailRequest(string? To, string? Message);

@@ -69,6 +69,21 @@ public class ReportService(AppDbContext db, BalanceService balances)
         }).ToList();
     }
 
+    public async Task<List<DriverReportRow>> DriversAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var rows = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
+            .GroupBy(t => new { t.DriverId, t.Driver.FullName })
+            .Select(g => new
+            {
+                g.Key.DriverId, g.Key.FullName, Count = g.Count(), Delivered = g.Count(t => t.Status == TripStatus.Delivered),
+                Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost),
+                Expenses = g.Sum(t => t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0),
+            }).ToListAsync(ct);
+        return rows.Select(r => new DriverReportRow(r.DriverId, r.FullName, r.Count, r.Delivered, r.Revenue, r.Cost, r.Expenses,
+                r.Revenue - r.Cost - r.Expenses))
+            .OrderByDescending(r => r.TripCount).ThenBy(r => r.Driver).ToList();
+    }
+
     public async Task<List<CustomerAgingRow>> AgingAsync(CancellationToken ct = default)
     {
         var today = Clock.Today;

@@ -49,6 +49,15 @@ public class UserSaveRequestValidator : AbstractValidator<UserSaveRequest>
     }
 }
 
+public class InvoiceEmailRequestValidator : AbstractValidator<InvoiceEmailRequest>
+{
+    public InvoiceEmailRequestValidator()
+    {
+        RuleFor(x => x.To).EmailAddress().WithMessage("Geçerli bir e-posta adresi girin.").When(x => !string.IsNullOrWhiteSpace(x.To));
+        RuleFor(x => x.Message).MaximumLength(2000);
+    }
+}
+
 public class LocationPingValidator : AbstractValidator<LocationPing>
 {
     public LocationPingValidator()

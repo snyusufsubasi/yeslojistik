@@ -27,6 +27,7 @@ nano .env
 | `SAMPLE_DATA` | Canlıda `false` |
 | `PUBLIC_URL` | Müşteri takip linklerinde kullanılacak adres, ör. `https://panel.yeslojistik.com` |
 | `LOCATION_RETENTION_DAYS` | GPS kayıtlarının saklanacağı gün (varsayılan 90) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | İsteğe bağlı: faturayı müşteriye e-postayla göndermek için |
 
 ## 2. Çalıştırma
 

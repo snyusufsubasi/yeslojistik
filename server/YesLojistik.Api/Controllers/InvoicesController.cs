@@ -9,7 +9,7 @@ namespace YesLojistik.Api.Controllers;
 
 [ApiController]
 [Route("api/invoices")]
-public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf) : ControllerBase
+public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf, InvoiceMailer mailer) : ControllerBase
 {
     [HttpGet]
     public Task<PagedResult<InvoiceDto>> List([FromQuery] InvoiceQuery q, CancellationToken ct) => invoices.ListAsync(q, ct);
@@ -45,6 +45,11 @@ public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf
     [Authorize(Policy = Policies.Accounting)]
     [HttpPost]
     public Task<InvoiceDto> Create(InvoiceCreateRequest req, CancellationToken ct) => invoices.CreateAsync(req, ct);
+
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("{id:int}/email")]
+    public async Task<object> Email(int id, InvoiceEmailRequest req, CancellationToken ct) =>
+        new { sentTo = await mailer.SendAsync(id, req.To, req.Message, ct) };
 
     [Authorize(Policy = Policies.Accounting)]
     [HttpPost("{id:int}/issue")]

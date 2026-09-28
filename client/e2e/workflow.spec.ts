@@ -111,7 +111,7 @@ test('raporlar ve Excel dışa aktarma', async ({ page }) => {
   await login(page)
   await page.getByRole('link', { name: 'Raporlar' }).click()
   await expect(page.getByText('Sefer cirosu')).toBeVisible()
-  for (const tab of ['Sefer Kârlılığı', 'Araç Bazlı', 'Alacak Yaşlandırma', 'Gider Dağılımı']) {
+  for (const tab of ['Sefer Kârlılığı', 'Araç Bazlı', 'Şoför Bazlı', 'Alacak Yaşlandırma', 'Gider Dağılımı']) {
     await page.getByRole('button', { name: tab }).click()
     await expect(page.locator('table').first()).toBeVisible()
   }

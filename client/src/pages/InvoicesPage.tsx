@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Ban, Download, Eye, FileCheck2, FileText, Plus, Printer, Wallet } from 'lucide-react'
+import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet } from 'lucide-react'
 import { download, errorMessage, get, openPdf, post } from '../api/client'
-import type { Invoice, InvoiceStatus } from '../api/types'
+import type { CompanySettings, Invoice, InvoiceStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
@@ -100,6 +100,8 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
   const { can } = useAuth()
   const [paying, setPaying] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [mailing, setMailing] = useState(false)
+  const settings = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings'), staleTime: 60_000 })
   const { data: inv, isLoading } = useQuery({ queryKey: ['invoices', 'detail', id], queryFn: () => get<Invoice>(`/invoices/${id}`) })
   const issue = useSave(() => post<Invoice>(`/invoices/${id}/issue`), { invalidate: ['invoices', 'customers'], success: 'Fatura kesildi.' })
   const cancel = useSave(() => post<Invoice>(`/invoices/${id}/cancel`), {
@@ -112,6 +114,8 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
         {can('accounting') && inv.status !== 'Cancelled' && <Button variant="secondary" icon={<Ban className="size-4" />} onClick={() => setCancelling(true)}>İptal Et</Button>}
         {can('accounting') && inv.status === 'Draft' && <Button icon={<FileCheck2 className="size-4" />} loading={issue.isPending} onClick={() => issue.mutate(undefined)}>Faturayı Kes</Button>}
         {can('accounting') && inv.status === 'Issued' && inv.remaining > 0 && <Button variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
+        {can('accounting') && inv.status === 'Issued' && settings.data?.emailEnabled &&
+          <Button variant="secondary" icon={<Mail className="size-4" />} onClick={() => setMailing(true)}>E-posta Gönder</Button>}
         <Button variant="secondary" icon={<Printer className="size-4" />} onClick={() => onPdf(inv)}>PDF</Button>
       </>}>
       {isLoading || !inv ? <Spinner /> : (
@@ -142,6 +146,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
         </div>
       )}
       {paying && inv && <PaymentForm payment={null} defaults={{ customerId: inv.customerId, invoiceId: inv.id, amount: inv.remaining }} onClose={() => setPaying(false)} />}
+      {mailing && inv && <EmailDialog invoice={inv} onClose={() => setMailing(false)} />}
       <ConfirmDialog open={cancelling} title="Faturayı iptal et" loading={cancel.isPending} confirmText="İptal Et"
         message="Fatura iptal edilecek ve bağlı seferler tekrar faturalanabilir hale gelecek. Fatura numarası korunur. Emin misiniz?"
         onClose={() => setCancelling(false)} onConfirm={() => cancel.mutate(undefined)} />
@@ -155,4 +160,29 @@ function KV({ label, value }: { label: string; value: React.ReactNode }) {
 
 function Sum({ label, value, bold, tone }: { label: string; value: number; bold?: boolean; tone?: string }) {
   return <div className={`flex justify-between ${bold ? 'font-bold' : ''} ${tone ?? ''}`}><span>{label}</span><span>{tl2(value)}</span></div>
+}
+
+function EmailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+  const customer = useQuery({ queryKey: ['customers', 'summary', invoice.customerId], queryFn: () => get<{ customer: { email?: string | null } }>(`/customers/${invoice.customerId}`) })
+  const [to, setTo] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+  const address = to ?? customer.data?.customer.email ?? ''
+  const send = useSave(() => post<{ sentTo: string }>(`/invoices/${invoice.id}/email`, { to: address || null, message: message || null }), {
+    invalidate: [], success: 'Fatura e-postayla gönderildi.', onSuccess: onClose,
+  })
+  return (
+    <Modal open onClose={onClose} title={`${invoice.invoiceNo} – E-posta Gönder`} size="sm"
+      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button>
+        <Button icon={<Mail className="size-4" />} disabled={!address} loading={send.isPending} onClick={() => send.mutate(undefined)}>Gönder</Button></>}>
+      <div className="space-y-3">
+        <label className="block"><span className="label">Alıcı</span>
+          <input className="input" type="email" value={address} onChange={(e) => setTo(e.target.value)} placeholder="muhasebe@musteri.com" />
+        </label>
+        <label className="block"><span className="label">Ek mesaj (isteğe bağlı)</span>
+          <textarea className="input min-h-20" value={message} onChange={(e) => setMessage(e.target.value)} />
+        </label>
+        <p className="text-xs text-slate-500">Fatura PDF olarak eklenir; tutar, vade ve IBAN bilgisi e-postada yazılır.</p>
+      </div>
+    </Modal>
+  )
 }

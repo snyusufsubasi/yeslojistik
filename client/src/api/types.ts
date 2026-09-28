@@ -274,6 +274,18 @@ export interface CompanySettings {
   defaultVatRate: number
   defaultWithholdingTenths: number
   defaultPaymentTermDays: number
+  emailEnabled?: boolean
+}
+
+export interface DriverReportRow {
+  driverId: number
+  driver: string
+  tripCount: number
+  deliveredCount: number
+  revenue: number
+  vehicleCost: number
+  expenses: number
+  profit: number
 }
 
 export interface Attachment {

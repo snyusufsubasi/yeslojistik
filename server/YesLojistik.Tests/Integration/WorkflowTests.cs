@@ -164,6 +164,28 @@ public class WorkflowTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Invoice_is_emailed_with_pdf_and_driver_report_counts_trips()
+    {
+        var (c, customerId, vehicleId, driverId) = await SetupAsync("34yes07");
+        var trip = await (await c.PostJsonAsync("/api/trips", Trip(customerId, vehicleId, driverId, 10_000))).ReadAsync<TripDto>();
+        var invoice = await (await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(
+            customerId, Today, null, 20, 0, null, false, [trip.Id], null))).ReadAsync<InvoiceDto>();
+
+        (await c.GetAsync("/api/settings")).Content.ReadAsStringAsync().Result.Should().Contain("\"emailEnabled\":true");
+        (await c.PostJsonAsync($"/api/invoices/{invoice.Id}/email", new InvoiceEmailRequest("yanlis", null)))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await c.PostJsonAsync($"/api/invoices/{invoice.Id}/email", new InvoiceEmailRequest(null, "Teşekkürler"))).EnsureSuccessStatusCode();
+        var mail = factory.Email.Sent.Last();
+        mail.To.Should().Be("a@b.com");
+        mail.Subject.Should().Contain(invoice.InvoiceNo);
+        mail.Body.Should().Contain("12.000,00 TL").And.Contain("Teşekkürler");
+        mail.Attachments.Should().ContainSingle().Which.Content.Take(4).Should().Equal("%PDF"u8.ToArray());
+
+        var drivers = await (await c.GetAsync($"/api/reports/drivers?from={Today:yyyy-MM-dd}&to={Today:yyyy-MM-dd}")).ReadAsync<List<DriverReportRow>>();
+        drivers.Single(d => d.DriverId == driverId).Revenue.Should().Be(10_000);
+    }
+
+    [Fact]
     public async Task Excel_exports_are_generated()
     {
         var c = await factory.LoginAsync();

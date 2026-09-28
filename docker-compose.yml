@@ -31,6 +31,11 @@ services:
       Seed__SampleData: ${SAMPLE_DATA:-false}
       App__PublicUrl: ${PUBLIC_URL:-}
       Tracking__RetentionDays: ${LOCATION_RETENTION_DAYS:-90}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__User: ${SMTP_USER:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-}
     volumes:
       - uploads:/app/data/uploads
 

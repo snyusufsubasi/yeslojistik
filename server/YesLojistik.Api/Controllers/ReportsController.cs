@@ -82,6 +82,22 @@ public class ReportsController(ReportService reports) : ControllerBase
             new("Net", r => r.Net, ExcelExporter.MoneyFormat)), "arac-bazli");
     }
 
+    [HttpGet("drivers")]
+    public async Task<IActionResult> Drivers([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string? format, CancellationToken ct)
+    {
+        var (f, t) = Range(from, to);
+        var rows = await reports.DriversAsync(f, t, ct);
+        if (format != "xlsx") return Ok(rows);
+        return FileResults.Excel(ExcelExporter.Export("Şoför Bazlı", rows,
+            new ExcelColumn<DriverReportRow>("Şoför", r => r.Driver),
+            new("Sefer", r => r.TripCount),
+            new("Teslim Edilen", r => r.DeliveredCount),
+            new("Gelir", r => r.Revenue, ExcelExporter.MoneyFormat),
+            new("Araç Maliyeti", r => r.VehicleCost, ExcelExporter.MoneyFormat),
+            new("Sefer Giderleri", r => r.Expenses, ExcelExporter.MoneyFormat),
+            new("Kâr", r => r.Profit, ExcelExporter.MoneyFormat)), "sofor-bazli");
+    }
+
     [HttpGet("aging")]
     public async Task<IActionResult> Aging([FromQuery] string? format, CancellationToken ct)
     {

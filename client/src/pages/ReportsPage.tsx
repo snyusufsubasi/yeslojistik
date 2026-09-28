@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BarChart3, Download } from 'lucide-react'
 import { download, get } from '../api/client'
-import type { CustomerAgingRow, ExpenseCategoryRow, MonthlySummaryRow, TripProfitRow, VehicleReportRow } from '../api/types'
+import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, MonthlySummaryRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader, Select, Spinner, Tabs } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
-type Tab = 'monthly' | 'trips' | 'vehicles' | 'aging' | 'expenses'
+type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'aging' | 'expenses'
 
 // Kategorik palet (sabit sıra): 1 mavi, 2 turuncu.
 const SERIES_1 = '#2a78d6'
@@ -21,7 +21,7 @@ export default function ReportsPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [from, setFrom] = useState(yearStartIso())
   const [to, setTo] = useState(todayIso())
-  const usesRange = tab === 'trips' || tab === 'vehicles' || tab === 'expenses'
+  const usesRange = tab === 'trips' || tab === 'vehicles' || tab === 'drivers' || tab === 'expenses'
   const params = tab === 'monthly' ? { year } : usesRange ? { from, to } : {}
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -36,6 +36,7 @@ export default function ReportsPage() {
             { value: 'monthly', label: 'Aylık Özet' },
             { value: 'trips', label: 'Sefer Kârlılığı' },
             { value: 'vehicles', label: 'Araç Bazlı' },
+            { value: 'drivers', label: 'Şoför Bazlı' },
             { value: 'aging', label: 'Alacak Yaşlandırma' },
             { value: 'expenses', label: 'Gider Dağılımı' },
           ]} />
@@ -50,6 +51,7 @@ export default function ReportsPage() {
         {tab === 'monthly' && <Monthly year={year} />}
         {tab === 'trips' && <Trips from={from} to={to} />}
         {tab === 'vehicles' && <Vehicles from={from} to={to} />}
+        {tab === 'drivers' && <Drivers from={from} to={to} />}
         {tab === 'aging' && <Aging />}
         {tab === 'expenses' && <Expenses from={from} to={to} />}
       </Card>
@@ -163,6 +165,20 @@ function Vehicles({ from, to }: { from: string; to: string }) {
     { key: 'n', header: 'Net', align: 'right', render: (r) => <span className={r.net < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.net)}</span> },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.vehicleId} />
+}
+
+function Drivers({ from, to }: { from: string; to: string }) {
+  const { data, isLoading } = useReport<DriverReportRow[]>('drivers', { from, to })
+  const cols: Column<DriverReportRow>[] = [
+    { key: 'd', header: 'Şoför', render: (r) => <span className="font-medium">{r.driver}</span> },
+    { key: 'c', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
+    { key: 'dl', header: 'Teslim Edilen', align: 'right', render: (r) => r.deliveredCount },
+    { key: 'r', header: 'Gelir', align: 'right', render: (r) => tl(r.revenue) },
+    { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
+    { key: 'e', header: 'Sefer Giderleri', align: 'right', render: (r) => tl(r.expenses) },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.profit)}</span> },
+  ]
+  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.driverId} empty="Bu aralıkta sefer yok." />
 }
 
 function Aging() {

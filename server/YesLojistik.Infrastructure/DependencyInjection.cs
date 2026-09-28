@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<DriverAppService>();
         services.AddScoped<ImportService>();
         services.AddScoped<DriverNotifier>();
+        services.AddScoped<InvoiceMailer>();
         services.AddHttpClient<IPushSender, ExpoPushSender>(c => c.Timeout = TimeSpan.FromSeconds(5));
         services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
         services.AddSingleton<IEInvoiceProvider, NullEInvoiceProvider>();

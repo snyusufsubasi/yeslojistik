@@ -24,6 +24,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres";
 
     public FakePushSender Push { get; } = new();
+    public FakeEmailSender Email { get; } = new();
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
@@ -37,7 +38,11 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Seed:SampleData", "false");
         builder.UseSetting("RateLimit:LoginPerMinute", "1000");
         builder.UseSetting("Storage:Path", Path.Combine(Path.GetTempPath(), _dbName));
-        builder.ConfigureTestServices(s => s.AddSingleton<IPushSender>(Push));
+        builder.ConfigureTestServices(s =>
+        {
+            s.AddSingleton<IPushSender>(Push);
+            s.AddSingleton<IEmailSender>(Email);
+        });
     }
 
     public async Task<HttpClient> LoginAsync(string email = AdminEmail, string password = AdminPassword)

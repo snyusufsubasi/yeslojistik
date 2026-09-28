@@ -10,14 +10,15 @@ namespace YesLojistik.Api.Controllers;
 
 [ApiController]
 [Route("api/settings")]
-public class SettingsController(AppDbContext db) : ControllerBase
+public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.IEmailSender email) : ControllerBase
 {
     [HttpGet]
     public async Task<CompanySettingsDto> Get(CancellationToken ct)
     {
         var s = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         return new CompanySettingsDto(s.CompanyName, s.Slogan, s.TaxNumber, s.TaxOffice, s.Address, s.Phone, s.Email, s.Iban,
-            s.LogoDataUrl, s.InvoicePrefix, s.NextInvoiceNumber, s.DefaultVatRate, s.DefaultWithholdingTenths, s.DefaultPaymentTermDays);
+            s.LogoDataUrl, s.InvoicePrefix, s.NextInvoiceNumber, s.DefaultVatRate, s.DefaultWithholdingTenths, s.DefaultPaymentTermDays,
+            email.IsConfigured);
     }
 
     [Authorize(Policy = Policies.Admin)]
