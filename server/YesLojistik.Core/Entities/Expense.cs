@@ -17,4 +17,12 @@ public class Expense : BaseEntity
     public decimal? Liters { get; set; }
     /// <summary>Yakıt alımı sırasında araç kilometresi (tüketim hesabı için).</summary>
     public int? Odometer { get; set; }
+    /// <summary>Gideri yapan tedarikçi (servis, istasyon, taşeron).</summary>
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
+    /// <summary>Vadeli (henüz ödenmedi): tutar tedarikçiye borç yazılır.</summary>
+    public bool IsOnCredit { get; set; }
+    /// <summary>Fiş / fatura görseli (dosya deposundaki yol).</summary>
+    public string? ReceiptPath { get; set; }
+    public string? ReceiptContentType { get; set; }
 }

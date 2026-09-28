@@ -31,6 +31,9 @@ sol üstteki ☰ düğmesi menüyü açar. Şifrenizi sağ üstteki isminize tı
 - **Tedarikçiler** sayfası: kiralık araç sahipleri (taşeron), servisler ve akaryakıt istasyonları. IBAN, vade ve devir borcu girilir.
 - **Araçlar → Sahiplik: Kiralık** yapılıp araç sahibi seçilir. Dorse plakası araçta ve seferde tutulur.
 - Kiralık araçla açılan seferde **Taşerona Ödenecek** tutar, sefer *Yüklendi* olduğu anda araç sahibine borç yazılır. Planlanmış ve iptal edilen sefer borç doğurmaz.
+- Ödeme: tedarikçi sayfasında **Ödeme Yap** ya da **Ödemeler** sayfası. Ödeme en eski borçtan başlayarak kapatır; bir sefere bağlanırsa önce o seferi kapatır.
+- Veresiye yakıt / açık hesap tamir: **Giderler**'de tedarikçi seçilip **Vadeli** işaretlenir, borca eklenir. Fiş fotoğrafı eklenebilir.
+- **Hesap Ekstresi** (PDF) mutabakat için kullanılır. Vadesi geçen borçlar ve 15 günü geçtiği halde taşeron faturası girilmeyen seferler ana sayfa uyarılarında çıkar. Seferler listesinde *Taşeron faturası gelmedi* filtresi, Raporlar'da *Borç Yaşlandırma* ve *Tedarikçiler* sekmeleri vardır.
 - Seferin **Geçmiş** sekmesi ne zaman yüklendiğini, yola çıktığını ve teslim edildiğini, kimin (panel / şoför uygulaması) yaptığıyla gösterir. Müşteri takip sayfasında da saatler görünür.
 
 ## Yedekler

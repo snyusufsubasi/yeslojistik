@@ -5,7 +5,7 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public class DashboardService(AppDbContext db, BalanceService balances, TripService trips, InvoiceService invoices)
+public class DashboardService(AppDbContext db, BalanceService balances, TripService trips, InvoiceService invoices, PayableService payables)
 {
     private async Task<SetupStatus> SetupAsync(int vehicleCount, CancellationToken ct)
     {
@@ -72,8 +72,9 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
             return new MonthTrendRow(m.Year, m.Month, t?.Revenue ?? 0, (t?.Cost ?? 0) + e);
         }).ToList();
 
+        var payable = await payables.DashboardAsync(ct);
         return new DashboardDto(monthTripCount, monthDelivered, activeCount, open.Count, open.Sum(b => b.Remaining),
             vehicles.Count, vehicles.Count(v => v.Status == VehicleStatus.OnRoad), plannedCount, monthRevenue, monthExpenses,
-            todayTrips, recentInvoices, vehicles, trend, await SetupAsync(vehicles.Count, ct));
+            todayTrips, recentInvoices, vehicles, trend, await SetupAsync(vehicles.Count, ct), payable.Total, payable.Overdue);
     }
 }

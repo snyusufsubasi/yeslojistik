@@ -15,11 +15,14 @@ public class ReportService(AppDbContext db, BalanceService balances)
 
         var trips = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
             .GroupBy(t => t.LoadingDate.Month)
-            .Select(g => new { Month = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost) })
+            .Select(g => new { Month = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost),
+                CarrierCost = g.Where(t => t.CarrierSupplierId != null).Sum(t => t.VehicleCost) })
             .ToListAsync(ct);
         var invoiced = await db.Invoices.Where(i => i.Date >= from && i.Date <= to && i.Status == InvoiceStatus.Issued)
             .GroupBy(i => i.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(i => i.Total) }).ToListAsync(ct);
         var collected = await db.Payments.Where(p => p.Date >= from && p.Date <= to)
+            .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
+        var carrierPaid = await db.SupplierPayments.Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
         var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to)
             .GroupBy(e => e.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
@@ -32,7 +35,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             var cost = t?.Cost ?? 0;
             return new MonthlySummaryRow(year, m, t?.Count ?? 0, revenue, cost,
                 invoiced.FirstOrDefault(x => x.Month == m)?.Sum ?? 0, collected.FirstOrDefault(x => x.Month == m)?.Sum ?? 0,
-                exp, revenue - cost - exp);
+                exp, revenue - cost - exp, t?.CarrierCost ?? 0, carrierPaid.FirstOrDefault(x => x.Month == m)?.Sum ?? 0);
         }).ToList();
     }
 

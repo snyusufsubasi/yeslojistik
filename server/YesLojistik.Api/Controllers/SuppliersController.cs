@@ -42,11 +42,31 @@ public class SuppliersController(AppDbContext db, PayableService payables) : Con
             .Select(s => new LookupItem(s.Id, s.Title, s.Kind.ToString())).ToListAsync(ct);
 
     [HttpGet("{id:int}")]
-    public async Task<SupplierDto> Get(int id, CancellationToken ct)
+    public async Task<SupplierSummaryDto> Get(int id, CancellationToken ct) => await payables.SummaryAsync(await GetDtoAsync(id, ct), ct);
+
+    private async Task<SupplierDto> GetDtoAsync(int id, CancellationToken ct)
     {
         var s = await db.Suppliers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Tedarikçi bulunamadı.");
         var balances = await payables.BalancesAsync([id], ct);
         return ToDto(s, balances.GetValueOrDefault(id));
+    }
+
+    [HttpGet("{id:int}/movements")]
+    public Task<List<AccountMovementDto>> Movements(int id, CancellationToken ct) => payables.MovementsAsync(id, ct);
+
+    /// <summary>Tedarikçi hesap ekstresi PDF'i (mutabakat için).</summary>
+    [HttpGet("{id:int}/statement")]
+    public async Task<IActionResult> Statement(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] bool download, CancellationToken ct)
+    {
+        if (from is { } f && to is { } t && f > t) throw new DomainException("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
+        var s = await db.Suppliers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Tedarikçi bulunamadı.");
+        var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
+        var (pdf, _) = StatementPdfGenerator.Render(company, "TEDARİKÇİ HESAP EKSTRESİ", $"Tedarikçi No: {s.SupplierNo}", "TEDARİKÇİ",
+            [s.Title, string.Join(", ", new[] { s.Address, s.District, s.City }.Where(x => !string.IsNullOrWhiteSpace(x))),
+                string.IsNullOrWhiteSpace(s.TaxNumber) ? null : $"{s.TaxOffice} V.D. — {s.TaxNumber}", IbanValidator.Format(s.Iban) is { } iban ? $"IBAN: {iban}" : null],
+            await payables.MovementsAsync(id, ct), from, to, supplier: true);
+        var name = $"tedarikci-ekstre-{s.SupplierNo}.pdf";
+        return download ? File(pdf, "application/pdf", name) : File(pdf, "application/pdf");
     }
 
     [HttpPost]
@@ -56,7 +76,7 @@ public class SuppliersController(AppDbContext db, PayableService payables) : Con
         Apply(s, req);
         db.Suppliers.Add(s);
         await db.SaveChangesAsync(ct);
-        return await Get(s.Id, ct);
+        return await GetDtoAsync(s.Id, ct);
     }
 
     [HttpPut("{id:int}")]
@@ -65,7 +85,7 @@ public class SuppliersController(AppDbContext db, PayableService payables) : Con
         var s = await db.Suppliers.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Tedarikçi bulunamadı.");
         Apply(s, req);
         await db.SaveChangesAsync(ct);
-        return await Get(id, ct);
+        return await GetDtoAsync(id, ct);
     }
 
     [HttpDelete("{id:int}")]

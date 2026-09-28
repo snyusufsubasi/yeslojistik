@@ -1,32 +1,37 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Copy, Mail, MapPin, Pencil, Phone, Trash2, Truck } from 'lucide-react'
-import { get } from '../api/client'
-import type { Driver, Supplier, Trip, Vehicle } from '../api/types'
+import { ArrowLeft, Copy, FileSpreadsheet, HandCoins, Mail, MapPin, Pencil, Phone, Trash2, Truck } from 'lucide-react'
+import { errorMessage, get, openPdf } from '../api/client'
+import type { AccountMovement, Driver, SupplierPayment, SupplierSummary, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { SupplierForm } from '../components/SupplierForm'
+import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
+import { useAuth } from '../lib/auth'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, PageHeader, Spinner, Tabs } from '../components/ui'
 import { date, tl, tl2 } from '../lib/format'
 import { crud, usePaged, usePage, useSave } from '../lib/hooks'
-import { supplierKindLabel, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
+import { paymentMethodLabel, supplierKindLabel, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 
-type Tab = 'trips' | 'vehicles' | 'drivers'
+type Tab = 'movements' | 'trips' | 'payments' | 'vehicles' | 'drivers'
 
 export default function SupplierDetailPage() {
   const id = Number(useParams().id)
   const navigate = useNavigate()
   const toast = useToast()
-  const [tab, setTab] = useState<Tab>('trips')
+  const { can } = useAuth()
+  const [tab, setTab] = useState<Tab>('movements')
+  const [paying, setPaying] = useState(false)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const q = useQuery({ queryKey: ['suppliers', 'detail', id], queryFn: () => get<Supplier>(`/suppliers/${id}`) })
+  const q = useQuery({ queryKey: ['suppliers', 'detail', id], queryFn: () => get<SupplierSummary>(`/suppliers/${id}`) })
   const deleteMut = useSave(() => crud('suppliers').remove(id), { invalidate: ['suppliers'], success: 'Tedarikçi silindi.', onSuccess: () => navigate('/tedarikciler') })
 
   if (q.isLoading) return <Spinner />
   if (!q.data) return <p className="text-sm text-slate-500">Tedarikçi bulunamadı. <Link className="text-brand-600" to="/tedarikciler">Listeye dön</Link></p>
-  const s = q.data
+  const sum = q.data
+  const s = sum.supplier
 
   const copyIban = async () => {
     try { await navigator.clipboard.writeText(s.iban!.replace(/\s/g, '')); toast.success('IBAN kopyalandı.') }
@@ -39,7 +44,11 @@ export default function SupplierDetailPage() {
         actions={<>
           <Button variant="secondary" icon={<ArrowLeft className="size-4" />} onClick={() => navigate('/tedarikciler')}>Geri</Button>
           <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>Düzenle</Button>
-          <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>
+          <Button variant="secondary" icon={<FileSpreadsheet className="size-4" />}
+            onClick={() => openPdf(`/suppliers/${id}/statement`, `tedarikci-ekstre-${s.supplierNo}.pdf`).catch((e) => toast.error(errorMessage(e)))}>Hesap Ekstresi</Button>
+          {sum.tripCount === 0 && sum.totalDebit === 0 && sum.totalCredit === 0 &&
+            <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>}
+          {can('accounting') && <Button variant="success" icon={<HandCoins className="size-4" />} onClick={() => setPaying(true)}>Ödeme Yap</Button>}
         </>} />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -57,28 +66,34 @@ export default function SupplierDetailPage() {
           </dl>
         </Card>
         <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-          <div className="card p-4">
-            <div className="text-[13px] font-medium text-slate-500">Borcumuz (toplam)</div>
-            <div className={`text-3xl font-bold ${s.balance > 0 ? 'text-red-600' : 'text-emerald-700'}`}>{tl2(s.balance)}</div>
-            <div className="text-[13px] text-slate-500">Devir + yüklenmiş / yoldaki / teslim edilmiş seferlerin araç maliyeti</div>
-          </div>
+          <Amount label="Toplam Borçlanma" value={sum.totalDebit} tone="text-slate-800" sub="Devir + sefer maliyetleri + vadeli giderler" />
+          <Amount label="Toplam Ödenen" value={sum.totalCredit} tone="text-emerald-700" />
+          <Amount label="Kalan Borcumuz" value={sum.balance} tone={sum.balance > 0 ? 'text-red-600' : 'text-emerald-700'} big
+            sub={sum.balance < 0 ? 'Fazla ödeme yapılmış (avans)' : undefined} />
+          <Amount label="Vadesi Geçen" value={sum.overdueAmount} tone={sum.overdueAmount > 0 ? 'text-red-600' : 'text-slate-700'}
+            sub={sum.missingInvoiceCount > 0 ? `${sum.missingInvoiceCount} teslim edilmiş seferin faturası gelmedi` : undefined} />
         </div>
       </div>
 
       <Card className="mt-4" bodyClassName="p-0">
         <div className="px-4 pt-2">
           <Tabs value={tab} onChange={setTab} tabs={[
+            { value: 'movements', label: 'Hareketler' },
             { value: 'trips', label: 'Seferler' },
+            { value: 'payments', label: 'Ödemeler' },
             { value: 'vehicles', label: 'Araçlar' },
             { value: 'drivers', label: 'Şoförler' },
           ]} />
         </div>
+        {tab === 'movements' && <Movements id={id} />}
         {tab === 'trips' && <SupplierTrips id={id} />}
+        {tab === 'payments' && <SupplierPayments id={id} />}
         {tab === 'vehicles' && <SupplierVehicles id={id} />}
         {tab === 'drivers' && <SupplierDrivers id={id} />}
       </Card>
 
       {editing && <SupplierForm supplier={s} onClose={() => setEditing(false)} />}
+      {paying && <SupplierPaymentForm payment={null} defaults={{ supplierId: id }} onClose={() => setPaying(false)} />}
       <ConfirmDialog open={deleting} title="Tedarikçiyi sil" message={<>{s.title} silinecek. Seferi, aracı veya şoförü olan tedarikçi silinemez; bunun yerine pasife alın.</>}
         confirmText="Sil" loading={deleteMut.isPending} onClose={() => setDeleting(false)} onConfirm={() => deleteMut.mutate(undefined)} />
     </>
@@ -130,4 +145,43 @@ function SupplierDrivers({ id }: { id: number }) {
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
   ]
   return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(d) => d.id} empty="Bu tedarikçiye bağlı şoför yok." />
+}
+
+function Amount({ label, value, tone, big, sub }: { label: string; value: number; tone: string; big?: boolean; sub?: string }) {
+  return (
+    <div className="card p-4">
+      <div className="text-[13px] font-medium text-slate-500">{label}</div>
+      <div className={`${big ? 'text-3xl' : 'text-2xl'} font-bold ${tone}`}>{tl2(value)}</div>
+      {sub && <div className="text-[13px] text-slate-500">{sub}</div>}
+    </div>
+  )
+}
+
+function Movements({ id }: { id: number }) {
+  const { data, isLoading } = useQuery({ queryKey: ['suppliers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/suppliers/${id}/movements`) })
+  const cols: Column<AccountMovement>[] = [
+    { key: 'date', header: 'Tarih', render: (m) => date(m.date) },
+    { key: 'type', header: 'İşlem', render: (m) => m.type },
+    { key: 'ref', header: 'Belge', render: (m) => m.reference },
+    { key: 'desc', header: 'Açıklama', className: 'whitespace-normal! min-w-40', render: (m) => m.description ?? '' },
+    { key: 'debit', header: 'Borç', align: 'right', render: (m) => m.debit ? tl2(m.debit) : '' },
+    { key: 'credit', header: 'Ödeme', align: 'right', render: (m) => m.credit ? tl2(m.credit) : '' },
+    { key: 'bal', header: 'Bakiye', align: 'right', render: (m) => <span className="font-medium">{tl2(m.runningBalance)}</span> },
+    { key: 'status', header: 'Durum', render: (m) => <span className={m.status === 'Vadesi geçti' ? 'font-medium text-red-600' : 'text-slate-600'}>{m.status}</span> },
+  ]
+  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(m) => `${m.type}-${m.reference}`} empty="Henüz hareket yok." />
+}
+
+function SupplierPayments({ id }: { id: number }) {
+  const [page, setPage] = usePage([id])
+  const { data, isFetching } = usePaged<SupplierPayment>('supplier-payments', { supplierId: id, page, pageSize: 20, sort: 'date', desc: true })
+  const cols: Column<SupplierPayment>[] = [
+    { key: 'date', header: 'Tarih', render: (p) => date(p.date) },
+    { key: 'method', header: 'Yöntem', render: (p) => paymentMethodLabel[p.method] },
+    { key: 'trip', header: 'Sefer', render: (p) => p.tripLabel ?? 'Genel' },
+    { key: 'desc', header: 'Açıklama', render: (p) => p.description ?? '' },
+    { key: 'amount', header: 'Tutar', align: 'right', render: (p) => tl2(p.amount) },
+  ]
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(p) => p.id} page={page} total={data?.total} onPage={setPage}
+    empty="Bu tedarikçiye henüz ödeme yapılmamış." />
 }

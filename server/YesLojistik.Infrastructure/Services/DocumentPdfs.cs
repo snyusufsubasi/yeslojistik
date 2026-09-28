@@ -1,3 +1,4 @@
+using YesLojistik.Core.Dtos;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -167,6 +168,21 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
             ?? throw new NotFoundException("Müşteri bulunamadı.");
         var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         var all = await accounts.MovementsAsync(customerId, ct);
+        var (pdf, closing) = Render(company, "HESAP EKSTRESİ", $"Cari No: {customer.CustomerNo}", "SAYIN",
+            [customer.Title, customer.Address, string.IsNullOrWhiteSpace(customer.TaxNumber) ? null : $"{customer.TaxOffice} V.D. — {customer.TaxNumber}"],
+            all, from, to, supplier: false);
+
+        var slug = new string(customer.Title.Where(char.IsLetterOrDigit).Take(30).ToArray());
+        return (pdf, $"ekstre-{customer.CustomerNo}-{slug}.pdf", customer, closing);
+    }
+
+    /// <summary>
+    /// Ekstre PDF'i (müşteri ve tedarikçi için ortak). Tedarikçide "Borç" = firmanın tedarikçiye borçlandığı tutar,
+    /// "Alacak" = tedarikçiye yapılan ödeme; pozitif bakiye tedarikçinin alacağıdır.
+    /// </summary>
+    public static (byte[] Pdf, decimal Closing) Render(CompanySettings company, string title, string partyNo, string partyCaption,
+        string?[] partyLines, IReadOnlyList<AccountMovementDto> all, DateOnly? from, DateOnly? to, bool supplier)
+    {
         var before = all.Where(m => from is { } f0 && m.Date < f0).ToList();
         var opening = before.Count > 0 ? before[^1].RunningBalance : 0m;
         var rows = all.Where(m => (from is not { } f1 || m.Date >= f1) && (to is not { } t1 || m.Date <= t1)).ToList();
@@ -184,17 +200,16 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
             page.Size(PageSizes.A4);
             page.Margin(36);
             page.DefaultTextStyle(x => x.FontSize(9.5f));
-            page.Header().Element(c => PdfKit.Header(c, company, "HESAP EKSTRESİ",
-                $"Dönem: {period}", $"Düzenleme: {Formatters.Date(Clock.Today)}", $"Cari No: {customer.CustomerNo}"));
+            page.Header().Element(c => PdfKit.Header(c, company, title,
+                $"Dönem: {period}", $"Düzenleme: {Formatters.Date(Clock.Today)}", partyNo));
 
             page.Content().PaddingVertical(16).Column(col =>
             {
                 col.Spacing(12);
-                col.Item().Element(c => PdfKit.Box(c, "SAYIN", b =>
+                col.Item().Element(c => PdfKit.Box(c, partyCaption, b =>
                 {
-                    b.Item().Text(customer.Title).Bold();
-                    if (!string.IsNullOrWhiteSpace(customer.Address)) b.Item().Text(customer.Address);
-                    if (!string.IsNullOrWhiteSpace(customer.TaxNumber)) b.Item().Text($"{customer.TaxOffice} V.D. — {customer.TaxNumber}");
+                    b.Item().Text(partyLines[0] ?? "").Bold();
+                    foreach (var line in partyLines.Skip(1).Where(x => !string.IsNullOrWhiteSpace(x))) b.Item().Text(line!);
                 }));
 
                 col.Item().Table(table =>
@@ -247,18 +262,19 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
                     Row("Dönem borç toplamı", rows.Sum(r => r.Debit));
                     Row("Dönem alacak toplamı", rows.Sum(r => r.Credit));
                     tot.Item().LineHorizontal(1).LineColor(PdfKit.Navy);
-                    Row(closing >= 0 ? "Bakiye (borcunuz)" : "Bakiye (alacağınız)", Math.Abs(closing), bold: true);
+                    Row(supplier
+                        ? (closing >= 0 ? "Bakiye (alacağınız)" : "Bakiye (borcunuz)")
+                        : (closing >= 0 ? "Bakiye (borcunuz)" : "Bakiye (alacağınız)"), Math.Abs(closing), bold: true);
                 });
-                if (!string.IsNullOrWhiteSpace(company.Iban))
+                if (!supplier && !string.IsNullOrWhiteSpace(company.Iban))
                     col.Item().Text(x => { x.Span("IBAN: ").Bold(); x.Span(company.Iban); });
                 col.Item().Text("Mutabık olmadığınız kalemler için lütfen bizimle iletişime geçiniz.").FontSize(9).FontColor(Colors.Grey.Darken2);
             });
 
-            page.Footer().Element(c => PdfKit.Footer(c, $"{company.CompanyName} — hesap ekstresi"));
+            page.Footer().Element(c => PdfKit.Footer(c, $"{company.CompanyName} — {title.ToLower(Formatters.Tr)}"));
         })).GeneratePdf();
+        return (pdf, closing);
 
-        var slug = new string(customer.Title.Where(char.IsLetterOrDigit).Take(30).ToArray());
-        return (pdf, $"ekstre-{customer.CustomerNo}-{slug}.pdf", customer, closing);
     }
 
     public async Task<string> SendAsync(int customerId, DateOnly? from, DateOnly? to, string? recipient, string? note, CancellationToken ct = default)

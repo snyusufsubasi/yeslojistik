@@ -285,6 +285,19 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await page.getByPlaceholder('Ünvan, VKN, telefon...').fill(`E2E Nakliyat ${u}`)
   await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) })).toContainText('15.000')
 
+  // Ödeme yap → bakiye düşer → ekstre açılır
+  await page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) }).click()
+  await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('15.000,00')
+  await page.getByRole('button', { name: 'Ödeme Yap' }).click()
+  const pd = page.getByRole('dialog', { name: 'Ödeme Yap' })
+  await pd.getByLabel(/^Tutar/).fill('6000')
+  await pd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Ödeme kaydedildi.')).toBeVisible()
+  await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('9.000,00')
+  await expectPdfOpens(page, () => page.getByRole('button', { name: 'Hesap Ekstresi' }).click(), /\/api\/suppliers\/\d+\/statement$/)
+  await page.getByRole('link', { name: 'Ödemeler', exact: true }).click()
+  await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) }).first()).toContainText('6.000')
+
   await page.goto('/ayarlar?tab=data')
   await expect(page.getByText(/Canlıya geçiş · \d\/7/)).toBeVisible()
 })

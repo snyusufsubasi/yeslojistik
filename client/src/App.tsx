@@ -12,6 +12,7 @@ const DriversPage = lazy(() => import('./pages/DriversPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
 const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'))
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'))
+const SupplierPaymentsPage = lazy(() => import('./pages/SupplierPaymentsPage'))
 const SupplierDetailPage = lazy(() => import('./pages/SupplierDetailPage'))
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage'))
 const InvoiceCreatePage = lazy(() => import('./pages/InvoiceCreatePage'))
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="faturalar" element={<InvoicesPage />} />
           <Route path="faturalar/yeni" element={<Guard perm="accounting"><InvoiceCreatePage /></Guard>} />
           <Route path="tahsilatlar" element={<PaymentsPage />} />
+          <Route path="odemeler" element={<SupplierPaymentsPage />} />
           <Route path="giderler" element={<ExpensesPage />} />
           <Route path="raporlar" element={<Guard perm="accounting"><ReportsPage /></Guard>} />
           <Route path="ayarlar" element={<SettingsPage />} />

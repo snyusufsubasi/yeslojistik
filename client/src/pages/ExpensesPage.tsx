@@ -5,7 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Download, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
-import { download, get } from '../api/client'
+import { api as apiClient, download, errorMessage, get, openPdf } from '../api/client'
+import { useToast } from '../components/Toast'
+import { compressImage } from '../lib/image'
 import type { Expense, ExpenseCategory, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
@@ -25,7 +27,10 @@ const schema = z.object({
   driverId: z.number().nullable().or(z.nan().transform(() => null)),
   liters: z.number().positive('Litre sıfırdan büyük olmalı.').nullable().or(z.nan().transform(() => null)),
   odometer: z.number().int('Tam sayı girin.').min(0).nullable().or(z.nan().transform(() => null)),
+  supplierId: z.number().nullable().or(z.nan().transform(() => null)),
+  isOnCredit: z.boolean(),
 }).refine((v) => v.category !== 'DriverAdvance' || v.driverId != null || v.tripId != null, { path: ['driverId'], message: 'Avans için şoför seçin.' })
+  .refine((v) => !v.isOnCredit || v.supplierId != null, { path: ['supplierId'], message: 'Vadeli gider için tedarikçi seçin.' })
 type FormValues = z.infer<typeof schema>
 const api = crud<Expense, FormValues>('expenses')
 
@@ -46,14 +51,15 @@ export default function ExpensesPage() {
 
   const query = { page, pageSize: 20, search: debounced, category, vehicleId, tripId, from, to, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Expense>('expenses', query)
-  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['expenses', 'trips'], success: 'Gider silindi.', onSuccess: () => setDeleting(null) })
+  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['expenses', 'trips', 'suppliers'], success: 'Gider silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Expense>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'date', render: (e) => date(e.date) },
     { key: 'cat', header: 'Kategori', sortKey: 'category', render: (e) => <Badge tone="blue">{expenseCategoryLabel[e.category]}</Badge> },
     { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-[13px] text-slate-500">{e.driverName}</span>}</> },
     { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
-    { key: 'desc', header: 'Açıklama', render: (e) => e.description ?? '' },
+    { key: 'desc', header: 'Açıklama', render: (e) => <>{e.description ?? ''}{e.supplierTitle && <span className="block text-[13px] text-slate-500">{e.supplierTitle}{e.isOnCredit && ' · vadeli'}</span>}
+      {e.hasReceipt && <button className="block text-[13px] font-medium text-brand-700 underline" onClick={(ev) => { ev.stopPropagation(); openPdf(`/expenses/${e.id}/receipt`, `fis-${e.id}`).catch(() => undefined) }}>Fişi gör</button>}</> },
     { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (e) => <><span className="font-medium">{tl2(e.amount)}</span>{e.liters ? <span className="block text-[13px] text-slate-500">{e.liters.toLocaleString('tr-TR')} L{e.odometer ? ` · ${e.odometer.toLocaleString('tr-TR')} km` : ''}</span> : null}</> },
     {
       key: 'actions', header: '', align: 'right', render: (e) => (
@@ -106,12 +112,17 @@ export default function ExpensesPage() {
 function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | null; defaultTripId?: number; onClose: () => void }) {
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
+  const suppliers = useLookup('suppliers')
+  const toast = useToast()
+  const [receipt, setReceipt] = useState<File | null>(null)
   const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
       ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
-        driverId: expense.driverId ?? null, liters: expense.liters ?? null, odometer: expense.odometer ?? null }
-      : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '', driverId: null, liters: null, odometer: null },
+        driverId: expense.driverId ?? null, liters: expense.liters ?? null, odometer: expense.odometer ?? null,
+        supplierId: expense.supplierId ?? null, isOnCredit: expense.isOnCredit ?? false }
+      : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '', driverId: null, liters: null, odometer: null,
+        supplierId: null, isOnCredit: false },
   })
   const amount = useWatch({ control, name: 'amount' })
   const category = useWatch({ control, name: 'category' })
@@ -124,8 +135,16 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
     queryKey: ['trips', 'for-expense', vehicleId],
     queryFn: () => get<PagedResult<Trip>>('/trips', { vehicleId: vehicleId || undefined, pageSize: 100, sort: 'loadingDate', desc: true }),
   })
-  const save = useSave((v: FormValues) => expense ? api.update(expense.id, nullify(v)) : api.create(nullify(v)), {
-    invalidate: ['expenses', 'trips'], success: expense ? 'Gider güncellendi.' : 'Gider eklendi.', onSuccess: onClose,
+  const save = useSave(async (v: FormValues) => {
+    const saved = expense ? await api.update(expense.id, nullify(v)) : await api.create(nullify(v))
+    if (receipt) {
+      const form = new FormData()
+      form.append('file', await compressImage(receipt))
+      try { await apiClient.post(`/expenses/${saved.id}/receipt`, form) } catch (e) { toast.error(`Gider kaydedildi ama fiş yüklenemedi: ${errorMessage(e)}`) }
+    }
+    return saved
+  }, {
+    invalidate: ['expenses', 'trips', 'suppliers'], success: expense ? 'Gider güncellendi.' : 'Gider eklendi.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
   const submit = handleSubmit((v) => save.mutate(v))
@@ -163,7 +182,18 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
           <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
             options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
         </Field>
+        <Field label="Tedarikçi (servis, istasyon)" error={errors.supplierId?.message}>
+          <FormSelect control={control} name="supplierId" placeholder="— Seçilmedi —"
+            options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
+        </Field>
+        <label className="flex items-start gap-2 self-end pb-2 text-sm">
+          <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" {...register('isOnCredit')} />
+          <span>Vadeli (henüz ödenmedi) <span className="block text-[13px] text-slate-500">Tutar tedarikçiye borç yazılır.</span></span>
+        </label>
         <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
+        <Field className="sm:col-span-2" label="Fiş / fatura görseli" hint={expense?.hasReceipt ? 'Bu giderin fişi var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
+          <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
+        </Field>
         <button type="submit" className="hidden" />
       </form>
     </Modal>

@@ -23,7 +23,7 @@ export default function TripsPage() {
   const [customerId, setCustomerId] = useState<number | ''>(params.get('customerId') ? Number(params.get('customerId')) : '')
   const [from, setFrom] = useState(params.get('from') ?? '')
   const [to, setTo] = useState(params.get('to') ?? '')
-  const [invoiced, setInvoiced] = useState<'yes' | 'no' | ''>('')
+  const [invoiced, setInvoiced] = useState<'yes' | 'no' | 'carrier' | ''>(params.get('carrierInvoice') === 'missing' ? 'carrier' : '')
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(params.get('new') ? 'new' : null)
   const [copyOf, setCopyOf] = useState<Trip | null>(null)
@@ -43,12 +43,12 @@ export default function TripsPage() {
     }
   }, [params, setParams])
 
-  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === '' ? undefined : invoiced === 'yes', sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Trip>('trips', query)
 
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
-    { invalidate: ['trips', 'vehicles'], success: 'Sefer durumu güncellendi.' })
-  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
+    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
+  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'loadingDate', render: (t) => date(t.loadingDate) },
@@ -91,7 +91,7 @@ export default function TripsPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
           <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
-            options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }]} />
+            options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }, { value: 'carrier' as const, label: 'Taşeron faturası gelmedi' }]} />
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(t) => t.id}
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}

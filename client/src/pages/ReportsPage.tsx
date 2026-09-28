@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BarChart3, Download } from 'lucide-react'
 import { download, get } from '../api/client'
-import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, TripProfitRow, VehicleReportRow } from '../api/types'
+import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader, Select, Spinner, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
-type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'expenses'
+type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses'
 
 // Kategorik palet (sabit sıra): 1 mavi, 2 turuncu.
 const SERIES_1 = '#2a78d6'
@@ -39,6 +40,8 @@ export default function ReportsPage() {
             { value: 'drivers', label: 'Şoför Bazlı' },
             { value: 'fuel', label: 'Yakıt' },
             { value: 'aging', label: 'Alacak Yaşlandırma' },
+            { value: 'payables', label: 'Borç Yaşlandırma' },
+            { value: 'suppliers', label: 'Tedarikçiler' },
             { value: 'expenses', label: 'Gider Dağılımı' },
           ]} />
           <div className="flex gap-2 pb-2">
@@ -55,6 +58,8 @@ export default function ReportsPage() {
         {tab === 'drivers' && <Drivers from={from} to={to} />}
         {tab === 'fuel' && <Fuel from={from} to={to} />}
         {tab === 'aging' && <Aging />}
+        {tab === 'payables' && <Payables />}
+        {tab === 'suppliers' && <Suppliers />}
         {tab === 'expenses' && <Expenses from={from} to={to} />}
       </Card>
     </>
@@ -92,6 +97,8 @@ function Monthly({ year }: { year: number }) {
     { key: 'rev', header: 'Sefer Cirosu', align: 'right', render: (r) => tl(r.tripRevenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'exp', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
+    { key: 'cc', header: 'Taşeron Maliyeti', align: 'right', render: (r) => tl(r.carrierCost) },
+    { key: 'cp', header: 'Taşeron Ödemesi', align: 'right', render: (r) => tl(r.carrierPaid) },
     { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : r.netProfit > 0 ? 'font-medium text-emerald-700' : 'text-slate-500'}>{tl(r.netProfit)}</span> },
     { key: 'inv', header: 'Faturalanan', align: 'right', render: (r) => tl(r.invoiced) },
     { key: 'col', header: 'Tahsil Edilen', align: 'right', render: (r) => tl(r.collected) },
@@ -268,4 +275,37 @@ function Expenses({ from, to }: { from: string; to: string }) {
       <div className="flex items-center gap-2 text-[13px] text-slate-500 lg:col-span-2"><BarChart3 className="size-3.5" /> Araç maliyetleri sefer kârlılığı raporunda ayrıca gösterilir.</div>
     </div>
   )
+}
+
+function Payables() {
+  const { data, isLoading } = useReport<PayableAgingRow[]>('payables', {})
+  const cols: Column<PayableAgingRow>[] = [
+    { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
+    { key: 'nd', header: 'Vadesi Gelmemiş', align: 'right', render: (r) => tl2(r.notDue) },
+    { key: 'a', header: '1-30 Gün', align: 'right', render: (r) => tl2(r.days1To30) },
+    { key: 'b', header: '31-60 Gün', align: 'right', render: (r) => tl2(r.days31To60) },
+    { key: 'c2', header: '61-90 Gün', align: 'right', render: (r) => tl2(r.days61To90) },
+    { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-medium text-red-600' : ''}>{tl2(r.over90)}</span> },
+    { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-semibold">{tl2(r.total)}</span> },
+  ]
+  const s = (k: keyof PayableAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
+  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Açık taşeron borcu yok."
+    footer={data && data.length > 0 ? (
+      <tr className="bg-slate-50 text-sm font-semibold">
+        <td className="td">Toplam</td>
+        {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td text-right">{tl2(s(k))}</td>)}
+      </tr>) : undefined} />
+}
+
+function Suppliers() {
+  const { data, isLoading } = useReport<SupplierReportRow[]>('suppliers', {})
+  const cols: Column<SupplierReportRow>[] = [
+    { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
+    { key: 'c', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
+    { key: 'tc', header: 'Sefer Maliyeti', align: 'right', render: (r) => tl2(r.tripCost) },
+    { key: 'ce', header: 'Vadeli Gider', align: 'right', render: (r) => tl2(r.creditExpenses) },
+    { key: 'p', header: 'Ödenen', align: 'right', render: (r) => tl2(r.paid) },
+    { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-semibold text-orange-600' : 'font-semibold'}>{tl2(r.balance)}</span> },
+  ]
+  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
 }
