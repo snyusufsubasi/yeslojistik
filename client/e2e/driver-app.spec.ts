@@ -21,7 +21,7 @@ test('şoför uygulaması: giriş → sefer → yükü aldım → fotoğraf', as
   await page.getByText('Sunucu ayarı').click()
   await page.getByLabel('Sunucu adresi').fill('http://localhost:5080')
   await page.getByLabel('E-posta').fill('sofor@yeslojistik.com')
-  await page.getByLabel('Şifre').fill('Sofor123!')
+  await page.getByLabel('Şifre', { exact: true }).fill('Sofor123!')
   await page.screenshot({ path: 'e2e/screenshots/app-login.png' })
   await page.getByRole('button', { name: 'Giriş Yap' }).click()
   await expect(page.getByText('Merhaba, Mehmet Yılmaz')).toBeVisible()

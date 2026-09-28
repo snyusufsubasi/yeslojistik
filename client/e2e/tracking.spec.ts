@@ -54,7 +54,8 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
   const p2 = await anon.newPage()
   await p2.goto(url.replace(/^https?:\/\/[^/]+/, 'http://localhost:5173'))
   await expect(p2.getByText('Araç yolda')).toBeVisible()
-  await expect(p2.getByText('Araç: 34 VES **')).toBeVisible()
+  await expect(p2.getByText('Yükünüz yolda')).toBeVisible()
+  await expect(p2.getByRole('definition').filter({ hasText: '34 VES **' })).toBeVisible()
   await expect(p2.locator('.leaflet-container')).toBeVisible()
   await expect(p2.getByText('25.000')).toHaveCount(0)
   await p2.screenshot({ path: 'e2e/screenshots/public-tracking.png' })
@@ -64,7 +65,7 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
 test('şoför hesabı web panelinde mobil uygulamaya yönlendirilir', async ({ page }) => {
   await page.goto('/giris')
   await page.getByLabel('E-posta').fill('sofor@yeslojistik.com')
-  await page.getByLabel('Şifre').fill('Sofor123!')
+  await page.getByLabel('Şifre', { exact: true }).fill('Sofor123!')
   await page.getByRole('button', { name: 'Giriş Yap' }).click()
   await expect(page.getByText('Şoför hesabı')).toBeVisible()
 })
