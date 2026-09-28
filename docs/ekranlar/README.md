@@ -2,6 +2,40 @@
 
 Örnek (demo) verilerle alınmıştır. Haritadaki gri zemin, görüntülerin alındığı test ortamında harita altlığının yüklenememesindendir; gerçek sunucuda sokak haritası görünür.
 
+## Yeni eklenenler
+
+### Sefer penceresi: Sevk Belgesi, Kopyala, Geçmiş
+
+![Sefer düzenle](pc-sefer-duzenle.png)
+
+### Sevk belgesi (PDF)
+
+![Sevk belgesi](pdf-sevk-belgesi.png)
+
+### Hesap ekstresi
+
+![Hesap ekstresi penceresi](pc-hesap-ekstresi.png)
+
+![Hesap ekstresi PDF](pdf-hesap-ekstresi.png)
+
+### Yakıt gideri (litre + km) ve yakıt raporu
+
+![Yakıt gideri](pc-gider-yakit.png)
+
+![Yakıt raporu](pc-rapor-yakit.png)
+
+### İşlem geçmişi
+
+![İşlem geçmişi](pc-islem-gecmisi.png)
+
+### Ayarlar: bildirimler
+
+![Ayarlar](pc-ayarlar.png)
+
+### Şoför uygulaması: masraf / yakıt girişi
+
+<img src="tel-sofor-masraf.png" alt="Şoför masraf girişi" width="300">
+
 ## Bilgisayar
 
 ### Ana sayfa
