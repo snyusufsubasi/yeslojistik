@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { login, unique } from './helpers'
+import { expectPdfOpens, login, unique } from './helpers'
 
 test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi tahsilat → bakiye', async ({ page }) => {
   const id = unique()
@@ -80,12 +80,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await expect(invDialog.getByText('Açık', { exact: true })).toBeVisible()
 
   // PDF yeni sekmede açılır
-  const popup = page.waitForEvent('popup')
-  await invDialog.getByRole('button', { name: 'PDF' }).click()
-  const invPdf = await popup
-  await expect.poll(() => invPdf.url()).toMatch(/\/api\/invoices\/\d+\/pdf$/)
-  expect((await page.request.get(invPdf.url())).headers()['content-type']).toBe('application/pdf')
-  await invPdf.close()
+  await expectPdfOpens(page, () => invDialog.getByRole('button', { name: 'PDF' }).click(), /\/api\/invoices\/\d+\/pdf$/)
 
   // Kısmi tahsilat
   await invDialog.getByRole('button', { name: 'Tahsilat Ekle' }).click()
@@ -149,18 +144,14 @@ test('yardım sayfası ve kontrol listesi bağlantıları', async ({ page }) => 
   await expect(page.getByRole('dialog', { name: 'Sefer Oluştur' })).toBeVisible()
 })
 
-test('sefer kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async ({ page, context }) => {
+test('sefer kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async ({ page }) => {
   await login(page)
   await page.goto('/seferler')
   await page.getByRole('row').nth(1).click()
   const edit = page.getByRole('dialog', { name: 'Sefer Düzenle' })
   const from = await edit.getByLabel('Yükleme Adresi').inputValue()
 
-  const [waybill] = await Promise.all([context.waitForEvent('page'), edit.getByRole('button', { name: 'Sevk Belgesi' }).click()])
-  await expect.poll(() => waybill.url()).toMatch(/\/api\/trips\/\d+\/waybill$/)
-  const pdf = await page.request.get(waybill.url())
-  expect(pdf.headers()['content-type']).toBe('application/pdf')
-  await waybill.close()
+  await expectPdfOpens(page, () => edit.getByRole('button', { name: 'Sevk Belgesi' }).click(), /\/api\/trips\/\d+\/waybill$/)
 
   await edit.getByRole('button', { name: 'Kopyala' }).click()
   const copy = page.getByRole('dialog', { name: 'Sefer Oluştur (kopya)' })
@@ -172,9 +163,7 @@ test('sefer kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async ({
   await page.locator('tbody tr').first().click()
   await page.getByRole('button', { name: 'Hesap Ekstresi' }).click()
   const dlg = page.getByRole('dialog', { name: /Hesap Ekstresi/ })
-  const [statement] = await Promise.all([context.waitForEvent('page'), dlg.getByRole('button', { name: 'PDF Aç' }).click()])
-  await expect.poll(() => statement.url()).toMatch(/\/api\/customers\/\d+\/statement\?from=/)
-  expect((await page.request.get(statement.url())).headers()['content-type']).toBe('application/pdf')
+  await expectPdfOpens(page, () => dlg.getByRole('button', { name: 'PDF Aç' }).click(), /\/api\/customers\/\d+\/statement\?from=/)
 })
 
 test('yakıt gideri litre ve km ile girilir, yakıt raporunda görünür', async ({ page }) => {

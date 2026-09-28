@@ -11,3 +11,15 @@ export async function login(page: Page) {
 }
 
 export const unique = () => Date.now().toString().slice(-6)
+
+/**
+ * PDF düğmesine basar; açılan sekmenin PDF adresini istediğini ve adresin PDF döndürdüğünü doğrular.
+ * (Başsız Chrome'da PDF görüntüleyici olmadığı için sekme dosyayı indirir ve adresi about:blank kalabilir;
+ * bu yüzden sekmenin adresine değil yaptığı isteğe bakılır.)
+ */
+export async function expectPdfOpens(page: Page, click: () => Promise<void>, url: RegExp) {
+  const [request] = await Promise.all([page.context().waitForEvent('request', (r) => url.test(r.url())), click()])
+  const res = await page.request.get(request.url())
+  expect(res.headers()['content-type']).toBe('application/pdf')
+  for (const p of page.context().pages()) if (p !== page) await p.close()
+}
