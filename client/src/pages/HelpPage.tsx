@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, Bell, FileSpreadsheet, FileText, HelpCircle, Link2, MapPin, Smartphone, Truck, Users, Wallet } from 'lucide-react'
+import { BarChart3, Bell, Copy, DatabaseZap, FileSpreadsheet, FileText, Fuel, HelpCircle, History, Link2, Mail, MapPin, Smartphone, Truck, Users, Wallet } from 'lucide-react'
 import { Badge, PageHeader } from '../components/ui'
 
 function Section({ icon, title, children, open }: { icon: ReactNode; title: string; children: ReactNode; open?: boolean }) {
@@ -102,6 +102,41 @@ export default function HelpPage() {
           <p>Linkte fiyat ve şoför bilgisi yoktur, plakanın son haneleri gizlenir. Teslimden 7 gün sonra link kapanır.</p>
         </Section>
 
+        <Section icon={<Copy className="size-5" />} title="Sevk belgesi ve sefer kopyalama">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Sefere tıklayın → <b>Sevk Belgesi</b>: araçta taşınacak, teslimde imzalatılacak belge. Fiyat içermez.</li>
+            <li><b>Kopyala</b>: aynı müşteri, güzergah, araç ve fiyatla bugünün tarihine yeni sefer açar. Düzenli seferler için idealdir.</li>
+          </ul>
+        </Section>
+
+        <Section icon={<FileText className="size-5" />} title="Hesap ekstresi (mutabakat)">
+          <p>Müşteri kartında <b>Hesap Ekstresi</b>: tarih aralığı seçin, <b>PDF Aç</b> ya da <b>E-postayla Gönder</b>. Devreden bakiye, dönemdeki faturalar ve tahsilatlar, güncel bakiye listelenir.</p>
+        </Section>
+
+        <Section icon={<Fuel className="size-5" />} title="Yakıt takibi ve şoför avansı">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Yakıt giderine <b>litre</b> ve <b>araç kilometresini</b> yazın. <L to="/raporlar">Raporlar → Yakıt</L> her aracın 100 km'de kaç litre yaktığını gösterir; ortalamanın belirgin üstündeki araç kırmızı görünür.</li>
+            <li>Depoyu her seferinde doldurup o anki km'yi yazarsanız sonuç en doğru olur. Girilen km araç kartındaki km'yi de günceller.</li>
+            <li>Şoföre verilen avans için <b>Şoför Avansı</b> kategorisini seçip şoförü işaretleyin. <b>Raporlar → Şoför Bazlı</b> avans ve harcırah toplamlarını gösterir.</li>
+          </ul>
+        </Section>
+
+        <Section icon={<Mail className="size-5" />} title="Müşteriye otomatik e-posta ve sabah özeti">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Müşteri kartında <b>Sefer durumu değişince müşteriye e-posta gönder</b> işaretliyse, yük yüklendiğinde, yola çıktığında ve teslim edildiğinde müşteriye takip linkli e-posta gider.</li>
+            <li><L to="/ayarlar">Ayarlar → Bildirimler → Sabah uyarı özeti</L>: her sabah 08:00'de yöneticilere bakım, belge ve vadesi geçen alacak uyarıları e-postayla gelir.</li>
+            <li>E-postaların çalışması için sunucuda e-posta (SMTP) ayarının yapılmış olması gerekir.</li>
+          </ul>
+        </Section>
+
+        <Section icon={<History className="size-5" />} title="İşlem geçmişi">
+          <p><L to="/ayarlar?tab=audit">Ayarlar → İşlem Geçmişi</L> (yalnızca yönetici): kim, ne zaman, hangi kaydı oluşturdu, değiştirdi ya da sildi; değişen alanların eski ve yeni değeriyle. Bir seferin geçmişi, sefer penceresindeki <b>Geçmiş</b> sekmesinde de görünür.</p>
+        </Section>
+
+        <Section icon={<DatabaseZap className="size-5" />} title="Demo verilerden gerçek kullanıma geçiş">
+          <p>Program örnek verilerle açıldıysa ana sayfada sarı bir uyarı görünür. Deneme bitince <L to="/ayarlar?tab=data">Ayarlar → Veriler</L> bölümünde kutuya <b>SİL</b> yazıp onaylayın: müşteri, araç, sefer, fatura gibi bütün kayıtlar silinir; firma bilgileri ve personel hesapları kalır, numaralar 1'den başlar.</p>
+        </Section>
+
         <Section icon={<Bell className="size-5" />} title="Bildirimler (zil simgesi)">
           <ul className="list-disc space-y-1 pl-5">
             <li>Periyodik bakımı 15 gün içinde olan veya geçmiş araçlar</li>
@@ -112,7 +147,7 @@ export default function HelpPage() {
         </Section>
 
         <Section icon={<BarChart3 className="size-5" />} title="Raporlar">
-          <p><L to="/raporlar">Raporlar</L>: aylık özet, sefer kârlılığı, araç ve şoför bazlı gelir-gider, alacak yaşlandırma ve gider dağılımı. Her rapor ve liste <b>Excel</b> düğmesiyle indirilebilir.</p>
+          <p><L to="/raporlar">Raporlar</L>: aylık özet, sefer kârlılığı, araç ve şoför bazlı gelir-gider, yakıt tüketimi, alacak yaşlandırma ve gider dağılımı. Her rapor ve liste <b>Excel</b> düğmesiyle indirilebilir.</p>
         </Section>
 
         <Section icon={<Users className="size-5" />} title="Kullanıcılar ve yetkiler">

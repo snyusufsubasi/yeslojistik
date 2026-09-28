@@ -68,6 +68,28 @@ Müşteriye tıklayınca: toplam borç (kesilen faturalar), toplam alacak (tahsi
 *Şoför Bazlı* (sefer sayısı, gelir, kâr), *Alacak Yaşlandırma* (0-30 / 31-60 / 61-90 / 90+ gün) ve *Gider Dağılımı*. Her rapor **Excel'e Aktar** ile indirilebilir.
 Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle Excel'e aktarılabilir.
 
+## Sevk belgesi, sefer kopyalama ve hesap ekstresi
+
+- **Sevk Belgesi:** Sefer penceresinin altındaki düğmeyle açılır. Araçta taşınır, teslimde imzalatılır; fiyat içermez.
+- **Kopyala:** Seçili seferin müşteri, güzergah, araç ve fiyat bilgileriyle bugünün tarihine yeni bir sefer açar.
+- **Hesap Ekstresi:** Müşteri kartındaki düğmeyle açılır. Tarih aralığı seçilir; PDF olarak açılır ya da müşteriye e-postayla gönderilir (mutabakat için).
+
+## Yakıt ve şoför avansı
+
+- Yakıt giderine **litre** ve **araç kilometresi** yazılırsa, *Raporlar → Yakıt* araç başına 100 km'de yakılan litreyi gösterir. Filo ortalamasının %15'ten fazla üstündeki araç kırmızı görünür.
+- Şoföre verilen avans **Şoför Avansı** kategorisiyle ve şoför seçilerek girilir. *Raporlar → Şoför Bazlı* avans ve harcırah toplamlarını gösterir.
+
+## E-posta bildirimleri
+
+E-postaların çalışması için sunucuda SMTP ayarı yapılmış olmalıdır (bkz. KURULUM.md).
+
+- **Müşteriye durum e-postası:** Müşteri kartında işaretlenir. Yük yüklendiğinde, yola çıktığında ve teslim edildiğinde müşteriye takip linkli bir e-posta gider.
+- **Sabah uyarı özeti:** *Ayarlar → Bildirimler* bölümünden açılır. Her sabah yöneticilere bakım, belge ve vadesi geçen alacak uyarıları gelir.
+
+## İşlem geçmişi
+
+Yalnızca yönetici görür (*Ayarlar → İşlem Geçmişi*). Kimin, ne zaman, hangi kaydı oluşturduğunu, değiştirdiğini ya da sildiğini gösterir; değişen alanların eski ve yeni değerleri de yazılıdır. Bir seferin geçmişi, sefer penceresindeki **Geçmiş** sekmesinde de görünür. Kayıtlar 2 yıl saklanır.
+
 ## Kullanıcılar ve yetkiler (Ayarlar)
 | Rol | Yapabilecekleri |
 |---|---|
