@@ -31,6 +31,7 @@ Betik üç soru sorar: alan adı, yönetici e-postası ve demo verilerle başlan
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Faturayı müşteriye e-postayla göndermek için |
 | `LOCATION_RETENTION_DAYS` | GPS kayıtlarının saklanacağı gün sayısı (varsayılan 90) |
 | `BACKUP_KEEP_DAYS` | Sunucuda tutulacak yedek günü (varsayılan 30) |
+| `RCLONE_REMOTE` | Yedeklerin sunucu dışına kopyalanacağı rclone hedefi (aşağıya bakın) |
 
 Yalnızca kendi bilgisayarında denemek için (HTTPS yok, adres http://localhost:8080): `cp .env.example .env`, `.env`'i doldur, sonra `docker compose up -d --build`.
 
@@ -51,12 +52,24 @@ Yalnızca kendi bilgisayarında denemek için (HTTPS yok, adres http://localhost
 (`yeslojistik-*.dump`) ve yüklenen dosyaların (teslim fotoğrafları, irsaliyeler) arşivini (`uploads-*.tar.gz`) alır,
 30 günden eski yedekleri siler. **Sunucu çökerse bu yedekler de gider**, bu yüzden sunucu dışına kopyalayın:
 
-```bash
-# Örnek: her gece yedekleri başka bir makineye/depolamaya kopyala (crontab -e)
-30 3 * * * rsync -a /opt/yeslojistik/backups/ yedek@baska-sunucu:/yedekler/yeslojistik/
-```
+### Yedekleri sunucu dışına kopyalama (önerilir)
 
-Alternatif: `rclone` ile Google Drive / Backblaze B2 / S3'e kopyalama.
+`offsite` servisi her gece 04:00'te yeni yedekleri [rclone](https://rclone.org) ile istediğiniz yere kopyalar. Seçenekler: Google Drive, Backblaze B2 (ayda birkaç kuruş), S3 ya da başka bir sunucu.
+
+1. Hedefi tanımlayın. Sorulara cevap verin; Google Drive için tarayıcıdan izin istenir.
+   ```bash
+   docker run --rm -it -v $PWD/deploy/rclone:/config/rclone rclone/rclone:1.68 config
+   ```
+   Örneğin adını `gdrive` koyun.
+2. `.env` dosyasına hedefi yazın: `RCLONE_REMOTE=gdrive:yeslojistik-yedek`
+3. Servisi yeniden başlatın ve hemen bir kez deneyin:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d offsite
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml exec offsite sh /offsite.sh
+   ```
+4. `./deploy/check.sh` son kopyalamanın zamanını gösterir. Kayıtlar `backups/offsite.log` dosyasında durur.
+
+Kopyalama silmez: sunucuda 30 günden eski yedekler silinse de hedefte kalır. Hedefteki saklama süresini sağlayıcının panelinden ayarlayın.
 
 Elle yedek: `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backup sh /backup.sh`
 

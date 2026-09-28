@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Building2, DatabaseZap, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { Bell, Building2, DatabaseZap, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
 import type { CompanySettings, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
@@ -54,6 +54,7 @@ const companySchema = z.object({
   defaultVatRate: z.number({ error: 'Sayı girin.' }).min(0).max(100),
   defaultWithholdingTenths: z.number().int().min(0).max(10),
   defaultPaymentTermDays: z.number({ error: 'Sayı girin.' }).int().min(0).max(365),
+  dailyDigestEnabled: z.boolean(),
 })
 type CompanyValues = z.infer<typeof companySchema>
 
@@ -122,6 +123,21 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
           </Field>
           <Field label="Varsayılan Vade (gün)" error={errors.defaultPaymentTermDays?.message}><input className="input" type="number" {...register('defaultPaymentTermDays', { valueAsNumber: true })} /></Field>
         </div>
+      </Card>
+      <Card title="Bildirimler" icon={<Bell className="size-4" />} className="h-fit lg:col-start-2">
+        {!settings.emailEnabled && (
+          <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Sunucuda e-posta (SMTP) ayarı yapılmamış; e-posta bildirimleri gönderilmez. Kurulum kılavuzundaki SMTP adımına bakın.
+          </p>
+        )}
+        <label className="flex items-start gap-3">
+          <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('dailyDigestEnabled')} />
+          <span>
+            <span className="block text-[15px] font-medium text-slate-800">Sabah uyarı özeti</span>
+            <span className="block text-sm text-slate-600">Her sabah 08:00'de yöneticilere yaklaşan bakım, muayene, sigorta, şoför belgeleri ve vadesi geçen alacakların listesi e-postayla gelir. Uyarı yoksa e-posta gönderilmez.</span>
+          </span>
+        </label>
+        <p className="mt-3 text-sm text-slate-600">Müşterilere sefer durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
         <div className="mt-4 flex justify-end"><Button type="submit" loading={save.isPending}>Kaydet</Button></div>
       </Card>
     </form>

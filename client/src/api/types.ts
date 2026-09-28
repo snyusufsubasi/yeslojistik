@@ -282,6 +282,7 @@ export interface CompanySettings {
   defaultWithholdingTenths: number
   defaultPaymentTermDays: number
   emailEnabled?: boolean
+  dailyDigestEnabled?: boolean
 }
 
 export interface DriverReportRow {

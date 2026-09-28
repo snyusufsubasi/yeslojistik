@@ -29,6 +29,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default ayarlanmamış.");
 builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads");
 builder.Services.AddHostedService<LocationRetentionService>();
+builder.Services.AddHostedService<DailyDigestWorker>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<SmtpOptions>() ?? new SmtpOptions());
 builder.Services.AddSingleton<YesLojistik.Core.Abstractions.IEmailSender, SmtpEmailSender>();
 if (!builder.Configuration.GetValue("Push:Enabled", true))

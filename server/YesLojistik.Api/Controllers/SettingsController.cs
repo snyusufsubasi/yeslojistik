@@ -18,7 +18,7 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         var s = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         return new CompanySettingsDto(s.CompanyName, s.Slogan, s.TaxNumber, s.TaxOffice, s.Address, s.Phone, s.Email, s.Iban,
             s.LogoDataUrl, s.InvoicePrefix, s.NextInvoiceNumber, s.DefaultVatRate, s.DefaultWithholdingTenths, s.DefaultPaymentTermDays,
-            email.IsConfigured);
+            email.IsConfigured, s.DailyDigestEnabled);
     }
 
     [Authorize(Policy = Policies.Admin)]
@@ -42,6 +42,7 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         s.DefaultVatRate = req.DefaultVatRate;
         s.DefaultWithholdingTenths = req.DefaultWithholdingTenths;
         s.DefaultPaymentTermDays = req.DefaultPaymentTermDays;
+        s.DailyDigestEnabled = req.DailyDigestEnabled;
         await db.SaveChangesAsync(ct);
         return await Get(ct);
     }

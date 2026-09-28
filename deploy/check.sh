@@ -8,7 +8,7 @@ ok()  { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 bad() { printf '  \033[31m✗\033[0m %s\n' "$*"; fail=1; }
 
 echo "Servisler:"
-for s in db api web caddy backup; do
+for s in db api web caddy backup offsite; do
   if [ -n "$("${COMPOSE[@]}" ps -q --status running "$s" 2>/dev/null)" ]; then ok "$s çalışıyor"; else bad "$s çalışmıyor"; fi
 done
 
@@ -28,6 +28,14 @@ last=$(ls -t backups/yeslojistik-*.dump 2>/dev/null | head -1)
 if [ -z "$last" ]; then echo "  – Henüz yedek yok (ilk yedek gece 03:00'te; hemen almak için: ${COMPOSE[*]} exec backup sh /backup.sh)"
 elif [ -n "$(find "$last" -mtime -2)" ]; then ok "Son yedek: $(basename "$last")"
 else bad "Son yedek 2 günden eski: $(basename "$last")"; fi
+
+REMOTE=$(grep -E '^RCLONE_REMOTE=' .env 2>/dev/null | cut -d= -f2-)
+if [ -z "$REMOTE" ]; then echo "  – Sunucu dışı yedek kapalı (önerilir: docs/KURULUM.md → Yedekleri sunucu dışına kopyalama)"
+else
+  lastoff=$(grep -E "sunucu dışı yedek tamam" backups/offsite.log 2>/dev/null | tail -1)
+  if [ -n "$lastoff" ]; then ok "Sunucu dışı: ${lastoff%% sunucu*} → $REMOTE"; else echo "  – Sunucu dışı yedek henüz çalışmadı (her gece 04:00)"; fi
+  if tail -5 backups/offsite.log 2>/dev/null | grep -qiE "error|failed"; then bad "Sunucu dışı yedekte hata var: tail backups/offsite.log"; fi
+fi
 
 echo "Disk:"
 use=$(df -P . | awk 'NR==2 {gsub("%","",$5); print $5}')

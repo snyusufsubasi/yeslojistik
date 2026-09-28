@@ -19,6 +19,9 @@ public class CompanySettings
     public int DefaultPaymentTermDays { get; set; } = 30;
     /// <summary>Örnek (demo) veri yüklüyse true; "Demo verilerini temizle" ile false olur.</summary>
     public bool HasSampleData { get; set; }
+    /// <summary>Her sabah yöneticilere uyarı özeti e-postası.</summary>
+    public bool DailyDigestEnabled { get; set; }
+    public DateOnly? LastDigestDate { get; set; }
     /// <summary>Demo veriler temizlendiyse zamanı; bir daha örnek veri yüklenmez.</summary>
     public DateTime? SampleDataClearedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
