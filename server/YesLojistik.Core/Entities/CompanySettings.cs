@@ -17,5 +17,7 @@ public class CompanySettings
     public decimal DefaultVatRate { get; set; } = 20;
     public int DefaultWithholdingTenths { get; set; } = 2;
     public int DefaultPaymentTermDays { get; set; } = 30;
+    /// <summary>Örnek (demo) veri yüklüyse true; "Demo verilerini temizle" ile false olur.</summary>
+    public bool HasSampleData { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

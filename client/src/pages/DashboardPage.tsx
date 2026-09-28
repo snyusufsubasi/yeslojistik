@@ -62,6 +62,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {data.setup.sampleData && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[15px] text-amber-900">
+          <span><b>Şu an örnek (demo) veriler görüntüleniyor.</b> Gerçek kullanıma başlamadan önce bunları temizleyin.</span>
+          {can('admin') && <Button size="sm" variant="secondary" onClick={() => navigate('/ayarlar?tab=data')}>Demo verilerini temizle</Button>}
+        </div>
+      )}
+
       <SetupCard setup={data.setup} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

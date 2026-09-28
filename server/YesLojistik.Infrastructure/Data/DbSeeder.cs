@@ -6,6 +6,17 @@ using YesLojistik.Infrastructure.Services;
 
 namespace YesLojistik.Infrastructure.Data;
 
+/// <summary>Demo firma bilgileri. "Demo verilerini temizle" bu değerlerde kalan alanları boşaltır.</summary>
+public static class DemoCompany
+{
+    public const string Address = "Tuzla / İstanbul";
+    public const string Phone = "0216 555 00 00";
+    public const string Email = "info@yeslojistik.com";
+    public const string TaxOffice = "Tuzla";
+    public const string TaxNumber = "1234567890";
+    public const string Iban = "TR00 0000 0000 0000 0000 0000 00";
+}
+
 public static class DbSeeder
 {
     public static async Task SeedAdminAsync(AppDbContext db, string email, string password, string fullName)
@@ -45,12 +56,13 @@ public static class DbSeeder
         var today = Clock.Today;
 
         var settings = await db.CompanySettings.FirstAsync();
-        settings.Address = "Tuzla / İstanbul";
-        settings.Phone = "0216 555 00 00";
-        settings.Email = "info@yeslojistik.com";
-        settings.TaxOffice = "Tuzla";
-        settings.TaxNumber = "1234567890";
-        settings.Iban = "TR00 0000 0000 0000 0000 0000 00";
+        settings.HasSampleData = true;
+        settings.Address = DemoCompany.Address;
+        settings.Phone = DemoCompany.Phone;
+        settings.Email = DemoCompany.Email;
+        settings.TaxOffice = DemoCompany.TaxOffice;
+        settings.TaxNumber = DemoCompany.TaxNumber;
+        settings.Iban = DemoCompany.Iban;
 
         var customers = new[]
         {

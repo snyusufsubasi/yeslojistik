@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Building2, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
-import { get, post, put } from '../api/client'
+import { Building2, DatabaseZap, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { errorMessage, get, post, put } from '../api/client'
 import type { CompanySettings, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
@@ -17,14 +17,14 @@ import { date } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'password'
+type Tab = 'company' | 'users' | 'data' | 'password'
 
 export default function SettingsPage() {
   const { can } = useAuth()
   const [params] = useSearchParams()
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) ?? (can('admin') ? 'company' : 'password'))
   const tabs = [
-    ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' }] : []),
+    ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' }, { value: 'data' as const, label: 'Veriler' }] : []),
     { value: 'password' as const, label: 'Şifre Değiştir' },
   ]
   return (
@@ -33,6 +33,7 @@ export default function SettingsPage() {
       <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={tabs} /></div>
       {tab === 'company' && can('admin') && <CompanyForm />}
       {tab === 'users' && can('admin') && <UsersTab />}
+      {tab === 'data' && can('admin') && <ResetDataCard />}
       {tab === 'password' && <PasswordForm />}
     </>
   )
@@ -245,6 +246,66 @@ function PasswordForm() {
         <Field label="Yeni Şifre (tekrar)" error={errors.confirm?.message}><input className="input" type="password" autoComplete="new-password" {...register('confirm')} /></Field>
         <Button type="submit" loading={isSubmitting}>Şifreyi Değiştir</Button>
       </form>
+    </Card>
+  )
+}
+
+function ResetDataCard() {
+  const [confirm, setConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const toast = useToast()
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const ok = ['SİL', 'SIL'].includes(confirm.trim().toLocaleUpperCase('tr-TR'))
+
+  const run = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await post('/settings/reset-data', { confirm })
+      try { localStorage.removeItem('yl.setupHidden') } catch { /* tarayıcı depolaması kapalı olabilir */ }
+      await qc.invalidateQueries()
+      toast.success('Demo veriler silindi. Artık gerçek verilerinizi girebilirsiniz.')
+      navigate('/')
+    } catch (e) {
+      setError(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card title="Demo verilerini temizle (canlıya geçiş)" icon={<DatabaseZap className="size-4" />} className="max-w-2xl">
+      <div className="space-y-4 text-[15px] text-slate-700">
+        <p>Programı denemek için girilen bütün kayıtları siler ve sistemi gerçek kullanıma hazırlar. Bu işlem geri alınamaz.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+            <div className="mb-1 font-semibold text-red-800">Silinecekler</div>
+            <ul className="list-inside list-disc space-y-0.5 text-red-900">
+              <li>Müşteriler, araçlar, şoförler</li>
+              <li>Seferler ve sefer dosyaları</li>
+              <li>Faturalar, tahsilatlar, giderler</li>
+              <li>Konum geçmişi ve şoför hesapları</li>
+            </ul>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <div className="mb-1 font-semibold text-emerald-800">Kalacaklar</div>
+            <ul className="list-inside list-disc space-y-0.5 text-emerald-900">
+              <li>Firma bilgileri ve logo</li>
+              <li>Yönetici, operasyon ve muhasebe hesapları</li>
+              <li>KDV / tevkifat ayarları</li>
+            </ul>
+            <p className="mt-2 text-sm text-emerald-900">Fatura ve müşteri numaraları 1'den başlar.</p>
+          </div>
+        </div>
+        <label className="block max-w-xs">
+          <span className="label">Onaylamak için kutuya <b>SİL</b> yazın</span>
+          <input className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" />
+        </label>
+        {error && <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        <Button variant="danger" disabled={!ok} loading={busy} onClick={run}>Tüm demo verilerini sil</Button>
+      </div>
     </Card>
   )
 }

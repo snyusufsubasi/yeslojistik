@@ -16,7 +16,8 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
             await db.Drivers.CountAsync(ct),
             await db.Customers.CountAsync(ct),
             await db.Trips.CountAsync(ct),
-            await db.Users.CountAsync(ct));
+            await db.Users.CountAsync(ct),
+            s.HasSampleData);
     }
 
     public async Task<DashboardDto> GetAsync(CancellationToken ct = default)

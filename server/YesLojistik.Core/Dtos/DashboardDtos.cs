@@ -7,7 +7,7 @@ public record DashboardDto(
     IReadOnlyList<MonthTrendRow> Trend, SetupStatus Setup);
 
 /// <summary>İlk kurulum kontrol listesi (ana sayfadaki "Başlarken" kartı).</summary>
-public record SetupStatus(bool CompanyInfo, int VehicleCount, int DriverCount, int CustomerCount, int TripCount, int UserCount);
+public record SetupStatus(bool CompanyInfo, int VehicleCount, int DriverCount, int CustomerCount, int TripCount, int UserCount, bool SampleData = false);
 
 /// <summary>Ana sayfadaki son 6 ay grafiği: sefer cirosu ve maliyet (araç maliyeti + giderler).</summary>
 public record MonthTrendRow(int Year, int Month, decimal Revenue, decimal Cost);

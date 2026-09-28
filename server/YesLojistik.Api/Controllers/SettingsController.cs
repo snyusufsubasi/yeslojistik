@@ -45,4 +45,17 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         await db.SaveChangesAsync(ct);
         return await Get(ct);
     }
+
+    public record ResetDataRequest(string Confirm);
+
+    /// <summary>Canlıya geçiş: demo/deneme verilerini siler. Onay için "SİL" yazılması gerekir.</summary>
+    [Authorize(Policy = Policies.Admin)]
+    [HttpPost("reset-data")]
+    public async Task<IActionResult> ResetData(ResetDataRequest req, [FromServices] YesLojistik.Infrastructure.Services.DataResetService reset, CancellationToken ct)
+    {
+        if (req.Confirm?.Trim().ToUpperInvariant() is not ("SİL" or "SIL"))
+            throw new DomainException("Onaylamak için kutuya SİL yazın.");
+        await reset.ResetAsync(User.Identity?.Name ?? "yönetici", ct);
+        return NoContent();
+    }
 }
