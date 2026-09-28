@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Download, Pencil, Plus, Trash2, Truck } from 'lucide-react'
+import { Download, Pencil, Plus, Truck } from 'lucide-react'
 import { download, post } from '../api/client'
 import type { Trip, TripStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
@@ -46,10 +46,8 @@ export default function TripsPage() {
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{t.loadingAddress} <span className="text-slate-500">→</span> {t.deliveryAddress}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span>{t.vehiclePlate}<span className="block text-[13px] text-slate-500">{t.driverName}</span></span> },
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
-    { key: 'price', header: 'Tutar', sortKey: 'salePrice', align: 'right', render: (t) => tl(t.salePrice) },
-    { key: 'profit', header: 'Kâr', align: 'right', render: (t) => <span className={t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(t.profit)}</span> },
-    { key: 'invoice', header: 'Fatura', render: (t) => t.invoiceNo ?? <span className="text-slate-500">—</span> },
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{t.invoiceNo && <span className="mt-0.5 block text-[13px] text-slate-500">Fatura: {t.invoiceNo}</span>}</> },
+    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-[13px] ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span></> },
   ]
   if (can('operations')) {
     columns.push({
@@ -61,7 +59,6 @@ export default function TripsPage() {
               onClick={() => statusMut.mutate({ id: t.id, s })}>{tripStatusAction[s]}</Button>
           ))}
           <IconButton label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
-          <IconButton label="Sil" disabled={!!t.invoiceId} onClick={() => setDeleting(t)}><Trash2 className="size-4" /></IconButton>
         </div>
       ),
     })
@@ -109,7 +106,8 @@ export default function TripsPage() {
           )} />
       </Card>
 
-      {editing && <TripForm trip={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {editing && <TripForm trip={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
+        onDelete={(t) => { setEditing(null); setDeleting(t) }} />}
       <ConfirmDialog open={!!deleting} title="Seferi sil" loading={deleteMut.isPending}
         message={<>“{deleting?.customerTitle} – {deleting?.loadingAddress} → {deleting?.deliveryAddress}” seferi silinecek. Emin misiniz?</>}
         confirmText="Sil" onClose={() => setDeleting(null)} onConfirm={() => deleting && deleteMut.mutate(deleting.id)} />

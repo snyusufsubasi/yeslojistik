@@ -58,15 +58,12 @@ export default function VehiclesPage() {
 
   const columns: Column<Vehicle>[] = [
     { key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-semibold">{v.plate}</span> },
-    { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-[13px] text-slate-500">{[v.brand, v.model].filter(Boolean).join(' ')}</span></> },
-    { key: 'year', header: 'Model', sortKey: 'modelYear', render: (v) => v.modelYear ?? '—' },
+    { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-[13px] text-slate-500">{[v.brand, v.model, v.modelYear].filter(Boolean).join(' ')}</span></> },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
     { key: 'km', header: 'Km', sortKey: 'km', align: 'right', render: (v) => v.km.toLocaleString('tr-TR') },
-    { key: 'last', header: 'Son Bakım', render: (v) => date(v.lastMaintenanceDate) },
-    { key: 'next', header: 'Sonraki Bakım', sortKey: 'nextMaintenanceDate', render: (v) => <DueDate value={v.nextMaintenanceDate} warn={15} /> },
-    { key: 'insp', header: 'Muayene', render: (v) => <DueDate value={v.inspectionExpiry} warn={30} /> },
-    { key: 'ins', header: 'Sigorta', render: (v) => <DueDate value={v.insuranceExpiry} warn={30} /> },
+    { key: 'next', header: 'Sonraki Bakım', sortKey: 'nextMaintenanceDate', render: (v) => <><DueDate value={v.nextMaintenanceDate} warn={15} /><span className="block text-[13px] text-slate-500">Son: {date(v.lastMaintenanceDate)}</span></> },
+    { key: 'docs', header: 'Muayene / Sigorta', render: (v) => <><span className="block"><span className="text-[13px] text-slate-500">M: </span><DueDate value={v.inspectionExpiry} warn={30} /></span><span className="block"><span className="text-[13px] text-slate-500">S: </span><DueDate value={v.insuranceExpiry} warn={30} /></span></> },
   ]
   if (can('operations')) columns.push({
     key: 'actions', header: '', align: 'right', render: (v) => (

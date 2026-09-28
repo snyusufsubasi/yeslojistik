@@ -25,19 +25,16 @@ export default function DashboardPage() {
 
   const tripCols: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', render: (t) => date(t.loadingDate) },
-    { key: 'customer', header: 'Müşteri', render: (t) => t.customerTitle },
+    { key: 'customer', header: 'Müşteri', className: 'whitespace-normal! min-w-32', render: (t) => <>{t.customerTitle}<span className="block text-[13px] text-slate-500">{t.vehiclePlate}</span></> },
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-44', render: (t) => <>{t.loadingAddress} <span className="text-slate-500">→</span> {t.deliveryAddress}</> },
-    { key: 'plate', header: 'Araç', render: (t) => t.vehiclePlate },
     { key: 'status', header: 'Durum', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'price', header: 'Tutar', align: 'right', render: (t) => tl(t.salePrice) },
   ]
   const vehicleCols: Column<Vehicle>[] = [
-    { key: 'plate', header: 'Plaka', render: (v) => <span className="font-medium">{v.plate}</span> },
+    { key: 'plate', header: 'Plaka', render: (v) => <><span className="font-medium">{v.plate}</span><span className="block text-[13px] text-slate-500">{v.km.toLocaleString('tr-TR')} km</span></> },
     { key: 'type', header: 'Araç Tipi', render: (v) => [v.brand, v.model].filter(Boolean).join(' ') || v.type },
-    { key: 'year', header: 'Model', render: (v) => v.modelYear ?? '—' },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
-    { key: 'km', header: 'Km', align: 'right', render: (v) => v.km.toLocaleString('tr-TR') },
     {
       key: 'maint', header: 'Sonraki Bakım', render: (v) => {
         const d = daysUntil(v.nextMaintenanceDate)

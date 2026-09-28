@@ -39,10 +39,9 @@ export default function InvoicesPage() {
   const pdf = (i: Invoice) => openPdf(`/invoices/${i.id}/pdf`, `${i.invoiceNo}.pdf`).catch((e) => toast.error(errorMessage(e)))
 
   const columns: Column<Invoice>[] = [
-    { key: 'date', header: 'Tarih', sortKey: 'date', render: (i) => date(i.date) },
+    { key: 'date', header: 'Tarih / Vade', sortKey: 'date', render: (i) => <>{date(i.date)}<span className="block text-[13px] text-slate-500">Vade: {date(i.dueDate)}</span></> },
     { key: 'no', header: 'Fatura No', sortKey: 'invoiceNo', render: (i) => <span className="font-medium">{i.invoiceNo}</span> },
-    { key: 'customer', header: 'Müşteri', sortKey: 'customer', render: (i) => i.customerTitle },
-    { key: 'due', header: 'Vade', sortKey: 'dueDate', render: (i) => date(i.dueDate) },
+    { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-40', render: (i) => i.customerTitle },
     { key: 'total', header: 'Tutar', sortKey: 'total', align: 'right', render: (i) => tl2(i.total) },
     { key: 'rem', header: 'Kalan', align: 'right', render: (i) => i.remaining > 0 ? <span className="text-red-600">{tl2(i.remaining)}</span> : '—' },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (i) => <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge> },

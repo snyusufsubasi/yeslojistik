@@ -29,7 +29,7 @@ export default function CustomersPage() {
     { key: 'tax', header: 'VKN/TCKN', render: (c) => c.taxNumber ?? '—' },
     { key: 'phone', header: 'Telefon', render: (c) => c.phone ?? '—' },
     { key: 'email', header: 'E-posta', render: (c) => c.email ?? '—' },
-    { key: 'address', header: 'Adres', render: (c) => c.address ?? '—' },
+    { key: 'address', header: 'Adres', className: 'whitespace-normal! min-w-40', render: (c) => c.address ?? '—' },
     {
       key: 'balance', header: 'Cari Bakiye', sortKey: 'balance', align: 'right',
       render: (c) => <span className={c.balance > 0 ? 'font-semibold text-red-600' : c.balance < 0 ? 'font-semibold text-emerald-700' : ''}>{tl(c.balance)}</span>,

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -37,7 +38,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 const api = crud<Trip, FormValues>('trips')
 
-export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues> }) {
+export function TripForm({ trip, onClose, defaults, onDelete }: { trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues>; onDelete?: (trip: Trip) => void }) {
   const [tab, setTab] = useState<'info' | 'files' | 'tracking'>('info')
   const customers = useLookup('customers')
   const vehicles = useLookup('vehicles')
@@ -78,6 +79,9 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
   return (
     <Modal open onClose={onClose} title={trip ? 'Sefer Düzenle' : 'Sefer Oluştur'} size="lg"
       footer={tab === 'info' ? <>
+        {trip && onDelete && !trip.invoiceId && (
+          <Button variant="ghost" className="mr-auto text-red-700 hover:bg-red-50" icon={<Trash2 className="size-4" />} onClick={() => onDelete(trip)}>Seferi Sil</Button>
+        )}
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button>
         <Button onClick={handleSubmit((v) => save.mutate(v))} loading={save.isPending}>Kaydet</Button>
       </> : <Button variant="secondary" onClick={onClose}>Kapat</Button>}>
