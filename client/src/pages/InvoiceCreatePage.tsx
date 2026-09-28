@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, FileText, Plus, Trash2 } from 'lucide-react'
@@ -20,22 +20,16 @@ export default function InvoiceCreatePage() {
   const settings = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings') })
 
   const [customerId, setCustomerId] = useState<number | ''>(params.get('customerId') ? Number(params.get('customerId')) : '')
-  const [selected, setSelected] = useState<Set<number>>(new Set())
   const [extra, setExtra] = useState<ExtraLine[]>([])
   const [invDate, setInvDate] = useState(todayIso())
-  const [dueDate, setDueDate] = useState('')
-  const [vatRate, setVatRate] = useState(20)
-  const [withholding, setWithholding] = useState(0)
   const [notes, setNotes] = useState('')
-
-  useEffect(() => {
-    if (!settings.data) return
-    setVatRate(settings.data.defaultVatRate)
-    setWithholding(settings.data.defaultWithholdingTenths)
-  }, [settings.data])
-  useEffect(() => {
-    if (settings.data) setDueDate(addDaysIso(invDate, settings.data.defaultPaymentTermDays))
-  }, [invDate, settings.data])
+  // Kullanıcı değiştirmediği sürece varsayılanlar firma ayarlarından gelir.
+  const [vatOverride, setVatRate] = useState<number | null>(null)
+  const [withholdingOverride, setWithholding] = useState<number | null>(null)
+  const [dueOverride, setDueDate] = useState<string | null>(null)
+  const vatRate = vatOverride ?? settings.data?.defaultVatRate ?? 20
+  const withholding = withholdingOverride ?? settings.data?.defaultWithholdingTenths ?? 0
+  const dueDate = dueOverride ?? (settings.data ? addDaysIso(invDate, settings.data.defaultPaymentTermDays) : '')
 
   const trips = useQuery({
     queryKey: ['trips', 'uninvoiced', customerId],
@@ -43,10 +37,12 @@ export default function InvoiceCreatePage() {
     enabled: customerId !== '',
   })
   const available = useMemo(() => trips.data?.items.filter((t) => t.status !== 'Cancelled') ?? [], [trips.data])
-  useEffect(() => {
-    // Varsayılan olarak teslim edilmiş seferleri seç.
-    setSelected(new Set(available.filter((t) => t.status === 'Delivered').map((t) => t.id)))
-  }, [available])
+  // Kullanıcı seçim yapana kadar teslim edilmiş seferler seçili gelir; müşteri değişince seçim sıfırlanır.
+  const [selection, setSelection] = useState<{ customerId: number | ''; ids: Set<number> } | null>(null)
+  const selected = selection && selection.customerId === customerId
+    ? selection.ids
+    : new Set(available.filter((t) => t.status === 'Delivered').map((t) => t.id))
+  const setSelected = (update: (s: Set<number>) => Set<number>) => setSelection({ customerId, ids: update(selected) })
 
   const lineAmounts = [
     ...available.filter((t) => selected.has(t.id)).map((t) => t.salePrice),
@@ -88,7 +84,7 @@ export default function InvoiceCreatePage() {
                   <table className="w-full">
                     <thead><tr>
                       <th className="th w-8"><input type="checkbox" aria-label="Tümünü seç" checked={allSelected}
-                        onChange={() => setSelected(allSelected ? new Set() : new Set(available.map((t) => t.id)))} /></th>
+                        onChange={() => setSelected(() => allSelected ? new Set() : new Set(available.map((t) => t.id)))} /></th>
                       <th className="th">Tarih</th><th className="th">Güzergah</th><th className="th">Plaka</th><th className="th">Durum</th><th className="th text-right">Tutar</th>
                     </tr></thead>
                     <tbody>

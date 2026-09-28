@@ -8,7 +8,7 @@ import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select } fr
 import { TripForm } from '../components/TripForm'
 import { useAuth } from '../lib/auth'
 import { date, tl } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 
 const api = crud<Trip, unknown>('trips')
@@ -22,14 +22,13 @@ export default function TripsPage() {
   const [customerId, setCustomerId] = useState<number | ''>(params.get('customerId') ? Number(params.get('customerId')) : '')
   const [from, setFrom] = useState(params.get('from') ?? '')
   const [to, setTo] = useState(params.get('to') ?? '')
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(params.get('new') ? 'new' : null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
 
-  useEffect(() => { setPage(1) }, [debounced, status, customerId, from, to])
+  const [page, setPage] = usePage([debounced, status, customerId, from, to])
   useEffect(() => {
     if (params.get('new')) { params.delete('new'); setParams(params, { replace: true }) }
   }, [params, setParams])

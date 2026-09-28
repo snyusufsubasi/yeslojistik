@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, errorMessage, get, post, put } from '../api/client'
 import type { ListParams, LookupItem, PagedResult } from '../api/types'
@@ -11,6 +11,15 @@ export function useDebounce<T>(value: T, ms = 300) {
     return () => clearTimeout(t)
   }, [value, ms])
   return v
+}
+
+/** Sayfa numarası; filtreler değişince kendiliğinden 1'e döner (effect kullanmadan). */
+export function usePage(filters: unknown[]) {
+  const key = JSON.stringify(filters)
+  const [state, setState] = useState({ key, page: 1 })
+  const page = state.key === key ? state.page : 1
+  const setPage = useCallback((p: number) => setState({ key, page: p }), [key])
+  return [page, setPage] as const
 }
 
 export function usePaged<T>(resource: string, params: ListParams) {

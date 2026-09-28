@@ -11,7 +11,7 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
-import { crud, useDebounce, usePaged, useSave } from '../lib/hooks'
+import { crud, useDebounce, usePaged, usePage, useSave } from '../lib/hooks'
 import { DueDate } from './VehiclesPage'
 
 const schema = z.object({
@@ -32,12 +32,11 @@ export default function DriversPage() {
   const [params, setParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [showPassive, setShowPassive] = useState(false)
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'fullName', desc: false })
   const [editing, setEditing] = useState<Driver | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Driver | null>(null)
   const debounced = useDebounce(search)
-  useEffect(() => setPage(1), [debounced, showPassive])
+  const [page, setPage] = usePage([debounced, showPassive])
   useEffect(() => {
     const id = params.get('id')
     if (!id) return

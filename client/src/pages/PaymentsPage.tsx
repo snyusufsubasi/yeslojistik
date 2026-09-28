@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Download, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
 import { download } from '../api/client'
 import type { Payment } from '../api/types'
@@ -7,7 +7,7 @@ import { PaymentForm } from '../components/PaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 
 const api = crud<Payment, unknown>('payments')
@@ -18,13 +18,12 @@ export default function PaymentsPage() {
   const [customerId, setCustomerId] = useState<number | ''>('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [editing, setEditing] = useState<Payment | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Payment | null>(null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
-  useEffect(() => setPage(1), [debounced, customerId, from, to])
+  const [page, setPage] = usePage([debounced, customerId, from, to])
 
   const query = { page, pageSize: 20, search: debounced, customerId, from, to, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Payment>('payments', query)

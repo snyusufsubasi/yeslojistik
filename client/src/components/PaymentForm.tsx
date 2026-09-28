@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
@@ -23,14 +23,14 @@ const api = crud<Payment, FormValues>('payments')
 
 export function PaymentForm({ payment, defaults, onClose }: { payment: Payment | null; defaults?: Partial<FormValues>; onClose: () => void }) {
   const customers = useLookup('customers')
-  const { register, handleSubmit, watch, setValue, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: payment
       ? { ...payment, invoiceId: payment.invoiceId ?? null, description: payment.description ?? '' }
       : { date: todayIso(), method: 'BankTransfer', description: '', invoiceId: null, ...defaults },
   })
-  const customerId = watch('customerId')
-  const invoiceId = watch('invoiceId')
+  const customerId = useWatch({ control, name: 'customerId' })
+  const invoiceId = useWatch({ control, name: 'invoiceId' })
   const invoices = useQuery({
     queryKey: ['invoices', 'open', customerId],
     queryFn: () => get<PagedResult<Invoice>>('/invoices', { customerId, status: 'Issued', pageSize: 200, sort: 'date', desc: false }),
@@ -60,7 +60,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
             valueAsNumber: true,
             onChange: (e) => {
               const inv = selectable.find((i) => i.id === Number(e.target.value))
-              if (inv && !watch('amount')) setValue('amount', inv.remaining)
+              if (inv && !getValues('amount')) setValue('amount', inv.remaining)
             },
           })}>
             <option value="">— Faturaya bağlama —</option>

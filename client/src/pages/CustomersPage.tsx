@@ -7,17 +7,16 @@ import { ImportButton } from '../components/ImportDialog'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader } from '../components/ui'
 import { tl } from '../lib/format'
-import { useDebounce, usePaged } from '../lib/hooks'
+import { useDebounce, usePaged, usePage } from '../lib/hooks'
 
 export default function CustomersPage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'title', desc: false })
   const [creating, setCreating] = useState(!!params.get('new'))
   const debounced = useDebounce(search)
-  useEffect(() => setPage(1), [debounced])
+  const [page, setPage] = usePage([debounced])
   useEffect(() => {
     if (params.get('new')) { params.delete('new'); setParams(params, { replace: true }) }
   }, [params, setParams])

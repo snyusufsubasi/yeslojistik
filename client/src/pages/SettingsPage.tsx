@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
@@ -63,11 +63,11 @@ function CompanyForm() {
 
 function CompanyFormInner({ settings }: { settings: CompanySettings }) {
   const toast = useToast()
-  const { register, handleSubmit, setValue, watch, setError, formState: { errors } } = useForm<CompanyValues>({
+  const { register, handleSubmit, control, setValue, setError, formState: { errors } } = useForm<CompanyValues>({
     resolver: zodResolver(companySchema),
     defaultValues: Object.fromEntries(Object.entries(settings).map(([k, v]) => [k, v ?? ''])) as CompanyValues,
   })
-  const logo = watch('logoDataUrl')
+  const logo = useWatch({ control, name: 'logoDataUrl' })
   const save = useSave((v: CompanyValues) => put<CompanySettings>('/settings', nullify(v)), {
     invalidate: ['settings'], success: 'Firma bilgileri kaydedildi.', onError: (e) => applyServerErrors(e, setError),
   })
@@ -177,11 +177,11 @@ function UserForm({ user, onClose }: { user: User | null; onClose: () => void })
     { path: ['password'], message: 'Şifre en az 8 karakter olmalı ve harf ile rakam içermeli.' })
     .refine((v) => v.role !== 'Driver' || !!v.driverId, { path: ['driverId'], message: 'Şoför seçin.' })
   const drivers = useLookup('drivers')
-  const { register, handleSubmit, setError, watch, formState: { errors } } = useForm<UserValues>({
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<UserValues>({
     resolver: zodResolver(schema),
     defaultValues: { fullName: user?.fullName ?? '', email: user?.email ?? '', role: user?.role ?? 'Operations', isActive: user?.isActive ?? true, password: '', driverId: user?.driverId ?? null },
   })
-  const role = watch('role')
+  const role = useWatch({ control, name: 'role' })
   const save = useSave((v: UserValues) => {
     const body = { ...v, driverId: v.role === 'Driver' ? v.driverId : null }
     return user ? usersApi.update(user.id, body) : usersApi.create(body)

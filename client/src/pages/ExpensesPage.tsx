@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
@@ -11,7 +11,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { date, tl2, todayIso } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { expenseCategoryLabel, options } from '../lib/labels'
 
 const schema = z.object({
@@ -33,13 +33,12 @@ export default function ExpensesPage() {
   const [vehicleId, setVehicleId] = useState<number | ''>('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [editing, setEditing] = useState<Expense | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const debounced = useDebounce(search)
   const vehicles = useLookup('vehicles')
-  useEffect(() => setPage(1), [debounced, category, vehicleId, from, to, tripId])
+  const [page, setPage] = usePage([debounced, category, vehicleId, from, to, tripId])
 
   const query = { page, pageSize: 20, search: debounced, category, vehicleId, tripId, from, to, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Expense>('expenses', query)
@@ -102,13 +101,13 @@ export default function ExpensesPage() {
 
 function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | null; defaultTripId?: number; onClose: () => void }) {
   const vehicles = useLookup('vehicles')
-  const { register, handleSubmit, watch, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
       ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '' }
       : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '' },
   })
-  const vehicleId = watch('vehicleId')
+  const vehicleId = useWatch({ control, name: 'vehicleId' })
   const trips = useQuery({
     queryKey: ['trips', 'for-expense', vehicleId],
     queryFn: () => get<PagedResult<Trip>>('/trips', { vehicleId: vehicleId || undefined, pageSize: 100, sort: 'loadingDate', desc: true }),

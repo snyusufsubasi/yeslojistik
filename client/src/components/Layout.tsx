@@ -29,9 +29,11 @@ const nav: { to: string; label: string; icon: typeof Home; perm?: Permission }[]
 
 export function Layout() {
   const { user, logout, can } = useAuth()
-  const [open, setOpen] = useState(false)
   const location = useLocation()
-  useEffect(() => setOpen(false), [location.pathname])
+  // Menü açıldığı sayfaya bağlı: başka sayfaya geçince kendiliğinden kapanır.
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const open = openAt === location.pathname
+  const setOpen = (v: boolean) => setOpenAt(v ? location.pathname : null)
 
   return (
     <div className="flex min-h-full">

@@ -12,7 +12,7 @@ import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { date, daysUntil } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { options, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 
 const schema = z.object({
@@ -37,12 +37,11 @@ export default function VehiclesPage() {
   const [params, setParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<VehicleStatus | ''>('')
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'plate', desc: false })
   const [editing, setEditing] = useState<Vehicle | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Vehicle | null>(null)
   const debounced = useDebounce(search)
-  useEffect(() => setPage(1), [debounced, status])
+  const [page, setPage] = usePage([debounced, status])
 
   // Bildirimden gelen ?id=… bağlantısı ilgili aracı açar.
   useEffect(() => {

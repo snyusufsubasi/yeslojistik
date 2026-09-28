@@ -10,7 +10,7 @@ import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, IconButton, Modal, PageHeader, Select, Spinner } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { useDebounce, useLookup, usePaged, useSave } from '../lib/hooks'
+import { useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { invoiceStatusLabel, options, paymentStatusTone } from '../lib/labels'
 
 export default function InvoicesPage() {
@@ -24,12 +24,11 @@ export default function InvoicesPage() {
   const [unpaid, setUnpaid] = useState(!!params.get('unpaid'))
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [page, setPage] = useState(1)
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [viewing, setViewing] = useState<number | null>(params.get('id') ? Number(params.get('id')) : null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
-  useEffect(() => setPage(1), [debounced, status, customerId, unpaid, from, to])
+  const [page, setPage] = usePage([debounced, status, customerId, unpaid, from, to])
   useEffect(() => {
     if (params.get('id') || params.get('unpaid')) { params.delete('id'); params.delete('unpaid'); setParams(params, { replace: true }) }
   }, [params, setParams])

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
@@ -36,7 +36,7 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
 
-  const { register, handleSubmit, watch, setValue, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: trip ? {
       customerId: trip.customerId, vehicleId: trip.vehicleId, driverId: trip.driverId,
@@ -57,14 +57,14 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
   const statusMut = useSave((s: TripStatus) => post<Trip>(`/trips/${trip!.id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles'], success: 'Sefer durumu güncellendi.', onSuccess: onClose })
 
-  const cost = watch('vehicleCost')
-  const price = watch('salePrice')
+  const cost = useWatch({ control, name: 'vehicleCost' })
+  const price = useWatch({ control, name: 'salePrice' })
   const profit = (Number(price) || 0) - (Number(cost) || 0) - (trip?.expenseTotal ?? 0)
   const invoiced = !!trip?.invoiceId
 
   const onVehicleChange = (id: number) => {
     const v = vehicles.data?.find((x) => x.id === id)
-    if (v?.extra && !watch('driverId')) setValue('driverId', Number(v.extra))
+    if (v?.extra && !getValues('driverId')) setValue('driverId', Number(v.extra))
   }
 
   return (
