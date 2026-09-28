@@ -1,0 +1,13 @@
+# Yalnızca depo kökünü context olarak kullanan deploy/render.Dockerfile için.
+.git
+**/node_modules
+**/bin
+**/obj
+client/dist
+client/test-results
+client/e2e/screenshots
+mobile
+docs
+backups
+deploy/rclone
+.env

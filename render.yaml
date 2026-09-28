@@ -1,0 +1,33 @@
+# Render.com Blueprint: ücretsiz demo kurulumu (panel + API tek servis + PostgreSQL).
+# Render panelinde New → Blueprint → bu depoyu seçin. Ayrıntı: docs/KURULUM.md → "Ücretsiz demo (Render)".
+# Not: ücretsiz servis 15 dk kullanılmayınca uyur; ücretsiz veritabanı 30 gün sonra silinir. Canlı kullanım için VPS kurulumunu kullanın.
+databases:
+  - name: yeslojistik-db
+    plan: free
+    databaseName: yeslojistik
+    user: yeslojistik
+
+services:
+  - type: web
+    name: yeslojistik
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/render.Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yeslojistik-db
+          property: connectionString
+      - key: Jwt__Key
+        generateValue: true
+      - key: Jwt__SecureCookies
+        value: "true"
+      - key: Seed__AdminEmail
+        value: admin@yeslojistik.com
+      # Kurulum sırasında Render sorar: ilk yönetici şifresi.
+      - key: Seed__AdminPassword
+        sync: false
+      - key: Seed__SampleData
+        value: "true"

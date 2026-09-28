@@ -29,6 +29,8 @@ sudo ./deploy/install.sh     # alan adı + yönetici e-postası sorar, gerisini 
 
 Ayrıntılar ve demo verilerden gerçek verilere geçiş: [docs/KURULUM.md](docs/KURULUM.md).
 
+Sunucu kiralamadan denemek için ücretsiz Render.com kurulumu: [docs/KURULUM.md → Ücretsiz demo](docs/KURULUM.md#ücretsiz-demo-rendercom).
+
 ## Hızlı başlangıç (geliştirme)
 
 Gerekenler: .NET 8 SDK, Node 22, PostgreSQL 16 (`localhost:5432`, kullanıcı/şifre `postgres`/`postgres`).

@@ -25,8 +25,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration).WriteTo.Console());
 
 // --- Veritabanı ve servisler ---
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("ConnectionStrings:Default ayarlanmamış.");
+// Render vb. platformlar veritabanını DATABASE_URL (postgres://...) olarak verir.
+var connectionString = HostingSupport.NormalizeConnectionString(builder.Configuration.GetConnectionString("Default"))
+    ?? HostingSupport.NormalizeConnectionString(builder.Configuration["DATABASE_URL"])
+    ?? throw new InvalidOperationException("ConnectionStrings:Default (veya DATABASE_URL) ayarlanmamış.");
+// Render sitenin dış adresini RENDER_EXTERNAL_URL ile bildirir (takip linkleri için).
+if (string.IsNullOrWhiteSpace(builder.Configuration["App:PublicUrl"]) && builder.Configuration["RENDER_EXTERNAL_URL"] is { Length: > 0 } externalUrl)
+    builder.Configuration["App:PublicUrl"] = externalUrl;
 builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads");
 builder.Services.AddHostedService<LocationRetentionService>();
 builder.Services.AddHostedService<DailyDigestWorker>();
@@ -141,6 +146,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
+// Tek konteyner kurulumunda (deploy/render.Dockerfile) panel wwwroot'tan sunulur; Docker Compose'da bunu nginx yapar.
+var bundledPanel = Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
+if (bundledPanel) app.UseBundledPanel();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 if (app.Environment.IsDevelopment())
@@ -148,6 +156,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+// Açıkça çağrılır ki statik dosyalar (panel) rota eşleştirmesinden önce sunulsun.
+app.UseRouting();
 if (corsOrigins.Length > 0) app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -156,6 +166,7 @@ app.UseAuthorization();
 app.MapGet("/api/health", async (AppDbContext db) =>
     await db.Database.CanConnectAsync() ? Results.Ok(new { status = "ok" }) : Results.StatusCode(503)).AllowAnonymous();
 app.MapControllers();
+if (bundledPanel) app.MapBundledPanel();
 
 app.Run();
 

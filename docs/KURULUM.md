@@ -35,6 +35,23 @@ Betik üç soru sorar: alan adı, yönetici e-postası ve demo verilerle başlan
 
 Yalnızca kendi bilgisayarında denemek için (HTTPS yok, adres http://localhost:8080): `cp .env.example .env`, `.env`'i doldur, sonra `docker compose up -d --build`.
 
+## Ücretsiz demo (Render.com)
+
+Kuzeninin denemesi için, sunucu kiralamadan ücretsiz ve sabit bir adres (`https://…onrender.com`) almanın yolu:
+
+1. https://render.com adresine **GitHub hesabınızla** üye olun. Kredi kartı istenmez.
+2. **New → Blueprint** seçin, bu depoyu (`yeslojistik`) seçin. Render, depodaki `render.yaml` dosyasını okur.
+3. Sorulan **Seed__AdminPassword** alanına ilk yönetici şifresini yazın ve **Apply** deyin.
+4. İlk kurulum 5–10 dakika sürer. Bitince servis sayfasındaki adrese girin ve `admin@yeslojistik.com` ile yazdığınız şifreyle giriş yapın. Program demo verilerle açılır.
+
+Kısıtlar (ücretsiz plan):
+- 15 dakika kullanılmazsa servis uyur; ilk açılış yaklaşık 1 dakika sürer.
+- Ücretsiz veritabanı 30 gün sonra silinir.
+- Yüklenen fotoğraflar servis yeniden başlayınca kaybolur.
+- E-posta gönderimi için SMTP ayarlarını Render panelinden (Environment) ekleyin: `Smtp__Host`, `Smtp__Port`, `Smtp__User`, `Smtp__Password`, `Smtp__From`.
+
+Bu kurulum panel ve API'yi tek konteynerde çalıştırır (`deploy/render.Dockerfile`). Gerçek kullanım için yukarıdaki VPS kurulumunu kullanın.
+
 ## 2. Canlıya geçiş: demo verilerden gerçek verilere
 
 1. Kurulumda demo seçildiyse, program örnek müşteri, araç ve seferlerle açılır. Ana sayfada sarı bir "demo veriler" uyarısı görünür.
