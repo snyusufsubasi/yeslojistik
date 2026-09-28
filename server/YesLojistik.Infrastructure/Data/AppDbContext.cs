@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<TripAttachment> TripAttachments => Set<TripAttachment>();
     public DbSet<VehicleLocation> VehicleLocations => Set<VehicleLocation>();
     public DbSet<PushToken> PushTokens => Set<PushToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -45,6 +46,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Email).HasMaxLength(200);
             e.HasIndex(x => x.Email).IsUnique().HasFilter("is_deleted = false");
             e.HasOne(x => x.Driver).WithMany().OnDelete(DeleteBehavior.SetNull);
+        });
+        b.Entity<AuditLog>(e =>
+        {
+            e.Property(x => x.UserName).HasMaxLength(100);
+            e.Property(x => x.Action).HasMaxLength(20);
+            e.Property(x => x.EntityType).HasMaxLength(50);
+            e.Property(x => x.Label).HasMaxLength(200);
+            e.Property(x => x.Changes).HasMaxLength(2000);
+            e.HasIndex(x => x.At);
+            e.HasIndex(x => new { x.EntityType, x.EntityId });
         });
         b.Entity<RefreshToken>(e =>
         {
@@ -174,6 +185,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         }
         foreach (var entry in ChangeTracker.Entries<CompanySettings>().Where(e => e.State == EntityState.Modified))
             entry.Entity.UpdatedAt = now;
-        return base.SaveChangesAsync(ct);
+        return SaveWithAuditAsync(now, ct);
+    }
+
+    /// <summary>Değişiklikleri kaydeder, ardından işlem geçmişine yazar (yeni kayıtların Id'si kayıttan sonra belli olur).</summary>
+    private async Task<int> SaveWithAuditAsync(DateTime now, CancellationToken ct)
+    {
+        var pending = ChangeTracker.Entries().Where(AuditTrail.Tracks).Select(AuditTrail.Describe).OfType<AuditTrail.Pending>().ToList();
+        var result = await base.SaveChangesAsync(ct);
+        if (pending.Count == 0) return result;
+        AuditLogs.AddRange(pending.Select(p => AuditTrail.ToLog(p, now, currentUser?.Id, currentUser?.Name)));
+        await base.SaveChangesAsync(ct);
+        return result;
     }
 }

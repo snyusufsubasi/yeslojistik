@@ -1,0 +1,53 @@
+import { useState } from 'react'
+import type { AuditLogEntry } from '../api/types'
+import { dateTime } from '../lib/format'
+import { useDebounce, usePage, usePaged } from '../lib/hooks'
+import { DataTable, SearchBox, type Column } from './DataTable'
+import { Badge, Select } from './ui'
+
+const auditEntityLabel: Record<string, string> = {
+  Trip: 'Sefer', Invoice: 'Fatura', Payment: 'Tahsilat', Customer: 'Müşteri', Vehicle: 'Araç', Driver: 'Şoför',
+  Expense: 'Gider', User: 'Kullanıcı', TripAttachment: 'Sefer dosyası', CompanySettings: 'Ayarlar',
+}
+const actionLabel: Record<string, { text: string; tone: 'green' | 'blue' | 'red' | 'orange' }> = {
+  Created: { text: 'Oluşturdu', tone: 'green' },
+  Updated: { text: 'Değiştirdi', tone: 'blue' },
+  Deleted: { text: 'Sildi', tone: 'red' },
+  Reset: { text: 'Sıfırladı', tone: 'orange' },
+}
+
+/** İşlem geçmişi listesi. entityType/entityId verilirse yalnızca o kaydın geçmişi gösterilir. */
+export function AuditLogTable({ entityType, entityId }: { entityType?: string; entityId?: number }) {
+  const [search, setSearch] = useState('')
+  const [type, setType] = useState<string>('')
+  const debounced = useDebounce(search)
+  const fixed = entityType !== undefined
+  const [page, setPage] = usePage([debounced, type])
+  const { data, isFetching } = usePaged<AuditLogEntry>('audit', {
+    page, pageSize: fixed ? 50 : 30, search: debounced, entityType: fixed ? entityType : type || undefined, entityId,
+  })
+  const cols: Column<AuditLogEntry>[] = [
+    { key: 'at', header: 'Zaman', render: (a) => dateTime(a.at) },
+    { key: 'user', header: 'Kişi', render: (a) => a.userName ?? '—' },
+    { key: 'action', header: 'İşlem', render: (a) => <Badge tone={actionLabel[a.action]?.tone ?? 'blue'}>{actionLabel[a.action]?.text ?? a.action}</Badge> },
+    ...(fixed ? [] : [{
+      key: 'entity', header: 'Kayıt', className: 'whitespace-normal! min-w-40',
+      render: (a: AuditLogEntry) => <>{a.label ?? `#${a.entityId}`}<span className="block text-[13px] text-slate-500">{auditEntityLabel[a.entityType] ?? a.entityType}</span></>,
+    }]),
+    { key: 'changes', header: 'Değişiklik', className: 'whitespace-normal! min-w-60',
+      render: (a) => a.changes ? <span className="text-sm">{a.changes}</span> : <span className="text-slate-500">—</span> },
+  ]
+  return (
+    <>
+      {!fixed && (
+        <div className="flex flex-wrap gap-2 p-3">
+          <Select aria-label="Kayıt türü" className="w-44" value={type} onChange={(v) => setType(v)} placeholder="Tüm kayıtlar"
+            options={Object.entries(auditEntityLabel).map(([value, label]) => ({ value, label }))} />
+          <div className="min-w-56 flex-1"><SearchBox value={search} onChange={setSearch} placeholder="Kişi, kayıt ya da değişiklik ara..." /></div>
+        </div>
+      )}
+      <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(a) => a.id}
+        page={page} pageSize={fixed ? 50 : 30} total={data?.total} onPage={setPage} empty="Kayıt yok." />
+    </>
+  )
+}

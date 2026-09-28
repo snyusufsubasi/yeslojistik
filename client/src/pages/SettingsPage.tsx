@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Bell, Building2, DatabaseZap, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { Bell, Building2, DatabaseZap, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
 import type { CompanySettings, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
@@ -13,18 +13,20 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
+import { AuditLogTable } from '../components/AuditLog'
 import { date } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'data' | 'password'
+type Tab = 'company' | 'users' | 'audit' | 'data' | 'password'
 
 export default function SettingsPage() {
   const { can } = useAuth()
   const [params] = useSearchParams()
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) ?? (can('admin') ? 'company' : 'password'))
   const tabs = [
-    ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' }, { value: 'data' as const, label: 'Veriler' }] : []),
+    ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' },
+      { value: 'audit' as const, label: 'İşlem Geçmişi' }, { value: 'data' as const, label: 'Veriler' }] : []),
     { value: 'password' as const, label: 'Şifre Değiştir' },
   ]
   return (
@@ -33,6 +35,12 @@ export default function SettingsPage() {
       <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={tabs} /></div>
       {tab === 'company' && can('admin') && <CompanyForm />}
       {tab === 'users' && can('admin') && <UsersTab />}
+      {tab === 'audit' && can('admin') && (
+        <Card title="İşlem Geçmişi" icon={<History className="size-4" />} bodyClassName="p-0">
+          <p className="px-4 pt-3 text-sm text-slate-600">Kim, ne zaman, hangi kaydı oluşturdu, değiştirdi ya da sildi. Kayıtlar 2 yıl saklanır.</p>
+          <AuditLogTable />
+        </Card>
+      )}
       {tab === 'data' && can('admin') && <ResetDataCard />}
       {tab === 'password' && <PasswordForm />}
     </>
@@ -111,35 +119,37 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
           </div>
         </div>
       </Card>
-      <Card title="Fatura Ayarları" className="h-fit">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Fatura Ön Eki" error={errors.invoicePrefix?.message}><input className="input uppercase" {...register('invoicePrefix', { setValueAs: (v: string) => v.toUpperCase() })} /></Field>
-          <Field label="Sıradaki Fatura No" error={errors.nextInvoiceNumber?.message}><input className="input" type="number" {...register('nextInvoiceNumber', { valueAsNumber: true })} /></Field>
-          <Field label="Varsayılan KDV (%)" error={errors.defaultVatRate?.message}><input className="input" type="number" step="0.01" {...register('defaultVatRate', { valueAsNumber: true })} /></Field>
-          <Field label="Varsayılan Tevkifat">
-            <select className="input" {...register('defaultWithholdingTenths', { valueAsNumber: true })}>
-              {withholdingOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </Field>
-          <Field label="Varsayılan Vade (gün)" error={errors.defaultPaymentTermDays?.message}><input className="input" type="number" {...register('defaultPaymentTermDays', { valueAsNumber: true })} /></Field>
-        </div>
-      </Card>
-      <Card title="Bildirimler" icon={<Bell className="size-4" />} className="h-fit lg:col-start-2">
-        {!settings.emailEnabled && (
-          <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Sunucuda e-posta (SMTP) ayarı yapılmamış; e-posta bildirimleri gönderilmez. Kurulum kılavuzundaki SMTP adımına bakın.
-          </p>
-        )}
-        <label className="flex items-start gap-3">
-          <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('dailyDigestEnabled')} />
-          <span>
-            <span className="block text-[15px] font-medium text-slate-800">Sabah uyarı özeti</span>
-            <span className="block text-sm text-slate-600">Her sabah 08:00'de yöneticilere yaklaşan bakım, muayene, sigorta, şoför belgeleri ve vadesi geçen alacakların listesi e-postayla gelir. Uyarı yoksa e-posta gönderilmez.</span>
-          </span>
-        </label>
-        <p className="mt-3 text-sm text-slate-600">Müşterilere sefer durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
-        <div className="mt-4 flex justify-end"><Button type="submit" loading={save.isPending}>Kaydet</Button></div>
-      </Card>
+      <div className="flex flex-col gap-4">
+        <Card title="Fatura Ayarları" className="h-fit">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Fatura Ön Eki" error={errors.invoicePrefix?.message}><input className="input uppercase" {...register('invoicePrefix', { setValueAs: (v: string) => v.toUpperCase() })} /></Field>
+            <Field label="Sıradaki Fatura No" error={errors.nextInvoiceNumber?.message}><input className="input" type="number" {...register('nextInvoiceNumber', { valueAsNumber: true })} /></Field>
+            <Field label="Varsayılan KDV (%)" error={errors.defaultVatRate?.message}><input className="input" type="number" step="0.01" {...register('defaultVatRate', { valueAsNumber: true })} /></Field>
+            <Field label="Varsayılan Tevkifat">
+              <select className="input" {...register('defaultWithholdingTenths', { valueAsNumber: true })}>
+                {withholdingOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Varsayılan Vade (gün)" error={errors.defaultPaymentTermDays?.message}><input className="input" type="number" {...register('defaultPaymentTermDays', { valueAsNumber: true })} /></Field>
+          </div>
+        </Card>
+        <Card title="Bildirimler" icon={<Bell className="size-4" />} className="h-fit">
+          {!settings.emailEnabled && (
+            <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Sunucuda e-posta (SMTP) ayarı yapılmamış; e-posta bildirimleri gönderilmez. Kurulum kılavuzundaki SMTP adımına bakın.
+            </p>
+          )}
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('dailyDigestEnabled')} />
+            <span>
+              <span className="block text-[15px] font-medium text-slate-800">Sabah uyarı özeti</span>
+              <span className="block text-sm text-slate-600">Her sabah 08:00'de yöneticilere yaklaşan bakım, muayene, sigorta, şoför belgeleri ve vadesi geçen alacakların listesi e-postayla gelir. Uyarı yoksa e-posta gönderilmez.</span>
+            </span>
+          </label>
+          <p className="mt-3 text-sm text-slate-600">Müşterilere sefer durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
+          <div className="mt-4 flex justify-end"><Button type="submit" loading={save.isPending}>Kaydet</Button></div>
+        </Card>
+      </div>
     </form>
   )
 }

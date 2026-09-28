@@ -193,3 +193,20 @@ test('yakıt gideri litre ve km ile girilir, yakıt raporunda görünür', async
   await page.getByRole('button', { name: 'Yakıt' }).click()
   await expect(page.getByText(/Filo ortalaması/)).toBeVisible()
 })
+
+test('işlem geçmişi yapılan değişikliği gösterir', async ({ page }) => {
+  await login(page)
+  await page.goto('/seferler')
+  await page.getByRole('row').nth(1).click()
+  const dlg = page.getByRole('dialog', { name: 'Sefer Düzenle' })
+  const desc = dlg.getByLabel('Açıklama')
+  const note = `Geçmiş testi ${Date.now()}`
+  await desc.fill(note)
+  await dlg.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Sefer güncellendi.')).toBeVisible()
+
+  await page.goto('/ayarlar?tab=audit')
+  const row = page.getByRole('row').filter({ hasText: note })
+  await expect(row.getByText('Değiştirdi')).toBeVisible()
+  await expect(row.getByText('Yönetici')).toBeVisible()
+})

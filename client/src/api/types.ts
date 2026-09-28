@@ -361,3 +361,14 @@ export interface PublicTracking {
   longitude?: number | null
   lastLocationAt?: string | null
 }
+
+export interface AuditLogEntry {
+  id: number
+  at: string
+  userName?: string | null
+  action: string
+  entityType: string
+  entityId: number
+  label?: string | null
+  changes?: string | null
+}

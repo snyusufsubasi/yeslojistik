@@ -20,6 +20,8 @@ import { Badge, Button, Field, Modal, Tabs } from './ui'
 import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
 import { TripAttachments, TripTracking } from './TripExtras'
+import { AuditLogTable } from './AuditLog'
+import { useAuth } from '../lib/auth'
 
 const schema = z.object({
   customerId: idField('Müşteri seçin.'),
@@ -47,7 +49,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   copyOf?: Trip | null
 }) {
   const toast = useToast()
-  const [tab, setTab] = useState<'info' | 'files' | 'tracking'>('info')
+  const [tab, setTab] = useState<'info' | 'files' | 'tracking' | 'history'>('info')
+  const { can } = useAuth()
   const customers = useLookup('customers')
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
@@ -111,11 +114,13 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             { value: 'info', label: 'Sefer Bilgileri' },
             { value: 'files', label: 'Dosyalar / Fotoğraflar' },
             { value: 'tracking', label: 'Takip ve Rota' },
+            ...(can('admin') ? [{ value: 'history' as const, label: 'Geçmiş' }] : []),
           ]} />
         </div>
       )}
       {trip && tab === 'files' && <TripAttachments trip={trip} />}
       {trip && tab === 'tracking' && <TripTracking trip={trip} />}
+      {trip && tab === 'history' && <AuditLogTable entityType="Trip" entityId={trip.id} />}
       <div className={tab === 'info' ? '' : 'hidden'}>
       {trip && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 p-3">

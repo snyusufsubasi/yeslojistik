@@ -32,6 +32,7 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
             await db.Users.IgnoreQueryFilters().Where(u => u.Role == UserRole.Driver).ExecuteDeleteAsync(ct);
             await db.Users.IgnoreQueryFilters().Where(u => u.DriverId != null).ExecuteUpdateAsync(s => s.SetProperty(u => u.DriverId, (int?)null), ct);
 
+            await db.AuditLogs.ExecuteDeleteAsync(ct);
             foreach (var table in Tables)
             {
 #pragma warning disable EF1002 // Tablo adları yukarıdaki sabit listeden gelir.
@@ -51,6 +52,9 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
             if (settings.TaxOffice == DemoCompany.TaxOffice) settings.TaxOffice = null;
             if (settings.TaxNumber == DemoCompany.TaxNumber) settings.TaxNumber = null;
             if (settings.Iban == DemoCompany.Iban) settings.Iban = null;
+            await db.SaveChangesAsync(ct);
+            db.AuditLogs.Add(new AuditLog { At = DateTime.UtcNow, UserName = actor, Action = "Reset", EntityType = nameof(CompanySettings), EntityId = 1,
+                Label = "Demo veriler temizlendi" });
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         }
