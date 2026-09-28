@@ -4,7 +4,8 @@ services:
   api:
     environment:
       Jwt__SecureCookies: "true"
-      Seed__SampleData: "false"
+      # Demo veriyle açmak için .env'de SAMPLE_DATA=true; Ayarlar → Veriler'den temizlendikten sonra bir daha yüklenmez.
+      Seed__SampleData: ${SAMPLE_DATA:-false}
 
   web:
     ports: !reset []

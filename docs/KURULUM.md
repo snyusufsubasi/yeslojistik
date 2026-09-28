@@ -1,52 +1,49 @@
 # Kurulum ve İşletim
 
-## 1. Sunucu
+## 1. Sunucu ve kurulum (tek komut)
 
-Önerilen: 2 vCPU / 4 GB RAM Ubuntu 24.04 VPS (Hetzner CX22, DigitalOcean vb. ~5–10 €/ay) + alan adı.
+Gerekenler:
+- 2 vCPU / 4 GB RAM Ubuntu 24.04 VPS (Hetzner CX22, DigitalOcean vb. ~5–10 €/ay)
+- Bir alan adı. DNS'te A kaydı sunucunun IP'sini göstermeli, örneğin `panel.yeslojistik.com → 1.2.3.4`.
+- Sunucuda 80 ve 443 portları açık olmalı.
 
 ```bash
-# Docker kur
-curl -fsSL https://get.docker.com | sh
-
-# Projeyi indir
-git clone <repo-adresi> /opt/yeslojistik && cd /opt/yeslojistik
-
-# Ayarlar
-cp .env.example .env
-nano .env
+git clone https://github.com/snyusufsubasi/yeslojistik.git /opt/yeslojistik && cd /opt/yeslojistik
+sudo ./deploy/install.sh
 ```
 
-`.env` içinde mutlaka doldurun:
+Betik üç soru sorar: alan adı, yönetici e-postası ve demo verilerle başlanıp başlanmayacağı. Ardından:
+- Docker yoksa kurar.
+- Veritabanı şifresini, oturum anahtarını ve ilk yönetici şifresini rastgele üretip `.env` dosyasına yazar.
+- Uygulamayı derleyip başlatır. HTTPS sertifikası otomatik alınır, gece yedeği kurulur.
+- Sonda adresi ve **ilk yönetici şifresini bir kez** gösterir. Şifreyi not alın ve ilk girişte *Ayarlar → Şifre Değiştir*'den değiştirin.
+
+| Komut | Ne yapar |
+|---|---|
+| `./deploy/check.sh` | Servisler, API, HTTPS, son yedek ve disk durumunu kontrol eder |
+| `./deploy/update.sh` | Önce yedek alır, sonra yeni sürümü çekip derler; veritabanı güncellemeleri otomatik uygulanır |
+| `docker compose logs -f api` | Uygulama kayıtları |
+
+İsteğe bağlı ayarlar, `.env` dosyasını düzenledikten sonra `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` ile uygulanır:
 
 | Değişken | Açıklama |
 |---|---|
-| `POSTGRES_PASSWORD` | Uzun rastgele şifre (`openssl rand -base64 24`) |
-| `JWT_KEY` | En az 32 karakter (`openssl rand -base64 48`) |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | İlk yönetici hesabı. İlk girişten sonra şifreyi panelden değiştirin |
-| `DOMAIN` | Ör. `panel.yeslojistik.com` — DNS'te A kaydı sunucu IP'sini göstermeli |
-| `SAMPLE_DATA` | Canlıda `false` |
-| `PUBLIC_URL` | Müşteri takip linklerinde kullanılacak adres, ör. `https://panel.yeslojistik.com` |
-| `LOCATION_RETENTION_DAYS` | GPS kayıtlarının saklanacağı gün (varsayılan 90) |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | İsteğe bağlı: faturayı müşteriye e-postayla göndermek için |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Faturayı müşteriye e-postayla göndermek için |
+| `LOCATION_RETENTION_DAYS` | GPS kayıtlarının saklanacağı gün sayısı (varsayılan 90) |
+| `BACKUP_KEEP_DAYS` | Sunucuda tutulacak yedek günü (varsayılan 30) |
 
-## 2. Çalıştırma
+Yalnızca kendi bilgisayarında denemek için (HTTPS yok, adres http://localhost:8080): `cp .env.example .env`, `.env`'i doldur, sonra `docker compose up -d --build`.
 
-```bash
-# Canlı (HTTPS + gece yedeği)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+## 2. Canlıya geçiş: demo verilerden gerçek verilere
 
-# Sadece yerel deneme (http://localhost:8080)
-docker compose up -d --build
-```
-
-Veritabanı tabloları API ilk açıldığında otomatik oluşturulur (migration). Güncelleme için:
-
-```bash
-git pull
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-```
-
-Loglar: `docker compose logs -f api`
+1. Kurulumda demo seçildiyse, program örnek müşteri, araç ve seferlerle açılır. Ana sayfada sarı bir "demo veriler" uyarısı görünür.
+2. Deneme bitince *Ayarlar → Veriler → Demo verilerini temizle* bölümüne gidin, kutuya `SİL` yazıp onaylayın.
+   - Silinenler: müşteriler, araçlar, şoförler, seferler, faturalar, tahsilatlar, giderler, konum geçmişi ve şoför hesapları.
+   - Kalanlar: firma bilgileri, personel hesapları ve fatura ayarları. Demo VKN, IBAN ve adres bilgileri de temizlenir.
+   - Numaralar 1'den başlar. Demo veriler bir daha yüklenmez.
+3. *Ayarlar → Firma Bilgileri*: VKN, vergi dairesi, adres, IBAN ve logoyu girin. Eski programda fatura numaraları devam ediyorsa *Sıradaki fatura numarası* alanına oradan devam eden numarayı yazın.
+4. Araçlar, Şoförler ve Müşteriler sayfalarında **Excel'den Aktar** → **Şablonu İndir** → şablonu doldurun → yükleyin. Müşterilerin eski borçları şablondaki *Devir Bakiyesi* sütununa yazılır.
+5. *Ayarlar → Kullanıcılar*: çalışanlar ve şoförler için hesap açın.
 
 ## 3. Yedekleme (zorunlu!)
 
@@ -61,7 +58,7 @@ Loglar: `docker compose logs -f api`
 
 Alternatif: `rclone` ile Google Drive / Backblaze B2 / S3'e kopyalama.
 
-Elle yedek: `docker compose exec backup sh /backup.sh`
+Elle yedek: `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backup sh /backup.sh`
 
 ### Geri yükleme (ayda bir deneyin!)
 

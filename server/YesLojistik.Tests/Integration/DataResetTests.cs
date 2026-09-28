@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using YesLojistik.Infrastructure.Data;
+using YesLojistik.Infrastructure.Services;
 using FluentAssertions;
 using YesLojistik.Core.Dtos;
 using YesLojistik.Core.Entities;
@@ -40,6 +43,14 @@ public class DataResetTests(ApiFactory factory) : IClassFixture<ApiFactory>
         setup.Should().BeEquivalentTo(new { CustomerCount = 0, VehicleCount = 0, DriverCount = 0, TripCount = 0, UserCount = 2, SampleData = false });
         var users = await (await c.GetAsync("/api/users")).ReadAsync<List<UserDto>>();
         users.Select(u => u.Role).Should().BeEquivalentTo([UserRole.Admin, UserRole.Operations]);
+
+        // Sunucu SAMPLE_DATA açıkken yeniden başlasa bile demo veriler geri gelmez.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await DbSeeder.SeedSampleDataAsync(db, scope.ServiceProvider.GetRequiredService<InvoiceService>());
+            (await db.Customers.CountAsync()).Should().Be(0);
+        }
 
         // Numaralar baştan başlar.
         var fresh = await (await c.PostJsonAsync("/api/customers", new CustomerSaveRequest("Gerçek Müşteri", null, null, null, null, null, null))).ReadAsync<CustomerSummaryDto>();

@@ -53,6 +53,8 @@ public static class DbSeeder
     public static async Task SeedSampleDataAsync(AppDbContext db, InvoiceService invoices)
     {
         if (await db.Customers.IgnoreQueryFilters().AnyAsync()) return;
+        // Canlıya geçişte demo veriler silindiyse, SAMPLE_DATA açık kalsa bile tekrar yüklenmez.
+        if (await db.CompanySettings.AnyAsync(s => s.SampleDataClearedAt != null)) return;
         var today = Clock.Today;
 
         var settings = await db.CompanySettings.FirstAsync();

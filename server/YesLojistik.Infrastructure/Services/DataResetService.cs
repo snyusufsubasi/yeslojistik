@@ -42,6 +42,7 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
 
             var settings = await db.CompanySettings.FirstAsync(ct);
             settings.HasSampleData = false;
+            settings.SampleDataClearedAt = DateTime.UtcNow;
             settings.NextInvoiceNumber = 1;
             // Demo firma bilgileri gerçek faturalara basılmasın; kullanıcının değiştirdiği alanlara dokunulmaz.
             if (settings.Address == DemoCompany.Address) settings.Address = null;

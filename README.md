@@ -16,6 +16,16 @@ ve şoför mobil uygulaması.
 | [docs/KULLANIM.md](docs/KULLANIM.md) | Kullanım kılavuzu (kuzen için) |
 | [mobile/README.md](mobile/README.md) | Şoför uygulaması: derleme, kurulum, konum paylaşımı |
 
+## Sunucuya kurulum (canlı)
+
+```bash
+git clone https://github.com/snyusufsubasi/yeslojistik.git /opt/yeslojistik && cd /opt/yeslojistik
+sudo ./deploy/install.sh     # alan adı + yönetici e-postası sorar, gerisini kendisi yapar
+./deploy/check.sh            # durum kontrolü
+```
+
+Ayrıntılar ve demo verilerden gerçek verilere geçiş: [docs/KURULUM.md](docs/KURULUM.md).
+
 ## Hızlı başlangıç (geliştirme)
 
 Gerekenler: .NET 8 SDK, Node 22, PostgreSQL 16 (`localhost:5432`, kullanıcı/şifre `postgres`/`postgres`).

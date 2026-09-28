@@ -19,5 +19,7 @@ public class CompanySettings
     public int DefaultPaymentTermDays { get; set; } = 30;
     /// <summary>Örnek (demo) veri yüklüyse true; "Demo verilerini temizle" ile false olur.</summary>
     public bool HasSampleData { get; set; }
+    /// <summary>Demo veriler temizlendiyse zamanı; bir daha örnek veri yüklenmez.</summary>
+    public DateTime? SampleDataClearedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
