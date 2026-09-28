@@ -9,6 +9,7 @@ import { tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 import { Button, Field, Modal } from './ui'
+import { FormSelect } from './FormSelect'
 
 const schema = z.object({
   customerId: idField('Müşteri seçin.'),
@@ -49,23 +50,18 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
       <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
         <Field className="sm:col-span-2" label="Müşteri" required error={errors.customerId?.message}>
-          <select className="input" {...register('customerId', { valueAsNumber: true, onChange: () => setValue('invoiceId', null) })}>
-            <option value="">Seçiniz</option>
-            {customers.data?.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
+          <FormSelect control={control} name="customerId" onValueChange={() => setValue('invoiceId', null)}
+            options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
         </Field>
         <Field className="sm:col-span-2" label="Fatura" error={errors.invoiceId?.message}
           hint="Boş bırakılırsa tahsilat en eski açık faturalara sırayla dağıtılır.">
-          <select className="input" {...register('invoiceId', {
-            valueAsNumber: true,
-            onChange: (e) => {
-              const inv = selectable.find((i) => i.id === Number(e.target.value))
-              if (inv && !getValues('amount')) setValue('amount', inv.remaining)
-            },
-          })}>
-            <option value="">— Faturaya bağlama —</option>
-            {selectable.map((i) => <option key={i.id} value={i.id}>{i.invoiceNo} · Kalan {tl(i.remaining)}</option>)}
-          </select>
+          <FormSelect control={control} name="invoiceId" placeholder="— Faturaya bağlama —"
+            onValueChange={(id) => {
+              const inv = selectable.find((i) => i.id === id)
+              const amount = getValues('amount')
+              if (inv && (amount == null || Number.isNaN(amount))) setValue('amount', inv.remaining)
+            }}
+            options={selectable.map((i) => ({ value: i.id, label: `${i.invoiceNo} · Kalan ${tl(i.remaining)}` }))} />
         </Field>
         <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
         <Field label="Tutar (TL)" required error={errors.amount?.message}>

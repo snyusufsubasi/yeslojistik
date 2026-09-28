@@ -125,3 +125,13 @@ test('bildirimler açılır', async ({ page }) => {
   await page.getByRole('button', { name: 'Bildirimler' }).click()
   await expect(page.getByText('Bildirimler', { exact: true })).toBeVisible()
 })
+
+test('var olan seferin formu araç ve şoförü dolu açılır', async ({ page }) => {
+  await login(page)
+  await page.goto('/seferler')
+  await page.getByRole('row').nth(1).click()
+  const dialog = page.getByRole('dialog', { name: 'Sefer Düzenle' })
+  for (const name of ['customerId', 'vehicleId', 'driverId']) {
+    await expect(dialog.locator(`select[name=${name}]`)).not.toHaveValue('')
+  }
+})

@@ -12,6 +12,7 @@ import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
+import { FormSelect } from '../components/FormSelect'
 import { date } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
@@ -203,10 +204,7 @@ function UserForm({ user, onClose }: { user: User | null; onClose: () => void })
         </Field>
         {role === 'Driver' && (
           <Field label="Bağlı Şoför" required error={errors.driverId?.message} hint="Şoför bu hesapla mobil uygulamaya girer ve yalnızca kendi seferlerini görür.">
-            <select className="input" {...register('driverId', { valueAsNumber: true })}>
-              <option value="">Seçiniz</option>
-              {drivers.data?.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
-            </select>
+            <FormSelect control={control} name="driverId" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
           </Field>
         )}
         <Field label={user ? 'Yeni Şifre (değiştirmek için)' : 'Şifre'} required={!user} error={errors.password?.message}>

@@ -19,3 +19,4 @@ backups/
 .vscode/
 .idea/
 server/YesLojistik.Api/data/
+client/e2e/zz-*.spec.ts

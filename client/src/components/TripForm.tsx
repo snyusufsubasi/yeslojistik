@@ -10,6 +10,7 @@ import { tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 import { Badge, Button, Field, Modal, Tabs } from './ui'
+import { FormSelect } from './FormSelect'
 import { TripAttachments, TripTracking } from './TripExtras'
 
 const schema = z.object({
@@ -64,7 +65,8 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
 
   const onVehicleChange = (id: number) => {
     const v = vehicles.data?.find((x) => x.id === id)
-    if (v?.extra && !getValues('driverId')) setValue('driverId', Number(v.extra))
+    const current = getValues('driverId')
+    if (v?.extra && (current == null || Number.isNaN(current))) setValue('driverId', Number(v.extra))
   }
 
   return (
@@ -106,10 +108,8 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit((v) => save.mutate(v))}>
         <div className="space-y-3">
           <Field label="Müşteri" required error={errors.customerId?.message}>
-            <select className="input" disabled={invoiced} {...register('customerId', { valueAsNumber: true })}>
-              <option value="">Seçiniz</option>
-              {customers.data?.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
+            <FormSelect control={control} name="customerId" disabled={invoiced}
+              options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           </Field>
           <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
             <input className="input" placeholder="İstanbul / Sultanbeyli" {...register('loadingAddress')} />
@@ -131,17 +131,14 @@ export function TripForm({ trip, onClose, defaults }: { trip: Trip | null; onClo
         </div>
         <div className="space-y-3">
           <Field label="Araç" required error={errors.vehicleId?.message}>
-            <select className="input" {...register('vehicleId', { valueAsNumber: true, onChange: (e) => onVehicleChange(Number(e.target.value)) })}>
-              <option value="">Seçiniz</option>
-              {vehicles.data?.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
-            </select>
+            <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange}
+              options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
           </Field>
           <Field label="Şoför" required error={errors.driverId?.message}>
-            <select className="input" {...register('driverId', { valueAsNumber: true })}>
-              <option value="">Seçiniz</option>
-              {drivers.data?.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
-              {trip && !drivers.data?.some((d) => d.id === trip.driverId) && <option value={trip.driverId}>{trip.driverName} (pasif)</option>}
-            </select>
+            <FormSelect control={control} name="driverId" options={[
+              ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
+              ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
+            ]} />
           </Field>
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-2 text-sm font-semibold text-navy-900">Nakliye Fiyatları</div>

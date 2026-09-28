@@ -10,6 +10,7 @@ import type { Expense, ExpenseCategory, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
+import { FormSelect } from '../components/FormSelect'
 import { date, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { expenseCategoryLabel, options } from '../lib/labels'
@@ -131,16 +132,12 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
         </Field>
         <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
         <Field label="Araç" error={errors.vehicleId?.message}>
-          <select className="input" {...register('vehicleId', { valueAsNumber: true })}>
-            <option value="">— Genel gider —</option>
-            {vehicles.data?.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
-          </select>
+          <FormSelect control={control} name="vehicleId" placeholder="— Genel gider —"
+            options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
         </Field>
         <Field className="sm:col-span-2" label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür.">
-          <select className="input" {...register('tripId', { valueAsNumber: true })}>
-            <option value="">— Sefere bağlama —</option>
-            {trips.data?.items.map((t) => <option key={t.id} value={t.id}>{date(t.loadingDate)} · {t.customerTitle} · {t.loadingAddress} → {t.deliveryAddress} ({t.vehiclePlate})</option>)}
-          </select>
+          <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
+            options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
         </Field>
         <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
         <button type="submit" className="hidden" />

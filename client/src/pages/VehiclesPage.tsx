@@ -11,6 +11,7 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
+import { FormSelect } from '../components/FormSelect'
 import { date, daysUntil } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { options, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
@@ -110,7 +111,7 @@ export function DueDate({ value, warn }: { value?: string | null; warn: number }
 
 function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: () => void }) {
   const drivers = useLookup('drivers')
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: vehicle ? {
       ...vehicle, brand: vehicle.brand ?? '', model: vehicle.model ?? '', modelYear: vehicle.modelYear ?? null,
@@ -144,10 +145,7 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
           </select>
         </Field>
         <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message}>
-          <select className="input" {...register('defaultDriverId', { valueAsNumber: true })}>
-            <option value="">—</option>
-            {drivers.data?.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
-          </select>
+          <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
         </Field>
         <Field label="Son Bakım Tarihi"><input className="input" type="date" {...register('lastMaintenanceDate')} /></Field>
         <Field label="Sonraki Bakım Tarihi"><input className="input" type="date" {...register('nextMaintenanceDate')} /></Field>
