@@ -91,13 +91,18 @@ export async function download(url: string, params?: object, fallbackName = 'dos
   setTimeout(() => URL.revokeObjectURL(href), 1000)
 }
 
-/** PDF'i yeni sekmede açar (açılır pencere engellenirse indirir). */
+/**
+ * PDF'i yeni sekmede açar (açılır pencere engellenirse indirir).
+ * Sekme doğrudan API adresine gider; oturum çerezi aynı sitede gönderilir. blob: adresine yönlendirme
+ * yeni Chrome sürümlerinde boş sekme bırakabildiği için kullanılmaz.
+ */
 export async function openPdf(url: string, fallbackName: string) {
+  // Tıklamayla aynı anda açılmalı, yoksa tarayıcı açılır pencereyi engeller.
   const win = window.open('', '_blank')
   try {
-    const res = await api.get<Blob>(url, { responseType: 'blob' })
-    const href = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-    if (win) win.location.href = href
+    // Oturumun süresi dolmuşsa önce yenilensin; PDF isteği aynı çerezi kullanır.
+    await api.get('/auth/me')
+    if (win) win.location.href = `${api.defaults.baseURL}${url}`
     else await download(url, { download: true }, fallbackName)
   } catch (e) {
     win?.close()
