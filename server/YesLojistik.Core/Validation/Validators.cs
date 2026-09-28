@@ -198,3 +198,17 @@ public class CompanySettingsValidator : AbstractValidator<CompanySettingsDto>
             .WithMessage("Logo 500 KB'dan küçük PNG veya JPEG olmalı.").When(x => !string.IsNullOrEmpty(x.LogoDataUrl));
     }
 }
+
+public class DriverExpenseRequestValidator : AbstractValidator<DriverExpenseRequest>
+{
+    public static readonly ExpenseCategory[] Allowed = [ExpenseCategory.Fuel, ExpenseCategory.Toll, ExpenseCategory.Maintenance, ExpenseCategory.Other];
+
+    public DriverExpenseRequestValidator()
+    {
+        RuleFor(x => x.Category).Must(c => Allowed.Contains(c)).WithMessage("Bu masraf türü uygulamadan girilemez.");
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.").LessThanOrEqualTo(1_000_000).WithMessage("Tutar çok yüksek.");
+        RuleFor(x => x.Liters).GreaterThan(0).LessThan(5_000).WithMessage("Litre 0 ile 5.000 arasında olmalı.").When(x => x.Liters is not null);
+        RuleFor(x => x.Odometer).InclusiveBetween(0, 10_000_000).WithMessage("Geçersiz kilometre.").When(x => x.Odometer is not null);
+        RuleFor(x => x.Description).MaximumLength(300);
+    }
+}

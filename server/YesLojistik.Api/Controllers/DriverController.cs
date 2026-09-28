@@ -44,6 +44,28 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
     public async Task<DriverTripDto> Status(int id, TripStatusRequest req, CancellationToken ct) =>
         await app.ChangeStatusAsync(await DriverIdAsync(ct), id, req.Status, ct);
 
+    /// <summary>Şoförün bu sefer için girdiği masraflar.</summary>
+    [HttpGet("trips/{id:int}/expenses")]
+    public async Task<List<DriverExpenseDto>> Expenses(int id, CancellationToken ct)
+    {
+        var driverId = await DriverIdAsync(ct);
+        await app.EnsureOwnAsync(driverId, id, ct);
+        return await db.Expenses.AsNoTracking().Where(e => e.TripId == id && e.DriverId == driverId).OrderByDescending(e => e.Id)
+            .Select(e => new DriverExpenseDto(e.Id, e.Category, e.Amount, e.Date, e.Liters, e.Odometer, e.Description)).ToListAsync(ct);
+    }
+
+    /// <summary>Yolda yapılan masraf: sefere, seferin aracına ve şoföre bağlanır. Yakıtta km aracın km'sini günceller.</summary>
+    [HttpPost("trips/{id:int}/expenses")]
+    public async Task<DriverExpenseDto> AddExpense(int id, DriverExpenseRequest req, [FromServices] ExpenseService expenses, CancellationToken ct)
+    {
+        var driverId = await DriverIdAsync(ct);
+        await app.EnsureOwnAsync(driverId, id, ct);
+        var expenseId = await expenses.CreateAsync(new ExpenseSaveRequest(req.Category, req.Amount, Clock.Today, null, id,
+            string.IsNullOrWhiteSpace(req.Description) ? "Şoför girişi" : req.Description, driverId, req.Liters, req.Odometer), ct);
+        return await db.Expenses.AsNoTracking().Where(e => e.Id == expenseId)
+            .Select(e => new DriverExpenseDto(e.Id, e.Category, e.Amount, e.Date, e.Liters, e.Odometer, e.Description)).FirstAsync(ct);
+    }
+
     [HttpGet("trips/{id:int}/attachments")]
     public async Task<List<AttachmentDto>> Attachments(int id, CancellationToken ct)
     {

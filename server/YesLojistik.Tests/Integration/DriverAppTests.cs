@@ -207,4 +207,32 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await c.PostAsJsonAsync("/api/auth/token/refresh", new { refreshToken = refreshed.RefreshToken })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         admin.Dispose();
     }
+
+    [Fact]
+    public async Task Driver_records_fuel_and_toll_on_own_trip_only()
+    {
+        var s = await SetupAsync("109");
+        var fuel = await (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/expenses",
+            new DriverExpenseRequest(ExpenseCategory.Fuel, 8_900, 200, 12_345, null))).ReadAsync<DriverExpenseDto>();
+        fuel.Should().BeEquivalentTo(new { Category = ExpenseCategory.Fuel, Amount = 8_900m, Liters = 200m, Odometer = 12_345, Description = "Şoför girişi" });
+        await (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/expenses",
+            new DriverExpenseRequest(ExpenseCategory.Toll, 450, null, null, "Osmangazi Köprüsü"))).ReadAsync<DriverExpenseDto>();
+
+        // Avans şoför tarafından girilemez; başka şoförün seferine masraf yazılamaz.
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/expenses",
+            new DriverExpenseRequest(ExpenseCategory.DriverAdvance, 1_000, null, null, null))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var others = await (await s.Admin.GetAsync($"/api/trips?search=Ankara")).ReadAsync<PagedResult<TripDto>>();
+        var otherTrip = others.Items.First(t => t.DriverId == s.OtherDriverId);
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{otherTrip.Id}/expenses",
+            new DriverExpenseRequest(ExpenseCategory.Fuel, 100, 2, null, null))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var list = await (await s.Driver.GetAsync($"/api/driver/trips/{s.TripId}/expenses")).ReadAsync<List<DriverExpenseDto>>();
+        list.Select(e => e.Category).Should().Equal(ExpenseCategory.Toll, ExpenseCategory.Fuel);
+
+        // Ofiste: sefere, araca ve şoföre bağlı görünür; araç km'si güncellenir, sefer kârından düşer.
+        var office = await (await s.Admin.GetAsync($"/api/expenses?tripId={s.TripId}")).ReadAsync<PagedResult<ExpenseDto>>();
+        office.Items.Should().OnlyContain(e => e.VehicleId == s.VehicleId && e.DriverId == s.DriverId);
+        (await (await s.Admin.GetAsync($"/api/vehicles/{s.VehicleId}")).ReadAsync<VehicleDto>()).Km.Should().Be(12_345);
+        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000 - 8_900 - 450);
+    }
 }

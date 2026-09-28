@@ -21,7 +21,7 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         ["category"] = e => e.Category,
     };
 
-    private static readonly Expression<Func<Expense, ExpenseDto>> Projection = e => new ExpenseDto(e.Id, e.Category, e.Amount,
+    public static readonly Expression<Func<Expense, ExpenseDto>> Projection = e => new ExpenseDto(e.Id, e.Category, e.Amount,
         e.Date, e.VehicleId, e.Vehicle != null ? e.Vehicle.Plate : null, e.TripId,
         e.Trip != null ? e.Trip.LoadingAddress + " → " + e.Trip.DeliveryAddress : null, e.Description,
         e.DriverId, e.Driver != null ? e.Driver.FullName : null, e.Liters, e.Odometer);
@@ -70,21 +70,13 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         ?? throw new NotFoundException("Gider bulunamadı.");
 
     [HttpPost]
-    public async Task<ExpenseDto> Create(ExpenseSaveRequest req, CancellationToken ct)
-    {
-        var e = new Expense();
-        await ApplyAsync(e, req, ct);
-        db.Expenses.Add(e);
-        await db.SaveChangesAsync(ct);
-        return await Get(e.Id, ct);
-    }
+    public async Task<ExpenseDto> Create(ExpenseSaveRequest req, [FromServices] ExpenseService expenses, CancellationToken ct) =>
+        await Get(await expenses.CreateAsync(req, ct), ct);
 
     [HttpPut("{id:int}")]
-    public async Task<ExpenseDto> Update(int id, ExpenseSaveRequest req, CancellationToken ct)
+    public async Task<ExpenseDto> Update(int id, ExpenseSaveRequest req, [FromServices] ExpenseService expenses, CancellationToken ct)
     {
-        var e = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Gider bulunamadı.");
-        await ApplyAsync(e, req, ct);
-        await db.SaveChangesAsync(ct);
+        await expenses.UpdateAsync(id, req, ct);
         return await Get(id, ct);
     }
 
@@ -95,39 +87,5 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         e.IsDeleted = true;
         await db.SaveChangesAsync(ct);
         return NoContent();
-    }
-
-    private async Task ApplyAsync(Expense e, ExpenseSaveRequest r, CancellationToken ct)
-    {
-        var vehicleId = r.VehicleId;
-        var driverId = r.DriverId;
-        if (r.TripId is { } tripId)
-        {
-            var trip = await db.Trips.Where(t => t.Id == tripId).Select(t => new { t.VehicleId, t.DriverId }).FirstOrDefaultAsync(ct)
-                ?? throw new DomainException("Sefer bulunamadı.");
-            vehicleId ??= trip.VehicleId;
-            // Harcırah/avans sefere bağlıysa şoför seferden alınır.
-            if (r.Category is ExpenseCategory.DriverAllowance or ExpenseCategory.DriverAdvance) driverId ??= trip.DriverId;
-        }
-        if (vehicleId is { } v && !await db.Vehicles.AnyAsync(x => x.Id == v, ct)) throw new DomainException("Araç bulunamadı.");
-        if (driverId is { } d && !await db.Drivers.AnyAsync(x => x.Id == d, ct)) throw new DomainException("Şoför bulunamadı.");
-        if (r.Category == ExpenseCategory.DriverAdvance && driverId is null)
-            throw new DomainException("Avans için şoför seçin.");
-        var isFuel = r.Category == ExpenseCategory.Fuel;
-        if (isFuel && r.Odometer is { } odo && vehicleId is { } fuelVehicle)
-        {
-            // Girilen kilometre araç kartındakinden büyükse araç kilometresi güncellenir.
-            var vehicle = await db.Vehicles.FirstAsync(x => x.Id == fuelVehicle, ct);
-            if (odo > vehicle.Km) vehicle.Km = odo;
-        }
-        e.DriverId = driverId;
-        e.Liters = isFuel && r.Liters is { } l ? Math.Round(l, 2) : null;
-        e.Odometer = isFuel ? r.Odometer : null;
-        e.Category = r.Category;
-        e.Amount = Money.Round(r.Amount);
-        e.Date = r.Date;
-        e.VehicleId = vehicleId;
-        e.TripId = r.TripId;
-        e.Description = CustomersController.NullIfEmpty(r.Description);
     }
 }

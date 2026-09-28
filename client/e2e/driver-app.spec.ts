@@ -40,6 +40,13 @@ test('şoför uygulaması: giriş → sefer → yükü aldım → fotoğraf', as
   await expect(page.getByText('Teslim Edildi').first()).toBeVisible()
   await expect(page.getByText('Durum Güncelle')).toHaveCount(0)
 
+  // Yakıt masrafı (Türkçe ondalık yazımıyla)
+  await page.getByLabel('Tutar').fill('4.450,50')
+  await page.getByLabel('Litre').fill('100')
+  await page.getByLabel('Araç kilometresi').fill('250000')
+  await page.getByRole('button', { name: 'Masrafı Kaydet' }).click()
+  await expect(page.getByText(/Yakıt · 4\.450,50 TL · 100 L · 250\.000 km/)).toBeVisible()
+
   // Galeriden fotoğraf (web'de dosya seçici)
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Galeriden' }).click()
@@ -53,5 +60,7 @@ test('şoför uygulaması: giriş → sefer → yükü aldım → fotoğraf', as
   expect(trips[0].status).toBe('Delivered')
   const files = await (await office.get(`/api/trips/${trips[0].id}/attachments`)).json()
   expect(files).toHaveLength(1)
+  const expenses = (await (await office.get(`/api/expenses?tripId=${trips[0].id}`)).json()).items
+  expect(expenses).toEqual([expect.objectContaining({ category: 'Fuel', amount: 4450.5, liters: 100, odometer: 250000, driverName: 'Mehmet Yılmaz' })])
   await office.dispose()
 })

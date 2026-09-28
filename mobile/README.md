@@ -48,6 +48,10 @@ Bir kerelik kurulum:
 `projectId` boşken uygulama çalışmaya devam eder, sadece bildirim kaydı yapılmaz. Sunucuda göndermeyi kapatmak için
 `Push__Enabled=false` ortam değişkeni kullanılabilir.
 
+## Masraf girişi
+
+Sefer ekranındaki **Masraf / Yakıt** bölümünden yakıt (tutar, litre, araç km), otoyol/köprü, bakım/onarım ve diğer masraflar girilir. Tutar `4.450,50` ya da `4450.5` şeklinde yazılabilir. Masraf sefere, seferin aracına ve şoföre bağlanır; yakıtta girilen km aracın kilometresini günceller.
+
 ## Konum ve pil
 
 - Konum yalnızca **yüklendi** veya **yolda** durumunda sefer varken paylaşılır; teslimden sonra otomatik durur.

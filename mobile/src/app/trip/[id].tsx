@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge, Button, Card, Row } from '../../components/ui'
+import { ExpenseCard } from '../../components/ExpenseCard'
 import { api } from '../../lib/api'
 import { confirm, notify } from '../../lib/dialog'
 import { sendCurrentLocation } from '../../lib/location'
@@ -97,6 +98,8 @@ export default function TripDetailScreen() {
           ))}
         </Card>
       )}
+
+      {t.status !== 'Cancelled' && <ExpenseCard tripId={id} />}
 
       <Card style={{ gap: 10 }}>
         <Text style={s.section}>Teslim Fotoğrafı / Belge</Text>

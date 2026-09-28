@@ -29,3 +29,8 @@ public record TokenLoginResponse(string AccessToken, string RefreshToken, DateTi
 public record RefreshTokenRequest(string RefreshToken);
 
 public record PushTokenRequest(string Token, string? Platform);
+
+/// <summary>Şoförün yolda girdiği masraf (yakıt, otoyol, bakım/onarım, diğer).</summary>
+public record DriverExpenseRequest(ExpenseCategory Category, decimal Amount, decimal? Liters, int? Odometer, string? Description);
+
+public record DriverExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, decimal? Liters, int? Odometer, string? Description);

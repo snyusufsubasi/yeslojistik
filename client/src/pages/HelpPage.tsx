@@ -86,6 +86,7 @@ export default function HelpPage() {
             <><L to="/ayarlar?tab=users">Ayarlar → Kullanıcılar → Yeni Kullanıcı</L>: rolü <b>Şoför (mobil)</b> seçin ve şoförü bağlayın.</>,
             <>Şoför uygulamaya bu e-posta ve şifreyle girer; yalnızca kendi seferlerini görür, fiyatları görmez.</>,
             <>Seferde sırayla <b>Yükü Aldım → Yola Çıktım → Teslim Ettim</b> der, teslim fotoğrafı veya imzalı irsaliye yükler.</>,
+            <>Yolda yaptığı <b>yakıt</b> (litre ve km ile), otoyol/köprü ve onarım masraflarını <b>Masraf / Yakıt</b> bölümünden girer; masraf sefere, araca ve şoföre bağlanarak <L to="/giderler">Giderler</L>'e düşer.</>,
             <>Yük alındığı andan teslime kadar konum kendiliğinden paylaşılır. Sefer atadığınızda şoföre bildirim gider.</>,
           ]} />
         </Section>

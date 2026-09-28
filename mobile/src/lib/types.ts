@@ -54,3 +54,15 @@ export interface LocationPing {
   accuracy?: number | null
   recordedAt: string
 }
+
+export type DriverExpenseCategory = 'Fuel' | 'Toll' | 'Maintenance' | 'Other'
+
+export interface DriverExpense {
+  id: number
+  category: DriverExpenseCategory
+  amount: number
+  date: string
+  liters?: number | null
+  odometer?: number | null
+  description?: string | null
+}

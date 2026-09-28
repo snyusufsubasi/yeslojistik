@@ -23,9 +23,9 @@ public class SmtpEmailSender(SmtpOptions options, ILogger<SmtpEmailSender> logge
 
     public async Task SendAsync(EmailMessage message, CancellationToken ct = default)
     {
-        if (!IsConfigured) throw new DomainException("E-posta gönderimi ayarlanmamış (SMTP).");
+        if (options is not { Host: { } host, From: { } from } || !IsConfigured) throw new DomainException("E-posta gönderimi ayarlanmamış (SMTP).");
         var mime = new MimeMessage();
-        mime.From.Add(MailboxAddress.Parse(options.From));
+        mime.From.Add(MailboxAddress.Parse(from));
         mime.To.Add(MailboxAddress.Parse(message.To));
         if (!string.IsNullOrWhiteSpace(message.ReplyTo)) mime.ReplyTo.Add(MailboxAddress.Parse(message.ReplyTo));
         mime.Subject = message.Subject;
@@ -36,8 +36,8 @@ public class SmtpEmailSender(SmtpOptions options, ILogger<SmtpEmailSender> logge
         using var client = new SmtpClient();
         try
         {
-            await client.ConnectAsync(options.Host, options.Port, options.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTlsWhenAvailable, ct);
-            if (!string.IsNullOrEmpty(options.User)) await client.AuthenticateAsync(options.User, options.Password, ct);
+            await client.ConnectAsync(host, options.Port, options.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTlsWhenAvailable, ct);
+            if (!string.IsNullOrEmpty(options.User)) await client.AuthenticateAsync(options.User, options.Password ?? "", ct);
             await client.SendAsync(mime, ct);
             await client.DisconnectAsync(true, ct);
         }

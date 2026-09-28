@@ -41,6 +41,7 @@ alacak yaşlandırmasına eklenir; faturaya bağlanmayan tahsilatlar önce devri
 - Şoför yalnızca kendisine atanan seferleri görür, fiyat bilgisi görmez.
 - Seferde sırasıyla **Yükü Aldım → Yola Çıktım → Teslim Ettim** düğmelerine basar. Geri alma ve iptal yalnızca ofisten yapılır.
 - **Fotoğraf Çek / Galeriden** ile teslim fotoğrafı veya imzalı irsaliye yükler; ofis bunu seferin *Dosyalar* sekmesinde görür.
+- **Masraf / Yakıt** bölümünden yakıt (litre ve araç km'siyle), otoyol/köprü, bakım/onarım ve diğer masrafları girer. Masraf sefere, araca ve şoföre bağlanır, *Giderler*'de ve yakıt raporunda görünür. Avans ve harcırahı yalnızca ofis girer.
 - Yük alındığı andan teslime kadar telefonun konumu otomatik paylaşılır.
 - Ofis sefer atadığında, değiştirdiğinde veya iptal ettiğinde şoförün telefonuna bildirim gider.
 
