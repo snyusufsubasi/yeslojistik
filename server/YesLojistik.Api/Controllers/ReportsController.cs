@@ -20,6 +20,7 @@ public class ReportsController(ReportService reports) : ControllerBase
         "Maintenance" => "Bakım/Onarım",
         "Toll" => "Otoyol/Köprü",
         "DriverAllowance" => "Şoför Harcırahı",
+        "DriverAdvance" => "Şoför Avansı",
         "Tire" => "Lastik",
         "Insurance" => "Sigorta/Kasko",
         "Tax" => "Vergi/Harç",
@@ -95,7 +96,25 @@ public class ReportsController(ReportService reports) : ControllerBase
             new("Gelir", r => r.Revenue, ExcelExporter.MoneyFormat),
             new("Araç Maliyeti", r => r.VehicleCost, ExcelExporter.MoneyFormat),
             new("Sefer Giderleri", r => r.Expenses, ExcelExporter.MoneyFormat),
-            new("Kâr", r => r.Profit, ExcelExporter.MoneyFormat)), "sofor-bazli");
+            new("Kâr", r => r.Profit, ExcelExporter.MoneyFormat),
+            new("Verilen Avans", r => r.Advances, ExcelExporter.MoneyFormat),
+            new("Harcırah", r => r.Allowances, ExcelExporter.MoneyFormat)), "sofor-bazli");
+    }
+
+    [HttpGet("fuel")]
+    public async Task<IActionResult> Fuel([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string? format, CancellationToken ct)
+    {
+        var (f, t) = Range(from, to);
+        var rows = await reports.FuelAsync(f, t, ct);
+        if (format != "xlsx") return Ok(rows);
+        return FileResults.Excel(ExcelExporter.Export("Yakıt", rows,
+            new ExcelColumn<FuelReportRow>("Plaka", r => r.Plate),
+            new("Alım Sayısı", r => r.FillCount),
+            new("Litre", r => r.Liters),
+            new("Tutar", r => r.Cost, ExcelExporter.MoneyFormat),
+            new("Ort. Litre Fiyatı", r => r.PricePerLiter, ExcelExporter.MoneyFormat),
+            new("Km", r => r.Km),
+            new("L/100 km", r => r.LitersPer100Km)), "yakit");
     }
 
     [HttpGet("aging")]

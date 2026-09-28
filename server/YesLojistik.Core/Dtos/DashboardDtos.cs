@@ -27,6 +27,10 @@ public record CustomerAgingRow(int CustomerId, string Customer, decimal NotDue, 
     decimal Days61To90, decimal Over90, decimal Total);
 
 public record DriverReportRow(int DriverId, string Driver, int TripCount, int DeliveredCount, decimal Revenue,
-    decimal VehicleCost, decimal Expenses, decimal Profit);
+    decimal VehicleCost, decimal Expenses, decimal Profit, decimal Advances = 0, decimal Allowances = 0);
+
+/// <summary>Araç başına yakıt. Tüketim "depo doldurma" yöntemiyle: ilk alımdan sonraki litreler / aradaki km.</summary>
+public record FuelReportRow(int VehicleId, string Plate, int FillCount, decimal Liters, decimal Cost, decimal? PricePerLiter,
+    int? Km, decimal? LitersPer100Km);
 
 public record ExpenseCategoryRow(string Category, decimal Amount);

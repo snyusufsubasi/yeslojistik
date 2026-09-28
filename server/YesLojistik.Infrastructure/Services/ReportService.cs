@@ -79,9 +79,49 @@ public class ReportService(AppDbContext db, BalanceService balances)
                 Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost),
                 Expenses = g.Sum(t => t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0),
             }).ToListAsync(ct);
-        return rows.Select(r => new DriverReportRow(r.DriverId, r.FullName, r.Count, r.Delivered, r.Revenue, r.Cost, r.Expenses,
-                r.Revenue - r.Cost - r.Expenses))
-            .OrderByDescending(r => r.TripCount).ThenBy(r => r.Driver).ToList();
+        var paid = await db.Expenses
+            .Where(e => e.DriverId != null && e.Date >= from && e.Date <= to
+                && (e.Category == ExpenseCategory.DriverAdvance || e.Category == ExpenseCategory.DriverAllowance))
+            .GroupBy(e => new { DriverId = e.DriverId!.Value, e.Driver!.FullName })
+            .Select(g => new
+            {
+                g.Key.DriverId, g.Key.FullName,
+                Advances = g.Where(e => e.Category == ExpenseCategory.DriverAdvance).Sum(e => (decimal?)e.Amount) ?? 0,
+                Allowances = g.Where(e => e.Category == ExpenseCategory.DriverAllowance).Sum(e => (decimal?)e.Amount) ?? 0,
+            }).ToListAsync(ct);
+        var result = rows.Select(r =>
+        {
+            var p = paid.FirstOrDefault(x => x.DriverId == r.DriverId);
+            return new DriverReportRow(r.DriverId, r.FullName, r.Count, r.Delivered, r.Revenue, r.Cost, r.Expenses,
+                r.Revenue - r.Cost - r.Expenses, p?.Advances ?? 0, p?.Allowances ?? 0);
+        }).ToList();
+        // Dönemde seferi olmayan ama avans/harcırah verilen şoförler de listelenir.
+        result.AddRange(paid.Where(p => rows.All(r => r.DriverId != p.DriverId))
+            .Select(p => new DriverReportRow(p.DriverId, p.FullName, 0, 0, 0, 0, 0, 0, p.Advances, p.Allowances)));
+        return result.OrderByDescending(r => r.TripCount).ThenBy(r => r.Driver).ToList();
+    }
+
+    public async Task<List<FuelReportRow>> FuelAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var fills = await db.Expenses.AsNoTracking()
+            .Where(e => e.Category == ExpenseCategory.Fuel && e.VehicleId != null && e.Date >= from && e.Date <= to)
+            .Select(e => new { VehicleId = e.VehicleId!.Value, e.Vehicle!.Plate, e.Amount, e.Liters, e.Odometer, e.Date, e.Id })
+            .ToListAsync(ct);
+        return fills.GroupBy(f => new { f.VehicleId, f.Plate }).Select(g =>
+        {
+            var liters = g.Sum(f => f.Liters ?? 0);
+            var withLiters = g.Where(f => f.Liters > 0).ToList();
+            decimal? price = withLiters.Count > 0 ? Math.Round(withLiters.Sum(f => f.Amount) / withLiters.Sum(f => f.Liters!.Value), 2) : null;
+            var measured = g.Where(f => f.Odometer != null && f.Liters > 0).OrderBy(f => f.Odometer).ThenBy(f => f.Date).ThenBy(f => f.Id).ToList();
+            int? km = null;
+            decimal? per100 = null;
+            if (measured.Count >= 2 && measured[^1].Odometer > measured[0].Odometer)
+            {
+                km = measured[^1].Odometer!.Value - measured[0].Odometer!.Value;
+                per100 = Math.Round(measured.Skip(1).Sum(f => f.Liters!.Value) / km.Value * 100, 1);
+            }
+            return new FuelReportRow(g.Key.VehicleId, g.Key.Plate, g.Count(), liters, g.Sum(f => f.Amount), price, km, per100);
+        }).OrderBy(r => r.Plate).ToList();
     }
 
     public async Task<List<CustomerAgingRow>> AgingAsync(CancellationToken ct = default)

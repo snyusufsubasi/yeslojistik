@@ -155,6 +155,27 @@ public static class DbSeeder
         }
         db.Expenses.Add(new Expense { Category = ExpenseCategory.Insurance, Amount = 14_500, Date = today.AddDays(-20), VehicleId = vehicles[2].Id, Description = "Kasko yenileme" });
         db.Expenses.Add(new Expense { Category = ExpenseCategory.Tire, Amount = 32_000, Date = today.AddDays(-45), VehicleId = vehicles[1].Id, Description = "4 adet lastik" });
+
+        // Yakıt alımları (litre + km): araç başına her ~10 günde depo doldurma, tüketim raporu için.
+        foreach (var (vehicle, per100) in vehicles.Zip(new[] { 29m, 33m, 24m, 22m, 38m }))
+        {
+            var km = vehicle.Km - 6_000;
+            for (var day = -80; day <= 0; day += 10)
+            {
+                var driven = day == -80 ? 0 : 600 + rnd.Next(0, 250);
+                km += driven;
+                var liters = day == -80 ? 300m : Math.Round(driven * per100 / 100m, 1);
+                db.Expenses.Add(new Expense
+                {
+                    Category = ExpenseCategory.Fuel, Date = today.AddDays(day), VehicleId = vehicle.Id, DriverId = vehicle.DefaultDriver?.Id,
+                    Liters = liters, Odometer = km, Amount = Money.Round(liters * 44.5m), Description = "Depo doldurma",
+                });
+            }
+            vehicle.Km = Math.Max(vehicle.Km, km);
+        }
+        // Şoför avansları
+        foreach (var (driver, i) in drivers.Select((d, i) => (d, i)))
+            db.Expenses.Add(new Expense { Category = ExpenseCategory.DriverAdvance, Amount = 2_000 + i * 500, Date = today.AddDays(-7 - i), DriverId = driver.Id, Description = "Yol avansı" });
         await db.SaveChangesAsync();
 
         // Teslim edilmiş seferleri müşteri ve ay bazında faturala; bir kısmını tahsil et.

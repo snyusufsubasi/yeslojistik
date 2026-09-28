@@ -1,6 +1,7 @@
 using FluentValidation;
 using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
+using YesLojistik.Core.Entities;
 
 namespace YesLojistik.Core.Validation;
 
@@ -173,6 +174,10 @@ public class ExpenseSaveRequestValidator : AbstractValidator<ExpenseSaveRequest>
         RuleFor(x => x.Category).IsInEnum();
         RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
         RuleFor(x => x.Description).MaximumLength(500);
+        RuleFor(x => x.DriverId).NotNull().WithMessage("Avans için şoför seçin.")
+            .When(x => x.Category == ExpenseCategory.DriverAdvance && x.TripId is null);
+        RuleFor(x => x.Liters).GreaterThan(0).LessThan(5_000).WithMessage("Litre 0 ile 5.000 arasında olmalı.").When(x => x.Liters is not null);
+        RuleFor(x => x.Odometer).InclusiveBetween(0, 10_000_000).WithMessage("Geçersiz kilometre.").When(x => x.Odometer is not null);
     }
 }
 

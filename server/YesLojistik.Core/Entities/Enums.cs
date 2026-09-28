@@ -12,4 +12,4 @@ public enum InvoiceStatus { Draft, Issued, Cancelled }
 
 public enum PaymentMethod { Cash, BankTransfer, Check, CreditCard }
 
-public enum ExpenseCategory { Fuel, Maintenance, Toll, DriverAllowance, Tire, Insurance, Tax, Other }
+public enum ExpenseCategory { Fuel, Maintenance, Toll, DriverAllowance, Tire, Insurance, Tax, Other, DriverAdvance }

@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BarChart3, Download } from 'lucide-react'
 import { download, get } from '../api/client'
-import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, MonthlySummaryRow, TripProfitRow, VehicleReportRow } from '../api/types'
+import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader, Select, Spinner, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
-type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'aging' | 'expenses'
+type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'expenses'
 
 // Kategorik palet (sabit sıra): 1 mavi, 2 turuncu.
 const SERIES_1 = '#2a78d6'
@@ -21,7 +21,7 @@ export default function ReportsPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [from, setFrom] = useState(yearStartIso())
   const [to, setTo] = useState(todayIso())
-  const usesRange = tab === 'trips' || tab === 'vehicles' || tab === 'drivers' || tab === 'expenses'
+  const usesRange = tab === 'trips' || tab === 'vehicles' || tab === 'drivers' || tab === 'fuel' || tab === 'expenses'
   const params = tab === 'monthly' ? { year } : usesRange ? { from, to } : {}
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -37,6 +37,7 @@ export default function ReportsPage() {
             { value: 'trips', label: 'Sefer Kârlılığı' },
             { value: 'vehicles', label: 'Araç Bazlı' },
             { value: 'drivers', label: 'Şoför Bazlı' },
+            { value: 'fuel', label: 'Yakıt' },
             { value: 'aging', label: 'Alacak Yaşlandırma' },
             { value: 'expenses', label: 'Gider Dağılımı' },
           ]} />
@@ -52,6 +53,7 @@ export default function ReportsPage() {
         {tab === 'trips' && <Trips from={from} to={to} />}
         {tab === 'vehicles' && <Vehicles from={from} to={to} />}
         {tab === 'drivers' && <Drivers from={from} to={to} />}
+        {tab === 'fuel' && <Fuel from={from} to={to} />}
         {tab === 'aging' && <Aging />}
         {tab === 'expenses' && <Expenses from={from} to={to} />}
       </Card>
@@ -177,8 +179,38 @@ function Drivers({ from, to }: { from: string; to: string }) {
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'e', header: 'Sefer Giderleri', align: 'right', render: (r) => tl(r.expenses) },
     { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.profit)}</span> },
+    { key: 'adv', header: 'Avans / Harcırah', align: 'right', render: (r) => r.advances || r.allowances
+      ? <>{tl(r.advances)}<span className="block text-[13px] text-slate-500">Harcırah {tl(r.allowances)}</span></> : '—' },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.driverId} empty="Bu aralıkta sefer yok." />
+}
+
+function Fuel({ from, to }: { from: string; to: string }) {
+  const { data, isLoading } = useReport<FuelReportRow[]>('fuel', { from, to })
+  const measured = (data ?? []).filter((r) => r.km && r.litersPer100Km)
+  const totalKm = measured.reduce((a, r) => a + (r.km ?? 0), 0)
+  const fleet = totalKm > 0 ? measured.reduce((a, r) => a + (r.litersPer100Km ?? 0) * (r.km ?? 0), 0) / totalKm : null
+  const high = (r: FuelReportRow) => fleet != null && r.litersPer100Km != null && r.litersPer100Km > fleet * 1.15
+  const num = (v: number, d = 0) => v.toLocaleString('tr-TR', { maximumFractionDigits: d })
+  const cols: Column<FuelReportRow>[] = [
+    { key: 'p', header: 'Plaka', render: (r) => <span className="font-medium">{r.plate}</span> },
+    { key: 'n', header: 'Alım', align: 'right', render: (r) => r.fillCount },
+    { key: 'l', header: 'Litre', align: 'right', render: (r) => r.liters ? num(r.liters) : '—' },
+    { key: 'c', header: 'Tutar', align: 'right', render: (r) => tl2(r.cost) },
+    { key: 'pl', header: 'Ort. Litre Fiyatı', align: 'right', render: (r) => r.pricePerLiter ? tl2(r.pricePerLiter) : '—' },
+    { key: 'km', header: 'Km', align: 'right', render: (r) => r.km ? num(r.km) : '—' },
+    { key: 'c100', header: 'L / 100 km', align: 'right', render: (r) => r.litersPer100Km == null ? <span className="text-slate-500">—</span>
+      : <span className={high(r) ? 'font-semibold text-red-600' : 'font-medium'}>{num(r.litersPer100Km, 1)}{high(r) && <span className="block text-[13px] font-normal">Ortalamanın üstünde</span>}</span> },
+  ]
+  return (
+    <>
+      <p className="px-4 pt-3 text-[15px] text-slate-700">
+        Tüketim, yakıt giderlerine girilen <b>litre</b> ve <b>araç kilometresinden</b> hesaplanır (depoyu her seferinde doldurduğunuzda en doğru sonucu verir).
+        {fleet != null && <> Filo ortalaması: <b>{num(fleet, 1)} L/100 km</b>. Ortalamanın %15'ten fazla üstündeki araçlar kırmızı görünür.</>}
+      </p>
+      <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.vehicleId} empty="Bu aralıkta yakıt gideri yok." />
+    </>
+  )
 }
 
 function Aging() {

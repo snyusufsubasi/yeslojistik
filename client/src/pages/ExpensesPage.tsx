@@ -16,13 +16,16 @@ import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib
 import { expenseCategoryLabel, options } from '../lib/labels'
 
 const schema = z.object({
-  category: z.enum(['Fuel', 'Maintenance', 'Toll', 'DriverAllowance', 'Tire', 'Insurance', 'Tax', 'Other']),
+  category: z.enum(['Fuel', 'Maintenance', 'Toll', 'DriverAllowance', 'DriverAdvance', 'Tire', 'Insurance', 'Tax', 'Other']),
   amount: z.number({ error: 'Tutar girin.' }).positive('Tutar sıfırdan büyük olmalı.'),
   date: req('Tarih zorunlu.'),
   vehicleId: z.number().nullable().or(z.nan().transform(() => null)),
   tripId: z.number().nullable().or(z.nan().transform(() => null)),
   description: optStr,
-})
+  driverId: z.number().nullable().or(z.nan().transform(() => null)),
+  liters: z.number().positive('Litre sıfırdan büyük olmalı.').nullable().or(z.nan().transform(() => null)),
+  odometer: z.number().int('Tam sayı girin.').min(0).nullable().or(z.nan().transform(() => null)),
+}).refine((v) => v.category !== 'DriverAdvance' || v.driverId != null || v.tripId != null, { path: ['driverId'], message: 'Avans için şoför seçin.' })
 type FormValues = z.infer<typeof schema>
 const api = crud<Expense, FormValues>('expenses')
 
@@ -48,10 +51,10 @@ export default function ExpensesPage() {
   const columns: Column<Expense>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'date', render: (e) => date(e.date) },
     { key: 'cat', header: 'Kategori', sortKey: 'category', render: (e) => <Badge tone="blue">{expenseCategoryLabel[e.category]}</Badge> },
-    { key: 'plate', header: 'Araç', render: (e) => e.vehiclePlate ?? '—' },
+    { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-[13px] text-slate-500">{e.driverName}</span>}</> },
     { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
     { key: 'desc', header: 'Açıklama', render: (e) => e.description ?? '' },
-    { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (e) => <span className="font-medium">{tl2(e.amount)}</span> },
+    { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (e) => <><span className="font-medium">{tl2(e.amount)}</span>{e.liters ? <span className="block text-[13px] text-slate-500">{e.liters.toLocaleString('tr-TR')} L{e.odometer ? ` · ${e.odometer.toLocaleString('tr-TR')} km` : ''}</span> : null}</> },
     {
       key: 'actions', header: '', align: 'right', render: (e) => (
         <div className="flex justify-end gap-1" onClick={(ev) => ev.stopPropagation()}>
@@ -102,14 +105,21 @@ export default function ExpensesPage() {
 
 function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | null; defaultTripId?: number; onClose: () => void }) {
   const vehicles = useLookup('vehicles')
+  const drivers = useLookup('drivers')
   const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
-      ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '' }
-      : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '' },
+      ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
+        driverId: expense.driverId ?? null, liters: expense.liters ?? null, odometer: expense.odometer ?? null }
+      : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '', driverId: null, liters: null, odometer: null },
   })
-  const vehicleId = useWatch({ control, name: 'vehicleId' })
   const amount = useWatch({ control, name: 'amount' })
+  const category = useWatch({ control, name: 'category' })
+  const liters = useWatch({ control, name: 'liters' })
+  const isFuel = category === 'Fuel'
+  const forDriver = category === 'DriverAdvance' || category === 'DriverAllowance'
+  const perLiter = isFuel && liters && amount ? amount / liters : null
+  const vehicleId = useWatch({ control, name: 'vehicleId' })
   const trips = useQuery({
     queryKey: ['trips', 'for-expense', vehicleId],
     queryFn: () => get<PagedResult<Trip>>('/trips', { vehicleId: vehicleId || undefined, pageSize: 100, sort: 'loadingDate', desc: true }),
@@ -136,7 +146,20 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
           <FormSelect control={control} name="vehicleId" placeholder="— Genel gider —"
             options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
         </Field>
-        <Field className="sm:col-span-2" label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür.">
+        {isFuel && <>
+          <Field label="Litre" error={errors.liters?.message} hint={perLiter ? `Litre fiyatı: ${perLiter.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL` : 'Tüketim hesabı için girin.'}>
+            <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('liters', { valueAsNumber: true })} />
+          </Field>
+          <Field label="Araç kilometresi" error={errors.odometer?.message} hint="Depo doldururken göstergedeki km. Araç km'si de güncellenir.">
+            <input className="input text-right" type="number" step="1" min="0" inputMode="numeric" {...register('odometer', { valueAsNumber: true })} />
+          </Field>
+        </>}
+        <Field className={forDriver ? '' : 'sm:col-span-2'} label="Şoför" error={errors.driverId?.message}
+          hint={forDriver ? 'Sefer seçerseniz seferin şoförü otomatik atanır.' : 'İsteğe bağlı: harcamayı yapan şoför.'}>
+          <FormSelect control={control} name="driverId" placeholder="— Şoför seçilmedi —"
+            options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
+        </Field>
+        <Field className={forDriver ? '' : 'sm:col-span-2'} label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür.">
           <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
             options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
         </Field>

@@ -23,7 +23,8 @@ public class ExpensesController(AppDbContext db) : ControllerBase
 
     private static readonly Expression<Func<Expense, ExpenseDto>> Projection = e => new ExpenseDto(e.Id, e.Category, e.Amount,
         e.Date, e.VehicleId, e.Vehicle != null ? e.Vehicle.Plate : null, e.TripId,
-        e.Trip != null ? e.Trip.LoadingAddress + " → " + e.Trip.DeliveryAddress : null, e.Description);
+        e.Trip != null ? e.Trip.LoadingAddress + " → " + e.Trip.DeliveryAddress : null, e.Description,
+        e.DriverId, e.Driver != null ? e.Driver.FullName : null, e.Liters, e.Odometer);
 
     private IQueryable<Expense> Filter(ExpenseQuery q)
     {
@@ -31,10 +32,12 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         if (q.Category is { } c) query = query.Where(e => e.Category == c);
         if (q.VehicleId is { } v) query = query.Where(e => e.VehicleId == v);
         if (q.TripId is { } t) query = query.Where(e => e.TripId == t);
+        if (q.DriverId is { } d) query = query.Where(e => e.DriverId == d);
         if (q.From is { } from) query = query.Where(e => e.Date >= from);
         if (q.To is { } to) query = query.Where(e => e.Date <= to);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
-            query = query.Where(e => EF.Functions.ILike(e.Description ?? "", like) || (e.Vehicle != null && EF.Functions.ILike(e.Vehicle.Plate, like)));
+            query = query.Where(e => EF.Functions.ILike(e.Description ?? "", like) || (e.Vehicle != null && EF.Functions.ILike(e.Vehicle.Plate, like))
+                || (e.Driver != null && EF.Functions.ILike(e.Driver.FullName, like)));
         return query.ApplySort(q.Sort, q.Desc, SortMap, "date");
     }
 
@@ -54,6 +57,9 @@ public class ExpensesController(AppDbContext db) : ControllerBase
             new("Kategori", e => ReportsController.CategoryLabel(e.Category.ToString())),
             new("Plaka", e => e.VehiclePlate),
             new("Sefer", e => e.TripLabel),
+            new("Şoför", e => e.DriverName),
+            new("Litre", e => e.Liters),
+            new("Km", e => e.Odometer),
             new("Tutar", e => e.Amount, ExcelExporter.MoneyFormat),
             new("Açıklama", e => e.Description)), "giderler");
     }
@@ -94,13 +100,29 @@ public class ExpensesController(AppDbContext db) : ControllerBase
     private async Task ApplyAsync(Expense e, ExpenseSaveRequest r, CancellationToken ct)
     {
         var vehicleId = r.VehicleId;
+        var driverId = r.DriverId;
         if (r.TripId is { } tripId)
         {
-            var tripVehicle = await db.Trips.Where(t => t.Id == tripId).Select(t => (int?)t.VehicleId).FirstOrDefaultAsync(ct)
+            var trip = await db.Trips.Where(t => t.Id == tripId).Select(t => new { t.VehicleId, t.DriverId }).FirstOrDefaultAsync(ct)
                 ?? throw new DomainException("Sefer bulunamadı.");
-            vehicleId ??= tripVehicle;
+            vehicleId ??= trip.VehicleId;
+            // Harcırah/avans sefere bağlıysa şoför seferden alınır.
+            if (r.Category is ExpenseCategory.DriverAllowance or ExpenseCategory.DriverAdvance) driverId ??= trip.DriverId;
         }
         if (vehicleId is { } v && !await db.Vehicles.AnyAsync(x => x.Id == v, ct)) throw new DomainException("Araç bulunamadı.");
+        if (driverId is { } d && !await db.Drivers.AnyAsync(x => x.Id == d, ct)) throw new DomainException("Şoför bulunamadı.");
+        if (r.Category == ExpenseCategory.DriverAdvance && driverId is null)
+            throw new DomainException("Avans için şoför seçin.");
+        var isFuel = r.Category == ExpenseCategory.Fuel;
+        if (isFuel && r.Odometer is { } odo && vehicleId is { } fuelVehicle)
+        {
+            // Girilen kilometre araç kartındakinden büyükse araç kilometresi güncellenir.
+            var vehicle = await db.Vehicles.FirstAsync(x => x.Id == fuelVehicle, ct);
+            if (odo > vehicle.Km) vehicle.Km = odo;
+        }
+        e.DriverId = driverId;
+        e.Liters = isFuel && r.Liters is { } l ? Math.Round(l, 2) : null;
+        e.Odometer = isFuel ? r.Odometer : null;
         e.Category = r.Category;
         e.Amount = Money.Round(r.Amount);
         e.Date = r.Date;

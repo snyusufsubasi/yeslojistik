@@ -41,6 +41,7 @@ export const expenseCategoryLabel: Record<ExpenseCategory, string> = {
   Maintenance: 'Bakım/Onarım',
   Toll: 'Otoyol/Köprü',
   DriverAllowance: 'Şoför Harcırahı',
+  DriverAdvance: 'Şoför Avansı',
   Tire: 'Lastik',
   Insurance: 'Sigorta/Kasko',
   Tax: 'Vergi/Harç',

@@ -37,16 +37,18 @@ public record PaymentQuery : ListQuery
 }
 
 public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId,
-    string? VehiclePlate, int? TripId, string? TripLabel, string? Description);
+    string? VehiclePlate, int? TripId, string? TripLabel, string? Description,
+    int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
-    string? Description);
+    string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null);
 
 public record ExpenseQuery : ListQuery
 {
     public ExpenseCategory? Category { get; init; }
     public int? VehicleId { get; init; }
     public int? TripId { get; init; }
+    public int? DriverId { get; init; }
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
 }

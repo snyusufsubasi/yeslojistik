@@ -4,7 +4,7 @@ export type VehicleStatus = 'Available' | 'OnRoad' | 'Maintenance'
 export type TripStatus = 'Planned' | 'Loaded' | 'OnRoad' | 'Delivered' | 'Cancelled'
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Cancelled'
 export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard'
-export type ExpenseCategory = 'Fuel' | 'Maintenance' | 'Toll' | 'DriverAllowance' | 'Tire' | 'Insurance' | 'Tax' | 'Other'
+export type ExpenseCategory = 'Fuel' | 'Maintenance' | 'Toll' | 'DriverAllowance' | 'DriverAdvance' | 'Tire' | 'Insurance' | 'Tax' | 'Other'
 
 export interface PagedResult<T> {
   items: T[]
@@ -180,6 +180,10 @@ export interface Expense {
   tripId?: number | null
   tripLabel?: string | null
   description?: string | null
+  driverId?: number | null
+  driverName?: string | null
+  liters?: number | null
+  odometer?: number | null
 }
 
 export interface Dashboard {
@@ -288,6 +292,19 @@ export interface DriverReportRow {
   vehicleCost: number
   expenses: number
   profit: number
+  advances: number
+  allowances: number
+}
+
+export interface FuelReportRow {
+  vehicleId: number
+  plate: string
+  fillCount: number
+  liters: number
+  cost: number
+  pricePerLiter?: number | null
+  km?: number | null
+  litersPer100Km?: number | null
 }
 
 export interface Attachment {
