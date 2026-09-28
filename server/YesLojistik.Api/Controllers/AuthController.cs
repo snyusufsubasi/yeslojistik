@@ -55,7 +55,7 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
         var token = Request.Cookies[TokenService.RefreshCookie];
-        if (token != null) await tokens.ConsumeRefreshTokenAsync(token, ct);
+        if (token != null) await tokens.RevokeAsync(token, ct);
         TokenService.ClearCookies(HttpContext);
         return NoContent();
     }
@@ -90,7 +90,7 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
     [HttpPost("token/revoke")]
     public async Task<IActionResult> TokenRevoke(RefreshTokenRequest req, CancellationToken ct)
     {
-        await tokens.ConsumeRefreshTokenAsync(req.RefreshToken, ct);
+        await tokens.RevokeAsync(req.RefreshToken, ct);
         return NoContent();
     }
 

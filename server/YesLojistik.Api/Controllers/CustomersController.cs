@@ -69,6 +69,8 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
         if (await db.Trips.AnyAsync(t => t.CustomerId == id, ct) || await db.Invoices.AnyAsync(i => i.CustomerId == id, ct)
             || await db.Payments.AnyAsync(p => p.CustomerId == id, ct))
             throw new DomainException("Seferi, faturası veya tahsilatı olan müşteri silinemez.");
+        if (c.OpeningBalance > 0)
+            throw new DomainException("Devir bakiyesi olan müşteri silinemez. Önce devir bakiyesini sıfırlayın.");
         c.IsDeleted = true;
         await db.SaveChangesAsync(ct);
         return NoContent();

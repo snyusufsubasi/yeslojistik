@@ -18,7 +18,7 @@ public class TripsController(TripService trips) : ControllerBase
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] TripQuery q, CancellationToken ct)
     {
-        var rows = (await trips.ListAsync(q with { Page = 1, PageSize = QueryExtensions.MaxPageSize }, ct)).Items;
+        var rows = (await trips.ListAsync(q with { Page = 1, PageSize = QueryExtensions.ExportLimit }, ct, export: true)).Items;
         return FileResults.Excel(ExcelExporter.Export("Seferler", rows,
             new ExcelColumn<TripDto>("Yükleme Tarihi", t => t.LoadingDate, ExcelExporter.DateFormat),
             new("Teslim Tarihi", t => t.DeliveryDate, ExcelExporter.DateFormat),

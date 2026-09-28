@@ -20,7 +20,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
         ["status"] = i => i.Status,
     };
 
-    public async Task<PagedResult<InvoiceDto>> ListAsync(InvoiceQuery q, CancellationToken ct = default)
+    public async Task<PagedResult<InvoiceDto>> ListAsync(InvoiceQuery q, CancellationToken ct = default, bool export = false)
     {
         var query = db.Invoices.AsNoTracking();
         if (q.CustomerId is { } c) query = query.Where(i => i.CustomerId == c);
@@ -39,7 +39,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
         var (items, total, page, size) = await query
             .ApplySort(q.Sort, q.Desc, SortMap, "date")
             .Select(i => new { Invoice = i, i.Customer.Title })
-            .PageAsync(q, ct);
+            .PageAsync(q, ct, export ? QueryExtensions.ExportLimit : QueryExtensions.MaxPageSize);
         var bal = await balances.InvoiceBalancesAsync(items.Select(i => i.Invoice.CustomerId), ct);
         return new PagedResult<InvoiceDto>(items.Select(x => ToDto(x.Invoice, x.Title, bal, [])).ToList(), total, page, size);
     }

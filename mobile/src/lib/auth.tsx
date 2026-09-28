@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import * as api from './api'
-import { stopTracking } from './location'
+import { flushQueue, stopTracking } from './location'
 import { unregisterPush } from './notifications'
 
 interface AuthState {
@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await stopTracking()
+    await flushQueue().catch(() => undefined) // bekleyen konumları çıkıştan önce gönder
     await unregisterPush()
     await api.logout()
     qc.clear()

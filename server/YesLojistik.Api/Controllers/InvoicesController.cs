@@ -17,7 +17,7 @@ public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] InvoiceQuery q, CancellationToken ct)
     {
-        var rows = (await invoices.ListAsync(q with { Page = 1, PageSize = QueryExtensions.MaxPageSize }, ct)).Items;
+        var rows = (await invoices.ListAsync(q with { Page = 1, PageSize = QueryExtensions.ExportLimit }, ct, export: true)).Items;
         return FileResults.Excel(ExcelExporter.Export("Faturalar", rows,
             new ExcelColumn<InvoiceDto>("Fatura No", i => i.InvoiceNo),
             new("Tarih", i => i.Date, ExcelExporter.DateFormat),

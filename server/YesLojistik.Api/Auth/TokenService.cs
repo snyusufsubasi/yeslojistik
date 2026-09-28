@@ -45,26 +45,44 @@ public class TokenService(AppDbContext db, IOptions<JwtOptions> options)
             UserId = user.Id, TokenHash = Hash(token), CreatedAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddDays(_opt.RefreshTokenDays),
         });
-        // Süresi dolmuş eski token'ları temizle.
-        await db.RefreshTokens.Where(t => t.UserId == user.Id && (t.ExpiresAt < DateTime.UtcNow || t.RevokedAt != null)).ExecuteDeleteAsync(ct);
+        // Süresi dolmuş ve (tolerans süresini aşmış) iptal edilmiş eski token'ları temizle.
+        var cutoff = DateTime.UtcNow - ReuseGrace;
+        await db.RefreshTokens.Where(t => t.UserId == user.Id && (t.ExpiresAt < DateTime.UtcNow || t.RevokedAt < cutoff)).ExecuteDeleteAsync(ct);
         await db.SaveChangesAsync(ct);
         return token;
     }
+
+    /// <summary>
+    /// Aynı anda yenileme yapan sekmeler için: az önce (bu süre içinde) yenilenmiş bir token bir kez daha kabul edilir.
+    /// Böylece iki sekme aynı anda yenilediğinde ikincisi oturumdan atılmaz.
+    /// </summary>
+    public static readonly TimeSpan ReuseGrace = TimeSpan.FromSeconds(30);
 
     /// <summary>Refresh token'ı doğrular ve iptal eder (rotation). Geçerliyse kullanıcıyı döner.</summary>
     public async Task<User?> ConsumeRefreshTokenAsync(string token, CancellationToken ct)
     {
         var hash = Hash(token);
         var stored = await db.RefreshTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
-        if (stored == null || stored.RevokedAt != null || stored.ExpiresAt < DateTime.UtcNow) return null;
-        stored.RevokedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        if (stored == null || stored.ExpiresAt < now) return null;
+        if (stored.RevokedAt is { } revoked && now - revoked > ReuseGrace) return null;
+        stored.RevokedAt ??= now;
         await db.SaveChangesAsync(ct);
         return stored.User is { IsActive: true, IsDeleted: false } ? stored.User : null;
     }
 
+    /// <summary>Şifre değişikliği, çıkış, hesabı pasife alma: tolerans süresi olmadan hemen geçersiz kılar.</summary>
     public async Task RevokeAllAsync(int userId, CancellationToken ct) =>
-        await db.RefreshTokens.Where(t => t.UserId == userId && t.RevokedAt == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, DateTime.UtcNow), ct);
+        await db.RefreshTokens.Where(t => t.UserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, DateTime.UtcNow - ReuseGrace - TimeSpan.FromSeconds(1)), ct);
+
+    /// <summary>Çıkışta kullanılan token'ı tolerans süresi olmadan iptal eder.</summary>
+    public async Task RevokeAsync(string token, CancellationToken ct)
+    {
+        var hash = Hash(token);
+        await db.RefreshTokens.Where(t => t.TokenHash == hash)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, DateTime.UtcNow - ReuseGrace - TimeSpan.FromSeconds(1)), ct);
+    }
 
     public void WriteCookies(HttpContext http, string access, string refresh)
     {

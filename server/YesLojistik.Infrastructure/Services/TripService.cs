@@ -54,12 +54,13 @@ public class TripService(AppDbContext db, DriverNotifier notifier)
         return query;
     }
 
-    public async Task<PagedResult<TripDto>> ListAsync(TripQuery q, CancellationToken ct = default)
+    /// <param name="export">Excel için: sayfa boyutu sınırı <see cref="QueryExtensions.ExportLimit"/> olur.</param>
+    public async Task<PagedResult<TripDto>> ListAsync(TripQuery q, CancellationToken ct = default, bool export = false)
     {
         var (rows, total, page, size) = await Filter(q)
             .ApplySort(q.Sort, q.Desc, SortMap, "loadingDate")
             .Select(Projection)
-            .PageAsync(q, ct);
+            .PageAsync(q, ct, export ? QueryExtensions.ExportLimit : QueryExtensions.MaxPageSize);
         return new PagedResult<TripDto>(rows.Select(ToDto).ToList(), total, page, size);
     }
 

@@ -16,26 +16,37 @@ async function enqueue(pings: LocationPing[]) {
   await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-MAX_QUEUE)))
 }
 
-let flushing = false
+// Gönderimler sıraya alınır; aynı anda iki gönderim kuyruğu birbirinin üzerine yazamaz.
+let chain: Promise<void> = Promise.resolve()
 
-export async function flushQueue(extra: LocationPing[] = []) {
-  if (flushing) {
-    if (extra.length) await enqueue(extra)
-    return
-  }
-  flushing = true
+export function flushQueue(extra: LocationPing[] = []): Promise<void> {
+  chain = chain.then(() => flush(extra), () => flush(extra))
+  return chain
+}
+
+async function flush(extra: LocationPing[]) {
   try {
     const raw = await AsyncStorage.getItem(QUEUE_KEY)
-    const queue: LocationPing[] = [...(raw ? JSON.parse(raw) : []), ...extra]
-    if (queue.length === 0 || !(await hasSession())) return
-    for (let i = 0; i < queue.length; i += 500) {
-      await api.post('/driver/location', queue.slice(i, i + 500))
+    let queue: LocationPing[] = [...(raw ? JSON.parse(raw) : []), ...extra]
+    if (queue.length === 0) return
+    // Oturum yoksa (çıkış yapılmış) konumlar atılır: telefonu sonra başka şoför kullanırsa ona yazılmasın.
+    if (!(await hasSession())) {
+      await AsyncStorage.removeItem(QUEUE_KEY)
+      return
+    }
+    // Her başarılı parçadan sonra kalanları kaydet: yarıda kesilirse gönderilenler tekrar gönderilmez.
+    while (queue.length > 0) {
+      try {
+        await api.post('/driver/location', queue.slice(0, 500))
+      } catch {
+        await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-MAX_QUEUE)))
+        return
+      }
+      queue = queue.slice(500)
     }
     await AsyncStorage.removeItem(QUEUE_KEY)
   } catch {
     if (extra.length) await enqueue(extra)
-  } finally {
-    flushing = false
   }
 }
 

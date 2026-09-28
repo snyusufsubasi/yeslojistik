@@ -7,6 +7,8 @@ namespace YesLojistik.Infrastructure.Services;
 public static class QueryExtensions
 {
     public const int MaxPageSize = 500;
+    /// <summary>Excel dışa aktarmada tek seferde en fazla satır.</summary>
+    public const int ExportLimit = 20_000;
 
     public static IQueryable<T> ApplySort<T>(this IQueryable<T> query, string? sort, bool desc,
         IReadOnlyDictionary<string, Expression<Func<T, object?>>> map, string defaultKey, bool defaultDesc = true)
@@ -19,9 +21,9 @@ public static class QueryExtensions
     }
 
     public static async Task<(List<T> Items, int Total, int Page, int PageSize)> PageAsync<T>(
-        this IQueryable<T> query, ListQuery q, CancellationToken ct = default)
+        this IQueryable<T> query, ListQuery q, CancellationToken ct = default, int maxPageSize = MaxPageSize)
     {
-        var pageSize = Math.Clamp(q.PageSize, 1, MaxPageSize);
+        var pageSize = Math.Clamp(q.PageSize, 1, maxPageSize);
         var page = Math.Max(1, q.Page);
         var total = await query.CountAsync(ct);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);

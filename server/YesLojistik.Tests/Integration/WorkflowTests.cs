@@ -186,6 +186,19 @@ public class WorkflowTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Excel_export_is_not_limited_to_one_page()
+    {
+        var (c, customerId, vehicleId, driverId) = await SetupAsync("34yes08");
+        for (var i = 0; i < 3; i++)
+            await (await c.PostJsonAsync("/api/trips", Trip(customerId, vehicleId, driverId, 1000 + i))).ReadAsync<TripDto>();
+        // Liste 500 ile sınırlı, dışa aktarma değil: dışa aktarılan satır sayısı listelenen toplamla aynı olmalı.
+        var total = (await (await c.GetAsync($"/api/trips?customerId={customerId}&pageSize=1")).ReadAsync<PagedResult<TripDto>>()).Total;
+        var res = await c.GetAsync($"/api/trips/export?customerId={customerId}&pageSize=1");
+        using var wb = new ClosedXML.Excel.XLWorkbook(await res.Content.ReadAsStreamAsync());
+        (wb.Worksheet(1).RowsUsed().Count() - 1).Should().Be(total);
+    }
+
+    [Fact]
     public async Task Excel_exports_are_generated()
     {
         var c = await factory.LoginAsync();

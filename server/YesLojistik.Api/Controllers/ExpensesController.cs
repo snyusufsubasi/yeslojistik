@@ -48,7 +48,7 @@ public class ExpensesController(AppDbContext db) : ControllerBase
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] ExpenseQuery q, CancellationToken ct)
     {
-        var rows = await Filter(q).Select(Projection).Take(5000).ToListAsync(ct);
+        var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
         return FileResults.Excel(ExcelExporter.Export("Giderler", rows,
             new ExcelColumn<ExpenseDto>("Tarih", e => e.Date, ExcelExporter.DateFormat),
             new("Kategori", e => ReportsController.CategoryLabel(e.Category.ToString())),

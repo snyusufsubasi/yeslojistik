@@ -202,7 +202,9 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var login = await (await c.PostAsJsonAsync("/api/auth/token", new { email = ApiFactory.AdminEmail, password = ApiFactory.AdminPassword })).ReadAsync<TokenLoginResponse>();
         var refreshed = await (await c.PostAsJsonAsync("/api/auth/token/refresh", new { refreshToken = login.RefreshToken })).ReadAsync<TokenLoginResponse>();
         refreshed.RefreshToken.Should().NotBe(login.RefreshToken);
-        (await c.PostAsJsonAsync("/api/auth/token/refresh", new { refreshToken = login.RefreshToken })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        // Çıkış (revoke) sonrası token tolerans olmadan geçersizdir.
+        (await c.PostAsJsonAsync("/api/auth/token/revoke", new { refreshToken = refreshed.RefreshToken })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await c.PostAsJsonAsync("/api/auth/token/refresh", new { refreshToken = refreshed.RefreshToken })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         admin.Dispose();
     }
 }

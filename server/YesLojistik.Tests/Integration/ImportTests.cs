@@ -80,6 +80,9 @@ public class ImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
         summary.Balance.Should().Be(6000);
         summary.TotalDebit.Should().Be(10000);
 
+        // Devir bakiyesi olan müşteri silinemez (alacak kaybolmasın).
+        (await c.DeleteAsync($"/api/customers/{list.Items.Single(x => x.Title == "İthal İnşaat").Id}")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
         // Aynı dosya tekrar: hepsi atlanır
         var again = await (await c.PostAsync("/api/import/customers?dryRun=false", Form(file))).ReadAsync<ImportResult>();
         again.Created.Should().Be(0);

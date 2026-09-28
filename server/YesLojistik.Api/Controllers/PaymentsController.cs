@@ -49,7 +49,7 @@ public class PaymentsController(AppDbContext db) : ControllerBase
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] PaymentQuery q, CancellationToken ct)
     {
-        var rows = await Filter(q).Select(Projection).Take(5000).ToListAsync(ct);
+        var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
         return FileResults.Excel(ExcelExporter.Export("Tahsilatlar", rows,
             new ExcelColumn<PaymentDto>("Tarih", p => p.Date, ExcelExporter.DateFormat),
             new("Müşteri", p => p.CustomerTitle),

@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using YesLojistik.Infrastructure.Data;
 using YesLojistik.Core.Dtos;
 using YesLojistik.Core.Entities;
 
@@ -40,10 +43,21 @@ public class AuthTests(ApiFactory factory) : IClassFixture<ApiFactory>
         req.Headers.Add("Cookie", refresh);
         (await c.SendAsync(req)).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Aynı refresh token ikinci kez kullanılamaz.
-        var again = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
-        again.Headers.Add("Cookie", refresh);
-        (await c.SendAsync(again)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        // İkinci sekme aynı anda yenilerse (tolerans süresi içinde) oturum düşmez.
+        var sameMoment = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        sameMoment.Headers.Add("Cookie", refresh);
+        (await c.SendAsync(sameMoment)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Tolerans süresi geçtikten sonra eski token kullanılamaz.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.RefreshTokens.Where(t => t.RevokedAt != null)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, DateTime.UtcNow.AddMinutes(-5)));
+        }
+        var later = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        later.Headers.Add("Cookie", refresh);
+        (await c.SendAsync(later)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
