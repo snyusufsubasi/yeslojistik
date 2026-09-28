@@ -1,5 +1,8 @@
 # YES Lojistik – Nakliye Takip Sistemi · Proje Planı
 
+> **Durum:** v1'in tüm fazları (1–6) uygulandı. Kurulum için [KURULUM.md](KURULUM.md), kullanım için [KULLANIM.md](KULLANIM.md).
+> Plandan sapmalar: tablo için TanStack Table yerine hafif özel `DataTable` bileşeni; Serilog yalnızca konsola yazar (Docker logları).
+
 ## Context
 Kuzenin nakliye firması (YES Lojistik) için seferleri, araçları, şoförleri, müşteri carilerini, faturaları, tahsilatları ve giderleri tek yerden yönettiği bir web paneli istiyor. Elimizde sadece bir tasarım görseli var; repo boş (`README.md` dışında hiçbir şey yok). Bu yüzden sıfırdan, **aşamalı** kuracağız.
 
@@ -136,5 +139,3 @@ yeslojistik/
 - Uçtan uca senaryo (Faz 4 sonrası): müşteri ekle → araç + şoför ekle → sefer oluştur → durumları ilerlet → sefer(ler)den fatura kes → PDF indir → kısmi tahsilat gir → cari bakiyenin doğru düştüğünü ve dashboard'daki "Tahsilat Bekleyen" tutarının güncellendiğini kontrol et
 - Playwright ile bu senaryonun otomatik testi + mobil genişlikte (375px) ekran görüntüsü kontrolü
 
-## İlk adım (onay sonrası)
-Faz 1'i `claude/eloquent-thompson-eodl8v` branch'inde başlat: klasör iskeleti, docker-compose, .NET çözümü, Vite+Tailwind, login + layout.

@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+server/**/logs/
+
+# Node
+node_modules/
+client/dist/
+
+# Ortam / gizli bilgiler
+.env
+*.env.local
+
+# Yedekler
+backups/
+
+.DS_Store
+.vscode/
+.idea/

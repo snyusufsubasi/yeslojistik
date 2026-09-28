@@ -1,0 +1,42 @@
+# Yerel/demoda çalıştırma: `cp .env.example .env` → değerleri doldur → `docker compose up -d --build`
+# Uygulama: http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: yeslojistik
+      POSTGRES_USER: yeslojistik
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD ayarlanmalı}
+      TZ: Europe/Istanbul
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yeslojistik -d yeslojistik"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: Host=db;Database=yeslojistik;Username=yeslojistik;Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?JWT_KEY ayarlanmalı (en az 32 karakter)}
+      Jwt__SecureCookies: ${SECURE_COOKIES:-false}
+      Seed__AdminEmail: ${ADMIN_EMAIL:-admin@yeslojistik.com}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-}
+      Seed__SampleData: ${SAMPLE_DATA:-false}
+
+  web:
+    build: ./client
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
