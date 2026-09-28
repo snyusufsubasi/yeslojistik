@@ -26,14 +26,35 @@ sol üstteki ☰ düğmesi menüyü açar. Şifrenizi sağ üstteki isminize tı
 7. **Tahsilat gir** → faturanın içinden *Tahsilat Ekle* ya da *Tahsilatlar* sayfasından. Faturaya bağlamazsanız
    ödeme en eski açık faturalardan başlayarak kapatılır.
 
+## Kiralık araç (taşeron) ve tedarikçiler
+
+- **Tedarikçiler** sayfası: kiralık araç sahipleri (taşeron), servisler ve akaryakıt istasyonları. IBAN, vade ve devir borcu girilir.
+- **Araçlar → Sahiplik: Kiralık** yapılıp araç sahibi seçilir. Dorse plakası araçta ve seferde tutulur.
+- Kiralık araçla açılan seferde **Taşerona Ödenecek** tutar, sefer *Yüklendi* olduğu anda araç sahibine borç yazılır. Planlanmış ve iptal edilen sefer borç doğurmaz.
+- Seferin **Geçmiş** sekmesi ne zaman yüklendiğini, yola çıktığını ve teslim edildiğini, kimin (panel / şoför uygulaması) yaptığıyla gösterir. Müşteri takip sayfasında da saatler görünür.
+
+## Yedekler
+
+- Her gece 03:30'da otomatik yedek alınır, geçici bir veritabanına geri yüklenerek denenir ve şifreli saklanır.
+- **Ayarlar → Veriler → Tam yedeği indir** ile haftada bir yedeği indirip saklayın. Yedek fotoğrafları da içerir.
+- Aynı kartta veritabanı doluluğu görünür (ücretsiz sunucuda 1 GB).
+
 ## İlk kurulum: Excel'den aktarım
-*Müşteriler*, *Araçlar* ve *Şoförler* sayfalarındaki **Excel'den Aktar** düğmesiyle mevcut listeleri toplu aktarabilirsiniz:
+*Tedarikçiler*, *Müşteriler*, *Şoförler*, *Araçlar* ve *Seferler* sayfalarındaki **Excel'den Aktar** düğmesiyle mevcut listeleri toplu aktarabilirsiniz.
+Sıra önemlidir, çünkü sonrakiler öncekilere ada göre bağlanır: **1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler**.
 1. **Şablonu İndir** → Excel'de doldurun (örnek satırı silin).
 2. **Dosya Seç** → **Kontrol Et**. Hatalı satırlar satır numarasıyla listelenir; hata varsa hiçbir kayıt aktarılmaz.
 3. Hata yoksa **Aktar**. Sistemde zaten kayıtlı olanlar (aynı plaka, aynı ünvan/VKN, aynı ad soyad) atlanır.
 
 Müşteri şablonundaki **Devir Bakiyesi** sütununa müşterinin eski sistemden kalan borcunu yazın. Devir, cari bakiyeye ve
 alacak yaşlandırmasına eklenir; faturaya bağlanmayan tahsilatlar önce devri kapatır. Müşteri formundan da girilebilir.
+
+- **Tedarikçi** şablonundaki *Devir Borcu*, firmanın o tedarikçiye olan eski borcudur.
+- **Araç** şablonunda *Sahiplik* “Özmal” ya da “Kiralık”; kiralıksa *Araç Sahibi* sütununa tedarikçi ünvanı yazılır.
+- **Sefer** şablonu geçmiş seferler içindir: müşteri, plaka ve şoför sistemde kayıtlı olmalı. Aktarılan seferler bildirim göndermez,
+  araç durumunu değiştirmez. Tarih, müşteri, plaka, teslim adresi ve satış fiyatı aynı olan sefer ikinci kez aktarılmaz.
+- **Ayarlar → Veriler → Canlıya geçiş** kartı yapılacakları sırayla gösterir (demo temizliği, firma bilgileri, kullanıcılar, aktarımlar,
+  devir kontrolü, fatura numarası, ilk yedek).
 
 ## Şoför uygulaması
 Şoförler **YES Lojistik Şoför** uygulamasını kullanır (kurulum: `mobile/README.md`).

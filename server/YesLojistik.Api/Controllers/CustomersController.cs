@@ -37,7 +37,7 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
 
     [HttpGet("lookup")]
     public async Task<List<LookupItem>> Lookup(CancellationToken ct) =>
-        await db.Customers.AsNoTracking().OrderBy(c => c.Title).Select(c => new LookupItem(c.Id, c.Title, null)).ToListAsync(ct);
+        await db.Customers.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Title).Select(c => new LookupItem(c.Id, c.Title, null)).ToListAsync(ct);
 
     [HttpGet("{id:int}")]
     public Task<CustomerSummaryDto> Get(int id, CancellationToken ct) => accounts.SummaryAsync(id, ct);
@@ -104,6 +104,13 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
         c.OpeningBalance = Money.Round(r.OpeningBalance);
         c.OpeningBalanceDate = r.OpeningBalance > 0 ? r.OpeningBalanceDate : null;
         c.NotifyStatusByEmail = r.NotifyStatusByEmail;
+        c.City = Cities.Normalize(r.City);
+        c.District = NullIfEmpty(r.District);
+        c.ContactName = NullIfEmpty(r.ContactName);
+        c.IsEInvoiceUser = r.IsEInvoiceUser;
+        c.EInvoiceAlias = r.IsEInvoiceUser ? NullIfEmpty(r.EInvoiceAlias) : null;
+        c.PaymentTermDays = r.PaymentTermDays;
+        c.IsActive = r.IsActive;
     }
 
     internal static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

@@ -32,7 +32,7 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
   await page.screenshot({ path: 'e2e/screenshots/desktop-map.png' })
 
   // Yoldaki seferi aç → Dosyalar sekmesi → PDF yükle
-  await page.getByRole('link', { name: 'Seferler' }).click()
+  await page.getByRole('link', { name: 'Seferler', exact: true }).click()
   await page.getByPlaceholder('Müşteri, plaka, şoför, adres...').fill(target)
   await page.getByRole('row', { name: new RegExp(target) }).click()
   const dialog = page.getByRole('dialog', { name: 'Sefer Düzenle' })

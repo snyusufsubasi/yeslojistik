@@ -5,7 +5,9 @@ namespace YesLojistik.Core.Dtos;
 /// <summary>Şoför uygulamasında gösterilen sefer. Fiyat bilgisi içermez.</summary>
 public record DriverTripDto(int Id, string CustomerTitle, string? CustomerPhone, string LoadingAddress, string DeliveryAddress,
     DateOnly LoadingDate, DateOnly? DeliveryDate, string? Description, string VehiclePlate, TripStatus Status,
-    IReadOnlyList<TripStatus> NextStatuses, int AttachmentCount);
+    IReadOnlyList<TripStatus> NextStatuses, int AttachmentCount, string? CustomerReference = null, string? Cargo = null,
+    string? TrailerPlate = null, string? LoadingCity = null, string? DeliveryCity = null, string? LoadingContact = null,
+    string? DeliveryContact = null);
 
 public record LocationPing(double Latitude, double Longitude, double? SpeedKmh, double? Heading, double? Accuracy, DateTime? RecordedAt);
 
@@ -22,7 +24,11 @@ public record TrackingLinkDto(string Token, string Url);
 /// <summary>Müşteriye açık takip sayfası. Fiyat, telefon gibi bilgiler içermez.</summary>
 public record PublicTrackingDto(string CompanyName, string? CompanyPhone, string CustomerTitle, string LoadingAddress,
     string DeliveryAddress, DateOnly LoadingDate, DateOnly? DeliveryDate, TripStatus Status, string VehiclePlate,
-    double? Latitude, double? Longitude, DateTime? LastLocationAt);
+    double? Latitude, double? Longitude, DateTime? LastLocationAt, IReadOnlyList<PublicTripEvent>? Events = null,
+    string? CustomerReference = null);
+
+/// <summary>Takip sayfasındaki zaman çizelgesi (kim yaptığı gösterilmez).</summary>
+public record PublicTripEvent(TripStatus Status, DateTime OccurredAt);
 
 public record TokenLoginResponse(string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt, CurrentUserDto User);
 

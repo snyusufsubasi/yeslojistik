@@ -10,7 +10,10 @@ namespace YesLojistik.Api.Controllers;
 [Route("api/import")]
 public class ImportController(ImportService imports) : ControllerBase
 {
-    private static readonly Dictionary<string, string> Names = new() { ["customers"] = "musteri", ["vehicles"] = "arac", ["drivers"] = "sofor" };
+    private static readonly Dictionary<string, string> Names = new()
+    {
+        ["suppliers"] = "tedarikci", ["customers"] = "musteri", ["drivers"] = "sofor", ["vehicles"] = "arac", ["trips"] = "sefer",
+    };
 
     [HttpGet("{entity}/template")]
     public IActionResult Template(string entity)
@@ -24,8 +27,8 @@ public class ImportController(ImportService imports) : ControllerBase
     public async Task<ActionResult<ImportResult>> Import(string entity, IFormFile file, [FromQuery] bool dryRun = true, CancellationToken ct = default)
     {
         if (!Names.ContainsKey(entity)) throw new NotFoundException("Bilinmeyen aktarım türü.");
-        // Araç ve şoför aktarımı operasyon yetkisi ister; müşteri aktarımı tüm ofis kullanıcılarına açık.
-        if (entity != "customers" && !Policies.OperationsRoles.Any(User.IsInRole)) return Forbid();
+        // Araç, şoför ve sefer aktarımı operasyon yetkisi ister; müşteri ve tedarikçi aktarımı tüm ofis kullanıcılarına açık.
+        if (entity is not ("customers" or "suppliers") && !Policies.OperationsRoles.Any(User.IsInRole)) return Forbid();
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms, ct);

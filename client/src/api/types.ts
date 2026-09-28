@@ -4,6 +4,9 @@ export type VehicleStatus = 'Available' | 'OnRoad' | 'Maintenance'
 export type TripStatus = 'Planned' | 'Loaded' | 'OnRoad' | 'Delivered' | 'Cancelled'
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Cancelled'
 export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard'
+export type SupplierKind = 'Carrier' | 'Service' | 'Fuel' | 'Other'
+export type VehicleOwnership = 'Own' | 'Rented'
+export type TripEventSource = 'Panel' | 'Driver' | 'Import'
 export type ExpenseCategory = 'Fuel' | 'Maintenance' | 'Toll' | 'DriverAllowance' | 'DriverAdvance' | 'Tire' | 'Insurance' | 'Tax' | 'Other'
 
 export interface PagedResult<T> {
@@ -56,6 +59,35 @@ export interface Customer {
   openingBalance: number
   openingBalanceDate?: string | null
   notifyStatusByEmail?: boolean
+  city?: string | null
+  district?: string | null
+  contactName?: string | null
+  isEInvoiceUser?: boolean
+  eInvoiceAlias?: string | null
+  paymentTermDays?: number | null
+  isActive?: boolean
+}
+
+export interface Supplier {
+  id: number
+  supplierNo: string
+  title: string
+  kind: SupplierKind
+  taxNumber?: string | null
+  taxOffice?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  city?: string | null
+  district?: string | null
+  iban?: string | null
+  contactName?: string | null
+  paymentTermDays: number
+  notes?: string | null
+  openingBalance: number
+  openingBalanceDate?: string | null
+  isActive: boolean
+  balance: number
 }
 
 export interface CustomerSummary {
@@ -93,6 +125,10 @@ export interface Vehicle {
   status: VehicleStatus
   defaultDriverId?: number | null
   defaultDriverName?: string | null
+  ownership: VehicleOwnership
+  supplierId?: number | null
+  supplierTitle?: string | null
+  trailerPlate?: string | null
 }
 
 export interface Driver {
@@ -105,6 +141,8 @@ export interface Driver {
   srcExpiry?: string | null
   psychotechnicExpiry?: string | null
   isActive: boolean
+  supplierId?: number | null
+  supplierTitle?: string | null
 }
 
 export interface Trip {
@@ -129,6 +167,33 @@ export interface Trip {
   nextStatuses: TripStatus[]
   invoiceId?: number | null
   invoiceNo?: string | null
+  customerReference?: string | null
+  cargoType?: string | null
+  cargoWeightKg?: number | null
+  cargoQuantity?: number | null
+  cargoUnit?: string | null
+  trailerPlate?: string | null
+  loadingCity?: string | null
+  deliveryCity?: string | null
+  loadingContact?: string | null
+  deliveryContact?: string | null
+  carrierSupplierId?: number | null
+  carrierSupplierTitle?: string | null
+  carrierInvoiceNo?: string | null
+  carrierInvoiceDate?: string | null
+  receivedBy?: string | null
+  deliveredAt?: string | null
+  vehicleOwnership?: VehicleOwnership
+}
+
+export interface TripEvent {
+  id: number
+  status: TripStatus
+  occurredAt: string
+  recordedAt: string
+  userName?: string | null
+  source: TripEventSource
+  note?: string | null
 }
 
 export interface InvoiceLine {
@@ -202,7 +267,7 @@ export interface Dashboard {
   recentInvoices: Invoice[]
   vehicles: Vehicle[]
   trend: { year: number; month: number; revenue: number; cost: number }[]
-  setup: { companyInfo: boolean; vehicleCount: number; driverCount: number; customerCount: number; tripCount: number; userCount: number; sampleData: boolean }
+  setup: SetupStatus
 }
 
 export interface Alert {
@@ -283,6 +348,13 @@ export interface CompanySettings {
   defaultPaymentTermDays: number
   emailEnabled?: boolean
   dailyDigestEnabled?: boolean
+  city?: string | null
+  district?: string | null
+  mersisNo?: string | null
+  tradeRegistryNo?: string | null
+  website?: string | null
+  lastBackupAt?: string | null
+  sampleDataClearedAt?: string | null
 }
 
 export interface DriverReportRow {
@@ -360,6 +432,8 @@ export interface PublicTracking {
   latitude?: number | null
   longitude?: number | null
   lastLocationAt?: string | null
+  events?: { status: TripStatus; occurredAt: string }[] | null
+  customerReference?: string | null
 }
 
 export interface AuditLogEntry {
@@ -388,4 +462,20 @@ export interface DataStats {
   fileBytes: number
   databaseBytes: number
   lastBackupAt: string | null
+}
+
+export interface SetupStatus {
+  companyInfo: boolean
+  vehicleCount: number
+  driverCount: number
+  customerCount: number
+  tripCount: number
+  userCount: number
+  sampleData: boolean
+  supplierCount: number
+  customerOpeningTotal: number
+  supplierOpeningTotal: number
+  lastBackupAt?: string | null
+  sampleDataCleared: boolean
+  companyDetails: boolean
 }

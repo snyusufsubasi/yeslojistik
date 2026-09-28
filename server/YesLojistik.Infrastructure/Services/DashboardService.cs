@@ -17,7 +17,13 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
             await db.Customers.CountAsync(ct),
             await db.Trips.CountAsync(ct),
             await db.Users.CountAsync(ct),
-            s.HasSampleData);
+            s.HasSampleData,
+            await db.Suppliers.CountAsync(ct),
+            await db.Customers.SumAsync(c => (decimal?)c.OpeningBalance, ct) ?? 0,
+            await db.Suppliers.SumAsync(x => (decimal?)x.OpeningBalance, ct) ?? 0,
+            s.LastBackupAt,
+            s.SampleDataClearedAt != null,
+            !string.IsNullOrWhiteSpace(s.Iban) && !string.IsNullOrWhiteSpace(s.City));
     }
 
     public async Task<DashboardDto> GetAsync(CancellationToken ct = default)
@@ -46,9 +52,7 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var recentInvoices = (await invoices.ListAsync(new InvoiceQuery { PageSize = 5 }, ct)).Items;
 
         var vehicles = await db.Vehicles.AsNoTracking().OrderBy(v => v.Plate)
-            .Select(v => new VehicleDto(v.Id, v.Plate, v.Type, v.Brand, v.Model, v.ModelYear, v.Km, v.LastMaintenanceDate,
-                v.NextMaintenanceDate, v.InspectionExpiry, v.InsuranceExpiry, v.Status, v.DefaultDriverId,
-                v.DefaultDriver != null ? v.DefaultDriver.FullName : null))
+            .Select(Projections.Vehicle)
             .ToListAsync(ct);
 
         var trendStart = monthStart.AddMonths(-5);

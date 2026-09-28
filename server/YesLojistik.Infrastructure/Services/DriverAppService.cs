@@ -35,13 +35,14 @@ public class DriverAppService(AppDbContext db, TripService trips)
         return Map(row);
     }
 
-    public async Task<DriverTripDto> ChangeStatusAsync(int driverId, int tripId, TripStatus status, CancellationToken ct = default)
+    public async Task<DriverTripDto> ChangeStatusAsync(int driverId, int tripId, TripStatus status, CancellationToken ct = default,
+        DateTime? occurredAt = null, string? note = null)
     {
         await EnsureOwnAsync(driverId, tripId, ct);
         var current = await db.Trips.Where(t => t.Id == tripId).Select(t => t.Status).FirstAsync(ct);
         if (!Forward.TryGetValue(current, out var next) || next != status)
             throw new DomainException("Bu durum değişikliği yalnızca ofisten yapılabilir.");
-        await trips.ChangeStatusAsync(tripId, status, ct);
+        await trips.ChangeStatusAsync(tripId, status, TripEventSource.Driver, occurredAt, note, ct);
         return await GetAsync(driverId, tripId, ct);
     }
 
@@ -55,7 +56,18 @@ public class DriverAppService(AppDbContext db, TripService trips)
     private static IQueryable<Row> Project(IQueryable<Trip> q) =>
         q.Select(t => new Row(t, t.Customer.Title, t.Customer.Phone, t.Vehicle.Plate, t.Attachments.Count));
 
+    /// <summary>"12 palet mobilya, 8.500 kg"</summary>
+    public static string? CargoText(Trip t)
+    {
+        var parts = new List<string>();
+        var what = string.Join(" ", new[] { t.CargoQuantity is { } q ? $"{q} {t.CargoUnit}".Trim() : null, t.CargoType }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        if (what.Length > 0) parts.Add(what);
+        if (t.CargoWeightKg is { } kg) parts.Add($"{kg.ToString("N0", Formatters.Tr)} kg");
+        return parts.Count > 0 ? string.Join(", ", parts) : null;
+    }
+
     private static DriverTripDto Map(Row r) => new(r.Trip.Id, r.Customer, r.Phone, r.Trip.LoadingAddress, r.Trip.DeliveryAddress,
         r.Trip.LoadingDate, r.Trip.DeliveryDate, r.Trip.Description, r.Plate, r.Trip.Status,
-        Forward.TryGetValue(r.Trip.Status, out var next) ? [next] : [], r.Attachments);
+        Forward.TryGetValue(r.Trip.Status, out var next) ? [next] : [], r.Attachments, r.Trip.CustomerReference, CargoText(r.Trip),
+        r.Trip.TrailerPlate, r.Trip.LoadingCity, r.Trip.DeliveryCity, r.Trip.LoadingContact, r.Trip.DeliveryContact);
 }

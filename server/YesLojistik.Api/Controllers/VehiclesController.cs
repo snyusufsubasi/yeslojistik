@@ -14,6 +14,8 @@ namespace YesLojistik.Api.Controllers;
 public record VehicleQuery : ListQuery
 {
     public VehicleStatus? Status { get; init; }
+    public VehicleOwnership? Ownership { get; init; }
+    public int? SupplierId { get; init; }
 }
 
 [ApiController]
@@ -30,15 +32,15 @@ public class VehiclesController(AppDbContext db) : ControllerBase
         ["nextMaintenanceDate"] = v => v.NextMaintenanceDate,
     };
 
-    private static readonly Expression<Func<Vehicle, VehicleDto>> Projection = v => new VehicleDto(v.Id, v.Plate, v.Type,
-        v.Brand, v.Model, v.ModelYear, v.Km, v.LastMaintenanceDate, v.NextMaintenanceDate, v.InspectionExpiry,
-        v.InsuranceExpiry, v.Status, v.DefaultDriverId, v.DefaultDriver != null ? v.DefaultDriver.FullName : null);
+    private static readonly Expression<Func<Vehicle, VehicleDto>> Projection = Projections.Vehicle;
 
     [HttpGet]
     public async Task<PagedResult<VehicleDto>> List([FromQuery] VehicleQuery q, CancellationToken ct)
     {
         var query = db.Vehicles.AsNoTracking();
         if (q.Status is { } s) query = query.Where(v => v.Status == s);
+        if (q.Ownership is { } o) query = query.Where(v => v.Ownership == o);
+        if (q.SupplierId is { } sup) query = query.Where(v => v.SupplierId == sup);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(v => EF.Functions.ILike(v.Plate, like) || EF.Functions.ILike(v.Type, like)
                 || EF.Functions.ILike(v.Brand ?? "", like) || EF.Functions.ILike(v.Model ?? "", like));
@@ -50,9 +52,9 @@ public class VehiclesController(AppDbContext db) : ControllerBase
     [HttpGet("lookup")]
     public async Task<List<LookupItem>> Lookup(CancellationToken ct) =>
         (await db.Vehicles.AsNoTracking().OrderBy(v => v.Plate)
-            .Select(v => new { v.Id, v.Plate, v.Type, v.Brand, v.Model, v.DefaultDriverId }).ToListAsync(ct))
-            .Select(v => new LookupItem(v.Id, $"{v.Plate} - {string.Join(" ", new[] { v.Brand ?? v.Type, v.Model }.Where(x => !string.IsNullOrEmpty(x)))}",
-                v.DefaultDriverId?.ToString()))
+            .Select(v => new { v.Id, v.Plate, v.Type, v.Brand, v.Model, v.DefaultDriverId, Supplier = v.Supplier != null ? v.Supplier.Title : null }).ToListAsync(ct))
+            .Select(v => new LookupItem(v.Id, $"{v.Plate} - {string.Join(" ", new[] { v.Brand ?? v.Type, v.Model }.Where(x => !string.IsNullOrEmpty(x)))}"
+                + (v.Supplier != null ? $" (Kiralık: {v.Supplier})" : ""), v.DefaultDriverId?.ToString()))
             .ToList();
 
     [HttpGet("{id:int}")]
@@ -104,6 +106,8 @@ public class VehiclesController(AppDbContext db) : ControllerBase
     private async Task ApplyAsync(Vehicle v, VehicleSaveRequest r, CancellationToken ct)
     {
         if (r.DefaultDriverId is { } d && !await db.Drivers.AnyAsync(x => x.Id == d, ct)) throw new DomainException("Şoför bulunamadı.");
+        if (r.Ownership == VehicleOwnership.Rented && (r.SupplierId is not { } sid || !await db.Suppliers.AnyAsync(x => x.Id == sid, ct)))
+            throw new DomainException("Kiralık araç için araç sahibini (tedarikçi) seçin.");
         v.Plate = Formatters.NormalizePlate(r.Plate)!;
         v.Type = r.Type.Trim();
         v.Brand = CustomersController.NullIfEmpty(r.Brand);
@@ -116,5 +120,8 @@ public class VehiclesController(AppDbContext db) : ControllerBase
         v.InsuranceExpiry = r.InsuranceExpiry;
         v.Status = r.Status;
         v.DefaultDriverId = r.DefaultDriverId;
+        v.Ownership = r.Ownership;
+        v.SupplierId = r.Ownership == VehicleOwnership.Rented ? r.SupplierId : null;
+        v.TrailerPlate = Formatters.NormalizePlate(r.TrailerPlate) ?? CustomersController.NullIfEmpty(r.TrailerPlate)?.ToUpper(Formatters.Tr);
     }
 }

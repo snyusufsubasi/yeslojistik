@@ -11,6 +11,16 @@ public class Customer : BaseEntity
     public string? Notes { get; set; }
     /// <summary>Sefer durumu değişince müşteriye takip linkiyle e-posta gönderilsin mi?</summary>
     public bool NotifyStatusByEmail { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public string? ContactName { get; set; }
+    /// <summary>GİB e-Fatura mükellefi mi? Değilse fatura e-Arşiv olarak kesilir.</summary>
+    public bool IsEInvoiceUser { get; set; }
+    /// <summary>e-Fatura posta kutusu (PK) etiketi.</summary>
+    public string? EInvoiceAlias { get; set; }
+    /// <summary>Müşteriye özel vade (gün); boşsa firma varsayılanı.</summary>
+    public int? PaymentTermDays { get; set; }
+    public bool IsActive { get; set; } = true;
     /// <summary>Sisteme geçişte devreden borç bakiyesi (devir). Cari bakiyeye ve alacak yaşlandırmaya dahildir.</summary>
     public decimal OpeningBalance { get; set; }
     public DateOnly? OpeningBalanceDate { get; set; }

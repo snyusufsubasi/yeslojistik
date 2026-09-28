@@ -102,7 +102,7 @@ public class WaybillPdfGenerator(AppDbContext db)
                     r.RelativeItem().Element(c => PdfKit.Box(c, "TAŞIYICI", b =>
                     {
                         b.Item().Text(company.CompanyName).Bold();
-                        b.Item().Text($"Araç plakası: {trip.Vehicle.Plate}");
+                        b.Item().Text($"Araç plakası: {trip.Vehicle.Plate}" + (trip.TrailerPlate is { } tp ? $" · Dorse: {tp}" : ""));
                         b.Item().Text($"Araç: {string.Join(" ", new[] { trip.Vehicle.Type, trip.Vehicle.Brand, trip.Vehicle.Model }.Where(s => !string.IsNullOrWhiteSpace(s)))}");
                         b.Item().Text($"Şoför: {trip.Driver.FullName}");
                         if (!string.IsNullOrWhiteSpace(trip.Driver.NationalId)) b.Item().Text($"TCKN: {trip.Driver.NationalId}");
@@ -118,11 +118,15 @@ public class WaybillPdfGenerator(AppDbContext db)
                         table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6).Text(label).Bold();
                         table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6).Text(string.IsNullOrWhiteSpace(value) ? "—" : value);
                     }
-                    Row("Yükleme adresi", trip.LoadingAddress);
-                    Row("Teslimat adresi", trip.DeliveryAddress);
+                    if (trip.CustomerReference != null) Row("Müşteri ref. no", trip.CustomerReference);
+                    Row("Yükleme adresi", string.Join(" / ", new[] { trip.LoadingCity, trip.LoadingAddress }.Where(s => !string.IsNullOrWhiteSpace(s))));
+                    if (trip.LoadingContact != null) Row("Yüklemede yetkili", trip.LoadingContact);
+                    Row("Teslimat adresi", string.Join(" / ", new[] { trip.DeliveryCity, trip.DeliveryAddress }.Where(s => !string.IsNullOrWhiteSpace(s))));
+                    if (trip.DeliveryContact != null) Row("Teslimde yetkili", trip.DeliveryContact);
                     Row("Yükleme tarihi", Formatters.Date(trip.LoadingDate));
                     Row("Teslim tarihi", trip.DeliveryDate is { } d ? Formatters.Date(d) : null);
-                    Row("Yük / açıklama", trip.Description);
+                    Row("Yük", DriverAppService.CargoText(trip));
+                    Row("Açıklama", trip.Description);
                 });
 
                 col.Item().PaddingTop(24).Row(r =>

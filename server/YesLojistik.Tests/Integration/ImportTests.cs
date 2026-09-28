@@ -10,7 +10,7 @@ namespace YesLojistik.Tests.Integration;
 
 public class ImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
-    private static byte[] Workbook(string[] headers, params object?[][] rows)
+    internal static byte[] Workbook(string[] headers, params object?[][] rows)
     {
         using var wb = new XLWorkbook();
         var ws = wb.Worksheets.Add("Veri");
@@ -26,7 +26,7 @@ public class ImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
         return ms.ToArray();
     }
 
-    private static MultipartFormDataContent Form(byte[] bytes)
+    internal static MultipartFormDataContent Form(byte[] bytes)
     {
         var form = new MultipartFormDataContent();
         form.Add(new ByteArrayContent(bytes) { Headers = { ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") } }, "file", "veri.xlsx");
@@ -37,7 +37,7 @@ public class ImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
     public async Task Template_downloads()
     {
         var c = await factory.LoginAsync();
-        foreach (var e in new[] { "customers", "vehicles", "drivers" })
+        foreach (var e in ImportService.Columns.Keys)
         {
             var res = await c.GetAsync($"/api/import/{e}/template");
             res.StatusCode.Should().Be(HttpStatusCode.OK);

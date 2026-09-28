@@ -82,10 +82,14 @@ export default function TripDetailScreen() {
           <Text style={s.customer}>{t.customerTitle}</Text>
           <Badge label={statusLabel[t.status]} color={statusColor[t.status]} />
         </View>
-        <Row label="Yükleme" value={<Text style={s.link} onPress={() => Linking.openURL(mapsUrl(t.loadingAddress))}>{t.loadingAddress} ↗</Text>} />
-        <Row label="Teslimat" value={<Text style={s.link} onPress={() => Linking.openURL(mapsUrl(t.deliveryAddress))}>{t.deliveryAddress} ↗</Text>} />
+        <Row label="Yükleme" value={<Text style={s.link} onPress={() => Linking.openURL(mapsUrl(place(t.loadingCity, t.loadingAddress)))}>{place(t.loadingCity, t.loadingAddress)} ↗</Text>} />
+        {t.loadingContact ? <Row label="Yüklemede" value={<Contact text={t.loadingContact} />} /> : null}
+        <Row label="Teslimat" value={<Text style={s.link} onPress={() => Linking.openURL(mapsUrl(place(t.deliveryCity, t.deliveryAddress)))}>{place(t.deliveryCity, t.deliveryAddress)} ↗</Text>} />
+        {t.deliveryContact ? <Row label="Teslimde" value={<Contact text={t.deliveryContact} />} /> : null}
         <Row label="Tarih" value={formatDate(t.loadingDate) + (t.deliveryDate ? ` → ${formatDate(t.deliveryDate)}` : '')} />
-        <Row label="Araç" value={t.vehiclePlate} />
+        <Row label="Araç" value={t.vehiclePlate + (t.trailerPlate ? ` · Dorse ${t.trailerPlate}` : '')} />
+        {t.cargo ? <Row label="Yük" value={t.cargo} /> : null}
+        {t.customerReference ? <Row label="Ref. No" value={t.customerReference} /> : null}
         {t.description ? <Row label="Açıklama" value={t.description} /> : null}
         {t.customerPhone ? <Button title={`Müşteriyi Ara (${t.customerPhone})`} variant="outline" style={{ marginTop: 10 }}
           onPress={() => Linking.openURL(`tel:${t.customerPhone!.replace(/\s/g, '')}`)} /> : null}
@@ -132,3 +136,15 @@ const s = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   file: { color: colors.text, fontSize: 14, paddingVertical: 2 },
 })
+
+/** "Tuzla OSB" + il → "İstanbul / Tuzla OSB" (adres ili zaten içeriyorsa tekrar yazılmaz). */
+function place(city: string | null | undefined, address: string) {
+  return city && !address.toLocaleLowerCase('tr').includes(city.toLocaleLowerCase('tr')) ? `${city} / ${address}` : address
+}
+
+/** Serbest metindeki telefon numarasına dokununca arar ("Ali Bey 0532 111 22 33"). */
+function Contact({ text }: { text: string }) {
+  const phone = text.match(/(\+?90)?\s*0?\s*5\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}/)?.[0]
+  if (!phone) return <Text>{text}</Text>
+  return <Text style={s.link} onPress={() => Linking.openURL(`tel:${phone.replace(/[\s-]/g, '')}`)}>{text} ☎</Text>
+}

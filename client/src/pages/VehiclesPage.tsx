@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Pencil, Plus, Trash2, Truck } from 'lucide-react'
@@ -14,7 +14,8 @@ import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { date, daysUntil } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
-import { options, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
+import { options, vehicleOwnershipLabel, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
+import { SupplierForm } from '../components/SupplierForm'
 
 const schema = z.object({
   plate: req('Plaka zorunlu.').regex(/^(0[1-9]|[1-7]\d|8[01])\s*[a-zA-ZçğıöşüÇĞİÖŞÜ]{1,3}\s*\d{2,5}$/, 'Geçerli bir plaka girin (ör. 34 ABC 123).'),
@@ -29,7 +30,10 @@ const schema = z.object({
   insuranceExpiry: optStr,
   status: z.enum(['Available', 'OnRoad', 'Maintenance']),
   defaultDriverId: z.number().nullable().or(z.nan().transform(() => null)),
-})
+  ownership: z.enum(['Own', 'Rented']),
+  supplierId: z.number().nullable().or(z.nan().transform(() => null)),
+  trailerPlate: optStr,
+}).refine((v) => v.ownership === 'Own' || v.supplierId != null, { path: ['supplierId'], message: 'Kiralık araç için araç sahibini seçin.' })
 type FormValues = z.infer<typeof schema>
 const api = crud<Vehicle, FormValues>('vehicles')
 
@@ -57,7 +61,11 @@ export default function VehiclesPage() {
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['vehicles'], success: 'Araç silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Vehicle>[] = [
-    { key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-semibold">{v.plate}</span> },
+    {
+      key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-semibold">{v.plate}
+        {v.ownership === 'Rented' && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}
+        {(v.supplierTitle || v.trailerPlate) && <span className="block text-[13px] font-normal text-slate-500">{[v.supplierTitle, v.trailerPlate && `Dorse ${v.trailerPlate}`].filter(Boolean).join(' · ')}</span>}</span>,
+    },
     { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-[13px] text-slate-500">{[v.brand, v.model, v.modelYear].filter(Boolean).join(' ')}</span></> },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
@@ -108,22 +116,28 @@ export function DueDate({ value, warn }: { value?: string | null; warn: number }
 
 function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: () => void }) {
   const drivers = useLookup('drivers')
-  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
+  const suppliers = useLookup('suppliers')
+  const [newSupplier, setNewSupplier] = useState(false)
+  const { register, handleSubmit, control, setError, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: vehicle ? {
       ...vehicle, brand: vehicle.brand ?? '', model: vehicle.model ?? '', modelYear: vehicle.modelYear ?? null,
       lastMaintenanceDate: vehicle.lastMaintenanceDate ?? '', nextMaintenanceDate: vehicle.nextMaintenanceDate ?? '',
       inspectionExpiry: vehicle.inspectionExpiry ?? '', insuranceExpiry: vehicle.insuranceExpiry ?? '',
-      defaultDriverId: vehicle.defaultDriverId ?? null,
-    } : { status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '' },
+      defaultDriverId: vehicle.defaultDriverId ?? null, ownership: vehicle.ownership ?? 'Own', supplierId: vehicle.supplierId ?? null,
+      trailerPlate: vehicle.trailerPlate ?? '',
+    } : { status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '',
+      ownership: 'Own', supplierId: null, trailerPlate: '', defaultDriverId: null },
   })
   const save = useSave((v: FormValues) => vehicle ? api.update(vehicle.id, nullify(v)) : api.create(nullify(v)), {
     invalidate: ['vehicles'], success: vehicle ? 'Araç güncellendi.' : 'Araç eklendi.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
   const submit = handleSubmit((v) => save.mutate(v))
+  const ownership = useWatch({ control, name: 'ownership' })
 
   return (
+    <>
     <Modal open onClose={onClose} title={vehicle ? `Araç: ${vehicle.plate}` : 'Yeni Araç'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
       <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
@@ -148,8 +162,27 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
         <Field label="Sonraki Bakım Tarihi"><input className="input" type="date" {...register('nextMaintenanceDate')} /></Field>
         <Field label="Muayene Bitiş"><input className="input" type="date" {...register('inspectionExpiry')} /></Field>
         <Field label="Trafik Sigortası Bitiş"><input className="input" type="date" {...register('insuranceExpiry')} /></Field>
+        <Field label="Sahiplik" hint="Kiralık araçta araç maliyeti, araç sahibine (tedarikçi) borç olarak yazılır.">
+          <select className="input" {...register('ownership')}>
+            {Object.entries(vehicleOwnershipLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </Field>
+        <Field label="Dorse Plakası" error={errors.trailerPlate?.message}><input className="input uppercase" placeholder="34 DRS 01" {...register('trailerPlate')} /></Field>
+        {ownership === 'Rented' && (
+          <Field className="sm:col-span-2" label="Araç Sahibi (tedarikçi)" required error={errors.supplierId?.message}>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <FormSelect control={control} name="supplierId" placeholder="Tedarikçi seçin" options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
+              </div>
+              <Button type="button" variant="secondary" onClick={() => setNewSupplier(true)}>Yeni</Button>
+            </div>
+          </Field>
+        )}
         <button type="submit" className="hidden" />
       </form>
     </Modal>
+    {newSupplier && <SupplierForm supplier={null} onClose={() => setNewSupplier(false)}
+      onSaved={(s) => { suppliers.refetch(); setValue('supplierId', s.id, { shouldValidate: true }) }} />}
+    </>
   )
 }

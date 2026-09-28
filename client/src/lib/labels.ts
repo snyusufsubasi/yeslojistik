@@ -1,4 +1,4 @@
-import type { AttachmentKind, ExpenseCategory, InvoiceStatus, PaymentMethod, TripStatus, UserRole, VehicleStatus } from '../api/types'
+import type { AttachmentKind, ExpenseCategory, InvoiceStatus, PaymentMethod, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
 
 export const tripStatusLabel: Record<TripStatus, string> = {
   Planned: 'Planlandı',
@@ -95,3 +95,21 @@ export const withholdingOptions = [0, 2, 3, 4, 5, 7, 9, 10].map((n) => ({
 
 export const options = <T extends string>(labels: Record<T, string>) =>
   (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }))
+
+export const supplierKindLabel: Record<SupplierKind, string> = {
+  Carrier: 'Taşeron / Araç sahibi',
+  Service: 'Servis / Tamir',
+  Fuel: 'Akaryakıt',
+  Other: 'Diğer',
+}
+
+export const vehicleOwnershipLabel: Record<VehicleOwnership, string> = {
+  Own: 'Özmal',
+  Rented: 'Kiralık (taşeron)',
+}
+
+export const tripEventSourceLabel: Record<TripEventSource, string> = {
+  Panel: 'Panel',
+  Driver: 'Şoför uygulaması',
+  Import: 'Excel aktarımı',
+}

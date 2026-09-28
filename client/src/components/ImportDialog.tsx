@@ -5,7 +5,7 @@ import { api, download, errorMessage } from '../api/client'
 import { useToast } from './Toast'
 import { Button, Modal } from './ui'
 
-type Entity = 'customers' | 'vehicles' | 'drivers'
+type Entity = 'customers' | 'vehicles' | 'drivers' | 'suppliers' | 'trips'
 interface ImportResult {
   totalRows: number
   created: number
@@ -15,7 +15,15 @@ interface ImportResult {
   dryRun: boolean
 }
 
-const titles: Record<Entity, string> = { customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför' }
+const titles: Record<Entity, string> = { customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', suppliers: 'Tedarikçi', trips: 'Sefer' }
+
+const hints: Partial<Record<Entity, string>> = {
+  customers: '“Devir Bakiyesi” sütununa müşterinin eski sistemden devreden borcunu yazabilirsiniz.',
+  suppliers: '“Devir Borcu” sütununa firmanın bu tedarikçiye olan borcunu yazabilirsiniz.',
+  vehicles: 'Kiralık araçlarda “Araç Sahibi” sütununa tedarikçi ünvanını yazın (önce tedarikçileri aktarın).',
+  drivers: 'Taşeronun şoförüyse “Tedarikçi” sütununa tedarikçi ünvanını yazın; kendi şoförünüzse boş bırakın.',
+  trips: 'Geçmiş seferler içindir. Müşteri, plaka ve şoför sistemde kayıtlı olmalı. Aynı sefer iki kez aktarılmaz.',
+}
 
 export function ImportButton({ entity }: { entity: Entity }) {
   const [open, setOpen] = useState(false)
@@ -72,7 +80,8 @@ function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void
           <div className="mb-1 font-medium">1. Şablonu indirip doldurun</div>
           <Button size="sm" variant="secondary" icon={<Download className="size-3.5" />}
             onClick={() => download(`/import/${entity}/template`, undefined, `${entity}-sablon.xlsx`)}>Şablonu İndir</Button>
-          {entity === 'customers' && <p className="mt-1 text-[13px] text-slate-500">“Devir Bakiyesi” sütununa müşterinin eski sistemden devreden borcunu yazabilirsiniz.</p>}
+          {hints[entity] && <p className="mt-1 text-[13px] text-slate-500">{hints[entity]}</p>}
+          <p className="mt-1 text-[13px] text-slate-500">Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler.</p>
         </li>
         <li>
           <div className="mb-1 font-medium">2. Doldurduğunuz dosyayı seçin</div>

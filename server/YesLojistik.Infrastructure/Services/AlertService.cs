@@ -34,7 +34,8 @@ public class AlertService(AppDbContext db, BalanceService balances)
             Check(v.InsuranceExpiry, DocumentWarnDays, "insurance", v.Plate, "Trafik sigortası", $"/araclar?id={v.Id}");
         }
 
-        var drivers = await db.Drivers.AsNoTracking().Where(d => d.IsActive).ToListAsync(ct);
+        // Taşeronun şoförlerinin belgeleri taşeronun sorumluluğunda; yalnızca kendi şoförlerimiz uyarılır.
+        var drivers = await db.Drivers.AsNoTracking().Where(d => d.IsActive && d.SupplierId == null).ToListAsync(ct);
         foreach (var d in drivers)
         {
             Check(d.LicenseExpiry, DocumentWarnDays, "license", d.FullName, "Ehliyet", $"/soforler?id={d.Id}");

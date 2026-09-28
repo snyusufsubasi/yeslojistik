@@ -30,7 +30,7 @@ export function usePaged<T>(resource: string, params: ListParams) {
   })
 }
 
-export function useLookup(resource: 'customers' | 'vehicles' | 'drivers') {
+export function useLookup(resource: 'customers' | 'vehicles' | 'drivers' | 'suppliers') {
   return useQuery({
     queryKey: [resource, 'lookup'],
     queryFn: () => get<LookupItem[]>(`/${resource}/lookup`),

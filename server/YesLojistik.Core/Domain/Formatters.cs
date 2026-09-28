@@ -5,7 +5,7 @@ namespace YesLojistik.Core.Domain;
 
 public static partial class Formatters
 {
-    private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
+    public static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
     [GeneratedRegex(@"^(0[1-9]|[1-7][0-9]|8[01])\s*([A-Z]{1,3})\s*(\d{2,5})$")]
     private static partial Regex PlateRegex();

@@ -10,7 +10,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   const receivableBefore = await page.getByRole('button', { name: /Tahsilat Bekleyen/ }).innerText()
 
   // Müşteri
-  await page.getByRole('link', { name: 'Müşteriler / Cari' }).click()
+  await page.getByRole('link', { name: 'Müşteriler / Cari', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Müşteri' }).click()
   const custDialog = page.getByRole('dialog', { name: 'Yeni Müşteri' })
   await custDialog.getByLabel('Ünvan').fill(customer)
@@ -23,7 +23,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await expect(page.getByRole('heading', { name: customer })).toBeVisible()
 
   // Şoför
-  await page.getByRole('link', { name: 'Şoförler' }).click()
+  await page.getByRole('link', { name: 'Şoförler', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Şoför' }).click()
   const drvDialog = page.getByRole('dialog', { name: 'Yeni Şoför' })
   await drvDialog.getByLabel('Ad Soyad').fill(`E2E Şoför ${id}`)
@@ -32,17 +32,17 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await expect(page.getByText('Şoför eklendi.')).toBeVisible()
 
   // Araç
-  await page.getByRole('link', { name: 'Araçlar' }).click()
+  await page.getByRole('link', { name: 'Araçlar', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Araç' }).click()
   const vehDialog = page.getByRole('dialog', { name: 'Yeni Araç' })
-  await vehDialog.getByLabel('Plaka').fill(plate)
+  await vehDialog.getByLabel(/^Plaka/).fill(plate)
   await vehDialog.getByLabel('Araç Tipi').fill('Kamyon')
   await vehDialog.locator('select[name=defaultDriverId]').selectOption({ label: `E2E Şoför ${id}` })
   await vehDialog.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Araç eklendi.')).toBeVisible()
 
   // Sefer
-  await page.getByRole('link', { name: 'Seferler' }).click()
+  await page.getByRole('link', { name: 'Seferler', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Sefer' }).click()
   const tripDialog = page.getByRole('dialog', { name: 'Sefer Oluştur' })
   await tripDialog.locator('select[name=customerId]').selectOption({ label: customer })
@@ -93,7 +93,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await invDialog.getByRole('button', { name: 'Kapat' }).click()
 
   // Cari kartı
-  await page.getByRole('link', { name: 'Müşteriler / Cari' }).click()
+  await page.getByRole('link', { name: 'Müşteriler / Cari', exact: true }).click()
   await page.getByPlaceholder('Ünvan, VKN, telefon...').fill(customer)
   await page.getByRole('row', { name: new RegExp(customer) }).click()
   await expect(page.getByText('29.000,00 TL').first()).toBeVisible()
@@ -108,7 +108,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
 test('raporlar ve Excel dışa aktarma', async ({ page }) => {
   await login(page)
   await page.getByRole('link', { name: 'Raporlar' }).click()
-  await expect(page.getByText('Sefer cirosu')).toBeVisible()
+  await expect(page.getByText('Sefer cirosu', { exact: true })).toBeVisible()
   for (const tab of ['Sefer Kârlılığı', 'Araç Bazlı', 'Şoför Bazlı', 'Alacak Yaşlandırma', 'Gider Dağılımı']) {
     await page.getByRole('button', { name: tab }).click()
     await expect(page.locator('table').first()).toBeVisible()
@@ -216,4 +216,75 @@ test('yedek kartı depolama durumunu gösterir ve yedek iner', async ({ page }) 
   await dl.path() // indirme bitsin
   await page.reload()
   await expect(page.getByText(/Son yedek: \d/)).toBeVisible()
+})
+
+test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve canlıya geçiş kartı', async ({ page }) => {
+  const u = unique()
+  await login(page)
+  await page.getByRole('link', { name: 'Tedarikçiler', exact: true }).click()
+  await page.getByRole('button', { name: 'Yeni Tedarikçi' }).click()
+  const sd = page.getByRole('dialog', { name: 'Yeni Tedarikçi' })
+  await sd.getByLabel(/^Ünvan/).fill(`E2E Nakliyat ${u}`)
+  await sd.getByLabel('IBAN').fill('TR33 0006 1005 1978 6457 8413 26')
+  await sd.locator('select[name="city"]').selectOption('Kocaeli')
+  await sd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByRole('heading', { name: `E2E Nakliyat ${u}` })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Araçlar', exact: true }).click()
+  await page.getByRole('button', { name: 'Yeni Araç' }).click()
+  const vd = page.getByRole('dialog', { name: 'Yeni Araç' })
+  const plate = `41 E ${u.slice(-4)}`
+  await vd.getByLabel(/^Plaka/).fill(plate)
+  await vd.getByLabel(/^Araç Tipi/).fill('Tır')
+  await vd.locator('select[name=ownership]').selectOption('Rented')
+  await vd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(vd.getByText('Kiralık araç için araç sahibini seçin.')).toBeVisible()
+  await vd.locator('select[name=supplierId]').selectOption({ label: `E2E Nakliyat ${u}` })
+  await vd.getByLabel('Dorse Plakası').fill('41 DRS 41')
+  await vd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Araç eklendi.')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Seferler', exact: true }).click()
+  await page.getByRole('button', { name: 'Yeni Sefer' }).click()
+  const td = page.getByRole('dialog', { name: 'Sefer Oluştur' })
+  await td.locator('select[name=customerId]').selectOption({ label: 'Yıldız Mobilya' })
+  await td.locator('select[name=vehicleId]').selectOption({ label: `${plate} - Tır (Kiralık: E2E Nakliyat ${u})` })
+  await expect(td.getByText('Taşeron (kiralık araç)')).toBeVisible()
+  await td.getByRole('button', { name: '+ Hızlı şoför ekle' }).click()
+  const qd = page.getByRole('dialog', { name: 'Hızlı şoför ekle' })
+  await qd.getByLabel(/^Ad Soyad/).fill(`Taşeron Şoför ${u}`)
+  await qd.getByRole('button', { name: 'Ekle' }).click()
+  await expect(page.getByText('Şoför eklendi.')).toBeVisible()
+  await td.getByLabel('Müşteri Referans No').fill(`PO-${u}`)
+  await td.locator('select[name=loadingCity]').selectOption('Kocaeli')
+  await td.getByLabel(/^Yükleme Adresi/).fill('Gebze OSB')
+  await td.locator('select[name=deliveryCity]').selectOption('İzmir')
+  await td.getByLabel(/^Teslimat Adresi/).fill('Kemalpaşa')
+  await td.getByLabel('Yük Cinsi').fill('Otomotiv parçası')
+  await td.getByLabel('Taşerona Ödenecek (TL)').fill('15000')
+  await td.getByLabel('Müşteri Satış Fiyatı (TL)').fill('21000')
+  await td.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Sefer oluşturuldu.')).toBeVisible()
+
+  await page.getByPlaceholder('Müşteri, plaka, şoför, adres...').fill(`PO-${u}`)
+  const row = page.getByRole('row', { name: new RegExp(`PO-${u}`) })
+  await expect(row.getByText('Kiralık')).toBeVisible()
+  await row.click()
+  const ed = page.getByRole('dialog', { name: 'Sefer Düzenle' })
+  await ed.getByRole('button', { name: 'Yüklendi yap' }).click()
+  await expect(page.getByText('Sefer durumu güncellendi.')).toBeVisible()
+  await row.click()
+  await ed.getByRole('button', { name: 'Geçmiş' }).click()
+  const timeline = ed.getByRole('list', { name: 'Durum geçmişi' })
+  await expect(timeline.getByText('Yüklendi', { exact: true })).toBeVisible()
+  await expect(timeline.getByText('Planlandı', { exact: true })).toBeVisible()
+  await ed.getByRole('button', { name: 'Kapat', exact: true }).last().click()
+
+  // Taşeron borcu: yüklenen seferin maliyeti
+  await page.getByRole('link', { name: 'Tedarikçiler', exact: true }).click()
+  await page.getByPlaceholder('Ünvan, VKN, telefon...').fill(`E2E Nakliyat ${u}`)
+  await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) })).toContainText('15.000')
+
+  await page.goto('/ayarlar?tab=data')
+  await expect(page.getByText(/Canlıya geçiş · \d\/7/)).toBeVisible()
 })

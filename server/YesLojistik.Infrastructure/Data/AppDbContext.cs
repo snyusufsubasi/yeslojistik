@@ -23,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<PushToken> PushTokens => Set<PushToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<TripEvent> TripEvents => Set<TripEvent>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -72,6 +74,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Phone).HasMaxLength(20);
             e.Property(x => x.Email).HasMaxLength(200);
             e.Property(x => x.Address).HasMaxLength(500);
+            e.Property(x => x.City).HasMaxLength(30);
+            e.Property(x => x.District).HasMaxLength(50);
+            e.Property(x => x.ContactName).HasMaxLength(100);
+            e.Property(x => x.EInvoiceAlias).HasMaxLength(200);
+            e.HasIndex(x => x.Title);
+        });
+        b.Entity<Supplier>(e =>
+        {
+            e.Ignore(x => x.SupplierNo);
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.TaxNumber).HasMaxLength(11);
+            e.Property(x => x.TaxOffice).HasMaxLength(100);
+            e.Property(x => x.Phone).HasMaxLength(20);
+            e.Property(x => x.Email).HasMaxLength(200);
+            e.Property(x => x.Address).HasMaxLength(500);
+            e.Property(x => x.City).HasMaxLength(30);
+            e.Property(x => x.District).HasMaxLength(50);
+            e.Property(x => x.Iban).HasMaxLength(34);
+            e.Property(x => x.ContactName).HasMaxLength(100);
+            e.Property(x => x.Notes).HasMaxLength(1000);
             e.HasIndex(x => x.Title);
         });
         b.Entity<Vehicle>(e =>
@@ -82,6 +104,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Model).HasMaxLength(50);
             e.HasIndex(x => x.Plate).IsUnique().HasFilter("is_deleted = false");
             e.HasOne(x => x.DefaultDriver).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.TrailerPlate).HasMaxLength(15);
         });
         b.Entity<Driver>(e =>
         {
@@ -89,6 +113,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Phone).HasMaxLength(20);
             e.Property(x => x.NationalId).HasMaxLength(11);
             e.Property(x => x.LicenseClass).HasMaxLength(20);
+            e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
         });
         b.Entity<Trip>(e =>
         {
@@ -103,6 +128,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasIndex(x => x.Status);
             e.Property(x => x.TrackingToken).HasMaxLength(40);
             e.HasIndex(x => x.TrackingToken).IsUnique();
+            e.Property(x => x.CustomerReference).HasMaxLength(50);
+            e.Property(x => x.CargoType).HasMaxLength(100);
+            e.Property(x => x.CargoWeightKg).HasPrecision(12, 2);
+            e.Property(x => x.CargoUnit).HasMaxLength(20);
+            e.Property(x => x.TrailerPlate).HasMaxLength(15);
+            e.Property(x => x.LoadingCity).HasMaxLength(30);
+            e.Property(x => x.DeliveryCity).HasMaxLength(30);
+            e.Property(x => x.LoadingContact).HasMaxLength(150);
+            e.Property(x => x.DeliveryContact).HasMaxLength(150);
+            e.Property(x => x.CarrierInvoiceNo).HasMaxLength(50);
+            e.Property(x => x.ReceivedBy).HasMaxLength(100);
+            e.HasOne(x => x.CarrierSupplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.CustomerReference);
+        });
+        b.Entity<TripEvent>(e =>
+        {
+            e.Property(x => x.UserName).HasMaxLength(100);
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasOne(x => x.Trip).WithMany(t => t.Events).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.TripId, x.OccurredAt });
+            e.HasQueryFilter(x => !x.Trip.IsDeleted);
         });
         b.Entity<TripAttachment>(e =>
         {
@@ -163,6 +209,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.CompanyName).HasMaxLength(200);
             e.Property(x => x.InvoicePrefix).HasMaxLength(5);
+            e.Property(x => x.City).HasMaxLength(30);
+            e.Property(x => x.District).HasMaxLength(50);
+            e.Property(x => x.MersisNo).HasMaxLength(20);
+            e.Property(x => x.TradeRegistryNo).HasMaxLength(30);
+            e.Property(x => x.Website).HasMaxLength(200);
             e.Property(x => x.DefaultVatRate).HasPrecision(5, 2);
             e.HasData(new CompanySettings { Id = 1, UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
         });

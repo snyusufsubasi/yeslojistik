@@ -36,6 +36,13 @@ export interface DriverTrip {
   status: TripStatus
   nextStatuses: TripStatus[]
   attachmentCount: number
+  customerReference?: string | null
+  cargo?: string | null
+  trailerPlate?: string | null
+  loadingCity?: string | null
+  deliveryCity?: string | null
+  loadingContact?: string | null
+  deliveryContact?: string | null
 }
 
 export interface Attachment {
