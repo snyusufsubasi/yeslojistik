@@ -30,7 +30,7 @@ export async function registerForPush() {
   if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status
   if (status !== 'granted') return
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data
-  await api.post('/driver/push-token', { token, platform: Platform.OS })
+  await api.post('/me/push-token', { token, platform: Platform.OS })
   registeredToken = token
 }
 
@@ -38,7 +38,7 @@ export async function registerForPush() {
 export async function unregisterPush() {
   if (!registeredToken) return
   try {
-    await request(`/driver/push-token?token=${encodeURIComponent(registeredToken)}`, { method: 'DELETE' })
+    await request(`/me/push-token?token=${encodeURIComponent(registeredToken)}`, { method: 'DELETE' })
   } catch {
     // oturum zaten kapanmış olabilir
   }

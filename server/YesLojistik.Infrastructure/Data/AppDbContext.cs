@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<TripAttachment> TripAttachments => Set<TripAttachment>();
     public DbSet<VehicleLocation> VehicleLocations => Set<VehicleLocation>();
     public DbSet<PushToken> PushTokens => Set<PushToken>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
@@ -166,6 +167,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Token).HasMaxLength(200);
             e.Property(x => x.Platform).HasMaxLength(20);
             e.HasIndex(x => x.Token).IsUnique();
+            e.HasOne(x => x.User).WithMany().OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<NotificationPreference>(e =>
+        {
+            e.HasIndex(x => new { x.UserId, x.Type }).IsUnique();
             e.HasOne(x => x.User).WithMany().OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<VehicleLocation>(e =>

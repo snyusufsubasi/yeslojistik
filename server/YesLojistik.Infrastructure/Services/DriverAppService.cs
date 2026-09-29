@@ -7,7 +7,7 @@ using YesLojistik.Infrastructure.Data;
 namespace YesLojistik.Infrastructure.Services;
 
 /// <summary>Şoför mobil uygulamasının iş kuralları. Şoför yalnızca kendisine atanmış seferleri görür.</summary>
-public class DriverAppService(AppDbContext db, TripService trips)
+public class DriverAppService(AppDbContext db, TripService trips, StaffNotifier staff)
 {
     /// <summary>Şoför yalnızca bir sonraki adıma geçebilir; geri alma ve iptal yalnızca ofisten yapılır.</summary>
     private static readonly Dictionary<TripStatus, TripStatus> Forward = new()
@@ -53,7 +53,16 @@ public class DriverAppService(AppDbContext db, TripService trips)
                 throw new DomainException("Teslim için teslim alan kişinin imzasını alın.");
         }
         await trips.ChangeStatusAsync(tripId, status, TripEventSource.Driver, occurredAt, note, ct, receivedBy);
-        return await GetAsync(driverId, tripId, ct);
+        var dto = await GetAsync(driverId, tripId, ct);
+        var driver = await db.Drivers.AsNoTracking().Where(d => d.Id == driverId).Select(d => d.FullName).FirstAsync(ct);
+        var data = new Dictionary<string, string> { ["tripId"] = tripId.ToString() };
+        if (status == TripStatus.Delivered)
+            await staff.NotifyAsync(NotificationType.TripDelivered, $"Teslim edildi: {dto.CustomerTitle}",
+                $"{driver} · {dto.DeliveryAddress}{(string.IsNullOrWhiteSpace(receivedBy) ? "" : $" · Teslim alan: {receivedBy.Trim()}")}", data, ct);
+        else
+            await staff.NotifyAsync(NotificationType.TripStatusChanged, $"{TripStatusRules.Label(status)}: {dto.CustomerTitle}",
+                $"{driver} · {dto.VehiclePlate} · {dto.LoadingAddress} → {dto.DeliveryAddress}", data, ct);
+        return dto;
     }
 
     public async Task EnsureOwnAsync(int driverId, int tripId, CancellationToken ct = default)

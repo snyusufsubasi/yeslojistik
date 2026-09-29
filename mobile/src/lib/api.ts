@@ -154,3 +154,10 @@ export async function logout() {
   }
   await clearSession()
 }
+
+/** Oturumun erişim anahtarı (dosya indirmeleri için); süresi dolmuşsa önce yenilenir. */
+export async function authHeaders(): Promise<Record<string, string>> {
+  await request('/auth/me')
+  const token = await storage.get(KEY_ACCESS)
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}

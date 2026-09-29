@@ -19,7 +19,7 @@ import { date, dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'audit' | 'data' | 'password'
+type Tab = 'company' | 'users' | 'audit' | 'data' | 'notifications' | 'password'
 
 export default function SettingsPage() {
   const { can } = useAuth()
@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const tabs = [
     ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' },
       { value: 'audit' as const, label: 'İşlem Geçmişi' }, { value: 'data' as const, label: 'Veriler' }] : []),
+    { value: 'notifications' as const, label: 'Telefon Bildirimleri' },
     { value: 'password' as const, label: 'Şifre Değiştir' },
   ]
   return (
@@ -49,6 +50,7 @@ export default function SettingsPage() {
           <ResetDataCard />
         </div>
       )}
+      {tab === 'notifications' && <NotificationPrefsCard />}
       {tab === 'password' && <PasswordForm />}
     </>
   )
@@ -440,6 +442,32 @@ function GoLiveCard() {
           </li>
         ))}
       </ol>
+    </Card>
+  )
+}
+
+interface NotificationPref { type: string; label: string; push: boolean }
+
+/** Kişisel telefon bildirimi tercihleri (YES Lojistik mobil uygulamasına giriş yapılmış telefona gider). */
+function NotificationPrefsCard() {
+  const q = useQuery({ queryKey: ['me', 'notification-preferences'], queryFn: () => get<NotificationPref[]>('/me/notification-preferences') })
+  const save = useSave((v: { type: string; push: boolean }[]) => put<NotificationPref[]>('/me/notification-preferences', v),
+    { invalidate: ['me'], success: 'Bildirim tercihleri kaydedildi.' })
+  if (!q.data) return <Spinner />
+  return (
+    <Card title="Telefon Bildirimleri" icon={<Bell className="size-4" />} className="max-w-2xl">
+      <p className="mb-3 text-sm text-slate-600">
+        YES Lojistik mobil uygulamasına kendi hesabınızla giriş yaptığınız telefona gönderilir. Tercihler yalnızca sizin hesabınız içindir.
+      </p>
+      <div className="flex flex-col gap-3">
+        {q.data.map((p) => (
+          <label key={p.type} className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1 size-4 accent-brand-600" checked={p.push} disabled={save.isPending}
+              onChange={(e) => save.mutate([{ type: p.type, push: e.target.checked }])} />
+            <span className="text-[15px] text-slate-800">{p.label}</span>
+          </label>
+        ))}
+      </div>
     </Card>
   )
 }
