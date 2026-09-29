@@ -98,7 +98,7 @@ export function ExpenseCard({ tripId }: { tripId: number }) {
             <Text key={e.id} style={s.item}>
               • {formatDate(e.date)} · {labelOf[e.category] ?? e.category} · {money(e.amount)}
               {e.liters ? ` · ${e.liters.toLocaleString('tr-TR')} L` : ''}{e.odometer ? ` · ${e.odometer.toLocaleString('tr-TR')} km` : ''}
-              {e.hasReceipt ? ' · fişli' : ''}{e.approvalStatus === 'Pending' ? ' · onay bekliyor' : e.approvalStatus === 'Rejected' ? ' · reddedildi' : ''}
+              {e.hasReceipt ? ' · fişli' : ''}{e.approvalStatus === 'Pending' ? ' · onay bekliyor' : e.approvalStatus === 'Rejected' ? ` · reddedildi${e.rejectionReason ? ` (${e.rejectionReason})` : ''}` : ''}
             </Text>
           ))}
         </View>

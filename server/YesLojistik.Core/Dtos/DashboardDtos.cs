@@ -4,7 +4,8 @@ public record DashboardDto(
     int MonthTripCount, int MonthDeliveredCount, int ActiveTripCount, int ReceivableInvoiceCount, decimal ReceivableTotal,
     int VehicleCount, int VehiclesOnRoad, int PlannedTripCount, decimal MonthRevenue, decimal MonthExpenses,
     IReadOnlyList<TripDto> TodayTrips, IReadOnlyList<InvoiceDto> RecentInvoices, IReadOnlyList<VehicleDto> Vehicles,
-    IReadOnlyList<MonthTrendRow> Trend, SetupStatus Setup, decimal PayableTotal = 0, decimal PayableOverdue = 0);
+    IReadOnlyList<MonthTrendRow> Trend, SetupStatus Setup, decimal PayableTotal = 0, decimal PayableOverdue = 0,
+    int PendingExpenseCount = 0, decimal PendingExpenseTotal = 0, int UninvoicedTripCount = 0, decimal UninvoicedTripTotal = 0);
 
 /// <summary>İlk kurulum kontrol listesi (ana sayfadaki "Başlarken" kartı).</summary>
 public record SetupStatus(bool CompanyInfo, int VehicleCount, int DriverCount, int CustomerCount, int TripCount, int UserCount, bool SampleData = false,

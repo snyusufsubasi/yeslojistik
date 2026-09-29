@@ -83,4 +83,5 @@ export interface DriverExpense {
   description?: string | null
   approvalStatus?: 'Approved' | 'Pending' | 'Rejected'
   hasReceipt?: boolean
+  rejectionReason?: string | null
 }

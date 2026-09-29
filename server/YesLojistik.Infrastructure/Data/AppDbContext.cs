@@ -29,6 +29,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<TripEvent> TripEvents => Set<TripEvent>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
+    public DbSet<DriverSettlement> DriverSettlements => Set<DriverSettlement>();
+    public DbSet<FleetDocument> Documents => Set<FleetDocument>();
+    public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -227,6 +230,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.Property(x => x.ReceiptPath).HasMaxLength(300);
             e.Property(x => x.ReceiptContentType).HasMaxLength(100);
+            e.Property(x => x.RejectionReason).HasMaxLength(300);
+            e.Property(x => x.ReviewedBy).HasMaxLength(100);
             e.HasIndex(x => x.Date);
             e.HasIndex(x => x.ClientRequestId).IsUnique().HasFilter("client_request_id IS NOT NULL");
         });
@@ -242,6 +247,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Trip).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => x.Date);
+        });
+        b.Entity<DriverSettlement>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasOne(x => x.Driver).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.DriverId, x.Date });
+        });
+        b.Entity<FleetDocument>(e =>
+        {
+            e.ToTable("documents");
+            e.Property(x => x.No).HasMaxLength(50);
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.Property(x => x.FilePath).HasMaxLength(300);
+            e.Property(x => x.FileContentType).HasMaxLength(100);
+            e.HasIndex(x => new { x.OwnerType, x.OwnerId });
+            e.HasIndex(x => x.ExpiryDate);
+        });
+        b.Entity<MaintenanceRecord>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasOne(x => x.Vehicle).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Expense).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.VehicleId, x.Date });
         });
         b.Entity<CompanySettings>(e =>
         {

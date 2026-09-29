@@ -55,6 +55,26 @@ public class DriversController(AppDbContext db) : ControllerBase
         await db.Drivers.AsNoTracking().Where(d => d.IsActive).OrderBy(d => d.FullName)
             .Select(d => new LookupItem(d.Id, d.FullName + (d.Supplier != null ? " (" + d.Supplier.Title + ")" : ""), d.SupplierId.ToString())).ToListAsync(ct);
 
+    /// <summary>Şoför hesabı: avanslar, ödemeler, şoförün cebinden yaptığı onaylı masraflar ve yürüyen bakiye.</summary>
+    [HttpGet("{id:int}/ledger")]
+    public Task<DriverLedgerDto> Ledger(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromServices] DriverLedgerService ledger,
+        CancellationToken ct) => ledger.LedgerAsync(id, from, to, ct);
+
+    [HttpGet("{id:int}/ledger/export")]
+    public async Task<IActionResult> LedgerExport(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to,
+        [FromServices] DriverLedgerService ledger, CancellationToken ct)
+    {
+        var l = await ledger.LedgerAsync(id, from, to, ct);
+        return YesLojistik.Api.Infrastructure.FileResults.Excel(ExcelExporter.Export("Şoför Hesabı", l.Rows,
+            new ExcelColumn<DriverLedgerRow>("Tarih", r => r.Date, ExcelExporter.DateFormat),
+            new("İşlem", r => r.Kind),
+            new("Açıklama", r => r.Description),
+            new("Onay", r => r.ApprovalStatus switch { ApprovalStatus.Pending => "Bekliyor", ApprovalStatus.Rejected => "Reddedildi", _ => "" }),
+            new("Şoföre verilen", r => r.Debit, ExcelExporter.MoneyFormat),
+            new("Şoförün harcadığı / geri verdiği", r => r.Credit, ExcelExporter.MoneyFormat),
+            new("Bakiye", r => r.Balance, ExcelExporter.MoneyFormat)), "sofor-hesabi");
+    }
+
     [HttpGet("{id:int}")]
     public async Task<DriverDto> Get(int id, CancellationToken ct) =>
         await db.Drivers.AsNoTracking().Where(d => d.Id == id).Select(Projection).FirstOrDefaultAsync(ct)

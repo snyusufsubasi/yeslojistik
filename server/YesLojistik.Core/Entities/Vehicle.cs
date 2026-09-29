@@ -10,6 +10,8 @@ public class Vehicle : BaseEntity
     public int Km { get; set; }
     public DateOnly? LastMaintenanceDate { get; set; }
     public DateOnly? NextMaintenanceDate { get; set; }
+    /// <summary>Sonraki bakım kilometresi; araç 1.000 km yaklaşınca uyarı verilir.</summary>
+    public int? NextMaintenanceKm { get; set; }
     public DateOnly? InspectionExpiry { get; set; }
     public DateOnly? InsuranceExpiry { get; set; }
     public VehicleStatus Status { get; set; } = VehicleStatus.Available;

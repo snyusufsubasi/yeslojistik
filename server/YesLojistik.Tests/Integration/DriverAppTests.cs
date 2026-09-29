@@ -233,6 +233,9 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var office = await (await s.Admin.GetAsync($"/api/expenses?tripId={s.TripId}")).ReadAsync<PagedResult<ExpenseDto>>();
         office.Items.Should().OnlyContain(e => e.VehicleId == s.VehicleId && e.DriverId == s.DriverId);
         (await (await s.Admin.GetAsync($"/api/vehicles/{s.VehicleId}")).ReadAsync<VehicleDto>()).Km.Should().Be(12_345);
+        // Onay bekleyen masraf kâra girmez; onaylanınca düşer.
+        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000);
+        foreach (var e in office.Items) (await s.Admin.PostAsync($"/api/expenses/{e.Id}/approve", null)).EnsureSuccessStatusCode();
         (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000 - 8_900 - 450);
     }
 

@@ -28,6 +28,9 @@ public class Expense : BaseEntity
     public ExpensePaidBy PaidBy { get; set; } = ExpensePaidBy.Company;
     /// <summary>Şoförün girdiği masraf ofis onayına düşer.</summary>
     public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Approved;
+    public string? RejectionReason { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? ReviewedBy { get; set; }
     /// <summary>Mobil uygulamanın çevrimdışı kuyruğundaki işlem kimliği; aynı istek iki kez gelirse tek kayıt oluşur.</summary>
     public Guid? ClientRequestId { get; set; }
 }

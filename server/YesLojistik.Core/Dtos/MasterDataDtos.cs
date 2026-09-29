@@ -21,12 +21,12 @@ public record AccountMovementDto(DateOnly Date, string Type, string Reference, s
 public record VehicleDto(int Id, string Plate, string Type, string? Brand, string? Model, int? ModelYear, int Km,
     DateOnly? LastMaintenanceDate, DateOnly? NextMaintenanceDate, DateOnly? InspectionExpiry, DateOnly? InsuranceExpiry,
     VehicleStatus Status, int? DefaultDriverId, string? DefaultDriverName, VehicleOwnership Ownership = VehicleOwnership.Own,
-    int? SupplierId = null, string? SupplierTitle = null, string? TrailerPlate = null);
+    int? SupplierId = null, string? SupplierTitle = null, string? TrailerPlate = null, int? NextMaintenanceKm = null);
 
 public record VehicleSaveRequest(string Plate, string Type, string? Brand, string? Model, int? ModelYear, int Km,
     DateOnly? LastMaintenanceDate, DateOnly? NextMaintenanceDate, DateOnly? InspectionExpiry, DateOnly? InsuranceExpiry,
     VehicleStatus Status, int? DefaultDriverId, VehicleOwnership Ownership = VehicleOwnership.Own, int? SupplierId = null,
-    string? TrailerPlate = null);
+    string? TrailerPlate = null, int? NextMaintenanceKm = null);
 
 public record DriverDto(int Id, string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,

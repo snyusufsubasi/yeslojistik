@@ -116,6 +116,7 @@ public class VehiclesController(AppDbContext db) : ControllerBase
         v.Km = r.Km;
         v.LastMaintenanceDate = r.LastMaintenanceDate;
         v.NextMaintenanceDate = r.NextMaintenanceDate;
+        v.NextMaintenanceKm = r.NextMaintenanceKm;
         v.InspectionExpiry = r.InspectionExpiry;
         v.InsuranceExpiry = r.InsuranceExpiry;
         v.Status = r.Status;

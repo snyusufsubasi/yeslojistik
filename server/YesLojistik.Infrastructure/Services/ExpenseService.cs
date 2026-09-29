@@ -8,7 +8,7 @@ using YesLojistik.Infrastructure.Data;
 namespace YesLojistik.Infrastructure.Services;
 
 /// <summary>Gider kaydı: panel ve şoför uygulaması aynı kuralları kullanır.</summary>
-public class ExpenseService(AppDbContext db, IFileStorage storage)
+public class ExpenseService(AppDbContext db, IFileStorage storage, ICurrentUser currentUser, DriverNotifier driverNotifier)
 {
     public async Task<int> CreateAsync(ExpenseSaveRequest req, CancellationToken ct = default, Action<Expense>? extra = null)
     {
@@ -25,6 +25,25 @@ public class ExpenseService(AppDbContext db, IFileStorage storage)
         var e = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Gider bulunamadı.");
         await ApplyAsync(e, req, ct);
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Onay bekleyen (şoförün girdiği) masrafı onaylar ya da gerekçeyle reddeder. Reddedilince şoföre bildirim gider.</summary>
+    public async Task ReviewAsync(int id, bool approve, string? reason, CancellationToken ct = default)
+    {
+        var e = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Gider bulunamadı.");
+        reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        if (!approve && reason == null) throw new DomainException("Reddetme gerekçesini yazın; şoföre iletilecek.");
+        if (reason is { Length: > 300 }) throw new DomainException("Gerekçe en fazla 300 karakter olabilir.");
+        var target = approve ? ApprovalStatus.Approved : ApprovalStatus.Rejected;
+        if (e.ApprovalStatus == target && e.ReviewedAt != null) return;
+        e.ApprovalStatus = target;
+        e.RejectionReason = approve ? null : reason;
+        e.ReviewedAt = DateTime.UtcNow;
+        e.ReviewedBy = currentUser.Name;
+        await db.SaveChangesAsync(ct);
+        if (!approve && e.DriverId is { } driverId)
+            await driverNotifier.NotifyAsync(driverId, e.TripId, "Masrafınız reddedildi",
+                $"{Formatters.Currency(e.Amount)} tutarındaki masraf reddedildi: {reason}", ct);
     }
 
     public async Task SaveReceiptAsync(int id, Stream content, long length, CancellationToken ct = default)

@@ -1,6 +1,8 @@
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using YesLojistik.Api.Auth;
 using YesLojistik.Api.Infrastructure;
 using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
@@ -26,7 +28,7 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         e.Trip != null ? e.Trip.LoadingAddress + " → " + e.Trip.DeliveryAddress : null, e.Description,
         e.DriverId, e.Driver != null ? e.Driver.FullName : null, e.Liters, e.Odometer,
         e.SupplierId, e.Supplier != null ? e.Supplier.Title : null, e.IsOnCredit, e.ReceiptPath != null,
-        e.PaidBy, e.ApprovalStatus);
+        e.PaidBy, e.ApprovalStatus, e.RejectionReason);
 
     private IQueryable<Expense> Filter(ExpenseQuery q)
     {
@@ -38,6 +40,8 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         if (q.SupplierId is { } sup) query = query.Where(e => e.SupplierId == sup);
         if (q.From is { } from) query = query.Where(e => e.Date >= from);
         if (q.To is { } to) query = query.Where(e => e.Date <= to);
+        if (q.ApprovalStatus is { } st) query = query.Where(e => e.ApprovalStatus == st);
+        if (q.PaidBy is { } pb) query = query.Where(e => e.PaidBy == pb);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(e => EF.Functions.ILike(e.Description ?? "", like) || (e.Vehicle != null && EF.Functions.ILike(e.Vehicle.Plate, like))
                 || (e.Driver != null && EF.Functions.ILike(e.Driver.FullName, like))
@@ -64,6 +68,8 @@ public class ExpensesController(AppDbContext db) : ControllerBase
             new("Şoför", e => e.DriverName),
             new("Tedarikçi", e => e.SupplierTitle),
             new("Vadeli", e => e.IsOnCredit ? "Evet" : ""),
+            new("Ödeyen", e => e.PaidBy == ExpensePaidBy.Driver ? "Şoför" : "Firma"),
+            new("Onay", e => e.ApprovalStatus switch { ApprovalStatus.Pending => "Bekliyor", ApprovalStatus.Rejected => "Reddedildi", _ => "Onaylı" }),
             new("Litre", e => e.Liters),
             new("Km", e => e.Odometer),
             new("Tutar", e => e.Amount, ExcelExporter.MoneyFormat),
@@ -103,10 +109,30 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         return File(content, type);
     }
 
+    /// <summary>Şoförün girdiği masrafı onaylar: raporlara ve şoför hesabına girer.</summary>
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("{id:int}/approve")]
+    public async Task<ExpenseDto> Approve(int id, [FromServices] ExpenseService expenses, CancellationToken ct)
+    {
+        await expenses.ReviewAsync(id, approve: true, null, ct);
+        return await Get(id, ct);
+    }
+
+    /// <summary>Masrafı gerekçeyle reddeder; raporlara girmez, şoföre bildirim gider.</summary>
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("{id:int}/reject")]
+    public async Task<ExpenseDto> Reject(int id, ExpenseRejectRequest req, [FromServices] ExpenseService expenses, CancellationToken ct)
+    {
+        await expenses.ReviewAsync(id, approve: false, req.Reason, ct);
+        return await Get(id, ct);
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var e = await db.Expenses.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Gider bulunamadı.");
+        if (await db.MaintenanceRecords.AnyAsync(m => m.ExpenseId == id, ct))
+            throw new DomainException("Bu gider bir bakım kaydından geliyor; aracın Bakım sekmesinden düzenleyin ya da silin.");
         e.IsDeleted = true;
         await db.SaveChangesAsync(ct);
         return NoContent();
