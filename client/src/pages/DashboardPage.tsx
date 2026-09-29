@@ -199,8 +199,8 @@ function TrendChart({ rows }: { rows: Dashboard['trend'] }) {
       <div className="h-32">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chart} barGap={2} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-            <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} tick={{ fill: '#64748b', fontSize: 11 }} />
-            <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(v) => tl(Number(v))} contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+            <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} tick={{ fill: '#64748b', fontSize: 14 }} />
+            <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(v) => tl(Number(v))} contentStyle={{ fontSize: 14, borderRadius: 6 }} />
             <Bar dataKey="Ciro" fill="#2a78d6" radius={[3, 3, 0, 0]} maxBarSize={16} isAnimationActive={false} />
             <Bar dataKey="Maliyet" fill="#eb6834" radius={[3, 3, 0, 0]} maxBarSize={16} isAnimationActive={false} />
           </BarChart>

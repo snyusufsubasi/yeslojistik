@@ -120,10 +120,10 @@ function Monthly({ year }: { year: number }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chart} barGap={2} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} tick={{ fill: '#64748b', fontSize: 12 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(v: number) => compact.format(v)} width={56} />
+            <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} tick={{ fill: '#64748b', fontSize: 14 }} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 14 }} tickFormatter={(v: number) => compact.format(v)} width={56} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
-            <Legend iconType="square" wrapperStyle={{ fontSize: 12 }} formatter={(v: string) => <span style={{ color: '#475569' }}>{v}</span>} />
+            <Legend iconType="square" wrapperStyle={{ fontSize: 14 }} formatter={(v: string) => <span style={{ color: '#475569' }}>{v}</span>} />
             <Bar dataKey="Ciro" fill={SERIES_1} radius={[4, 4, 0, 0]} maxBarSize={28} />
             <Bar dataKey="Maliyet" name="Maliyet (araç + gider)" fill={SERIES_2} radius={[4, 4, 0, 0]} maxBarSize={28} />
           </BarChart>
@@ -257,8 +257,8 @@ function Expenses({ from, to }: { from: string; to: string }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chart} layout="vertical" margin={{ left: 8, right: 24 }}>
               <CartesianGrid horizontal={false} stroke="#e2e8f0" />
-              <XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(v: number) => compact.format(v)} />
-              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#334155', fontSize: 12 }} width={110} />
+              <XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 14 }} tickFormatter={(v: number) => compact.format(v)} />
+              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#334155', fontSize: 14 }} width={110} />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
               <Bar dataKey="Tutar" fill={SERIES_1} radius={[0, 4, 4, 0]} maxBarSize={22} />
             </BarChart>
