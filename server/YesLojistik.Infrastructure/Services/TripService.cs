@@ -108,12 +108,16 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (!string.IsNullOrWhiteSpace(loadingCity) && !string.IsNullOrWhiteSpace(deliveryCity))
         {
             var since = Clock.Today.AddYears(-1);
-            var onRoute = await live.Where(t => t.LoadingCity == loadingCity && t.DeliveryCity == deliveryCity && t.LoadingDate >= since && t.SalePrice > 0)
-                .OrderByDescending(t => t.LoadingDate).ThenByDescending(t => t.Id).Take(50)
-                .Select(t => new { t.SalePrice, t.VehicleCost, t.LoadingDate }).ToListAsync(ct);
-            if (onRoute.Count > 0)
-                route = new TripRouteHint(onRoute.Count, Money.Round(onRoute.Average(x => x.SalePrice)), Money.Round(onRoute.Average(x => x.VehicleCost)),
-                    onRoute[0].SalePrice, onRoute[0].VehicleCost, onRoute[0].LoadingDate);
+            var onRoute = live.Where(t => t.LoadingCity == loadingCity && t.DeliveryCity == deliveryCity && t.LoadingDate >= since && t.SalePrice > 0);
+            // Ortalamalar son bir yılın tamamından, "son sefer" ayrıca en yeni kayıttan.
+            var stats = await onRoute.GroupBy(_ => 1)
+                .Select(g => new { Count = g.Count(), Sale = g.Average(t => t.SalePrice), Cost = g.Average(t => t.VehicleCost) })
+                .FirstOrDefaultAsync(ct);
+            var latest = await onRoute.OrderByDescending(t => t.LoadingDate).ThenByDescending(t => t.Id)
+                .Select(t => new { t.SalePrice, t.VehicleCost, t.LoadingDate }).FirstOrDefaultAsync(ct);
+            if (stats != null && latest != null)
+                route = new TripRouteHint(stats.Count, Money.Round(stats.Sale), Money.Round(stats.Cost),
+                    latest.SalePrice, latest.VehicleCost, latest.LoadingDate);
         }
         return new TripHintsDto(last, loading, delivery, cargo, route);
     }
