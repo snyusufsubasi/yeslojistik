@@ -107,7 +107,9 @@ export function SearchSelect({ value, onChange, options, placeholder = 'Seçiniz
       {open && (
         <ul id={listId} role="listbox" aria-label={ariaLabel ?? placeholder}
           className="absolute inset-x-0 top-full z-40 mt-1 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
-          onMouseDown={(e) => e.preventDefault()}>
+          onMouseDown={(e) => e.preventDefault()}
+          // Liste bir <label> içinde duruyor: tıklama etikete ulaşıp kutuyu yeniden açmasın.
+          onClick={(e) => e.preventDefault()}>
           {shown.map((o, i) => (
             <li key={o.value} id={`${listId}-${i}`} role="option" aria-selected={o.value === value}
               onMouseEnter={() => setActive(i)} onClick={() => choose(o)}
