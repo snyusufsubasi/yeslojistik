@@ -14,7 +14,7 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
-import { CityOptions } from '../components/CityOptions'
+import { CitySelect } from '../components/CitySelect'
 import { AuditLogTable } from '../components/AuditLog'
 import { dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
@@ -129,7 +129,7 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
           <Field label="Vergi Dairesi"><input className="input" {...register('taxOffice')} /></Field>
           <Field label="Telefon" error={errors.phone?.message}><input className="input" {...register('phone')} /></Field>
           <Field label="E-posta" error={errors.email?.message}><input className="input" {...register('email')} /></Field>
-          <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
+          <Field label="İl" error={errors.city?.message}><CitySelect control={control} name="city" /></Field>
           <Field label="İlçe" error={errors.district?.message}><input className="input" {...register('district')} /></Field>
           <Field className="sm:col-span-2" label="Adres"><input className="input" {...register('address')} /></Field>
           <Field label="MERSİS No" error={errors.mersisNo?.message} hint="e-Fatura için"><input className="input" inputMode="numeric" maxLength={16} {...register('mersisNo')} /></Field>

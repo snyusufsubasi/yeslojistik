@@ -75,6 +75,53 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     public async Task<List<TripDto>> QueryAsync(IQueryable<Trip> query, CancellationToken ct = default) =>
         (await query.Select(Projection).ToListAsync(ct)).Select(ToDto).ToList();
 
+    /// <summary>
+    /// Yeni sefer formundaki öneriler. Müşteri verilirse son seferi ve kullandığı adresler; iki il verilirse o güzergâhın
+    /// son bir yıldaki fiyat ortalaması (tüm müşteriler). İptal edilen seferler sayılmaz.
+    /// </summary>
+    public async Task<TripHintsDto> HintsAsync(int? customerId, string? loadingCity, string? deliveryCity, CancellationToken ct = default)
+    {
+        var live = db.Trips.AsNoTracking().Where(t => t.Status != TripStatus.Cancelled);
+        TripDto? last = null;
+        List<TripAddressHint> loading = [], delivery = [];
+        if (customerId is { } cid)
+        {
+            var recent = live.Where(t => t.CustomerId == cid).OrderByDescending(t => t.LoadingDate).ThenByDescending(t => t.Id);
+            last = (await QueryAsync(recent.Take(1), ct)).FirstOrDefault();
+            var rows = await recent.Take(300)
+                .Select(t => new { t.LoadingAddress, t.LoadingCity, t.LoadingContact, t.DeliveryAddress, t.DeliveryCity, t.DeliveryContact })
+                .ToListAsync(ct);
+            // Aynı adres farklı yazımla (büyük/küçük harf, boşluk) tek sayılır; en son kullanılan yazım ve yetkili gösterilir.
+            static List<TripAddressHint> Group(IEnumerable<(string Address, string? City, string? Contact)> items) => items
+                .Where(x => !string.IsNullOrWhiteSpace(x.Address))
+                .GroupBy(x => (x.Address.Trim().ToLowerInvariant(), x.City))
+                .Select(g => new TripAddressHint(g.First().Address.Trim(), g.First().City, g.FirstOrDefault(x => x.Contact != null).Contact, g.Count()))
+                .OrderByDescending(h => h.Count).Take(8).ToList();
+            loading = Group(rows.Select(r => (r.LoadingAddress, r.LoadingCity, r.LoadingContact)));
+            delivery = Group(rows.Select(r => (r.DeliveryAddress, r.DeliveryCity, r.DeliveryContact)));
+        }
+
+        var cargo = (await live.Where(t => t.CargoType != null).OrderByDescending(t => t.Id).Take(500).Select(t => t.CargoType!).ToListAsync(ct))
+            .GroupBy(c => c.Trim(), StringComparer.CurrentCultureIgnoreCase).OrderByDescending(g => g.Count()).Select(g => g.Key).Take(8).ToList();
+
+        TripRouteHint? route = null;
+        if (!string.IsNullOrWhiteSpace(loadingCity) && !string.IsNullOrWhiteSpace(deliveryCity))
+        {
+            var since = Clock.Today.AddYears(-1);
+            var onRoute = live.Where(t => t.LoadingCity == loadingCity && t.DeliveryCity == deliveryCity && t.LoadingDate >= since && t.SalePrice > 0);
+            // Ortalamalar son bir yılın tamamından, "son sefer" ayrıca en yeni kayıttan.
+            var stats = await onRoute.GroupBy(_ => 1)
+                .Select(g => new { Count = g.Count(), Sale = g.Average(t => t.SalePrice), Cost = g.Average(t => t.VehicleCost) })
+                .FirstOrDefaultAsync(ct);
+            var latest = await onRoute.OrderByDescending(t => t.LoadingDate).ThenByDescending(t => t.Id)
+                .Select(t => new { t.SalePrice, t.VehicleCost, t.LoadingDate }).FirstOrDefaultAsync(ct);
+            if (stats != null && latest != null)
+                route = new TripRouteHint(stats.Count, Money.Round(stats.Sale), Money.Round(stats.Cost),
+                    latest.SalePrice, latest.VehicleCost, latest.LoadingDate);
+        }
+        return new TripHintsDto(last, loading, delivery, cargo, route);
+    }
+
     public async Task<TripDto> GetAsync(int id, CancellationToken ct = default)
     {
         var row = await db.Trips.AsNoTracking().Where(t => t.Id == id).Select(Projection).FirstOrDefaultAsync(ct)

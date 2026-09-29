@@ -40,3 +40,13 @@ public record TripQuery : ListQuery
     /// <summary>Teslim edilmiş ama taşeron faturası (CarrierInvoiceNo) girilmemiş kiralık araç seferleri.</summary>
     public bool? MissingCarrierInvoice { get; init; }
 }
+
+/// <summary>Müşterinin daha önce kullanılmış bir yükleme / teslim adresi (kaç seferde geçtiğiyle).</summary>
+public record TripAddressHint(string Address, string? City, string? Contact, int Count);
+
+/// <summary>Aynı güzergâhta (il → il) son bir yıldaki seferlerin fiyat özeti.</summary>
+public record TripRouteHint(int Count, decimal AvgSalePrice, decimal AvgVehicleCost, decimal LastSalePrice, decimal LastVehicleCost, DateOnly LastDate);
+
+/// <summary>Yeni sefer formu için öneriler: son sefer, kayıtlı adresler, sık yük cinsleri, güzergâh fiyatı.</summary>
+public record TripHintsDto(TripDto? LastTrip, IReadOnlyList<TripAddressHint> LoadingAddresses, IReadOnlyList<TripAddressHint> DeliveryAddresses,
+    IReadOnlyList<string> CargoTypes, TripRouteHint? Route);

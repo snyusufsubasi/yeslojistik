@@ -35,6 +35,11 @@ public class TripsController(TripService trips) : ControllerBase
             new("Fatura", t => t.InvoiceNo)), "seferler");
     }
 
+    /// <summary>Yeni sefer formu önerileri: son sefer, kayıtlı adresler, sık yük cinsleri ve güzergâh fiyatı.</summary>
+    [HttpGet("hints")]
+    public Task<TripHintsDto> Hints([FromQuery] int? customerId, [FromQuery] string? loadingCity, [FromQuery] string? deliveryCity, CancellationToken ct) =>
+        trips.HintsAsync(customerId, loadingCity, deliveryCity, ct);
+
     [HttpGet("{id:int}")]
     public Task<TripDto> Get(int id, CancellationToken ct) => trips.GetAsync(id, ct);
 

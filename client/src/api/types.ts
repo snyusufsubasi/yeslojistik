@@ -725,3 +725,14 @@ export interface SearchResult {
   subtitle?: string | null
   link: string
 }
+
+/** Yeni sefer formu önerileri (GET /trips/hints). */
+export interface TripAddressHint { address: string; city?: string | null; contact?: string | null; count: number }
+export interface TripRouteHint { count: number; avgSalePrice: number; avgVehicleCost: number; lastSalePrice: number; lastVehicleCost: number; lastDate: string }
+export interface TripHints {
+  lastTrip?: Trip | null
+  loadingAddresses: TripAddressHint[]
+  deliveryAddresses: TripAddressHint[]
+  cargoTypes: string[]
+  route?: TripRouteHint | null
+}

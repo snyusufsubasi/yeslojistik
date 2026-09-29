@@ -5,7 +5,7 @@ import type { Supplier, SupplierKind } from '../api/types'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useSave } from '../lib/hooks'
 import { supplierKindLabel } from '../lib/labels'
-import { CityOptions } from './CityOptions'
+import { CitySelect } from './CitySelect'
 import { Button, Field, Modal } from './ui'
 
 const schema = z.object({
@@ -31,7 +31,7 @@ const api = crud<Supplier, FormValues>('suppliers')
 
 export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrier', initialTitle }:
   { supplier: Supplier | null; onClose: () => void; onSaved?: (s: Supplier) => void; defaultKind?: SupplierKind; initialTitle?: string }) {
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: supplier?.title ?? initialTitle ?? '', kind: supplier?.kind ?? defaultKind, taxNumber: supplier?.taxNumber ?? '', taxOffice: supplier?.taxOffice ?? '',
@@ -65,7 +65,7 @@ export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrie
         <Field className="sm:col-span-2" label="IBAN" error={errors.iban?.message} hint="Ödeme yaparken kopyalamak için.">
           <input className="input font-mono" placeholder="TR00 0000 0000 0000 0000 0000 00" {...register('iban')} />
         </Field>
-        <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
+        <Field label="İl" error={errors.city?.message}><CitySelect control={control} name="city" /></Field>
         <Field label="İlçe" error={errors.district?.message}><input className="input" {...register('district')} /></Field>
         <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" {...register('address')} /></Field>
         <Field label="Ödeme Vadesi (gün)" required error={errors.paymentTermDays?.message} hint="Sefer tarihinden itibaren kaç günde ödenir.">
