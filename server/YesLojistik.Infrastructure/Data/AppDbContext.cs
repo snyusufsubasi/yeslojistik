@@ -32,6 +32,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<DriverSettlement> DriverSettlements => Set<DriverSettlement>();
     public DbSet<FleetDocument> Documents => Set<FleetDocument>();
     public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
+    public DbSet<CashAccount> CashAccounts => Set<CashAccount>();
+    public DbSet<CashTransfer> CashTransfers => Set<CashTransfer>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -221,6 +223,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Description).HasMaxLength(500);
             e.HasOne(x => x.Customer).WithMany(c => c.Payments).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Invoice).WithMany(i => i.Payments).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.InstrumentNo).HasMaxLength(50);
+            e.Property(x => x.Bank).HasMaxLength(100);
+            e.HasIndex(x => x.InstrumentDueDate).HasFilter("instrument_status IS NOT NULL");
+        });
+        b.Entity<CashAccount>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(100);
+            e.Property(x => x.Iban).HasMaxLength(34);
+        });
+        b.Entity<CashTransfer>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasOne(x => x.FromAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ToAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
         });
         b.Entity<Expense>(e =>
         {
@@ -232,6 +249,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.ReceiptContentType).HasMaxLength(100);
             e.Property(x => x.RejectionReason).HasMaxLength(300);
             e.Property(x => x.ReviewedBy).HasMaxLength(100);
+            e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.Date);
             e.HasIndex(x => x.ClientRequestId).IsUnique().HasFilter("client_request_id IS NOT NULL");
         });
@@ -246,12 +264,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Description).HasMaxLength(500);
             e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Trip).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.Date);
         });
         b.Entity<DriverSettlement>(e =>
         {
             e.Property(x => x.Note).HasMaxLength(500);
             e.HasOne(x => x.Driver).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => new { x.DriverId, x.Date });
         });
         b.Entity<FleetDocument>(e =>

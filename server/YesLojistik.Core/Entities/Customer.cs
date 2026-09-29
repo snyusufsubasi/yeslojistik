@@ -24,6 +24,8 @@ public class Customer : BaseEntity
     /// <summary>Sisteme geçişte devreden borç bakiyesi (devir). Cari bakiyeye ve alacak yaşlandırmaya dahildir.</summary>
     public decimal OpeningBalance { get; set; }
     public DateOnly? OpeningBalanceDate { get; set; }
+    /// <summary>Risk limiti: açık bakiye + faturalanmamış teslimler + yeni sefer bunu aşarsa uyarı verilir (kayıt engellenmez).</summary>
+    public decimal? CreditLimit { get; set; }
 
     public List<Trip> Trips { get; set; } = new();
     public List<Invoice> Invoices { get; set; } = new();

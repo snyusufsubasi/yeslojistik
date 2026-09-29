@@ -33,4 +33,7 @@ public class Expense : BaseEntity
     public string? ReviewedBy { get; set; }
     /// <summary>Mobil uygulamanın çevrimdışı kuyruğundaki işlem kimliği; aynı istek iki kez gelirse tek kayıt oluşur.</summary>
     public Guid? ClientRequestId { get; set; }
+    /// <summary>Firma ödediyse paranın çıktığı kasa/banka hesabı (isteğe bağlı).</summary>
+    public int? CashAccountId { get; set; }
+    public CashAccount? CashAccount { get; set; }
 }

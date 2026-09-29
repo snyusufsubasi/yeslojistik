@@ -99,6 +99,8 @@ public class ExpenseService(AppDbContext db, IFileStorage storage, ICurrentUser 
             var vehicle = await db.Vehicles.FirstAsync(x => x.Id == fuelVehicle, ct);
             if (odo > vehicle.Km) vehicle.Km = odo;
         }
+        if (r.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
+        e.CashAccountId = r.IsOnCredit ? null : r.CashAccountId;
         e.DriverId = driverId;
         e.SupplierId = r.SupplierId;
         e.IsOnCredit = r.IsOnCredit && r.SupplierId != null;

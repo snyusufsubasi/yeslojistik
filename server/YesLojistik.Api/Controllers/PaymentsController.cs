@@ -22,10 +22,13 @@ public class PaymentsController(AppDbContext db) : ControllerBase
         ["amount"] = p => p.Amount,
         ["customer"] = p => p.Customer.Title,
         ["method"] = p => p.Method,
+        ["instrumentDueDate"] = p => p.InstrumentDueDate,
     };
 
     private static readonly Expression<Func<Payment, PaymentDto>> Projection = p => new PaymentDto(p.Id, p.CustomerId,
-        p.Customer.Title, p.InvoiceId, p.Invoice != null ? p.Invoice.InvoiceNo : null, p.Date, p.Amount, p.Method, p.Description);
+        p.Customer.Title, p.InvoiceId, p.Invoice != null ? p.Invoice.InvoiceNo : null, p.Date, p.Amount, p.Method, p.Description,
+        p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.InstrumentNo, p.Bank, p.InstrumentDueDate, p.InstrumentStatus,
+        p.EndorsedSupplierPaymentId, null);
 
     private IQueryable<Payment> Filter(PaymentQuery q)
     {
@@ -33,6 +36,10 @@ public class PaymentsController(AppDbContext db) : ControllerBase
         if (q.CustomerId is { } c) query = query.Where(p => p.CustomerId == c);
         if (q.From is { } from) query = query.Where(p => p.Date >= from);
         if (q.To is { } to) query = query.Where(p => p.Date <= to);
+        if (q.Instruments == true) query = query.Where(p => p.InstrumentStatus != null);
+        if (q.InstrumentStatus is { } st) query = query.Where(p => p.InstrumentStatus == st);
+        if (q.DueTo is { } due) query = query.Where(p => p.InstrumentDueDate <= due);
+        if (q.CashAccountId is { } acc) query = query.Where(p => p.CashAccountId == acc);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(p => EF.Functions.ILike(p.Customer.Title, like) || EF.Functions.ILike(p.Description ?? "", like)
                 || (p.Invoice != null && EF.Functions.ILike(p.Invoice.InvoiceNo, like)));
@@ -43,7 +50,16 @@ public class PaymentsController(AppDbContext db) : ControllerBase
     public async Task<PagedResult<PaymentDto>> List([FromQuery] PaymentQuery q, CancellationToken ct)
     {
         var (items, total, page, size) = await Filter(q).Select(Projection).PageAsync(q, ct);
-        return new PagedResult<PaymentDto>(items, total, page, size);
+        return new PagedResult<PaymentDto>(await WithEndorsementsAsync(items, ct), total, page, size);
+    }
+
+    /// <summary>Ciro edilen çek/senetlerde kime ciro edildiği.</summary>
+    private async Task<List<PaymentDto>> WithEndorsementsAsync(List<PaymentDto> items, CancellationToken ct)
+    {
+        var ids = items.Where(p => p.EndorsedSupplierPaymentId != null).Select(p => p.EndorsedSupplierPaymentId!.Value).ToList();
+        if (ids.Count == 0) return items;
+        var titles = await db.SupplierPayments.AsNoTracking().Where(s => ids.Contains(s.Id)).Select(s => new { s.Id, s.Supplier.Title }).ToDictionaryAsync(s => s.Id, s => s.Title, ct);
+        return items.Select(p => p.EndorsedSupplierPaymentId is { } sid ? p with { EndorsedTo = titles.GetValueOrDefault(sid) } : p).ToList();
     }
 
     [HttpGet("export")]
@@ -55,14 +71,56 @@ public class PaymentsController(AppDbContext db) : ControllerBase
             new("Müşteri", p => p.CustomerTitle),
             new("Fatura", p => p.InvoiceNo),
             new("Yöntem", p => CustomerAccountService.MethodLabel(p.Method)),
+            new("Hesap", p => p.CashAccountName),
+            new("Çek/Senet No", p => p.InstrumentNo),
+            new("Banka", p => p.Bank),
+            new("Vade", p => p.InstrumentDueDate, ExcelExporter.DateFormat),
+            new("Durum", p => p.InstrumentStatus is { } s ? CustomerAccountService.InstrumentStatusLabel(s) : null),
             new("Tutar", p => p.Amount, ExcelExporter.MoneyFormat),
-            new("Açıklama", p => p.Description)), "tahsilatlar");
+            new("Açıklama", p => p.Description)), q.Instruments == true ? "cek-senet" : "tahsilatlar");
     }
 
     [HttpGet("{id:int}")]
     public async Task<PaymentDto> Get(int id, CancellationToken ct) =>
-        await db.Payments.AsNoTracking().Where(p => p.Id == id).Select(Projection).FirstOrDefaultAsync(ct)
-        ?? throw new NotFoundException("Tahsilat bulunamadı.");
+        (await WithEndorsementsAsync([await db.Payments.AsNoTracking().Where(p => p.Id == id).Select(Projection).FirstOrDefaultAsync(ct)
+        ?? throw new NotFoundException("Tahsilat bulunamadı.")], ct))[0];
+
+    /// <summary>
+    /// Çek/senet durumu. Ciro: seçilen tedarikçiye aynı tutarda ödeme oluşur (borcu düşer). Karşılıksız/iade: tahsilat müşterinin
+    /// bakiyesinden düşmez; ciro edilmişse tedarikçi ödemesi de geri alınır (çek tedarikçiden geri gelir, borç yeniden açılır).
+    /// </summary>
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("{id:int}/instrument")]
+    public async Task<PaymentDto> SetInstrumentStatus(int id, InstrumentStatusRequest req, CancellationToken ct)
+    {
+        var p = await db.Payments.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Tahsilat bulunamadı.");
+        if (p.InstrumentStatus == null) throw new DomainException("Bu tahsilat çek ya da senet değil.");
+        if (req.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        if (p.InstrumentStatus == InstrumentStatus.Endorsed && req.Status != InstrumentStatus.Endorsed && p.EndorsedSupplierPaymentId is { } sp)
+        {
+            if (await db.SupplierPayments.FirstOrDefaultAsync(x => x.Id == sp, ct) is { } supplierPayment) supplierPayment.IsDeleted = true;
+            p.EndorsedSupplierPaymentId = null;
+        }
+        if (req.Status == InstrumentStatus.Endorsed && p.InstrumentStatus != InstrumentStatus.Endorsed)
+        {
+            if (req.SupplierId is not { } supplierId || !await db.Suppliers.AnyAsync(s => s.Id == supplierId, ct))
+                throw new DomainException("Ciro için tedarikçiyi seçin.");
+            var endorsed = new SupplierPayment
+            {
+                SupplierId = supplierId, Date = req.Date ?? Clock.Today, Amount = p.Amount, Method = p.Method, EndorsedFromPaymentId = p.Id,
+                Description = $"Ciro: {CustomerAccountService.MethodLabel(p.Method)} {p.InstrumentNo}{(p.Bank != null ? $" ({p.Bank})" : "")} vade {Formatters.Date(p.InstrumentDueDate ?? p.Date)}".Trim(),
+            };
+            db.SupplierPayments.Add(endorsed);
+            await db.SaveChangesAsync(ct);
+            p.EndorsedSupplierPaymentId = endorsed.Id;
+        }
+        if (req.Status is InstrumentStatus.InCollection or InstrumentStatus.Collected && req.CashAccountId != null) p.CashAccountId = req.CashAccountId;
+        p.InstrumentStatus = req.Status;
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return await Get(id, ct);
+    }
 
     [Authorize(Policy = Policies.Accounting)]
     [HttpPost]
@@ -90,6 +148,7 @@ public class PaymentsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var p = await db.Payments.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Tahsilat bulunamadı.");
+        if (p.InstrumentStatus == InstrumentStatus.Endorsed) throw new DomainException("Ciro edilmiş çek/senet silinemez; önce ciroyu geri alın.");
         p.IsDeleted = true;
         await db.SaveChangesAsync(ct);
         return NoContent();
@@ -109,7 +168,16 @@ public class PaymentsController(AppDbContext db) : ControllerBase
         p.InvoiceId = r.InvoiceId;
         p.Date = r.Date;
         p.Amount = Money.Round(r.Amount);
+        if (r.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
+        var isInstrument = r.Method is PaymentMethod.Check or PaymentMethod.PromissoryNote;
+        if (p.InstrumentStatus == InstrumentStatus.Endorsed && (!isInstrument || Money.Round(r.Amount) != p.Amount))
+            throw new DomainException("Ciro edilmiş çek/senedin tutarı ya da yöntemi değiştirilemez; önce ciroyu geri alın.");
         p.Method = r.Method;
         p.Description = CustomersController.NullIfEmpty(r.Description);
+        p.CashAccountId = r.CashAccountId;
+        p.InstrumentNo = isInstrument ? CustomersController.NullIfEmpty(r.InstrumentNo) : null;
+        p.Bank = isInstrument ? CustomersController.NullIfEmpty(r.Bank) : null;
+        p.InstrumentDueDate = isInstrument ? r.InstrumentDueDate : null;
+        p.InstrumentStatus = isInstrument ? p.InstrumentStatus ?? InstrumentStatus.Portfolio : null;
     }
 }

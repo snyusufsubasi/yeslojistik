@@ -236,5 +236,17 @@ public static class DbSeeder
                 db.Payments.Add(new Payment { CustomerId = inv.CustomerId, Date = today.AddDays(-3), Amount = Money.Round(inv.Total / 2), Method = PaymentMethod.Cash, Description = "Kısmi ödeme" });
         }
         await db.SaveChangesAsync();
+
+        // Kasa / banka hesapları ve portföyde bir çek
+        var cashBox = new CashAccount { Name = "Merkez Kasa", Kind = CashAccountKind.Cash, OpeningBalance = 15_000, OpeningBalanceDate = today.AddMonths(-3) };
+        var bank = new CashAccount { Name = "İş Bankası TL", Kind = CashAccountKind.Bank, Iban = "TR330006100519786457841326", OpeningBalance = 120_000, OpeningBalanceDate = today.AddMonths(-3) };
+        db.CashAccounts.AddRange(cashBox, bank);
+        await db.SaveChangesAsync();
+        foreach (var p in await db.Payments.ToListAsync())
+            p.CashAccountId = p.Method == PaymentMethod.Cash ? cashBox.Id : bank.Id;
+        db.Payments.Add(new Payment { CustomerId = customers[0].Id, Date = today.AddDays(-10), Amount = 25_000, Method = PaymentMethod.Check,
+            InstrumentNo = "0045123", Bank = "Garanti BBVA", InstrumentDueDate = today.AddDays(5), InstrumentStatus = InstrumentStatus.Portfolio, Description = "Müşteri çeki" });
+        customers[1].CreditLimit = 150_000;
+        await db.SaveChangesAsync();
     }
 }

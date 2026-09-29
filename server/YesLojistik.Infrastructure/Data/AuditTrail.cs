@@ -43,7 +43,9 @@ internal static class AuditTrail
         ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
         ["RejectionReason"] = "Ret gerekçesi", ["ReviewedBy"] = "Onaylayan", ["NextMaintenanceKm"] = "Sonraki bakım km", ["Direction"] = "Yön",
         ["Note"] = "Not", ["OwnerType"] = "Belge sahibi", ["OwnerId"] = "Sahip", ["Type"] = "Tür", ["No"] = "Belge no", ["IssueDate"] = "Veriliş",
-        ["ExpiryDate"] = "Bitiş", ["Cost"] = "Tutar", ["NextDueKm"] = "Sonraki bakım km", ["NextDueDate"] = "Sonraki bakım tarihi", ["ExpenseId"] = "Gider",
+        ["ExpiryDate"] = "Bitiş", ["CashAccountId"] = "Kasa/Banka", ["InstrumentNo"] = "Çek/Senet no", ["Bank"] = "Banka",
+        ["InstrumentDueDate"] = "Çek/Senet vadesi", ["InstrumentStatus"] = "Çek/Senet durumu", ["EndorsedSupplierPaymentId"] = "Ciro ödemesi",
+        ["EndorsedFromPaymentId"] = "Ciro edilen tahsilat", ["CreditLimit"] = "Risk limiti", ["Name"] = "Ad", ["FromAccountId"] = "Çıkış hesabı", ["ToAccountId"] = "Giriş hesabı", ["Cost"] = "Tutar", ["NextDueKm"] = "Sonraki bakım km", ["NextDueDate"] = "Sonraki bakım tarihi", ["ExpenseId"] = "Gider",
     };
 
     public static bool Tracks(EntityEntry e) =>
@@ -88,6 +90,8 @@ internal static class AuditTrail
         Expense x => $"{EnumLabel(x.Category)} {x.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL",
         DriverSettlement ds => $"{EnumLabel(ds.Direction)} {ds.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({ds.Date:dd.MM.yyyy})",
         FleetDocument fd => $"{EnumLabel(fd.Type)}{(fd.No != null ? " " + fd.No : "")}",
+        CashAccount ca => ca.Name,
+        CashTransfer ct => $"Virman {ct.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({ct.Date:dd.MM.yyyy})",
         MaintenanceRecord mr => $"{EnumLabel(mr.Type)} bakım ({mr.Date:dd.MM.yyyy})",
         User u => u.Email,
         TripAttachment a => a.FileName,
@@ -100,7 +104,10 @@ internal static class AuditTrail
         ["VehicleStatus.Available"] = "Müsait", ["VehicleStatus.OnRoad"] = "Yolda", ["VehicleStatus.Maintenance"] = "Bakımda",
         ["InvoiceStatus.Draft"] = "Taslak", ["InvoiceStatus.Issued"] = "Kesildi", ["InvoiceStatus.Cancelled"] = "İptal",
         ["PaymentMethod.Cash"] = "Nakit", ["PaymentMethod.BankTransfer"] = "Havale/EFT", ["PaymentMethod.Check"] = "Çek",
-        ["PaymentMethod.CreditCard"] = "Kredi kartı",
+        ["PaymentMethod.CreditCard"] = "Kredi kartı", ["PaymentMethod.PromissoryNote"] = "Senet",
+        ["InstrumentStatus.Portfolio"] = "Portföyde", ["InstrumentStatus.InCollection"] = "Tahsilde", ["InstrumentStatus.Collected"] = "Tahsil edildi",
+        ["InstrumentStatus.Endorsed"] = "Ciro edildi", ["InstrumentStatus.Bounced"] = "Karşılıksız", ["InstrumentStatus.Returned"] = "İade",
+        ["CashAccountKind.Cash"] = "Kasa", ["CashAccountKind.Bank"] = "Banka", ["CashAccountKind.Pos"] = "POS", ["CashAccountKind.CreditCard"] = "Kredi kartı",
         ["UserRole.Admin"] = "Yönetici", ["UserRole.Operations"] = "Operasyon", ["UserRole.Accounting"] = "Muhasebe", ["UserRole.Driver"] = "Şoför",
         ["ExpenseCategory.Fuel"] = "Yakıt", ["ExpenseCategory.Maintenance"] = "Bakım/Onarım", ["ExpenseCategory.Toll"] = "Otoyol/Köprü",
         ["ExpenseCategory.DriverAllowance"] = "Şoför harcırahı", ["ExpenseCategory.DriverAdvance"] = "Şoför avansı",

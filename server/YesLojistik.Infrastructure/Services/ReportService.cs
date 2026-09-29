@@ -20,7 +20,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .ToListAsync(ct);
         var invoiced = await db.Invoices.Where(i => i.Date >= from && i.Date <= to && i.Status == InvoiceStatus.Issued)
             .GroupBy(i => i.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(i => i.Total) }).ToListAsync(ct);
-        var collected = await db.Payments.Where(p => p.Date >= from && p.Date <= to)
+        var collected = await db.Payments.Where(Payment.Counts).Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
         var carrierPaid = await db.SupplierPayments.Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);

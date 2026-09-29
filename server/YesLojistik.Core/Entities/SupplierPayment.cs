@@ -12,4 +12,8 @@ public class SupplierPayment : BaseEntity
     public int? TripId { get; set; }
     public Trip? Trip { get; set; }
     public string? Description { get; set; }
+    public int? CashAccountId { get; set; }
+    public CashAccount? CashAccount { get; set; }
+    /// <summary>Müşteriden alınan çek/senet ciro edilerek ödendiyse o tahsilat.</summary>
+    public int? EndorsedFromPaymentId { get; set; }
 }
