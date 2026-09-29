@@ -3,13 +3,17 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { get } from '../api/client'
-import type { PagedResult, SupplierPayment, Trip } from '../api/types'
+import type { PagedResult, SupplierPayment, SupplierSummary, Trip } from '../api/types'
 import { applyServerErrors, idField, nullify, optStr, req } from '../lib/forms'
-import { date, moneyHint, tl, todayIso } from '../lib/format'
+import { date, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 import { Button, Field, Modal } from './ui'
 import { FormSelect } from './FormSelect'
+import { ControlledChoice } from './Choice'
+import { AmountInput, DateQuick, MoreFields } from './Inputs'
+import { choices } from '../lib/choices'
+import { paymentMethodIcon } from '../lib/icons'
 
 const schema = z.object({
   supplierId: idField('Tedarikçi seçin.'),
@@ -33,8 +37,12 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
       : { date: todayIso(), method: 'BankTransfer', description: '', tripId: null, cashAccountId: null, ...defaults },
   })
   const supplierId = useWatch({ control, name: 'supplierId' })
-  const amount = useWatch({ control, name: 'amount' })
   const accounts = useLookup('cash-accounts')
+  const summary = useQuery({
+    queryKey: ['suppliers', 'summary', supplierId],
+    queryFn: () => get<SupplierSummary>(`/suppliers/${supplierId}`),
+    enabled: !!supplierId && !Number.isNaN(supplierId),
+  })
   const trips = useQuery({
     queryKey: ['trips', 'carrier', supplierId],
     queryFn: () => get<PagedResult<Trip>>('/trips', { carrierSupplierId: supplierId, pageSize: 100, sort: 'loadingDate', desc: true }),
@@ -49,32 +57,38 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
   return (
     <Modal open onClose={onClose} title={payment ? 'Ödeme Düzenle' : 'Ödeme Yap'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <Field className="sm:col-span-2" label="Tedarikçi" required error={errors.supplierId?.message}>
+      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field className="sm:col-span-2" label="Kime ödüyorsunuz?" required error={errors.supplierId?.message}>
           <FormSelect control={control} name="supplierId" onValueChange={() => setValue('tripId', null)}
             options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
         </Field>
-        <Field className="sm:col-span-2" label="Sefer (isteğe bağlı)" error={errors.tripId?.message}
-          hint="Belirli bir seferin ödemesi ya da yükleme avansıysa seçin. Boşsa en eski borçlardan başlanarak düşülür.">
-          <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
-            options={(trips.data?.items ?? []).filter((t) => t.status !== 'Cancelled' && t.status !== 'Planned')
-              .map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.vehiclePlate} · ${t.loadingCity ?? t.loadingAddress} → ${t.deliveryCity ?? t.deliveryAddress} · ${tl(t.vehicleCost)}` }))} />
-        </Field>
-        <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
-        <Field label="Tutar (TL)" required error={errors.amount?.message} hint={moneyHint(amount)}>
-          <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('amount', { valueAsNumber: true })} />
-        </Field>
-        <Field label="Ödeme Yöntemi" error={errors.method?.message}>
-          <select className="input" {...register('method')}>
-            {Object.entries(paymentMethodLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
+        {!payment && (summary.data?.balance ?? 0) > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-base text-amber-900 sm:col-span-2">
+            <span>Borcunuz: <b>{tl(summary.data!.balance)}</b>{summary.data!.overdueAmount > 0 && <> · vadesi geçen <b className="text-red-700">{tl(summary.data!.overdueAmount)}</b></>}</span>
+            <Button type="button" size="sm" variant="secondary" onClick={() => setValue('amount', summary.data!.balance, { shouldValidate: true })}>Tamamını gir</Button>
+          </div>
+        )}
+        <Field label="Tutar (TL)" required error={errors.amount?.message}><AmountInput control={control} name="amount" /></Field>
+        <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
+        <Field group className="sm:col-span-2" label="Nasıl ödediniz?" required error={errors.method?.message}>
+          <ControlledChoice control={control} name="method" label="Ödeme Yöntemi" columns={5} options={choices(paymentMethodLabel, paymentMethodIcon)} />
         </Field>
         {(accounts.data?.length ?? 0) > 0 && (
-          <Field label="Kasa / Banka" hint="İsteğe bağlı: paranın çıktığı hesap.">
+          <Field className="sm:col-span-2" label="Para hangi hesaptan çıktı?" hint="İsteğe bağlı.">
             <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
           </Field>
         )}
-        <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
+        <div className="sm:col-span-2">
+          <MoreFields title="Sefer seçimi ve açıklama (isteğe bağlı)" defaultOpen={!!payment?.tripId || !!defaults?.tripId} hasError={!!errors.tripId}>
+            <Field label="Sefer" error={errors.tripId?.message}
+              hint="Belirli bir seferin ödemesi ya da yükleme avansıysa seçin. Boşsa en eski borçlardan başlanarak düşülür.">
+              <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
+                options={(trips.data?.items ?? []).filter((t) => t.status !== 'Cancelled' && t.status !== 'Planned')
+                  .map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.vehiclePlate} · ${t.loadingCity ?? t.loadingAddress} → ${t.deliveryCity ?? t.deliveryAddress} · ${tl(t.vehicleCost)}` }))} />
+            </Field>
+            <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
+          </MoreFields>
+        </div>
         {payment?.endorsedFromPaymentId && <p className="text-sm text-amber-700 sm:col-span-2">Bu ödeme bir çek/senet cirosundan geldi; Çek/Senet sayfasından yönetin.</p>}
         <button type="submit" className="hidden" />
       </form>

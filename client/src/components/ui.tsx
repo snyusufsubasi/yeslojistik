@@ -97,15 +97,18 @@ export function PageHeader({ title, subtitle, actions, back }: { title: string; 
   )
 }
 
-export function Field({ label, error, required, children, className, hint }:
-  { label: string; error?: string; required?: boolean; children: ReactNode; className?: string; hint?: string }) {
+export function Field({ label, error, required, children, className, hint, group }:
+  { label: string; error?: string; required?: boolean; children: ReactNode; className?: string; hint?: string
+    /** Şık usulü seçim gibi birden çok düğme içeren alanlar: <label> yerine grup olarak çizilir (etikete tıklamak ilk seçeneği seçmesin). */
+    group?: boolean }) {
+  const Tag = group ? 'div' : 'label'
   return (
-    <label className={clsx('block', className)}>
+    <Tag className={clsx('block', className)} {...(group ? { role: 'group', 'aria-label': label } : {})}>
       <span className="label">{label}{required && <span className="text-red-600" title="Zorunlu alan"> *</span>}</span>
       {children}
       {error ? <span className="mt-1.5 block text-sm font-medium text-red-700">{error}</span>
         : hint ? <span className="mt-1.5 block text-sm text-slate-600">{hint}</span> : null}
-    </label>
+    </Tag>
   )
 }
 
