@@ -16,6 +16,7 @@ internal static class AuditTrail
         nameof(Vehicle.LastLatitude), nameof(Vehicle.LastLongitude), nameof(Vehicle.LastSpeedKmh), nameof(Vehicle.LastLocationAt),
         nameof(Trip.TrackingToken), nameof(CompanySettings.LogoDataUrl), nameof(CompanySettings.LastDigestDate), nameof(CompanySettings.LastBackupAt),
         nameof(TripAttachment.StoragePath), nameof(Expense.ReceiptPath), nameof(Expense.ReceiptContentType),
+        nameof(FleetDocument.FilePath), nameof(FleetDocument.FileContentType), nameof(Expense.ReviewedAt),
     ];
 
     private static readonly Dictionary<string, string> Names = new()
@@ -40,6 +41,9 @@ internal static class AuditTrail
         ["FailedLoginCount"] = "Hatalı giriş sayısı", ["LockoutUntil"] = "Kilit bitişi", ["PaidBy"] = "Ödeyen", ["ApprovalStatus"] = "Onay", ["LocationConsentAt"] = "Konum izni", ["LocationConsentVersion"] = "İzin metni sürümü",
         ["RequireDeliveryPhoto"] = "Teslimde fotoğraf zorunlu", ["RequireDeliverySignature"] = "Teslimde imza zorunlu", ["ClientRequestId"] = "İstek kimliği",
         ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
+        ["RejectionReason"] = "Ret gerekçesi", ["ReviewedBy"] = "Onaylayan", ["NextMaintenanceKm"] = "Sonraki bakım km", ["Direction"] = "Yön",
+        ["Note"] = "Not", ["OwnerType"] = "Belge sahibi", ["OwnerId"] = "Sahip", ["Type"] = "Tür", ["No"] = "Belge no", ["IssueDate"] = "Veriliş",
+        ["ExpiryDate"] = "Bitiş", ["Cost"] = "Tutar", ["NextDueKm"] = "Sonraki bakım km", ["NextDueDate"] = "Sonraki bakım tarihi", ["ExpenseId"] = "Gider",
     };
 
     public static bool Tracks(EntityEntry e) =>
@@ -82,6 +86,9 @@ internal static class AuditTrail
         SupplierPayment sp => $"{sp.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ödeme ({sp.Date:dd.MM.yyyy})",
         Payment p => $"{p.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({p.Date:dd.MM.yyyy})",
         Expense x => $"{EnumLabel(x.Category)} {x.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL",
+        DriverSettlement ds => $"{EnumLabel(ds.Direction)} {ds.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({ds.Date:dd.MM.yyyy})",
+        FleetDocument fd => $"{EnumLabel(fd.Type)}{(fd.No != null ? " " + fd.No : "")}",
+        MaintenanceRecord mr => $"{EnumLabel(mr.Type)} bakım ({mr.Date:dd.MM.yyyy})",
         User u => u.Email,
         TripAttachment a => a.FileName,
         CompanySettings s => s.CompanyName,
@@ -103,6 +110,14 @@ internal static class AuditTrail
         ["ExpensePaidBy.Company"] = "Firma", ["ExpensePaidBy.Driver"] = "Şoför",
         ["ApprovalStatus.Approved"] = "Onaylı", ["ApprovalStatus.Pending"] = "Onay bekliyor", ["ApprovalStatus.Rejected"] = "Reddedildi",
         ["VehicleOwnership.Own"] = "Özmal", ["VehicleOwnership.Rented"] = "Kiralık",
+        ["SettlementDirection.PaidToDriver"] = "Şoföre ödeme", ["SettlementDirection.ReceivedFromDriver"] = "Şoförden alınan",
+        ["DocumentOwnerType.Vehicle"] = "Araç", ["DocumentOwnerType.Driver"] = "Şoför", ["DocumentOwnerType.Company"] = "Firma",
+        ["DocumentType.Registration"] = "Ruhsat", ["DocumentType.TrafficInsurance"] = "Trafik Sigortası", ["DocumentType.Casco"] = "Kasko",
+        ["DocumentType.Inspection"] = "Muayene", ["DocumentType.KCertificate"] = "K Belgesi", ["DocumentType.TachographCalibration"] = "Takograf Kalibrasyonu",
+        ["DocumentType.Emission"] = "Egzoz Emisyon", ["DocumentType.License"] = "Ehliyet", ["DocumentType.Src"] = "SRC",
+        ["DocumentType.Psychotechnic"] = "Psikoteknik", ["DocumentType.HealthReport"] = "Sağlık Raporu", ["DocumentType.Other"] = "Diğer",
+        ["MaintenanceType.Periodic"] = "Periyodik", ["MaintenanceType.Oil"] = "Yağ", ["MaintenanceType.Tire"] = "Lastik",
+        ["MaintenanceType.Brake"] = "Fren", ["MaintenanceType.Breakdown"] = "Arıza", ["MaintenanceType.Other"] = "Diğer",
         ["AttachmentKind.Photo"] = "Fotoğraf", ["AttachmentKind.Document"] = "Belge", ["AttachmentKind.Signature"] = "İmza",
     };
 

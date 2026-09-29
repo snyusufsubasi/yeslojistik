@@ -284,3 +284,50 @@ public class DriverExpenseRequestValidator : AbstractValidator<DriverExpenseRequ
         RuleFor(x => x.Description).MaximumLength(300);
     }
 }
+
+public class DriverSettlementSaveRequestValidator : AbstractValidator<DriverSettlementSaveRequest>
+{
+    public DriverSettlementSaveRequestValidator()
+    {
+        RuleFor(x => x.DriverId).GreaterThan(0).WithMessage("Şoför seçin.");
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+        RuleFor(x => x.Direction).IsInEnum();
+        RuleFor(x => x.Method).IsInEnum();
+        RuleFor(x => x.Note).MaximumLength(500);
+    }
+}
+
+public class DocumentSaveRequestValidator : AbstractValidator<DocumentSaveRequest>
+{
+    public DocumentSaveRequestValidator()
+    {
+        RuleFor(x => x.OwnerType).IsInEnum();
+        RuleFor(x => x.Type).IsInEnum();
+        RuleFor(x => x.OwnerId).NotNull().When(x => x.OwnerType != DocumentOwnerType.Company).WithMessage("Belgenin sahibini seçin.");
+        RuleFor(x => x.No).MaximumLength(50);
+        RuleFor(x => x.Note).MaximumLength(500);
+        RuleFor(x => x.ExpiryDate).GreaterThanOrEqualTo(x => x.IssueDate).When(x => x.IssueDate != null && x.ExpiryDate != null)
+            .WithMessage("Bitiş tarihi veriliş tarihinden önce olamaz.");
+    }
+}
+
+public class MaintenanceSaveRequestValidator : AbstractValidator<MaintenanceSaveRequest>
+{
+    public MaintenanceSaveRequestValidator()
+    {
+        RuleFor(x => x.Type).IsInEnum();
+        RuleFor(x => x.Cost).Amount().GreaterThanOrEqualTo(0).WithMessage("Tutar negatif olamaz.");
+        RuleFor(x => x.Km).InclusiveBetween(0, 10_000_000).When(x => x.Km != null).WithMessage("Kilometre geçersiz.");
+        RuleFor(x => x.NextDueKm).InclusiveBetween(0, 10_000_000).When(x => x.NextDueKm != null).WithMessage("Sonraki bakım kilometresi geçersiz.");
+        RuleFor(x => x.Description).MaximumLength(500);
+        RuleFor(x => x.NextDueDate).GreaterThan(x => x.Date).When(x => x.NextDueDate != null).WithMessage("Sonraki bakım tarihi bakım tarihinden sonra olmalı.");
+    }
+}
+
+public class ExpenseRejectRequestValidator : AbstractValidator<ExpenseRejectRequest>
+{
+    public ExpenseRejectRequestValidator()
+    {
+        RuleFor(x => x.Reason).NotEmpty().WithMessage("Reddetme gerekçesini yazın; şoföre iletilecek.").MaximumLength(300);
+    }
+}

@@ -131,6 +131,7 @@ export interface Vehicle {
   supplierId?: number | null
   supplierTitle?: string | null
   trailerPlate?: string | null
+  nextMaintenanceKm?: number | null
 }
 
 export interface Driver {
@@ -278,8 +279,11 @@ export interface Expense {
   isOnCredit?: boolean
   hasReceipt?: boolean
   paidBy?: 'Company' | 'Driver'
-  approvalStatus?: 'Approved' | 'Pending' | 'Rejected'
+  approvalStatus?: ApprovalStatus
+  rejectionReason?: string | null
 }
+
+export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected'
 
 export interface Dashboard {
   monthTripCount: number
@@ -299,6 +303,10 @@ export interface Dashboard {
   setup: SetupStatus
   payableTotal: number
   payableOverdue: number
+  pendingExpenseCount: number
+  pendingExpenseTotal: number
+  uninvoicedTripCount: number
+  uninvoicedTripTotal: number
 }
 
 export interface Alert {
@@ -563,4 +571,64 @@ export interface SupplierReportRow {
   creditExpenses: number
   paid: number
   balance: number
+}
+
+export type SettlementDirection = 'PaidToDriver' | 'ReceivedFromDriver'
+export type DocumentOwnerType = 'Vehicle' | 'Driver' | 'Company'
+export type DocumentType = 'Registration' | 'TrafficInsurance' | 'Casco' | 'Inspection' | 'KCertificate' | 'TachographCalibration' | 'Emission'
+  | 'License' | 'Src' | 'Psychotechnic' | 'HealthReport' | 'Other'
+export type MaintenanceType = 'Periodic' | 'Oil' | 'Tire' | 'Brake' | 'Breakdown' | 'Other'
+
+export interface DriverLedgerRow {
+  date: string
+  kind: string
+  description: string
+  debit: number
+  credit: number
+  balance: number
+  expenseId?: number | null
+  settlementId?: number | null
+  approvalStatus?: ApprovalStatus | null
+}
+
+export interface DriverLedger {
+  driverId: number
+  driverName: string
+  advances: number
+  paidToDriver: number
+  driverExpenses: number
+  receivedFromDriver: number
+  balance: number
+  pendingExpenses: number
+  rows: DriverLedgerRow[]
+}
+
+export interface FleetDocument {
+  id: number
+  ownerType: DocumentOwnerType
+  ownerId?: number | null
+  ownerName?: string | null
+  type: DocumentType
+  no?: string | null
+  issueDate?: string | null
+  expiryDate?: string | null
+  hasFile: boolean
+  note?: string | null
+  daysLeft?: number | null
+}
+
+export interface MaintenanceRecord {
+  id: number
+  vehicleId: number
+  vehiclePlate: string
+  date: string
+  km?: number | null
+  type: MaintenanceType
+  description?: string | null
+  cost: number
+  supplierId?: number | null
+  supplierTitle?: string | null
+  nextDueKm?: number | null
+  nextDueDate?: string | null
+  expenseId?: number | null
 }

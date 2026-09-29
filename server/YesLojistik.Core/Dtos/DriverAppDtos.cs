@@ -40,7 +40,7 @@ public record PushTokenRequest(string Token, string? Platform);
 public record DriverExpenseRequest(ExpenseCategory Category, decimal Amount, decimal? Liters, int? Odometer, string? Description);
 
 public record DriverExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, decimal? Liters, int? Odometer, string? Description,
-    ApprovalStatus ApprovalStatus = ApprovalStatus.Approved, bool HasReceipt = false);
+    ApprovalStatus ApprovalStatus = ApprovalStatus.Approved, bool HasReceipt = false, string? RejectionReason = null);
 
 /// <summary>Konum paylaşımı rızası. Version: uygulamada gösterilen açıklama metninin sürümü.</summary>
 public record LocationConsentRequest(bool Accepted, string Version);

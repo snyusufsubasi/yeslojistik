@@ -31,3 +31,16 @@ public enum VehicleOwnership { Own, Rented }
 public enum TripEventSource { Panel, Driver, Import }
 
 public enum ExpenseCategory { Fuel, Maintenance, Toll, DriverAllowance, Tire, Insurance, Tax, Other, DriverAdvance }
+
+/// <summary>Şoför hesabı hareketi: şoföre ödeme (bakiyesini artırır) ya da şoförden geri alınan para.</summary>
+public enum SettlementDirection { PaidToDriver, ReceivedFromDriver }
+
+public enum DocumentOwnerType { Vehicle, Driver, Company }
+
+public enum DocumentType
+{
+    Registration, TrafficInsurance, Casco, Inspection, KCertificate, TachographCalibration, Emission,
+    License, Src, Psychotechnic, HealthReport, Other,
+}
+
+public enum MaintenanceType { Periodic, Oil, Tire, Brake, Breakdown, Other }

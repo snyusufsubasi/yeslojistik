@@ -24,7 +24,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
         var carrierPaid = await db.SupplierPayments.Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
-        var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to)
+        var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => e.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
 
         return Enumerable.Range(1, 12).Select(m =>
@@ -47,7 +47,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .Select(t => new
             {
                 t.Id, t.LoadingDate, Customer = t.Customer.Title, t.Vehicle.Plate, t.LoadingAddress, t.DeliveryAddress, t.Status,
-                t.SalePrice, t.VehicleCost, Expenses = t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0,
+                t.SalePrice, t.VehicleCost, Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
             }).ToListAsync(ct);
         return rows.Select(r => new TripProfitRow(r.Id, r.LoadingDate, r.Customer, r.Plate, $"{r.LoadingAddress} → {r.DeliveryAddress}",
             TripStatusRules.Label(r.Status), r.SalePrice, r.VehicleCost, r.Expenses, r.SalePrice - r.VehicleCost - r.Expenses)).ToList();
@@ -60,7 +60,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .GroupBy(t => t.VehicleId)
             .Select(g => new { VehicleId = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost) })
             .ToListAsync(ct);
-        var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.VehicleId != null)
+        var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.VehicleId != null && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => e.VehicleId!.Value).Select(g => new { VehicleId = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
 
         return vehicles.Select(v =>
@@ -80,7 +80,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             {
                 g.Key.DriverId, g.Key.FullName, Count = g.Count(), Delivered = g.Count(t => t.Status == TripStatus.Delivered),
                 Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost),
-                Expenses = g.Sum(t => t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0),
+                Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
             }).ToListAsync(ct);
         var paid = await db.Expenses
             .Where(e => e.DriverId != null && e.Date >= from && e.Date <= to
@@ -107,7 +107,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
     public async Task<List<FuelReportRow>> FuelAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         var fills = await db.Expenses.AsNoTracking()
-            .Where(e => e.Category == ExpenseCategory.Fuel && e.VehicleId != null && e.Date >= from && e.Date <= to)
+            .Where(e => e.Category == ExpenseCategory.Fuel && e.VehicleId != null && e.Date >= from && e.Date <= to && e.ApprovalStatus == ApprovalStatus.Approved)
             .Select(e => new { VehicleId = e.VehicleId!.Value, e.Vehicle!.Plate, e.Amount, e.Liters, e.Odometer, e.Date, e.Id })
             .ToListAsync(ct);
         return fills.GroupBy(f => new { f.VehicleId, f.Plate }).Select(g =>
@@ -144,7 +144,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
 
     public async Task<List<ExpenseCategoryRow>> ExpenseCategoriesAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var rows = await db.Expenses.Where(e => e.Date >= from && e.Date <= to)
+        var rows = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => e.Category).Select(g => new { g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
         return rows.OrderByDescending(r => r.Sum).Select(r => new ExpenseCategoryRow(r.Key.ToString(), r.Sum)).ToList();
     }

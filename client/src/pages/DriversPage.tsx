@@ -7,7 +7,8 @@ import { IdCard, Pencil, Plus, Trash2 } from 'lucide-react'
 import { get } from '../api/client'
 import type { Driver } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Tabs } from '../components/ui'
+import { DocumentsPanel, DriverLedgerPanel } from '../components/FleetPanels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
@@ -87,7 +88,7 @@ export default function DriversPage() {
           <SearchBox value={search} onChange={setSearch} placeholder="Ad, telefon..." />
         </>}>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(d) => d.id}
-          onRowClick={can('operations') ? setEditing : undefined}
+          onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz şoför yok. “Yeni Şoför” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
       </Card>
@@ -100,6 +101,9 @@ export default function DriversPage() {
 }
 
 function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () => void }) {
+  const { can } = useAuth()
+  const editable = can('operations')
+  const [tab, setTab] = useState<'info' | 'docs' | 'ledger'>(editable || !driver ? 'info' : 'ledger')
   const suppliers = useLookup('suppliers')
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -115,9 +119,15 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
   })
   const submit = handleSubmit((v) => save.mutate(v))
   return (
-    <Modal open onClose={onClose} title={driver ? driver.fullName : 'Yeni Şoför'}
-      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+    <Modal open onClose={onClose} title={driver ? driver.fullName : 'Yeni Şoför'} size={tab === 'info' ? 'md' : 'lg'}
+      footer={tab === 'info' && editable ? <><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>
+        : <Button variant="secondary" onClick={onClose}>Kapat</Button>}>
+      {driver && <div className="mb-3"><Tabs value={tab} onChange={setTab}
+        tabs={[{ value: 'info', label: 'Bilgiler' }, { value: 'docs', label: 'Belgeler' }, { value: 'ledger', label: 'Hesap' }]} /></div>}
+      {driver && tab === 'docs' && <DocumentsPanel ownerType="Driver" ownerId={driver.id} />}
+      {driver && tab === 'ledger' && <DriverLedgerPanel driverId={driver.id} />}
+      <form onSubmit={submit} className={tab === 'info' ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
+        <fieldset disabled={!editable} className="contents">
         <Field label="Ad Soyad" required error={errors.fullName?.message}><input className="input" {...register('fullName')} /></Field>
         <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0532 123 45 67" {...register('phone')} /></Field>
         <Field label="TC Kimlik No" error={errors.nationalId?.message}><input className="input" inputMode="numeric" maxLength={11} {...register('nationalId')} /></Field>
@@ -129,6 +139,7 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
           <FormSelect control={control} name="supplierId" placeholder="Kendi şoförümüz" options={(suppliers.data ?? []).filter((s) => s.extra === 'Carrier').map((s) => ({ value: s.id, label: s.label }))} />
         </Field>
         <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" {...register('isActive')} /> Aktif</label>
+        </fieldset>
         <button type="submit" className="hidden" />
       </form>
     </Modal>

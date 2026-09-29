@@ -82,6 +82,25 @@ export default function DashboardPage() {
           icon={<CircleDollarSign className="size-7" />} onClick={() => navigate('/faturalar?unpaid=1')} />
       </div>
 
+      {can('accounting') && (data.uninvoicedTripCount > 0 || data.pendingExpenseCount > 0) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {data.uninvoicedTripCount > 0 && (
+            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-brand-800 hover:bg-brand-100">
+              <span><span className="font-semibold">{data.uninvoicedTripCount} teslim edilmiş sefer faturalanmadı</span>
+                <span className="block text-sm">Toplam {tl(data.uninvoicedTripTotal)} + KDV</span></span>
+              <span className="whitespace-nowrap text-sm font-semibold">Fatura kes →</span>
+            </Link>
+          )}
+          {data.pendingExpenseCount > 0 && (
+            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 hover:bg-amber-100">
+              <span><span className="font-semibold">{data.pendingExpenseCount} şoför masrafı onay bekliyor</span>
+                <span className="block text-sm">Toplam {tl(data.pendingExpenseTotal)}</span></span>
+              <span className="whitespace-nowrap text-sm font-semibold">İncele →</span>
+            </Link>
+          )}
+        </div>
+      )}
+
       <div className="grid items-start gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2" title="Günlük Seferler" icon={<Route className="size-4" />} bodyClassName="p-0"
           actions={<Button size="sm" variant="ghost" onClick={() => navigate('/seferler')}>Tümünü Gör →</Button>}>

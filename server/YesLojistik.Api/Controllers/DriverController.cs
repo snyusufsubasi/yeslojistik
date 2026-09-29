@@ -68,7 +68,7 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
     }
 
     private static readonly System.Linq.Expressions.Expression<Func<Expense, DriverExpenseDto>> ExpenseProjection = e =>
-        new DriverExpenseDto(e.Id, e.Category, e.Amount, e.Date, e.Liters, e.Odometer, e.Description, e.ApprovalStatus, e.ReceiptPath != null);
+        new DriverExpenseDto(e.Id, e.Category, e.Amount, e.Date, e.Liters, e.Odometer, e.Description, e.ApprovalStatus, e.ReceiptPath != null, e.RejectionReason);
 
     /// <summary>Yolda yapılan masraf: sefere, seferin aracına ve şoföre bağlanır. Yakıtta km aracın km'sini günceller.</summary>
     /// <remarks>

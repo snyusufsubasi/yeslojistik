@@ -11,6 +11,7 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
 {
     public const int MaintenanceWarnDays = 15;
     public const int DocumentWarnDays = 30;
+    public const int MaintenanceWarnKm = 1_000;
 
     public async Task<List<AlertDto>> GetAsync(CancellationToken ct = default)
     {
@@ -33,6 +34,37 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
             Check(v.NextMaintenanceDate, MaintenanceWarnDays, "maintenance", v.Plate, "Periyodik bakım", $"/araclar?id={v.Id}");
             Check(v.InspectionExpiry, DocumentWarnDays, "inspection", v.Plate, "Araç muayenesi", $"/araclar?id={v.Id}");
             Check(v.InsuranceExpiry, DocumentWarnDays, "insurance", v.Plate, "Trafik sigortası", $"/araclar?id={v.Id}");
+            if (v.NextMaintenanceKm is { } dueKm && dueKm - v.Km <= MaintenanceWarnKm)
+            {
+                var left = dueKm - v.Km;
+                alerts.Add(new AlertDto("maintenance-km", left < 0 ? "danger" : "warning", v.Plate,
+                    left < 0 ? $"Bakım kilometresi {-left:N0} km geçti ({dueKm:N0} km)." : $"Bakıma {left:N0} km kaldı ({dueKm:N0} km).",
+                    $"/araclar?id={v.Id}", null));
+            }
+        }
+
+        // Belgeler sekmesindeki belgeler (kasko, K belgesi, takograf…). Pasif/silinmiş araç ve şoförlerin belgeleri uyarılmaz.
+        var docs = await db.Documents.AsNoTracking().Where(d => d.ExpiryDate != null && d.ExpiryDate <= today.AddDays(DocumentWarnDays)).ToListAsync(ct);
+        if (docs.Count > 0)
+        {
+            var plates = vehicles.ToDictionary(v => v.Id, v => v.Plate);
+            var names = await db.Drivers.AsNoTracking().Where(d => d.IsActive).ToDictionaryAsync(d => d.Id, d => d.FullName, ct);
+            foreach (var doc in docs)
+            {
+                var label = FleetService.DocumentTypeLabel(doc.Type);
+                switch (doc.OwnerType)
+                {
+                    case DocumentOwnerType.Vehicle when doc.OwnerId is { } vid && plates.TryGetValue(vid, out var plate):
+                        Check(doc.ExpiryDate, DocumentWarnDays, "document", plate, label, $"/araclar?id={vid}");
+                        break;
+                    case DocumentOwnerType.Driver when doc.OwnerId is { } did && names.TryGetValue(did, out var name):
+                        Check(doc.ExpiryDate, DocumentWarnDays, "document", name, label, $"/soforler?id={did}");
+                        break;
+                    case DocumentOwnerType.Company:
+                        Check(doc.ExpiryDate, DocumentWarnDays, "document", "Firma", label, "/ayarlar");
+                        break;
+                }
+            }
         }
 
         // Taşeronun şoförlerinin belgeleri taşeronun sorumluluğunda; yalnızca kendi şoförlerimiz uyarılır.

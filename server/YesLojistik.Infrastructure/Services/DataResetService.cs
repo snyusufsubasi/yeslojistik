@@ -16,13 +16,15 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
     // Silme sırası yabancı anahtarlara göre: önce bağımlı tablolar.
     private static readonly string[] Tables =
     [
-        "vehicle_locations", "trip_events", "trip_attachments", "payments", "supplier_payments", "invoice_lines", "expenses", "trips", "invoices",
+        "vehicle_locations", "trip_events", "trip_attachments", "payments", "supplier_payments", "invoice_lines", "maintenance_records",
+        "driver_settlements", "documents", "expenses", "trips", "invoices",
         "vehicles", "drivers", "customers", "suppliers",
     ];
 
     public async Task ResetAsync(string actor, CancellationToken ct = default)
     {
         var files = await db.TripAttachments.IgnoreQueryFilters().Select(a => a.StoragePath).ToListAsync(ct);
+        files.AddRange(await db.Documents.IgnoreQueryFilters().Where(d => d.FilePath != null).Select(d => d.FilePath!).ToListAsync(ct));
 
         await using (var tx = await db.Database.BeginTransactionAsync(ct))
         {

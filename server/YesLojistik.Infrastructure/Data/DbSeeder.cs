@@ -199,10 +199,25 @@ public static class DbSeeder
         // Taşeron ödemeleri ve servisteki vadeli (açık hesap) bakım gideri
         db.SupplierPayments.Add(new SupplierPayment { SupplierId = suppliers[0].Id, Date = today.AddDays(-20), Amount = 30_000, Method = PaymentMethod.BankTransfer, Description = "Havale" });
         db.SupplierPayments.Add(new SupplierPayment { SupplierId = suppliers[0].Id, Date = today.AddDays(-2), Amount = 5_000, Method = PaymentMethod.Cash, TripId = trips[6].Id, Description = "Yükleme avansı" });
-        db.Expenses.Add(new Expense { Category = ExpenseCategory.Maintenance, Amount = 12_400, Date = today.AddDays(-35), VehicleId = vehicles[2].Id, SupplierId = suppliers[2].Id, IsOnCredit = true, Description = "Fren balatası ve bakım (açık hesap)" });
+        var brakeExpense = new Expense { Category = ExpenseCategory.Maintenance, Amount = 12_400, Date = today.AddDays(-35), VehicleId = vehicles[2].Id, SupplierId = suppliers[2].Id, IsOnCredit = true, Description = "Fren balatası ve bakım (açık hesap)" };
+        db.Expenses.Add(brakeExpense);
         // Şoför avansları
         foreach (var (driver, i) in drivers.Select((d, i) => (d, i)))
             db.Expenses.Add(new Expense { Category = ExpenseCategory.DriverAdvance, Amount = 2_000 + i * 500, Date = today.AddDays(-7 - i), DriverId = driver.Id, Description = "Yol avansı" });
+        // Şoför hesabı: cebinden yaptığı onaylı masraf, onay bekleyen masraf ve geri verdiği para
+        db.Expenses.Add(new Expense { Category = ExpenseCategory.Toll, Amount = 640, Date = today.AddDays(-5), DriverId = drivers[0].Id, VehicleId = vehicles[0].Id,
+            PaidBy = ExpensePaidBy.Driver, Description = "Köprü ve otoyol" });
+        db.Expenses.Add(new Expense { Category = ExpenseCategory.Other, Amount = 350, Date = today.AddDays(-1), DriverId = drivers[0].Id, VehicleId = vehicles[0].Id,
+            PaidBy = ExpensePaidBy.Driver, ApprovalStatus = ApprovalStatus.Pending, Description = "Oto yıkama" });
+        db.DriverSettlements.Add(new DriverSettlement { DriverId = drivers[0].Id, Date = today.AddDays(-3), Amount = 500, Direction = SettlementDirection.ReceivedFromDriver, Note = "Artan avans iadesi" });
+        // Filo belgeleri
+        db.Documents.Add(new FleetDocument { OwnerType = DocumentOwnerType.Vehicle, OwnerId = vehicles[0].Id, Type = DocumentType.Casco, No = "KSK-2026-0412", IssueDate = today.AddDays(-345), ExpiryDate = today.AddDays(20) });
+        db.Documents.Add(new FleetDocument { OwnerType = DocumentOwnerType.Vehicle, OwnerId = vehicles[0].Id, Type = DocumentType.TachographCalibration, IssueDate = today.AddDays(-400), ExpiryDate = today.AddDays(330) });
+        db.Documents.Add(new FleetDocument { OwnerType = DocumentOwnerType.Company, Type = DocumentType.KCertificate, No = "K1-34-12345", IssueDate = today.AddYears(-2), ExpiryDate = today.AddYears(3) });
+        await db.SaveChangesAsync();
+        db.MaintenanceRecords.Add(new MaintenanceRecord { VehicleId = vehicles[2].Id, Date = brakeExpense.Date, Km = Math.Max(0, vehicles[2].Km - 14_000), Type = MaintenanceType.Brake,
+            Description = "Fren balatası ve bakım (açık hesap)", Cost = brakeExpense.Amount, SupplierId = suppliers[2].Id, NextDueKm = vehicles[2].Km + 600, ExpenseId = brakeExpense.Id });
+        vehicles[2].NextMaintenanceKm = vehicles[2].Km + 600;
         await db.SaveChangesAsync();
 
         // Teslim edilmiş seferleri müşteri ve ay bazında faturala; bir kısmını tahsil et.

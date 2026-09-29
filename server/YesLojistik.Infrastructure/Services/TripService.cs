@@ -27,7 +27,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
 
     private static readonly Expression<Func<Trip, Row>> Projection = t => new Row(
         t, t.Customer.Title, t.Vehicle.Plate, t.Vehicle.Type, t.Driver.FullName,
-        t.Expenses.Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null,
+        t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null,
         t.CarrierSupplier != null ? t.CarrierSupplier.Title : null, t.Vehicle.Ownership);
 
     private static TripDto ToDto(Row r)

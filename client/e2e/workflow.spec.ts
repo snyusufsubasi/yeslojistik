@@ -337,3 +337,61 @@ test('e-Fatura açılır, kesilen fatura e-Arşiv numarası alır, XML ve muhase
   await page.getByRole('button', { name: 'Kaydet' }).first().click()
   await expect(page.getByText('Firma bilgileri kaydedildi.')).toBeVisible()
 })
+
+test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hesabı', async ({ page, playwright }) => {
+  const u = unique()
+  // Şoför uygulamasından (API) onay bekleyen bir masraf gelir.
+  const office = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  expect((await office.post('/api/auth/login', { data: { email: 'admin@yeslojistik.com', password: 'Admin123!' } })).ok()).toBeTruthy()
+  const driver = (await (await office.get('/api/drivers?search=Mehmet')).json()).items[0]
+  const vehicle = (await (await office.get('/api/vehicles?search=34 VES 01')).json()).items[0]
+  const customer = (await (await office.get('/api/customers?search=Martur')).json()).items[0]
+  const trip = await (await office.post('/api/trips', { data: {
+    customerId: customer.id, vehicleId: vehicle.id, driverId: driver.id, loadingAddress: 'Bursa', deliveryAddress: `Onay Deposu ${u}`,
+    loadingDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }), vehicleCost: 1000, salePrice: 2000 } })).json()
+  await office.dispose()
+  const mobile = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const token = (await (await mobile.post('/api/auth/token', { data: { email: 'sofor@yeslojistik.com', password: 'Sofor123!' } })).json()).accessToken
+  expect((await mobile.post(`/api/driver/trips/${trip.id}/expenses`, { data: { category: 'Toll', amount: 275, description: `Köprü ${u}` },
+    headers: { Authorization: `Bearer ${token}` } })).ok()).toBeTruthy()
+  await mobile.dispose()
+
+  await login(page)
+  await expect(page.getByText(/şoför masrafı onay bekliyor/)).toBeVisible()
+  await page.getByText(/şoför masrafı onay bekliyor/).click()
+  await expect(page).toHaveURL(/giderler\?onay=Pending/)
+  const row = page.getByRole('row').filter({ hasText: `Köprü ${u}` })
+  await row.getByRole('button', { name: 'Reddet' }).click()
+  const rd = page.getByRole('dialog', { name: 'Masrafı reddet' })
+  await rd.getByLabel(/Gerekçe/).fill('Fiş okunmuyor')
+  await rd.getByRole('button', { name: 'Reddet' }).click()
+  await expect(page.getByText('Masraf reddedildi; şoföre bildirildi.')).toBeVisible()
+  await page.getByLabel('Onay durumu').selectOption('Rejected')
+  await expect(page.getByRole('row').filter({ hasText: `Köprü ${u}` }).getByText('Fiş okunmuyor')).toBeVisible()
+
+  // Araç kartı: belgeler (demo kasko) ve bakım kaydı
+  await page.getByRole('link', { name: 'Araçlar', exact: true }).click()
+  await page.getByRole('row').filter({ hasText: '34 VES 01' }).first().click()
+  const vd = page.getByRole('dialog', { name: /Araç: 34 VES 01/ })
+  await vd.getByRole('button', { name: 'Belgeler' }).click()
+  await expect(vd.getByText('Kasko')).toBeVisible()
+  await expect(vd.getByText(/gün kaldı/).first()).toBeVisible()
+  await vd.getByRole('button', { name: 'Bakım' }).click()
+  await vd.getByRole('button', { name: 'Bakım Ekle' }).click()
+  const md = page.getByRole('dialog', { name: 'Bakım Ekle' })
+  await md.getByLabel('Yapılan işlem').fill(`Yağ değişimi ${u}`)
+  await md.getByLabel(/Tutar/).fill('4500')
+  await md.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Bakım kaydedildi.')).toBeVisible()
+  await expect(vd.getByText(`Yağ değişimi ${u}`)).toBeVisible()
+  await vd.getByRole('button', { name: 'Kapat', exact: true }).last().click()
+
+  // Şoför kartı → Hesap
+  await page.getByRole('link', { name: 'Şoförler', exact: true }).click()
+  await page.getByRole('row').filter({ hasText: 'Mehmet Yılmaz' }).first().click()
+  const dd = page.getByRole('dialog', { name: 'Mehmet Yılmaz' })
+  await dd.getByRole('button', { name: 'Hesap' }).click()
+  await expect(dd.getByText('Onay bekleyen masraf')).toBeVisible()
+  await expect(dd.getByText('Avans').first()).toBeVisible()
+  await expect(dd.getByText('Reddedildi').first()).toBeVisible()
+})

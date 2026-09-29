@@ -28,6 +28,7 @@ export default function More() {
         {can(role, 'accounting') && <Button title="Tahsilat Ekle" color={colors.green} onPress={() => router.push('/yonetim/tahsilat')} />}
         {can(role, 'accounting') && <Button title="Taşerona Ödeme Yap" variant="outline" onPress={() => router.push('/yonetim/odeme')} />}
         {can(role, 'accounting') && <Button title="Gider Ekle (fişli)" variant="outline" onPress={() => router.push('/yonetim/gider')} />}
+        {can(role, 'accounting') && <Button title="Onay Bekleyen Masraflar" variant="outline" onPress={() => router.push('/yonetim/onay')} />}
       </Card>
 
       <Card style={{ gap: 8 }}>

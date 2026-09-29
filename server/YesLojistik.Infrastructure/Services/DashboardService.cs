@@ -36,7 +36,7 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var monthTripCount = await monthTrips.CountAsync(ct);
         var monthDelivered = await monthTrips.CountAsync(t => t.Status == TripStatus.Delivered, ct);
         var monthRevenue = await monthTrips.SumAsync(t => (decimal?)t.SalePrice, ct) ?? 0;
-        var monthExpenses = (await db.Expenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd).SumAsync(e => (decimal?)e.Amount, ct) ?? 0)
+        var monthExpenses = (await db.Expenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved).SumAsync(e => (decimal?)e.Amount, ct) ?? 0)
             + (await monthTrips.SumAsync(t => (decimal?)t.VehicleCost, ct) ?? 0);
 
         var activeCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad, ct);
@@ -60,7 +60,7 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
             .GroupBy(t => new { t.LoadingDate.Year, t.LoadingDate.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost) })
             .ToListAsync(ct);
-        var expenseTrend = await db.Expenses.Where(e => e.Date >= trendStart && e.Date <= monthEnd)
+        var expenseTrend = await db.Expenses.Where(e => e.Date >= trendStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => new { e.Date.Year, e.Date.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Sum = g.Sum(e => e.Amount) })
             .ToListAsync(ct);
@@ -73,8 +73,13 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         }).ToList();
 
         var payable = await payables.DashboardAsync(ct);
+        var pending = await db.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Pending)
+            .GroupBy(_ => 1).Select(g => new { Count = g.Count(), Total = g.Sum(e => e.Amount) }).FirstOrDefaultAsync(ct);
+        var uninvoiced = await db.Trips.Where(t => t.Status == TripStatus.Delivered && t.InvoiceId == null)
+            .GroupBy(_ => 1).Select(g => new { Count = g.Count(), Total = g.Sum(t => t.SalePrice) }).FirstOrDefaultAsync(ct);
         return new DashboardDto(monthTripCount, monthDelivered, activeCount, open.Count, open.Sum(b => b.Remaining),
             vehicles.Count, vehicles.Count(v => v.Status == VehicleStatus.OnRoad), plannedCount, monthRevenue, monthExpenses,
-            todayTrips, recentInvoices, vehicles, trend, await SetupAsync(vehicles.Count, ct), payable.Total, payable.Overdue);
+            todayTrips, recentInvoices, vehicles, trend, await SetupAsync(vehicles.Count, ct), payable.Total, payable.Overdue,
+            pending?.Count ?? 0, pending?.Total ?? 0, uninvoiced?.Count ?? 0, uninvoiced?.Total ?? 0);
     }
 }
