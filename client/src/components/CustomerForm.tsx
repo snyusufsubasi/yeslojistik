@@ -72,7 +72,7 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
         <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-2">
           <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('isEInvoiceUser')} />
           <span className="flex-1">
-            <span className="block text-base font-medium text-slate-800">e-Fatura mükellefi</span>
+            <span className="block text-[0.9375rem] font-medium text-slate-800">e-Fatura mükellefi</span>
             <span className="block text-sm text-slate-600">İşaretliyse fatura e-Fatura, değilse e-Arşiv olarak kesilir.</span>
             {isEInvoice && <input className="input mt-2" placeholder="PK etiketi (ör. urn:mail:defaultpk@firma.com)" {...register('eInvoiceAlias')} />}
           </span>
@@ -85,13 +85,13 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
         <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-2">
           <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('notifyStatusByEmail')} />
           <span>
-            <span className="block text-base font-medium text-slate-800">Sefer durumu değişince müşteriye e-posta gönder</span>
+            <span className="block text-[0.9375rem] font-medium text-slate-800">Sefer durumu değişince müşteriye e-posta gönder</span>
             <span className="block text-sm text-slate-600">Yük araca yüklendiğinde, yola çıktığında ve teslim edildiğinde yukarıdaki e-posta adresine takip linkiyle bilgi gider. Fiyat bilgisi gönderilmez. (Sunucuda e-posta ayarı yapılmış olmalı.)</span>
           </span>
         </label>
         <label className="flex items-center gap-3 sm:col-span-2">
           <input type="checkbox" className="size-4 accent-brand-600" {...register('isActive')} />
-          <span className="text-base text-slate-800">Aktif müşteri <span className="text-sm text-slate-500">(pasif müşteriler yeni seferde listelenmez)</span></span>
+          <span className="text-[0.9375rem] text-slate-800">Aktif müşteri <span className="text-sm text-slate-500">(pasif müşteriler yeni seferde listelenmez)</span></span>
         </label>
         <button type="submit" className="hidden" />
       </form>

@@ -301,7 +301,7 @@ function Stat({ label, value, strong, tone }: { label: string; value: string; st
   return (
     <div className="rounded-lg border border-slate-200 px-3 py-2">
       <div className="text-sm text-slate-500">{label}</div>
-      <div className={`${strong ? 'text-lg font-bold' : 'font-semibold'} ${tone ?? 'text-slate-800'}`}>{value}</div>
+      <div className={`${strong ? 'text-lg font-semibold' : 'font-medium'} ${tone ?? 'text-slate-800'}`}>{value}</div>
     </div>
   )
 }

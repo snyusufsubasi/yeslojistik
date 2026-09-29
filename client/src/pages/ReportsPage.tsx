@@ -81,7 +81,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
-      <div className="mb-1 font-semibold text-slate-800">{label}</div>
+      <div className="mb-1 font-medium text-slate-800">{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2 text-slate-600">
           <span className="size-2.5 rounded-sm" style={{ background: p.color }} />
@@ -138,7 +138,7 @@ function Kpi({ label, value, tone }: { label: string; value: string; tone?: stri
   return (
     <div className="rounded-lg bg-slate-50 p-3">
       <div className="text-sm text-slate-500">{label}</div>
-      <div className={`text-xl font-bold ${tone ?? 'text-navy-900'}`}>{value}</div>
+      <div className={`text-xl font-semibold ${tone ?? 'text-navy-900'}`}>{value}</div>
     </div>
   )
 }
@@ -160,7 +160,7 @@ function Trips({ from, to }: { from: string; to: string }) {
   const total = (k: 'salePrice' | 'vehicleCost' | 'expenses' | 'profit') => data?.reduce((s, r) => s + r[k], 0) ?? 0
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.tripId} empty="Bu aralıkta sefer yok."
     footer={data && data.length > 0 ? (
-      <tr className="bg-slate-50 text-sm font-semibold">
+      <tr className="bg-slate-50 text-sm font-medium">
         <td className="td" colSpan={5}>Toplam ({data.length} sefer)</td>
         <td className="td text-right">{tl(total('salePrice'))}</td><td className="td text-right">{tl(total('vehicleCost'))}</td>
         <td className="td text-right">{tl(total('expenses'))}</td><td className="td text-right">{tl(total('profit'))}</td><td className="td" />
@@ -212,11 +212,11 @@ function Fuel({ from, to }: { from: string; to: string }) {
     { key: 'pl', header: 'Ort. Litre Fiyatı', align: 'right', render: (r) => r.pricePerLiter ? tl2(r.pricePerLiter) : '—' },
     { key: 'km', header: 'Km', align: 'right', render: (r) => r.km ? num(r.km) : '—' },
     { key: 'c100', header: 'L / 100 km', align: 'right', render: (r) => r.litersPer100Km == null ? <span className="text-slate-500">—</span>
-      : <span className={high(r) ? 'font-semibold text-red-600' : 'font-medium'}>{num(r.litersPer100Km, 1)}{high(r) && <span className="block text-sm font-normal">Ortalamanın üstünde</span>}</span> },
+      : <span className={high(r) ? 'font-medium text-red-600' : 'font-medium'}>{num(r.litersPer100Km, 1)}{high(r) && <span className="block text-sm font-normal">Ortalamanın üstünde</span>}</span> },
   ]
   return (
     <>
-      <p className="px-4 pt-3 text-base text-slate-700">
+      <p className="px-4 pt-3 text-[0.9375rem] text-slate-700">
         Tüketim, yakıt giderlerine girilen <b>litre</b> ve <b>araç kilometresinden</b> hesaplanır (depoyu her seferinde doldurduğunuzda en doğru sonucu verir).
         {fleet != null && <> Filo ortalaması: <b>{num(fleet, 1)} L/100 km</b>. Ortalamanın %15'ten fazla üstündeki araçlar kırmızı görünür.</>}
       </p>
@@ -234,12 +234,12 @@ function Aging() {
     { key: 'b', header: '31-60 Gün', align: 'right', render: (r) => tl2(r.days31To60) },
     { key: 'c2', header: '61-90 Gün', align: 'right', render: (r) => tl2(r.days61To90) },
     { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-medium text-red-600' : ''}>{tl2(r.over90)}</span> },
-    { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-semibold">{tl2(r.total)}</span> },
+    { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof CustomerAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.customerId} empty="Açık alacak yok."
     footer={data && data.length > 0 ? (
-      <tr className="bg-slate-50 text-sm font-semibold">
+      <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
         {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td text-right">{tl2(s(k))}</td>)}
       </tr>) : undefined} />
@@ -274,7 +274,7 @@ function Expenses({ from, to }: { from: string; to: string }) {
                 <td className="td text-right">{tl2(r.amount)}</td><td className="td text-right">%{total ? Math.round(r.amount / total * 100) : 0}</td></tr>
             ))}
           </tbody>
-          <tfoot><tr className="bg-slate-50 font-semibold"><td className="td">Toplam</td><td className="td text-right">{tl2(total)}</td><td className="td" /></tr></tfoot>
+          <tfoot><tr className="bg-slate-50 font-medium"><td className="td">Toplam</td><td className="td text-right">{tl2(total)}</td><td className="td" /></tr></tfoot>
         </table>
       </div>
       <div className="flex items-center gap-2 text-sm text-slate-500 lg:col-span-2"><BarChart3 className="size-3.5" /> Araç maliyetleri sefer kârlılığı raporunda ayrıca gösterilir.</div>
@@ -291,12 +291,12 @@ function Payables() {
     { key: 'b', header: '31-60 Gün', align: 'right', render: (r) => tl2(r.days31To60) },
     { key: 'c2', header: '61-90 Gün', align: 'right', render: (r) => tl2(r.days61To90) },
     { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-medium text-red-600' : ''}>{tl2(r.over90)}</span> },
-    { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-semibold">{tl2(r.total)}</span> },
+    { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof PayableAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Açık taşeron borcu yok."
     footer={data && data.length > 0 ? (
-      <tr className="bg-slate-50 text-sm font-semibold">
+      <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
         {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td text-right">{tl2(s(k))}</td>)}
       </tr>) : undefined} />
@@ -311,7 +311,7 @@ function CustomerProfit({ from, to }: { from: string; to: string }) {
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 'r', header: 'Ciro', align: 'right', render: (r) => tl(r.revenue) },
     { key: 'k', header: 'Maliyet', align: 'right', render: (r) => tl(r.cost) },
-    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-semibold text-red-600' : 'font-semibold'}>{tl(r.profit)}</span> },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
     { key: 'o', header: 'Açık Alacak', align: 'right', render: (r) => tl(r.openReceivable) },
     { key: 'd', header: 'Tahsil Süresi', align: 'right', render: (r) => r.collectionDays == null ? '—' : `~${r.collectionDays} gün` },
@@ -329,7 +329,7 @@ function RouteProfit({ from, to }: { from: string; to: string }) {
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 's', header: 'Ort. Satış', align: 'right', render: (r) => tl(r.avgRevenue) },
     { key: 'c', header: 'Ort. Maliyet', align: 'right', render: (r) => tl(r.avgCost) },
-    { key: 'p', header: 'Toplam Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-semibold text-red-600' : 'font-semibold'}>{tl(r.profit)}</span> },
+    { key: 'p', header: 'Toplam Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => `${r.from}-${r.to}`} empty="Bu dönemde sefer yok. Güzergâh için seferlerde yükleme ve teslim ilini girin." />
@@ -343,7 +343,7 @@ function Suppliers() {
     { key: 'tc', header: 'Sefer Maliyeti', align: 'right', render: (r) => tl2(r.tripCost) },
     { key: 'ce', header: 'Vadeli Gider', align: 'right', render: (r) => tl2(r.creditExpenses) },
     { key: 'p', header: 'Ödenen', align: 'right', render: (r) => tl2(r.paid) },
-    { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-semibold text-orange-600' : 'font-semibold'}>{tl2(r.balance)}</span> },
+    { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-medium text-orange-600' : 'font-medium'}>{tl2(r.balance)}</span> },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
 }

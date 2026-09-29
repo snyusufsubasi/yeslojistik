@@ -138,7 +138,7 @@ export default function InvoiceCreatePage() {
               <Line label={`Ara Toplam (${lineAmounts.length} kalem)`} value={subtotal} />
               <Line label={`KDV (%${vatRate})`} value={vat} />
               {withholding > 0 && withheld > 0 && <Line label={`Tevkifat (${withholding}/10)`} value={-withheld} />}
-              <div className="border-t border-slate-200 pt-1 text-base font-bold text-navy-900"><Line label="Ödenecek Tutar" value={total} /></div>
+              <div className="border-t border-slate-200 pt-1 text-[0.9375rem] font-semibold text-navy-900"><Line label="Ödenecek Tutar" value={total} /></div>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === true} onClick={() => create.mutate(true)}>Taslak Kaydet</Button>

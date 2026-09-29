@@ -166,7 +166,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       {trip && tab === 'tracking' && <TripTracking trip={trip} />}
       {trip && tab === 'history' && <>
         <TripTimeline tripId={trip.id} />
-        {can('admin') && <div className="mt-4"><div className="mb-2 text-sm font-semibold text-navy-900">Değişiklik kaydı</div><AuditLogTable entityType="Trip" entityId={trip.id} /></div>}
+        {can('admin') && <div className="mt-4"><div className="mb-2 text-sm font-medium text-navy-900">Değişiklik kaydı</div><AuditLogTable entityType="Trip" entityId={trip.id} /></div>}
       </>}
       <div className={tab === 'info' ? '' : 'hidden'}>
       {trip && (
@@ -253,7 +253,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             </Field>
           </div>
           <div className="rounded-lg border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-semibold text-navy-900">Yük Bilgisi</div>
+            <div className="mb-2 text-sm font-medium text-navy-900">Yük Bilgisi</div>
             <div className="grid grid-cols-2 gap-3">
               <Field className="col-span-2" label="Yük Cinsi" error={errors.cargoType?.message}>
                 <input className="input" placeholder="Mobilya" list="cargo-types" {...register('cargoType')} />
@@ -273,7 +273,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           </div>
           {(rented || trip?.carrierSupplierId) && (
             <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3">
-              <div className="mb-2 text-sm font-semibold text-navy-900">Taşeron (kiralık araç)</div>
+              <div className="mb-2 text-sm font-medium text-navy-900">Taşeron (kiralık araç)</div>
               <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi.">
                 <FormSelect control={control} name="carrierSupplierId" placeholder={vehicle.data?.supplierTitle ? `Araç sahibi: ${vehicle.data.supplierTitle}` : 'Aracın sahibi'}
                   options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))} />
@@ -285,7 +285,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             </div>
           )}
           <div className="rounded-lg border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-semibold text-navy-900">Nakliye Fiyatları</div>
+            <div className="mb-2 text-sm font-medium text-navy-900">Nakliye Fiyatları</div>
             <div className="grid grid-cols-2 gap-3">
               <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message} hint={moneyHint(cost)}>
                 <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('vehicleCost', { valueAsNumber: true })} />
@@ -300,7 +300,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
                 <Link className="text-brand-600 hover:underline" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
               </div>
             )}
-            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-sm font-semibold">
+            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-sm font-medium">
               <span>Tahmini Kâr</span>
               <span className={profit < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(profit)}</span>
             </div>

@@ -39,11 +39,11 @@ export function ForgotPasswordPage() {
 
   return (
     <Shell>
-      <h1 className="mb-2 text-lg font-bold text-navy-900">Şifremi unuttum</h1>
+      <h1 className="mb-2 text-lg font-semibold text-navy-900">Şifremi unuttum</h1>
       {state === 'sent' ? (
-        <p className="text-base text-slate-700">Bu adrese kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi. E-postanızı (gereksiz klasörü dahil) kontrol edin; bağlantı 30 dakika geçerlidir.</p>
+        <p className="text-[0.9375rem] text-slate-700">Bu adrese kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi. E-postanızı (gereksiz klasörü dahil) kontrol edin; bağlantı 30 dakika geçerlidir.</p>
       ) : state === 'no-email' ? (
-        <p className="text-base text-slate-700">Sunucuda e-posta gönderimi ayarlı değil. Şifrenizi yöneticinizden sıfırlamasını isteyin (Ayarlar → Kullanıcılar).</p>
+        <p className="text-[0.9375rem] text-slate-700">Sunucuda e-posta gönderimi ayarlı değil. Şifrenizi yöneticinizden sıfırlamasını isteyin (Ayarlar → Kullanıcılar).</p>
       ) : (
         <form onSubmit={submit}>
           <p className="mb-4 text-sm text-slate-600">Hesabınızın e-posta adresini yazın; şifrenizi yenilemeniz için bir bağlantı gönderelim.</p>
@@ -87,9 +87,9 @@ export function ResetPasswordPage() {
 
   return (
     <Shell>
-      <h1 className="mb-2 text-lg font-bold text-navy-900">Yeni şifre belirleyin</h1>
-      {!token ? <p className="text-base text-slate-700">Bağlantı eksik. E-postadaki bağlantıyı açın ya da yeniden "Şifremi unuttum" deyin.</p>
-        : done ? <p className="text-base text-slate-700">Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz; diğer cihazlardaki oturumlar kapatıldı.</p>
+      <h1 className="mb-2 text-lg font-semibold text-navy-900">Yeni şifre belirleyin</h1>
+      {!token ? <p className="text-[0.9375rem] text-slate-700">Bağlantı eksik. E-postadaki bağlantıyı açın ya da yeniden "Şifremi unuttum" deyin.</p>
+        : done ? <p className="text-[0.9375rem] text-slate-700">Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz; diğer cihazlardaki oturumlar kapatıldı.</p>
         : (
           <form onSubmit={submit}>
             <label className="mb-3 block">

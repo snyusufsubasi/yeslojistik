@@ -236,10 +236,11 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   const plate = `41 E ${u.slice(-4)}`
   await vd.getByLabel(/^Plaka/).fill(plate)
   await vd.getByLabel(/^Araç Tipi/).fill('Tır')
-  await vd.locator('select[name=ownership]').selectOption('Rented')
+  await vd.getByRole('radio', { name: /Kiralık/ }).click()
   await vd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(vd.getByText('Kiralık araç için araç sahibini seçin.')).toBeVisible()
   await vd.locator('select[name=supplierId]').selectOption({ label: `E2E Nakliyat ${u}` })
+  await vd.getByRole('button', { name: /Marka, dorse/ }).click()
   await vd.getByLabel('Dorse Plakası').fill('41 DRS 41')
   await vd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Araç eklendi.')).toBeVisible()

@@ -6,12 +6,12 @@ import { Badge, PageHeader } from '../components/ui'
 function Section({ icon, title, children, open }: { icon: ReactNode; title: string; children: ReactNode; open?: boolean }) {
   return (
     <details open={open} className="card group">
-      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 text-base font-semibold text-navy-900">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 text-[0.9375rem] font-medium text-navy-900">
         <span className="text-brand-600">{icon}</span>
         <span className="flex-1">{title}</span>
         <span className="text-slate-500 transition group-open:rotate-90">›</span>
       </summary>
-      <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-base leading-relaxed text-slate-700">{children}</div>
+      <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-[0.9375rem] leading-relaxed text-slate-700">{children}</div>
     </details>
   )
 }
@@ -21,7 +21,7 @@ function Steps({ items }: { items: ReactNode[] }) {
     <ol className="space-y-2">
       {items.map((it, i) => (
         <li key={i} className="flex gap-3">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{i + 1}</span>
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{i + 1}</span>
           <span>{it}</span>
         </li>
       ))}
@@ -227,11 +227,11 @@ export default function HelpPage() {
 
         <Section icon={<HelpCircle className="size-5" />} title="Sık sorulanlar">
           <dl className="space-y-3">
-            <div><dt className="font-semibold">Şifremi unuttum.</dt><dd>Yönetici, <L to="/ayarlar?tab=users">Kullanıcılar</L> ekranında hesabınıza yeni şifre verebilir.</dd></div>
-            <div><dt className="font-semibold">Seferi silemiyorum.</dt><dd>Faturalanmış sefer silinemez. Önce faturayı iptal edin.</dd></div>
-            <div><dt className="font-semibold">Araç sürekli “Yolda” görünüyor.</dt><dd>Aracın yüklendi/yolda durumunda seferi vardır. O seferi “Teslim Edildi” yapınca araç “Müsait” olur.</dd></div>
-            <div><dt className="font-semibold">Faturayı iptal edemiyorum.</dt><dd>Faturaya bağlı tahsilat vardır. Önce tahsilatı silin veya düzenleyip fatura bağlantısını kaldırın.</dd></div>
-            <div><dt className="font-semibold">Haritada araç görünmüyor.</dt><dd>Şoförün mobil uygulamada oturum açmış ve konum izni vermiş olması gerekir; konum yalnızca aktif seferde paylaşılır.</dd></div>
+            <div><dt className="font-medium">Şifremi unuttum.</dt><dd>Yönetici, <L to="/ayarlar?tab=users">Kullanıcılar</L> ekranında hesabınıza yeni şifre verebilir.</dd></div>
+            <div><dt className="font-medium">Seferi silemiyorum.</dt><dd>Faturalanmış sefer silinemez. Önce faturayı iptal edin.</dd></div>
+            <div><dt className="font-medium">Araç sürekli “Yolda” görünüyor.</dt><dd>Aracın yüklendi/yolda durumunda seferi vardır. O seferi “Teslim Edildi” yapınca araç “Müsait” olur.</dd></div>
+            <div><dt className="font-medium">Faturayı iptal edemiyorum.</dt><dd>Faturaya bağlı tahsilat vardır. Önce tahsilatı silin veya düzenleyip fatura bağlantısını kaldırın.</dd></div>
+            <div><dt className="font-medium">Haritada araç görünmüyor.</dt><dd>Şoförün mobil uygulamada oturum açmış ve konum izni vermiş olması gerekir; konum yalnızca aktif seferde paylaşılır.</dd></div>
           </dl>
         </Section>
       </div>

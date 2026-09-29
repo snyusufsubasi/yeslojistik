@@ -59,7 +59,7 @@ export default function SupplierPaymentsPage() {
         </>} />
       <Card title="Ödeme Listesi" icon={<HandCoins className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Tedarikçi, açıklama..." />}>
-        <div className="grid grid-cols-1 gap-2 border-b border-slate-100 p-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">
           <Select aria-label="Tedarikçi" value={supplierId} onChange={setSupplierId} placeholder="Tüm tedarikçiler"
             options={(suppliers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />

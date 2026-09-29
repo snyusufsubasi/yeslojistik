@@ -58,7 +58,7 @@ export function ChoiceCards<T extends string | number>({ options, value, onChang
                 active ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600')}>{o.icon}</span>
             )}
             <span className="min-w-0 flex-1 leading-tight">
-              <span className={clsx('block text-base', active ? 'font-bold text-brand-800' : 'font-semibold text-slate-800')}>{o.label}</span>
+              <span className={clsx('block text-[0.9375rem]', active ? 'font-semibold text-brand-800' : 'font-medium text-slate-800')}>{o.label}</span>
               {o.hint && <span className="mt-0.5 block text-sm text-slate-600">{o.hint}</span>}
             </span>
             {active && <Check aria-hidden className="absolute right-2 top-2 size-4 text-brand-600" />}
@@ -80,8 +80,8 @@ export function ChoiceChips<T extends string | number>({ options, value, onChang
           <button key={String(o.value)} type="button" role="radio" aria-checked={active} disabled={disabled}
             ref={(el) => { refs.current[i] = el }} tabIndex={tabIndex(i)} onKeyDown={(e) => onKeyDown(e, i)}
             onClick={() => onChange(o.value)}
-            className={clsx('inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 px-4 text-base transition disabled:opacity-50 [&_svg]:size-4',
-              active ? 'border-brand-600 bg-brand-600 font-semibold text-white shadow-sm' : 'border-slate-200 bg-white font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>
+            className={clsx('inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 px-4 text-[0.9375rem] transition disabled:opacity-50 [&_svg]:size-4',
+              active ? 'border-brand-600 bg-brand-600 font-medium text-white shadow-sm' : 'border-slate-200 bg-white font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>
             {active ? <Check aria-hidden /> : o.icon}
             {o.label}
           </button>

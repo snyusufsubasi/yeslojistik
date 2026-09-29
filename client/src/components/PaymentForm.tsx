@@ -69,7 +69,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
         </Field>
         {openTotal > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-base text-amber-900 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[0.9375rem] text-amber-900 sm:col-span-2">
             <span>Açık faturalar: <b>{tl(openTotal)}</b> ({selectable.length} fatura)</span>
             <Button type="button" size="sm" variant="secondary" onClick={() => { setValue('invoiceId', null); setValue('amount', openTotal, { shouldValidate: true }) }}>Tamamını gir</Button>
           </div>

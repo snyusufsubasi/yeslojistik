@@ -151,7 +151,7 @@ function Amount({ label, value, tone, big, sub }: { label: string; value: number
   return (
     <div className="card p-4">
       <div className="text-sm font-medium text-slate-500">{label}</div>
-      <div className={`${big ? 'text-3xl' : 'text-2xl'} font-bold ${tone}`}>{tl2(value)}</div>
+      <div className={`${big ? 'text-3xl' : 'text-2xl'} font-semibold ${tone}`}>{tl2(value)}</div>
       {sub && <div className="text-sm text-slate-500">{sub}</div>}
     </div>
   )

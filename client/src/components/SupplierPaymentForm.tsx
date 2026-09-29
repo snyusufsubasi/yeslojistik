@@ -63,7 +63,7 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
             options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
         </Field>
         {!payment && (summary.data?.balance ?? 0) > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-base text-amber-900 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[0.9375rem] text-amber-900 sm:col-span-2">
             <span>Borcunuz: <b>{tl(summary.data!.balance)}</b>{summary.data!.overdueAmount > 0 && <> · vadesi geçen <b className="text-red-700">{tl(summary.data!.overdueAmount)}</b></>}</span>
             <Button type="button" size="sm" variant="secondary" onClick={() => setValue('amount', summary.data!.balance, { shouldValidate: true })}>Tamamını gir</Button>
           </div>

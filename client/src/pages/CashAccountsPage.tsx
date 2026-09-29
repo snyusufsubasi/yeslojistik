@@ -50,10 +50,10 @@ export default function CashAccountsPage() {
               <button key={a.id} onClick={() => setSelected(a.id)}
                 className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${current?.id === a.id ? 'border-brand-400 bg-brand-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold text-navy-900">{a.name}</span>
+                  <span className="block truncate font-medium text-navy-900">{a.name}</span>
                   <span className="text-sm text-slate-500">{cashAccountKindLabel[a.kind]}{!a.isActive && ' · pasif'}</span>
                 </span>
-                <span className={`whitespace-nowrap font-semibold ${a.balance < 0 ? 'text-red-600' : 'text-slate-800'}`}>{tl2(a.balance)}</span>
+                <span className={`whitespace-nowrap font-medium ${a.balance < 0 ? 'text-red-600' : 'text-slate-800'}`}>{tl2(a.balance)}</span>
               </button>
             ))}
           </div>

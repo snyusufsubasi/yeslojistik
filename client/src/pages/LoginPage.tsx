@@ -58,9 +58,9 @@ export default function LoginPage() {
             </button>
           </div>
         </label>
-        {error && <div role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-base font-medium text-red-700">{error}</div>}
+        {error && <div role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[0.9375rem] font-medium text-red-700">{error}</div>}
         <Button type="submit" className="min-h-13 w-full text-lg" loading={loading}>Giriş Yap</Button>
-        <p className="mt-6 text-center text-base"><Link className="font-semibold text-brand-700 hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
+        <p className="mt-6 text-center text-[0.9375rem]"><Link className="font-medium text-brand-700 hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
         <p className="mt-3 text-center text-sm text-slate-500"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
       </form>
     </div>
