@@ -695,3 +695,33 @@ export interface CustomerRisk {
   used: number
   available?: number | null
 }
+
+export interface CustomerProfitRow {
+  customerId: number
+  customer: string
+  tripCount: number
+  revenue: number
+  cost: number
+  profit: number
+  marginPercent?: number | null
+  openReceivable: number
+  collectionDays?: number | null
+}
+
+export interface RouteProfitRow {
+  from: string
+  to: string
+  tripCount: number
+  avgRevenue: number
+  avgCost: number
+  profit: number
+  marginPercent?: number | null
+}
+
+export interface SearchResult {
+  type: 'trip' | 'customer' | 'supplier' | 'vehicle' | 'driver' | 'invoice'
+  id: number
+  title: string
+  subtitle?: string | null
+  link: string
+}

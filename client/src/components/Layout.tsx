@@ -7,6 +7,7 @@ import {
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
   UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText } from 'lucide-react'
 import { get } from '../api/client'
+import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Health } from '../api/types'
 import { useAuth, type Permission } from '../lib/auth'
 import { longDate } from '../lib/format'
@@ -68,6 +69,7 @@ export function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 shadow-sm">
           <button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Menüyü aç"><Menu className="size-5" /></button>
+          <GlobalSearch />
           <div className="flex-1" />
           <div className="hidden items-center gap-1.5 text-sm text-slate-600 sm:flex">
             <CalendarDays className="size-4" />

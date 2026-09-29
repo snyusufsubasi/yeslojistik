@@ -104,6 +104,12 @@ Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle 
 - Yakıt giderine **litre** ve **araç kilometresi** yazılırsa, *Raporlar → Yakıt* araç başına 100 km'de yakılan litreyi gösterir. Filo ortalamasının %15'ten fazla üstündeki araç kırmızı görünür.
 - Şoföre verilen avans **Şoför Avansı** kategorisiyle ve şoför seçilerek girilir. *Raporlar → Şoför Bazlı* avans ve harcırah toplamlarını gösterir.
 
+## Genel arama, raporlar ve telefona kurma
+
+- Üst çubuktaki **Ara** (Ctrl+K): plaka, müşteri, sefer referans no, fatura no, şoför, tedarikçi.
+- Raporlar → **Müşteri Kârlılığı** (ciro, maliyet, marj, açık alacak, yaklaşık tahsil süresi) ve **Güzergâh** (il → il sefer sayısı, ortalama satış/maliyet, marj). Hepsi Excel'e aktarılabilir.
+- Paneli telefona kurma: iPhone Safari → Paylaş → Ana Ekrana Ekle; Android Chrome → Uygulamayı yükle.
+
 ## Çek / senet, kasa / banka ve nakit akışı
 
 - Çek/senetle tahsilat: Tahsilatlar'da yöntem **Çek** ya da **Senet**, numara, banka ve vade. **Çek / Senet** sayfasında portföy; vadesine 7 gün kala uyarı.

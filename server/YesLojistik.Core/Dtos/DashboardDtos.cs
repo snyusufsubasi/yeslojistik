@@ -37,3 +37,11 @@ public record FuelReportRow(int VehicleId, string Plate, int FillCount, decimal 
     int? Km, decimal? LitersPer100Km);
 
 public record ExpenseCategoryRow(string Category, decimal Amount);
+
+/// <summary>Müşteri kârlılığı. Maliyet = araç/taşeron maliyeti + sefere bağlı onaylı giderler. Tahsil süresi yaklaşık (açık alacak ÷ günlük ciro).</summary>
+public record CustomerProfitRow(int CustomerId, string Customer, int TripCount, decimal Revenue, decimal Cost, decimal Profit, decimal? MarginPercent,
+    decimal OpenReceivable, int? CollectionDays);
+
+public record RouteProfitRow(string From, string To, int TripCount, decimal AvgRevenue, decimal AvgCost, decimal Profit, decimal? MarginPercent);
+
+public record SearchResult(string Type, int Id, string Title, string? Subtitle, string Link);

@@ -10,7 +10,7 @@ namespace YesLojistik.Api.Controllers;
 [ApiController]
 [Route("api/reports")]
 [Authorize(Policy = Policies.Accounting)]
-public class ReportsController(ReportService reports, PayableService payables) : ControllerBase
+public class ReportsController(ReportService reports, PayableService payables, BalanceService balances) : ControllerBase
 {
     private static readonly string[] Months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 
@@ -174,5 +174,38 @@ public class ReportsController(ReportService reports, PayableService payables) :
         return FileResults.Excel(ExcelExporter.Export("Gider Dağılımı", rows,
             new ExcelColumn<ExpenseCategoryRow>("Kategori", r => CategoryLabel(r.Category)),
             new("Tutar", r => r.Amount, ExcelExporter.MoneyFormat)), "gider-dagilimi");
+    }
+
+    [HttpGet("customers")]
+    public async Task<IActionResult> Customers([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string? format, CancellationToken ct)
+    {
+        var (f, t) = Range(from, to);
+        var rows = await reports.CustomerProfitAsync(f, t, balances, ct);
+        if (format != "xlsx") return Ok(rows);
+        return FileResults.Excel(ExcelExporter.Export("Müşteri Kârlılığı", rows,
+            new ExcelColumn<CustomerProfitRow>("Müşteri", r => r.Customer),
+            new("Sefer", r => r.TripCount),
+            new("Ciro", r => r.Revenue, ExcelExporter.MoneyFormat),
+            new("Maliyet", r => r.Cost, ExcelExporter.MoneyFormat),
+            new("Kâr", r => r.Profit, ExcelExporter.MoneyFormat),
+            new("Marj %", r => r.MarginPercent),
+            new("Açık Alacak", r => r.OpenReceivable, ExcelExporter.MoneyFormat),
+            new("Tahsil Süresi (gün, yaklaşık)", r => r.CollectionDays)), "musteri-karliligi");
+    }
+
+    [HttpGet("routes")]
+    public async Task<IActionResult> Routes([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string? format, CancellationToken ct)
+    {
+        var (f, t) = Range(from, to);
+        var rows = await reports.RouteProfitAsync(f, t, ct);
+        if (format != "xlsx") return Ok(rows);
+        return FileResults.Excel(ExcelExporter.Export("Güzergâh Kârlılığı", rows,
+            new ExcelColumn<RouteProfitRow>("Yükleme İli", r => r.From),
+            new("Teslim İli", r => r.To),
+            new("Sefer", r => r.TripCount),
+            new("Ort. Satış", r => r.AvgRevenue, ExcelExporter.MoneyFormat),
+            new("Ort. Maliyet", r => r.AvgCost, ExcelExporter.MoneyFormat),
+            new("Toplam Kâr", r => r.Profit, ExcelExporter.MoneyFormat),
+            new("Marj %", r => r.MarginPercent)), "guzergah-karliligi");
     }
 }

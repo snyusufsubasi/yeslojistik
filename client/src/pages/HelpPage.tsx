@@ -152,6 +152,14 @@ export default function HelpPage() {
           </ul>
         </Section>
 
+        <Section icon={<HelpCircle className="size-5" />} title="Genel arama ve telefona kurma">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Üst çubuktaki <b>Ara</b> kutusu (ya da <b>Ctrl+K</b>): plaka, müşteri, sefer referans no, fatura no, şoför ve tedarikçi arar; sonuca tıklayınca kayıt açılır.</li>
+            <li>Paneli telefona uygulama gibi kurmak için: iPhone'da Safari → Paylaş → <b>Ana Ekrana Ekle</b>; Android'de Chrome menüsü → <b>Uygulamayı yükle</b>.</li>
+            <li><L to="/raporlar">Raporlar</L> → <b>Müşteri Kârlılığı</b> ve <b>Güzergâh</b>: hangi müşteri ve hangi il-il hattının ne kadar kazandırdığını gösterir.</li>
+          </ul>
+        </Section>
+
         <Section icon={<Wallet className="size-5" />} title="Çek / senet, kasa / banka ve nakit akışı">
           <ul className="list-disc space-y-1 pl-5">
             <li>Çek ya da senetle gelen tahsilatı Tahsilatlar'da yöntemi <b>Çek</b> / <b>Senet</b> seçip numarası, bankası ve vadesiyle girin; <L to="/cek-senet">Çek / Senet</L> portföyüne düşer. Vadesine 7 gün kala uyarı çıkar.</li>
