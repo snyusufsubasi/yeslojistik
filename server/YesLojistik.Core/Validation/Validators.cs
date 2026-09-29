@@ -474,5 +474,20 @@ public class RecurringPayRequestValidator : AbstractValidator<RecurringPayReques
     public RecurringPayRequestValidator()
     {
         RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+
+public class PurchaseInvoiceSaveRequestValidator : AbstractValidator<PurchaseInvoiceSaveRequest>
+{
+    public PurchaseInvoiceSaveRequestValidator()
+    {
+        RuleFor(x => x.SupplierId).GreaterThan(0).WithMessage("Tedarikçi seçin.");
+        RuleFor(x => x.InvoiceNo).NotEmpty().WithMessage("Fatura numarası zorunlu.").MaximumLength(50);
+        RuleFor(x => x.Kind).IsInEnum();
+        RuleFor(x => x.Subtotal).Amount();
+        RuleFor(x => x.VatAmount).Amount();
+        RuleFor(x => x.WithholdingAmount).Amount()
+            .LessThanOrEqualTo(x => x.VatAmount).WithMessage("Tevkifat KDV tutarından büyük olamaz.");
+        RuleFor(x => x.DueDate).GreaterThanOrEqualTo(x => x.Date).WithMessage("Vade fatura tarihinden önce olamaz.").When(x => x.DueDate.HasValue);
+        RuleFor(x => x.Notes).MaximumLength(1000);
+        RuleFor(x => x.ExternalRef).MaximumLength(40);
     }
 }

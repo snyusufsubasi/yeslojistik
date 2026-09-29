@@ -59,7 +59,8 @@ public class TripTermsTests(ApiFactory factory) : IClassFixture<ApiFactory>
         // Yüklenince taşeron borcu oluşur; "faturadan düş" komisyonu borçtan düşülür.
         await c.PostJsonAsync($"/api/trips/{trip.Id}/status", new TripStatusRequest(TripStatus.Loaded));
         var summary = await (await c.GetAsync($"/api/suppliers/{s.Id}")).ReadAsync<SupplierSummaryDto>();
-        summary.Balance.Should().Be(4_000);
+        // 4.500 + %10 KDV = 4.950 (12.000 altı: tevkifatsız) − 500 komisyon
+        summary.Balance.Should().Be(4_450);
     }
 
     [Fact]

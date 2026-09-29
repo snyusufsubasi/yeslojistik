@@ -17,6 +17,7 @@ const RecurringPaymentsPage = lazy(() => import('./pages/RecurringPaymentsPage')
 const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'))
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'))
 const SupplierPaymentsPage = lazy(() => import('./pages/SupplierPaymentsPage'))
+const PurchaseInvoicesPage = lazy(() => import('./pages/PurchaseInvoicesPage'))
 const SupplierDetailPage = lazy(() => import('./pages/SupplierDetailPage'))
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage'))
 const InvoiceCreatePage = lazy(() => import('./pages/InvoiceCreatePage'))
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="faturalar/yeni" element={<Guard perm="accounting"><InvoiceCreatePage /></Guard>} />
           <Route path="tahsilatlar" element={<PaymentsPage />} />
           <Route path="odemeler" element={<SupplierPaymentsPage />} />
+          <Route path="alinan-faturalar" element={<PurchaseInvoicesPage />} />
           <Route path="giderler" element={<ExpensesPage />} />
           <Route path="cek-senet" element={<ChecksPage />} />
           <Route path="kasa-banka" element={<Guard perm="accounting"><CashAccountsPage /></Guard>} />

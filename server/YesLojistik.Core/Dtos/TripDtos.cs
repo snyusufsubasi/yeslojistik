@@ -25,7 +25,7 @@ public record TripSaveRequest(int CustomerId, int VehicleId, int DriverId, strin
 /// Tevkifat onda bir cinsinden (ör. 2 = 2/10); null ise faturada otomatik belirlenir.
 /// </summary>
 public record TripTerms(
-    decimal SaleVatRate = 20, int? SaleWithholdingTenths = null, decimal CostVatRate = 20, int? CostWithholdingTenths = null,
+    decimal SaleVatRate = 20, int? SaleWithholdingTenths = null, decimal CostVatRate = 0, int? CostWithholdingTenths = null,
     decimal Commission = 0, int? CommissionAccountId = null, CommissionStatus CommissionStatus = CommissionStatus.Pending,
     bool CommissionInvoiced = false, bool CommissionVatIncluded = true,
     decimal ExtraCharge = 0, bool ExtraChargeInvoiced = false, bool ExtraChargeVatIncluded = true,

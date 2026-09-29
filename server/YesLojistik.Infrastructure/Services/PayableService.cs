@@ -6,33 +6,58 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public enum PayableKind { Opening, Trip, Expense }
+public enum PayableKind { Opening, Trip, Expense, Invoice }
 
 /// <summary>Tedarikçiye borç kalemi ve (ödemeler dağıtıldıktan sonra) kalan tutarı.</summary>
 public record PayableItem(int SupplierId, PayableKind Kind, int? TripId, int? ExpenseId, DateOnly Date, DateOnly DueDate, decimal Total,
-    decimal Paid, decimal Remaining, string Reference, string Description);
+    decimal Paid, decimal Remaining, string Reference, string Description, int? PurchaseInvoiceId = null);
 
 /// <summary>
 /// Tedarikçi (taşeron) borçları. Borç saklanmaz, hesaplanır (müşteri carisiyle aynı kural):
-/// Borç = devir + yüklenmiş/yoldaki/teslim edilmiş kiralık araç seferlerinin araç maliyeti + vadeli giderler; Alacak = ödemeler.
-/// Sefere bağlı ödeme önce o seferi, kalanlar eskiden yeniye (FIFO) borçları kapatır.
+/// Borç = devir + faturası gelmemiş (yüklenmiş/yoldaki/teslim edilmiş) taşeron seferlerinin KDV dahil tutarı + alınan faturalar
+/// + vadeli giderler; Alacak = ödemeler. "Faturadan düş" komisyonu seferin ya da bağlı olduğu faturanın borcundan düşülür.
+/// Sefere bağlı ödeme önce o seferi (sefer faturalandıysa faturayı), kalanlar eskiden yeniye (FIFO) borçları kapatır.
 /// </summary>
 public class PayableService(AppDbContext db)
 {
     /// <summary>Borç doğuran sefer durumları: planlanmış ve iptal edilmiş seferler borç doğurmaz.</summary>
     public static readonly TripStatus[] AccruingStatuses = [TripStatus.Loaded, TripStatus.OnRoad, TripStatus.Delivered];
 
+    /// <summary>Alınan faturaların dağıtım anahtarı (seferlerle ve giderlerle çakışmasın).</summary>
+    private const int InvoiceKeyBase = 1_000_000_000;
+
     public static string TripRef(int tripId) => $"S-{tripId:D6}";
     public static string PaymentRef(int id) => $"Ö-{id:D6}";
+
+    private record TripRow(int Id, int SupplierId, DateOnly LoadingDate, DateOnly? DeliveryDate, decimal VehicleCost, decimal CostVatRate,
+        int? CostWithholdingTenths, decimal Commission, CommissionStatus CommissionStatus, int? PurchaseInvoiceId, string LoadingAddress,
+        string DeliveryAddress, string Plate, string? ExternalRef)
+    {
+        public decimal Deducted => CommissionStatus == CommissionStatus.DeductFromInvoice ? Commission : 0;
+        public decimal Payable => Trip.CarrierPayable(VehicleCost, CostVatRate, CostWithholdingTenths) - Deducted;
+    }
+
+    private record InvoiceRow(int Id, int SupplierId, string InvoiceNo, DateOnly Date, DateOnly? DueDate, decimal Total, PurchaseInvoiceKind Kind);
+
+    private async Task<List<TripRow>> TripsAsync(IReadOnlyCollection<int> ids, CancellationToken ct) =>
+        await db.Trips.AsNoTracking().Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
+            .Select(t => new TripRow(t.Id, t.CarrierSupplierId!.Value, t.LoadingDate, t.DeliveryDate, t.VehicleCost, t.CostVatRate, t.CostWithholdingTenths,
+                t.Commission, t.CommissionStatus, t.PurchaseInvoiceId, t.LoadingAddress, t.DeliveryAddress, t.Vehicle.Plate, t.ExternalRef))
+            .ToListAsync(ct);
+
+    private async Task<List<InvoiceRow>> InvoicesAsync(IReadOnlyCollection<int> ids, CancellationToken ct) =>
+        await db.PurchaseInvoices.AsNoTracking().Where(p => !p.IsCancelled && ids.Contains(p.SupplierId))
+            .Select(p => new InvoiceRow(p.Id, p.SupplierId, p.InvoiceNo, p.Date, p.DueDate, p.Total, p.Kind)).ToListAsync(ct);
 
     /// <summary>Tedarikçi başına bakiye (firmanın ödemesi gereken; negatifse fazla ödeme).</summary>
     public async Task<Dictionary<int, decimal>> BalancesAsync(IEnumerable<int> supplierIds, CancellationToken ct = default)
     {
         var ids = supplierIds.Distinct().ToList();
         var openings = await db.Suppliers.Where(s => ids.Contains(s.Id)).Select(s => new { s.Id, s.OpeningBalance }).ToListAsync(ct);
-        var trips = (await db.Trips.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
-            .GroupBy(t => t.CarrierSupplierId!.Value).Select(g => new { Id = g.Key, Total = g.Sum(t => t.VehicleCost - (t.CommissionStatus == CommissionStatus.DeductFromInvoice ? t.Commission : 0)) }).ToListAsync(ct))
-            .ToDictionary(x => x.Id, x => x.Total);
+        var trips = await TripsAsync(ids, ct);
+        var invoices = await InvoicesAsync(ids, ct);
+        var tripDebt = trips.GroupBy(t => t.SupplierId).ToDictionary(g => g.Key, g => g.Sum(t => t.PurchaseInvoiceId == null ? t.Payable : -t.Deducted));
+        var invoiceDebt = invoices.GroupBy(p => p.SupplierId).ToDictionary(g => g.Key, g => g.Sum(p => p.Total));
         var expenses = (await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
             .GroupBy(e => e.SupplierId!.Value).Select(g => new { Id = g.Key, Total = g.Sum(e => e.Amount) }).ToListAsync(ct))
             .ToDictionary(x => x.Id, x => x.Total);
@@ -40,7 +65,8 @@ public class PayableService(AppDbContext db)
             .GroupBy(p => p.SupplierId).Select(g => new { Id = g.Key, Total = g.Sum(p => p.Amount) }).ToListAsync(ct))
             .ToDictionary(x => x.Id, x => x.Total);
         return openings.ToDictionary(o => o.Id,
-            o => o.OpeningBalance + trips.GetValueOrDefault(o.Id) + expenses.GetValueOrDefault(o.Id) - paid.GetValueOrDefault(o.Id));
+            o => o.OpeningBalance + tripDebt.GetValueOrDefault(o.Id) + invoiceDebt.GetValueOrDefault(o.Id) + expenses.GetValueOrDefault(o.Id)
+                - paid.GetValueOrDefault(o.Id));
     }
 
     /// <summary>Borç kalemleri, ödemeler dağıtılmış olarak. <paramref name="supplierIds"/> null ise tüm tedarikçiler.</summary>
@@ -51,9 +77,12 @@ public class PayableService(AppDbContext db)
         var terms = await suppliers.Select(s => new { s.Id, s.PaymentTermDays, s.OpeningBalance, s.OpeningBalanceDate, s.CreatedAt }).ToListAsync(ct);
         var ids = terms.Select(t => t.Id).ToList();
 
-        var trips = await db.Trips.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
-            .Select(t => new { t.Id, SupplierId = t.CarrierSupplierId!.Value, t.LoadingDate, t.DeliveryDate, VehicleCost = t.VehicleCost - (t.CommissionStatus == CommissionStatus.DeductFromInvoice ? t.Commission : 0), t.LoadingAddress, t.DeliveryAddress, t.Vehicle.Plate })
-            .ToListAsync(ct);
+        var trips = await TripsAsync(ids, ct);
+        var invoices = await InvoicesAsync(ids, ct);
+        // Faturalanmış seferin "faturadan düş" komisyonu faturanın borcundan düşülür.
+        var deductedByInvoice = trips.Where(t => t.PurchaseInvoiceId != null).GroupBy(t => t.PurchaseInvoiceId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(t => t.Deducted));
+        var tripInvoice = trips.Where(t => t.PurchaseInvoiceId != null).ToDictionary(t => t.Id, t => t.PurchaseInvoiceId!.Value);
         var expenses = await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
             .Select(e => new { e.Id, SupplierId = e.SupplierId!.Value, e.Date, e.Amount, e.Category, e.Description }).ToListAsync(ct);
         var payments = await db.SupplierPayments.Where(p => ids.Contains(p.SupplierId))
@@ -62,23 +91,28 @@ public class PayableService(AppDbContext db)
         var result = new List<PayableItem>();
         foreach (var s in terms)
         {
-            // Dağıtım anahtarı: devir 0, sefer +id, gider −id (PaymentAllocator'daki fatura kimliği yerine).
-            var items = new List<(int Key, PayableKind Kind, int? TripId, int? ExpenseId, DateOnly Date, decimal Total, string Ref, string Desc)>();
+            // Dağıtım anahtarı: devir 0, sefer +id, gider −id, alınan fatura InvoiceKeyBase + id.
+            var items = new List<(int Key, PayableKind Kind, int? TripId, int? ExpenseId, int? InvoiceId, DateOnly Date, DateOnly? Due, decimal Total, string Ref, string Desc)>();
             if (s.OpeningBalance > 0)
-                items.Add((0, PayableKind.Opening, null, null, s.OpeningBalanceDate ?? DateOnly.FromDateTime(s.CreatedAt), s.OpeningBalance, "DEVİR", "Açılış (devir) borcu"));
-            items.AddRange(trips.Where(t => t.SupplierId == s.Id).Select(t => (t.Id, PayableKind.Trip, (int?)t.Id, (int?)null, t.DeliveryDate ?? t.LoadingDate,
-                t.VehicleCost, TripRef(t.Id), $"{t.LoadingAddress} → {t.DeliveryAddress} ({t.Plate})")));
-            items.AddRange(expenses.Where(e => e.SupplierId == s.Id).Select(e => (-e.Id, PayableKind.Expense, (int?)null, (int?)e.Id, e.Date, e.Amount,
-                $"G-{e.Id:D6}", e.Description ?? $"Vadeli gider")));
+                items.Add((0, PayableKind.Opening, null, null, null, s.OpeningBalanceDate ?? DateOnly.FromDateTime(s.CreatedAt), null, s.OpeningBalance, "DEVİR", "Açılış (devir) borcu"));
+            items.AddRange(trips.Where(t => t.SupplierId == s.Id && t.PurchaseInvoiceId == null).Select(t => (t.Id, PayableKind.Trip, (int?)t.Id, (int?)null, (int?)null,
+                t.DeliveryDate ?? t.LoadingDate, (DateOnly?)null, t.Payable, t.ExternalRef != null ? $"Sevkiyat No: {t.ExternalRef}" : TripRef(t.Id),
+                $"{t.LoadingAddress} → {t.DeliveryAddress} ({t.Plate})")));
+            items.AddRange(invoices.Where(p => p.SupplierId == s.Id).Select(p => (InvoiceKeyBase + p.Id, PayableKind.Invoice, (int?)null, (int?)null, (int?)p.Id,
+                p.Date, p.DueDate, p.Total - deductedByInvoice.GetValueOrDefault(p.Id), p.InvoiceNo,
+                deductedByInvoice.GetValueOrDefault(p.Id) > 0 ? $"Alış faturası (komisyon düşüldü: {Formatters.Currency(deductedByInvoice[p.Id])})" : "Alış faturası")));
+            items.AddRange(expenses.Where(e => e.SupplierId == s.Id).Select(e => (-e.Id, PayableKind.Expense, (int?)null, (int?)e.Id, (int?)null, e.Date, (DateOnly?)null,
+                e.Amount, $"G-{e.Id:D6}", e.Description ?? $"Vadeli gider")));
 
             var balances = PaymentAllocator.Allocate(
-                    items.Select(i => new AllocInvoice(i.Key, i.Date, i.Date.AddDays(s.PaymentTermDays), i.Total)),
-                    payments.Where(p => p.SupplierId == s.Id).OrderBy(p => p.Date).Select(p => new AllocPayment(p.TripId, p.Date, p.Amount)))
+                    items.Select(i => new AllocInvoice(i.Key, i.Date, i.Due ?? i.Date.AddDays(s.PaymentTermDays), i.Total)),
+                    payments.Where(p => p.SupplierId == s.Id).OrderBy(p => p.Date)
+                        .Select(p => new AllocPayment(p.TripId is { } t && tripInvoice.TryGetValue(t, out var inv) ? InvoiceKeyBase + inv : p.TripId, p.Date, p.Amount)))
                 .ToDictionary(b => b.InvoiceId);
             result.AddRange(items.Select(i =>
             {
                 var b = balances[i.Key];
-                return new PayableItem(s.Id, i.Kind, i.TripId, i.ExpenseId, i.Date, b.DueDate, i.Total, b.Paid, b.Remaining, i.Ref, i.Desc);
+                return new PayableItem(s.Id, i.Kind, i.TripId, i.ExpenseId, i.Date, b.DueDate, i.Total, b.Paid, b.Remaining, i.Ref, i.Desc, i.InvoiceId);
             }));
         }
         return result;
@@ -105,7 +139,7 @@ public class PayableService(AppDbContext db)
         var today = Clock.Today;
         var rows = items.Select(i => (i.Date, Order: i.Kind == PayableKind.Opening ? 0 : 1, Type: i.Kind switch
             {
-                PayableKind.Opening => "Devir", PayableKind.Trip => "Sefer", _ => "Vadeli gider",
+                PayableKind.Opening => "Devir", PayableKind.Trip => "Fatura bekleyen sefer", PayableKind.Invoice => "Alış faturası", _ => "Vadeli gider",
             }, i.Reference, Desc: (string?)i.Description, Debit: i.Total, Credit: 0m,
             Status: i.Remaining <= 0 ? "Ödendi" : i.Paid > 0 ? "Kısmi ödendi" : i.DueDate < today ? "Vadesi geçti" : $"Vade {Formatters.Date(i.DueDate)}"))
             .Concat(payments.Select(p => (p.Date, Order: 2, Type: "Ödeme", Reference: PaymentRef(p.Id),
@@ -144,7 +178,7 @@ public class PayableService(AppDbContext db)
         {
             var list = byId[s.Id].ToList();
             var p = paid.GetValueOrDefault(s.Id);
-            return new SupplierReportRow(s.Id, s.Title, list.Count(i => i.Kind == PayableKind.Trip), list.Where(i => i.Kind == PayableKind.Trip).Sum(i => i.Total),
+            return new SupplierReportRow(s.Id, s.Title, list.Count(i => i.Kind is PayableKind.Trip or PayableKind.Invoice), list.Where(i => i.Kind is PayableKind.Trip or PayableKind.Invoice).Sum(i => i.Total),
                 list.Where(i => i.Kind == PayableKind.Expense).Sum(i => i.Total), p, list.Sum(i => i.Total) - p);
         }).Where(r => r.TripCount > 0 || r.CreditExpenses > 0 || r.Paid > 0 || r.Balance != 0).ToList();
     }
@@ -165,5 +199,6 @@ public class PayableService(AppDbContext db)
         || await db.Vehicles.AnyAsync(v => v.SupplierId == supplierId, ct)
         || await db.Drivers.AnyAsync(d => d.SupplierId == supplierId, ct)
         || await db.Expenses.AnyAsync(e => e.SupplierId == supplierId, ct)
-        || await db.SupplierPayments.AnyAsync(p => p.SupplierId == supplierId, ct);
+        || await db.SupplierPayments.AnyAsync(p => p.SupplierId == supplierId, ct)
+        || await db.PurchaseInvoices.IgnoreQueryFilters().AnyAsync(p => p.SupplierId == supplierId, ct);
 }

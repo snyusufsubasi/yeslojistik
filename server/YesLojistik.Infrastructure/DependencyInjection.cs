@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<WaybillPdfGenerator>();
         services.AddScoped<CustomerNotifier>();
         services.AddScoped<ExpenseService>();
+        services.AddScoped<PurchaseInvoiceService>();
         services.AddScoped<DriverLedgerService>();
         services.AddScoped<FleetService>();
         services.AddScoped<CashService>();

@@ -5,7 +5,7 @@ import clsx from 'clsx'
 import {
   Handshake, HandCoins, PanelLeftClose, PanelLeftOpen, Plus,
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat } from 'lucide-react'
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat, FileInput } from 'lucide-react'
 import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Dashboard, Health } from '../api/types'
@@ -44,6 +44,7 @@ const navGroups: { title?: string; items: NavItem[] }[] = [
     { to: '/faturalar', label: 'Faturalar', hint: 'Kes, gönder, takip et', icon: FileText,
       badge: (d) => badge(d?.uninvoicedTripCount ?? 0, 'violet', 'faturası kesilmemiş teslim sefer') },
     { to: '/tahsilatlar', label: 'Tahsilatlar', hint: 'Müşteriden gelen paralar', icon: Wallet },
+    { to: '/alinan-faturalar', label: 'Alınan Faturalar', hint: 'Taşeron ve tedarikçi faturaları', icon: FileInput },
     { to: '/odemeler', label: 'Tedarikçi Ödemeleri', hint: 'Taşerona ödenenler', icon: HandCoins },
   ] },
   { title: 'Listeler', items: [

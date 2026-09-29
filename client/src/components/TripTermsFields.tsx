@@ -6,7 +6,7 @@ import { tl } from '../lib/format'
 import { ControlledChoice } from './Choice'
 import { Field } from './ui'
 import { AmountInput, MoreFields } from './Inputs'
-import { margin, type TermsForm, type TermsValues } from '../lib/tripTerms'
+import { grossAmount, margin, type TermsForm, type TermsValues } from '../lib/tripTerms'
 
 type AnyControl = Control<TermsForm>
 type AnyRegister = UseFormRegister<TermsForm>
@@ -16,7 +16,10 @@ const vatOptions = vatRates.map((r) => ({ value: r, label: `%${r}` }))
 const autoWithholding = [{ value: -1, label: 'Otomatik' }, ...withholdingOptions]
 
 /** KDV oranı ve tevkifat seçimi (müşteri ya da taşeron fiyatı için). */
-export function VatFields({ control, register, prefix, disabled }: { control: AnyControl; register: AnyRegister; prefix: 'sale' | 'cost'; disabled?: boolean }) {
+export function VatFields({ control, register, prefix, disabled, net }: { control: AnyControl; register: AnyRegister; prefix: 'sale' | 'cost'; disabled?: boolean; net?: number }) {
+  const rate = Number(useWatch({ control, name: `terms.${prefix}VatRate` })) || 0
+  const tenths = useWatch({ control, name: `terms.${prefix}WithholdingTenths` }) as number | null | undefined
+  const g = grossAmount(net ?? 0, rate, tenths)
   return (
     <div className="grid grid-cols-2 gap-2">
       <label className="text-sm text-slate-600">KDV
@@ -27,6 +30,12 @@ export function VatFields({ control, register, prefix, disabled }: { control: An
       <label className="text-sm text-slate-600">Tevkifat
         <WithholdingSelect control={control} name={`terms.${prefix}WithholdingTenths`} disabled={disabled} />
       </label>
+      {!!net && rate > 0 && (
+        <p className="col-span-2 text-sm text-slate-600">
+          {prefix === 'cost' ? 'Taşerona ödenecek' : 'Müşteriden alınacak'} (KDV dahil): <b className="font-medium text-slate-800">{tl(g.total)}</b>
+          {g.withholding > 0 && <span className="text-slate-500"> · tevkifat {tl(g.withholding)}</span>}
+        </p>
+      )}
     </div>
   )
 }

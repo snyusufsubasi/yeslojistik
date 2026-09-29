@@ -18,6 +18,8 @@ public enum JobRequestStatus { Pending, Cancelled, Converted }
 public enum CommissionStatus { Pending, Received, DeductFromInvoice }
 /// <summary>Şoförle çalışma değerlendirmesi (eski paneldeki şoför durumu).</summary>
 public enum DriverRating { Excellent, Workable, NoCommission, StealsCustomers, BadAttitude, Unreliable, QuitsJobs }
+/// <summary>Alınan faturanın türü.</summary>
+public enum PurchaseInvoiceKind { EInvoice, EArchive, Paper, Receipt }
 
 public enum InvoiceStatus { Draft, Issued, Cancelled }
 

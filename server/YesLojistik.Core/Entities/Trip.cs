@@ -59,7 +59,8 @@ public class Trip : BaseEntity
     // Fiyatların vergi bilgisi (tutarlar KDV hariç). Tevkifat onda bir cinsinden; null ise faturada otomatik belirlenir.
     public decimal SaleVatRate { get; set; } = 20;
     public int? SaleWithholdingTenths { get; set; }
-    public decimal CostVatRate { get; set; } = 20;
+    /// <summary>Taşeron fiyatının KDV oranı. 0: tutar olduğu gibi ödenir (eski kayıtlar ve Excel aktarımı).</summary>
+    public decimal CostVatRate { get; set; }
     public int? CostWithholdingTenths { get; set; }
 
     /// <summary>Taşerondan / şoförden alınan komisyon (aracılık geliri).</summary>
@@ -102,8 +103,15 @@ public class Trip : BaseEntity
     public string? PaymentTerms { get; set; }
     /// <summary>Başka sistemden aktarılan kaydın oradaki numarası (ör. Pratik Ortam sevkiyat no).</summary>
     public string? ExternalRef { get; set; }
+    /// <summary>Taşerondan alınan fatura (bağlıysa sefer borcu bu faturadan gelir).</summary>
+    public int? PurchaseInvoiceId { get; set; }
+    public PurchaseInvoice? PurchaseInvoice { get; set; }
 
-    /// <summary>Kâra katkısı: satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Giderler ayrıca düşülür.</summary>
+    /// <summary>Taşerona ödenecek tutar: maliyet + KDV − tevkifat (eski paneldeki "fatura bekleyen sevkiyat" tutarı).</summary>
+    public static decimal CarrierPayable(decimal cost, decimal vatRate, int? withholdingTenths) =>
+        Domain.InvoiceCalculator.ForAmount(cost, vatRate, withholdingTenths).Total;
+
+    /// <summary>Kâra katkısı): satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Giderler ayrıca düşülür.</summary>
     public static decimal Margin(decimal sale, decimal cost, decimal commission, decimal bonus, decimal extra, bool extraInvoiced) =>
         sale - cost + commission - bonus - (extraInvoiced ? 0 : extra);
 

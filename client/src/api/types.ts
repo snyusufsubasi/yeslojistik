@@ -858,4 +858,48 @@ export interface StaffTransaction { id: number; staffId: number; date: string; k
 export interface RecurringPayment {
   id: number; title: string; detail: string | null; amount: number; dueDay: number; category: ExpenseCategory
   cashAccountId: number | null; cashAccountName: string | null; isActive: boolean; dueDate: string; paidDate: string | null; paidAmount: number | null; lastPaidDate: string | null
+
+export type PurchaseInvoiceKind = 'EInvoice' | 'EArchive' | 'Paper' | 'Receipt'
+
+export interface PurchaseInvoiceTrip {
+  tripId: number
+  loadingDate: string
+  route: string
+  plate: string
+  vehicleCost: number
+  payable: number
+  externalRef?: string | null
+}
+
+/** Tedarikçiden alınan fatura. */
+export interface PurchaseInvoice {
+  id: number
+  supplierId: number
+  supplierTitle: string
+  invoiceNo: string
+  date: string
+  dueDate?: string | null
+  kind: PurchaseInvoiceKind
+  subtotal: number
+  vatAmount: number
+  withholdingAmount: number
+  total: number
+  notes?: string | null
+  isCancelled: boolean
+  cancelReason?: string | null
+  hasFile: boolean
+  externalRef?: string | null
+  trips: PurchaseInvoiceTrip[]
+}
+
+/** Faturası gelmemiş taşeron seferi. */
+export interface UninvoicedCarrierTrip {
+  tripId: number
+  loadingDate: string
+  route: string
+  plate: string
+  vehicleCost: number
+  costVatRate: number
+  payable: number
+  externalRef?: string | null
 }

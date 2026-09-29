@@ -62,7 +62,7 @@ public class PayableTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var moves = await (await c.GetAsync($"/api/suppliers/{s.Id}/movements")).ReadAsync<List<AccountMovementDto>>();
         moves.First().Type.Should().Be("Devir");
         moves.Last().RunningBalance.Should().Be(10_500);
-        moves.Should().Contain(m => m.Type == "Sefer" && m.Status == "Ödendi" && m.Debit == 7_000);
+        moves.Should().Contain(m => m.Type == "Fatura bekleyen sefer" && m.Status == "Ödendi" && m.Debit == 7_000);
 
         var aging = await (await c.GetAsync("/api/reports/payables")).ReadAsync<List<PayableAgingRow>>();
         aging.Single(a => a.SupplierId == s.Id).Total.Should().Be(10_500);

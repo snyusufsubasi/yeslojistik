@@ -89,3 +89,15 @@ export function margin(sale: number, cost: number, t: Pick<TermsValues, 'commiss
 
 /** Koşul alanlarını içeren herhangi bir form (sefer ya da iş talebi). Çağıran taraf kendi kontrolünü bu tipe daraltır. */
 export type TermsForm = { terms: TermsValues }
+
+/** Tevkifat "otomatik" ise KDV dahil tutar bu sınırı aşınca 2/10 uygulanır (sunucudaki InvoiceCalculator ile aynı). */
+export const AUTO_WITHHOLDING_LIMIT = 12_000
+
+/** Tutar + KDV − tevkifat. withholdingTenths null ise otomatik. */
+export function grossAmount(net: number, vatRate: number, withholdingTenths?: number | null) {
+  const base = Math.round((net || 0) * 100) / 100
+  const vat = Math.round(base * vatRate) / 100
+  const tenths = withholdingTenths ?? (vatRate > 0 && base + vat > AUTO_WITHHOLDING_LIMIT ? 2 : 0)
+  const withholding = Math.round(vat * tenths * 10) / 100
+  return { vat, withholding, total: base + vat - withholding }
+}

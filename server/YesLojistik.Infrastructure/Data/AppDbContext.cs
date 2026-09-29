@@ -38,6 +38,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
     public DbSet<CashAccount> CashAccounts => Set<CashAccount>();
     public DbSet<CashTransfer> CashTransfers => Set<CashTransfer>();
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -304,6 +305,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.Path).HasMaxLength(300);
             e.Property(x => x.ContentType).HasMaxLength(100);
             e.HasIndex(x => x.Path).IsUnique();
+        });
+        b.Entity<PurchaseInvoice>(e =>
+        {
+            e.Property(x => x.InvoiceNo).HasMaxLength(50);
+            e.Property(x => x.Notes).HasMaxLength(1000);
+            e.Property(x => x.CancelReason).HasMaxLength(300);
+            e.Property(x => x.FilePath).HasMaxLength(300);
+            e.Property(x => x.FileContentType).HasMaxLength(100);
+            e.Property(x => x.ExternalRef).HasMaxLength(40);
+            e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Trips).WithOne(t => t.PurchaseInvoice).HasForeignKey(t => t.PurchaseInvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.SupplierId, x.InvoiceNo }).IsUnique().HasFilter("is_deleted = false");
+            e.HasIndex(x => x.Date);
         });
         b.Entity<SupplierPayment>(e =>
         {

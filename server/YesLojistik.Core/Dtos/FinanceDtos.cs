@@ -96,3 +96,29 @@ public record PayableAgingRow(int SupplierId, string Supplier, decimal NotDue, d
 
 public record SupplierReportRow(int SupplierId, string Supplier, int TripCount, decimal TripCost, decimal CreditExpenses,
     decimal Paid, decimal Balance);
+
+/// <summary>Alınan faturaya bağlı sefer.</summary>
+public record PurchaseInvoiceTripDto(int TripId, DateOnly LoadingDate, string Route, string Plate, decimal VehicleCost, decimal Payable, string? ExternalRef);
+
+public record PurchaseInvoiceDto(int Id, int SupplierId, string SupplierTitle, string InvoiceNo, DateOnly Date, DateOnly? DueDate,
+    PurchaseInvoiceKind Kind, decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total, string? Notes,
+    bool IsCancelled, string? CancelReason, bool HasFile, string? ExternalRef, IReadOnlyList<PurchaseInvoiceTripDto> Trips);
+
+/// <summary>Toplam sunucuda hesaplanır: matrah + KDV − tevkifat.</summary>
+public record PurchaseInvoiceSaveRequest(int SupplierId, string InvoiceNo, DateOnly Date, DateOnly? DueDate, PurchaseInvoiceKind Kind,
+    decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, string? Notes, IReadOnlyList<int>? TripIds, string? ExternalRef = null);
+
+public record PurchaseInvoiceCancelRequest(string? Reason);
+
+public record PurchaseInvoiceQuery : ListQuery
+{
+    public int? SupplierId { get; init; }
+    public DateOnly? From { get; init; }
+    public DateOnly? To { get; init; }
+    public PurchaseInvoiceKind? Kind { get; init; }
+    public bool? IncludeCancelled { get; init; }
+}
+
+/// <summary>Faturası henüz gelmemiş taşeron seferi (alınan faturaya bağlanabilir).</summary>
+public record UninvoicedCarrierTripDto(int TripId, DateOnly LoadingDate, string Route, string Plate, decimal VehicleCost,
+    decimal CostVatRate, decimal Payable, string? ExternalRef);
