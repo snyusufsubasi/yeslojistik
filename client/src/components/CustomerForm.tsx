@@ -4,7 +4,7 @@ import { z } from 'zod'
 import type { Customer, CustomerSummary } from '../api/types'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useSave } from '../lib/hooks'
-import { CityOptions } from './CityOptions'
+import { CitySelect } from './CitySelect'
 import { Button, Field, Modal } from './ui'
 
 const schema = z.object({
@@ -61,7 +61,7 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
         <Field label="Vergi Dairesi" error={errors.taxOffice?.message}><input className="input" {...register('taxOffice')} /></Field>
         <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0216 555 44 33" {...register('phone')} /></Field>
         <Field label="E-posta" error={errors.email?.message}><input className="input" type="email" {...register('email')} /></Field>
-        <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
+        <Field label="İl" error={errors.city?.message}><CitySelect control={control} name="city" /></Field>
         <Field label="İlçe" error={errors.district?.message}><input className="input" placeholder="Sultanbeyli" {...register('district')} /></Field>
         <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" placeholder="Mahalle, cadde, no" {...register('address')} /></Field>
         <Field label="Yetkili Kişi" error={errors.contactName?.message}><input className="input" {...register('contactName')} /></Field>

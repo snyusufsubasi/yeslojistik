@@ -17,7 +17,7 @@ import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/
 import { date, dateTime, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { tripEventSourceLabel, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
-import { CityOptions } from './CityOptions'
+import { CitySelect } from './CitySelect'
 import { Badge, Button, Field, Modal, Tabs } from './ui'
 import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
@@ -279,7 +279,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             <input className="input" placeholder="4500123" {...register('customerReference')} />
           </Field>
           <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-            <Field label="Yükleme İli" error={errors.loadingCity?.message}><select className="input" {...register('loadingCity')}><CityOptions placeholder="İl" /></select></Field>
+            <Field label="Yükleme İli" error={errors.loadingCity?.message}><CitySelect control={control} name="loadingCity" placeholder="İl" /></Field>
             <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
               <input className="input" placeholder="Tuzla OSB" {...register('loadingAddress')} />
             </Field>
@@ -287,7 +287,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           <AddressChips items={hints.data?.loadingAddresses} current={loadingAddress} onPick={(a) => pickAddress('loading', a)} />
           <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
           <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-            <Field label="Teslim İli" error={errors.deliveryCity?.message}><select className="input" {...register('deliveryCity')}><CityOptions placeholder="İl" /></select></Field>
+            <Field label="Teslim İli" error={errors.deliveryCity?.message}><CitySelect control={control} name="deliveryCity" placeholder="İl" /></Field>
             <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
               <input className="input" placeholder="Balçova" {...register('deliveryAddress')} />
             </Field>
