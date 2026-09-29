@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Download, Pencil, Plus, Truck } from 'lucide-react'
+import { Columns3, Download, List, Pencil, Plus, Truck } from 'lucide-react'
 import { download, get, post } from '../api/client'
 import type { Trip, TripStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
@@ -8,6 +8,8 @@ import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, Dat
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { TripForm } from '../components/TripForm'
+import { TripBoard } from '../components/TripBoard'
+import clsx from 'clsx'
 import { useAuth } from '../lib/auth'
 import { date, tl } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -27,6 +29,9 @@ export default function TripsPage() {
   const [invoiced, setInvoiced] = useState<'yes' | 'no' | 'carrier' | ''>(params.get('carrierInvoice') === 'missing' ? 'carrier' : '')
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(null)
+  // Görünüm: liste ya da pano (tercih tarayıcıda hatırlanır).
+  const [view, setViewState] = useState<'list' | 'board'>(() => { try { return localStorage.getItem('yes.tripView') === 'board' ? 'board' : 'list' } catch { return 'list' } })
+  const setView = (v: 'list' | 'board') => { setViewState(v); try { localStorage.setItem('yes.tripView', v) } catch { /* gizli pencere */ } }
   useOpenNewFromUrl(() => setEditing('new'))
   const [copyOf, setCopyOf] = useState<Trip | null>(null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
@@ -83,7 +88,23 @@ export default function TripsPage() {
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
           {can('operations') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sefer</Button>}
         </>} />
-      <Card bodyClassName="p-0" title="Sefer Listesi" icon={<Truck className="size-4" />}
+      <div role="tablist" aria-label="Görünüm" className="mb-4 inline-flex rounded-xl border border-slate-200 bg-white p-1">
+        {([['list', 'Liste', List], ['board', 'Pano', Columns3]] as const).map(([v, label, Icon]) => (
+          <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+            className={clsx('inline-flex min-h-9 items-center gap-2 rounded-lg px-4 text-[0.9375rem] font-medium transition', view === v ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100')}>
+            <Icon className="size-4" />{label}
+          </button>
+        ))}
+      </div>
+      {view === 'board' && <>
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-3xl">
+          <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />
+          <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
+            options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
+        </div>
+        <TripBoard search={debounced} customerId={customerId} canEdit={can('operations')} onOpen={can('operations') ? (t) => setEditing(t) : undefined} />
+      </>}
+      {view === 'list' && <Card bodyClassName="p-0" title="Sefer Listesi" icon={<Truck className="size-4" />}
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
@@ -115,7 +136,7 @@ export default function TripsPage() {
               </div>
             </div>
           )} />
-      </Card>
+      </Card>}
 
       {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
         onClose={() => { setEditing(null); setCopyOf(null) }}

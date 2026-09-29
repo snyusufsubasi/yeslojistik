@@ -461,3 +461,20 @@ test('genel arama (Ctrl+K) ve kârlılık raporları', async ({ page }) => {
   await page.getByRole('button', { name: 'Güzergâh' }).click()
   await expect(page.getByRole('row').filter({ hasText: '→' }).first()).toBeVisible()
 })
+
+test('sefer panosu: sütunlar ve tek tıkla durum ilerletme', async ({ page }) => {
+  await login(page)
+  await page.goto('/seferler')
+  await page.getByRole('tab', { name: 'Pano' }).click()
+  for (const col of ['Planlandı', 'Yüklendi', 'Yolda', 'Teslim Edildi']) await expect(page.getByRole('region', { name: col })).toBeVisible()
+  const planned = page.getByRole('region', { name: 'Planlandı' })
+  const count = planned.locator('header span').last()
+  await expect(planned.getByRole('article').first()).toBeVisible()
+  const before = Number(await count.textContent())
+  await planned.getByRole('article').first().getByRole('button', { name: /Yüklendi yap/ }).click()
+  await expect(page.getByText('Sefer durumu güncellendi.')).toBeVisible()
+  await expect(count).toHaveText(String(before - 1))
+  // Tercih hatırlanır: sayfa yenilenince pano açık gelir.
+  await page.reload()
+  await expect(page.getByRole('region', { name: 'Yolda' })).toBeVisible()
+})
