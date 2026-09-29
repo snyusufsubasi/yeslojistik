@@ -12,7 +12,7 @@ internal static class AuditTrail
     private static readonly HashSet<string> Ignored =
     [
         nameof(BaseEntity.CreatedAt), nameof(BaseEntity.UpdatedAt), nameof(BaseEntity.CreatedBy),
-        nameof(User.PasswordHash), nameof(User.LastLoginAt),
+        nameof(User.PasswordHash), nameof(User.LastLoginAt), nameof(User.FailedLoginCount),
         nameof(Vehicle.LastLatitude), nameof(Vehicle.LastLongitude), nameof(Vehicle.LastSpeedKmh), nameof(Vehicle.LastLocationAt),
         nameof(Trip.TrackingToken), nameof(CompanySettings.LogoDataUrl), nameof(CompanySettings.LastDigestDate), nameof(CompanySettings.LastBackupAt),
         nameof(TripAttachment.StoragePath), nameof(Expense.ReceiptPath), nameof(Expense.ReceiptContentType),
@@ -34,7 +34,7 @@ internal static class AuditTrail
         ["LoadingCity"] = "Yükleme ili", ["DeliveryCity"] = "Teslim ili", ["LoadingContact"] = "Yüklemede yetkili", ["DeliveryContact"] = "Teslimde yetkili",
         ["CarrierSupplierId"] = "Taşeron", ["CarrierInvoiceNo"] = "Taşeron fatura no", ["CarrierInvoiceDate"] = "Taşeron fatura tarihi",
         ["ReceivedBy"] = "Teslim alan", ["IsOnCredit"] = "Vadeli", ["TripId"] = "Sefer", ["DeliveredAt"] = "Teslim anı", ["IsEInvoiceUser"] = "e-Fatura mükellefi", ["EInvoiceAlias"] = "PK etiketi",
-        ["PaidBy"] = "Ödeyen", ["ApprovalStatus"] = "Onay", ["LocationConsentAt"] = "Konum izni", ["LocationConsentVersion"] = "İzin metni sürümü",
+        ["FailedLoginCount"] = "Hatalı giriş sayısı", ["LockoutUntil"] = "Kilit bitişi", ["PaidBy"] = "Ödeyen", ["ApprovalStatus"] = "Onay", ["LocationConsentAt"] = "Konum izni", ["LocationConsentVersion"] = "İzin metni sürümü",
         ["RequireDeliveryPhoto"] = "Teslimde fotoğraf zorunlu", ["RequireDeliverySignature"] = "Teslimde imza zorunlu", ["ClientRequestId"] = "İstek kimliği",
         ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
     };

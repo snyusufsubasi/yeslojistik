@@ -13,24 +13,54 @@ namespace YesLojistik.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AppDbContext db, TokenService tokens, IPasswordHasher<User> hasher, ICurrentUser current) : ControllerBase
+public class AuthController(AppDbContext db, TokenService tokens, IPasswordHasher<User> hasher, ICurrentUser current,
+    IEmailSender email, IConfiguration config, ILogger<AuthController> log) : ControllerBase
 {
+    public const int MaxFailedLogins = 5;
+    public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// Ortak giriş kontrolü: şifre, pasif hesap ve kilit. 5 hatalı denemede hesap 15 dakika kilitlenir; başarılı girişte sayaç sıfırlanır.
+    /// </summary>
+    private async Task<(User? User, ObjectResult? Error)> VerifyAsync(LoginRequest req, CancellationToken ct)
+    {
+        var mail = req.Email.Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == mail, ct);
+        if (user == null)
+            return (null, Problem(title: "E-posta veya şifre hatalı.", statusCode: StatusCodes.Status401Unauthorized));
+        if (user.LockoutUntil > DateTime.UtcNow)
+            return (null, Problem(title: "Çok fazla hatalı deneme yapıldı. 15 dakika sonra tekrar deneyin ya da yöneticinizden kilidi açmasını isteyin.",
+                statusCode: StatusCodes.Status429TooManyRequests));
+        var result = hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            user.FailedLoginCount++;
+            if (user.FailedLoginCount >= MaxFailedLogins)
+            {
+                user.LockoutUntil = DateTime.UtcNow.Add(LockoutDuration);
+                user.FailedLoginCount = 0;
+                log.LogWarning("Hesap kilitlendi: kullanıcı {UserId}", user.Id);
+            }
+            await db.SaveChangesAsync(ct);
+            return (null, Problem(title: "E-posta veya şifre hatalı.", statusCode: StatusCodes.Status401Unauthorized));
+        }
+        if (!user.IsActive)
+            return (null, Problem(title: "Hesabınız pasif durumda. Yöneticinizle iletişime geçin.", statusCode: StatusCodes.Status403Forbidden));
+        if (result == PasswordVerificationResult.SuccessRehashNeeded) user.PasswordHash = hasher.HashPassword(user, req.Password);
+        user.FailedLoginCount = 0;
+        user.LockoutUntil = null;
+        user.LastLoginAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return (user, null);
+    }
+
     [AllowAnonymous]
     [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<ActionResult<CurrentUserDto>> Login(LoginRequest req, CancellationToken ct)
     {
-        var email = req.Email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
-        var result = user == null ? PasswordVerificationResult.Failed : hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
-        if (user == null || result == PasswordVerificationResult.Failed)
-            return Problem(title: "E-posta veya şifre hatalı.", statusCode: StatusCodes.Status401Unauthorized);
-        if (!user.IsActive)
-            return Problem(title: "Hesabınız pasif durumda. Yöneticinizle iletişime geçin.", statusCode: StatusCodes.Status403Forbidden);
-
-        if (result == PasswordVerificationResult.SuccessRehashNeeded) user.PasswordHash = hasher.HashPassword(user, req.Password);
-        user.LastLoginAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        var (user, error) = await VerifyAsync(req, ct);
+        if (user == null) return error!;
         await IssueAsync(user, ct);
         return ToDto(user);
     }
@@ -66,14 +96,8 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
     [HttpPost("token")]
     public async Task<ActionResult<TokenLoginResponse>> Token(LoginRequest req, CancellationToken ct)
     {
-        var email = req.Email.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
-        if (user == null || hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password) == PasswordVerificationResult.Failed)
-            return Problem(title: "E-posta veya şifre hatalı.", statusCode: StatusCodes.Status401Unauthorized);
-        if (!user.IsActive)
-            return Problem(title: "Hesabınız pasif durumda. Yöneticinizle iletişime geçin.", statusCode: StatusCodes.Status403Forbidden);
-        user.LastLoginAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        var (user, error) = await VerifyAsync(req, ct);
+        if (user == null) return error!;
         return await TokenResponseAsync(user, ct);
     }
 
@@ -117,6 +141,55 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
         await db.SaveChangesAsync(ct);
         await tokens.RevokeAllAsync(user.Id, ct);
         await IssueAsync(user, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// "Şifremi unuttum": her durumda 200 döner (hesabın var olup olmadığı belli olmaz). Hesap varsa ve e-posta ayarlıysa
+    /// 30 dakika geçerli, tek kullanımlık bağlantı gönderilir.
+    /// </summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    [HttpPost("forgot-password")]
+    public async Task<object> ForgotPassword(ForgotPasswordRequest req, CancellationToken ct)
+    {
+        var mail = (req.Email ?? "").Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == mail && u.IsActive, ct);
+        if (user != null && email.IsConfigured)
+        {
+            var raw = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+                .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+            await db.PasswordResetTokens.Where(t => t.UserId == user.Id && t.UsedAt == null).ExecuteDeleteAsync(ct);
+            db.PasswordResetTokens.Add(new PasswordResetToken
+            {
+                UserId = user.Id, TokenHash = TokenService.Hash(raw), CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(30),
+            });
+            await db.SaveChangesAsync(ct);
+            var configured = config["App:PublicUrl"];
+            var baseUrl = string.IsNullOrWhiteSpace(configured) ? $"{Request.Scheme}://{Request.Host}" : configured.TrimEnd('/');
+            var company = await db.CompanySettings.AsNoTracking().Select(c => c.CompanyName).FirstAsync(ct);
+            await email.SendAsync(new EmailMessage(user.Email, $"{company} – şifre sıfırlama",
+                $"Merhaba {user.FullName},\n\nŞifrenizi sıfırlamak için aşağıdaki bağlantıyı 30 dakika içinde açın:\n\n{baseUrl}/sifre-sifirla?token={raw}\n\n" +
+                "Bu isteği siz yapmadıysanız bu e-postayı yok sayın; şifreniz değişmez.", []), ct);
+        }
+        return new { emailEnabled = email.IsConfigured };
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest req, CancellationToken ct)
+    {
+        var hash = TokenService.Hash(req.Token);
+        var token = await db.PasswordResetTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
+        if (token == null || token.UsedAt != null || token.ExpiresAt < DateTime.UtcNow || !token.User.IsActive)
+            return Problem(title: "Bağlantının süresi dolmuş ya da daha önce kullanılmış. Yeniden \"Şifremi unuttum\" deyin.", statusCode: StatusCodes.Status400BadRequest);
+        token.UsedAt = DateTime.UtcNow;
+        token.User.PasswordHash = hasher.HashPassword(token.User, req.NewPassword);
+        token.User.FailedLoginCount = 0;
+        token.User.LockoutUntil = null;
+        await db.SaveChangesAsync(ct);
+        await tokens.RevokeAllAsync(token.User.Id, ct);
         return NoContent();
     }
 

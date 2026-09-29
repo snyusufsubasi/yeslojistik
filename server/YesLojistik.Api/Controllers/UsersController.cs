@@ -20,7 +20,27 @@ public class UsersController(AppDbContext db, IPasswordHasher<User> hasher, Toke
     public async Task<List<UserDto>> List(CancellationToken ct) =>
         await db.Users.AsNoTracking().OrderBy(u => u.FullName)
             .Select(u => new UserDto(u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.CreatedAt, u.DriverId,
-                u.Driver != null ? u.Driver.FullName : null)).ToListAsync(ct);
+                u.Driver != null ? u.Driver.FullName : null, u.LockoutUntil > DateTime.UtcNow ? u.LockoutUntil : null, u.LastLoginAt)).ToListAsync(ct);
+
+    /// <summary>Hatalı denemeler yüzünden kilitlenen hesabın kilidini açar.</summary>
+    [HttpPost("{id:int}/unlock")]
+    public async Task<IActionResult> Unlock(int id, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) ?? throw new NotFoundException("Kullanıcı bulunamadı.");
+        user.LockoutUntil = null;
+        user.FailedLoginCount = 0;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    /// <summary>Kullanıcının tüm cihazlardaki oturumlarını kapatır.</summary>
+    [HttpPost("{id:int}/sign-out")]
+    public async Task<IActionResult> SignOutEverywhere(int id, CancellationToken ct)
+    {
+        if (!await db.Users.AnyAsync(u => u.Id == id, ct)) throw new NotFoundException("Kullanıcı bulunamadı.");
+        await tokens.RevokeAllAsync(id, ct);
+        return NoContent();
+    }
 
     [HttpPost]
     public async Task<ActionResult<UserDto>> Create(UserSaveRequest req, CancellationToken ct)
