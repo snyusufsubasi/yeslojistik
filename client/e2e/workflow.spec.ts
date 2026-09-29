@@ -371,6 +371,8 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
 
   // Araç kartı: belgeler (demo kasko) ve bakım kaydı
   await page.getByRole('link', { name: 'Araçlar', exact: true }).click()
+  // Önceki sayfadaki gider satırı da plakayı içerir: araç listesi yüklenmeden tıklanmasın.
+  await expect(page.getByRole('heading', { name: 'Araçlar', exact: true })).toBeVisible()
   await page.getByRole('row').filter({ hasText: '34 VES 01' }).first().click()
   const vd = page.getByRole('dialog', { name: /Araç: 34 VES 01/ })
   await vd.getByRole('button', { name: 'Belgeler' }).click()
@@ -388,6 +390,7 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
 
   // Şoför kartı → Hesap
   await page.getByRole('link', { name: 'Şoförler', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Şoförler', exact: true })).toBeVisible()
   await page.getByRole('row').filter({ hasText: 'Mehmet Yılmaz' }).first().click()
   const dd = page.getByRole('dialog', { name: 'Mehmet Yılmaz' })
   await dd.getByRole('button', { name: 'Hesap' }).click()
