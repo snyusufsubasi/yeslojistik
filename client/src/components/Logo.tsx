@@ -10,8 +10,8 @@ export function Logo({ dark, className }: { dark?: boolean; className?: string }
         <circle cx="49" cy="31" r="5" fill="#1e88e5" stroke={dark ? '#fff' : '#0b2a55'} strokeWidth="2" />
       </svg>
       <div className="leading-tight">
-        <div className={clsx('text-lg font-extrabold italic tracking-tight', dark ? 'text-navy-900' : 'text-white')}>YES LOJİSTİK</div>
-        <div className={clsx('text-[10px] italic', dark ? 'text-slate-500' : 'text-blue-100/80')}>Güvenle, Her Yere...</div>
+        <div className={clsx('text-xl font-extrabold italic tracking-tight', dark ? 'text-navy-900' : 'text-white')}>YES LOJİSTİK</div>
+        <div className={clsx('text-sm italic', dark ? 'text-slate-500' : 'text-blue-100/80')}>Güvenle, Her Yere...</div>
       </div>
     </div>
   )

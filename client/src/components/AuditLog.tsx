@@ -32,7 +32,7 @@ export function AuditLogTable({ entityType, entityId }: { entityType?: string; e
     { key: 'action', header: 'İşlem', render: (a) => <Badge tone={actionLabel[a.action]?.tone ?? 'blue'}>{actionLabel[a.action]?.text ?? a.action}</Badge> },
     ...(fixed ? [] : [{
       key: 'entity', header: 'Kayıt', className: 'whitespace-normal! min-w-40',
-      render: (a: AuditLogEntry) => <>{a.label ?? `#${a.entityId}`}<span className="block text-[13px] text-slate-500">{auditEntityLabel[a.entityType] ?? a.entityType}</span></>,
+      render: (a: AuditLogEntry) => <>{a.label ?? `#${a.entityId}`}<span className="block text-sm text-slate-500">{auditEntityLabel[a.entityType] ?? a.entityType}</span></>,
     }]),
     { key: 'changes', header: 'Değişiklik', className: 'whitespace-normal! min-w-60',
       render: (a) => a.changes ? <span className="text-sm">{a.changes}</span> : <span className="text-slate-500">—</span> },

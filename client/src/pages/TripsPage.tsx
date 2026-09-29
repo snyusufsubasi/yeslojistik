@@ -53,10 +53,10 @@ export default function TripsPage() {
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'loadingDate', render: (t) => date(t.loadingDate) },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
-    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-[13px] text-slate-500">Ref: {t.customerReference}</span>}</span> },
-    { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span>{t.vehiclePlate}{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-[13px] text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{t.invoiceNo && <span className="mt-0.5 block text-[13px] text-slate-500">Fatura: {t.invoiceNo}</span>}</> },
-    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-[13px] ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span></> },
+    { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
+    { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span>{t.vehiclePlate}{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{t.invoiceNo && <span className="mt-0.5 block text-sm text-slate-500">Fatura: {t.invoiceNo}</span>}</> },
+    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span></> },
   ]
   if (can('operations')) {
     columns.push({
@@ -103,7 +103,7 @@ export default function TripsPage() {
           mobileCard={(t) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[13px] text-slate-500">{date(t.loadingDate)} · {t.vehiclePlate}</span>
+                <span className="text-sm text-slate-500">{date(t.loadingDate)} · {t.vehiclePlate}</span>
                 <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>
               </div>
               <div className="font-semibold text-navy-900">{t.customerTitle}</div>

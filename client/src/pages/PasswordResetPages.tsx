@@ -41,9 +41,9 @@ export function ForgotPasswordPage() {
     <Shell>
       <h1 className="mb-2 text-lg font-bold text-navy-900">Şifremi unuttum</h1>
       {state === 'sent' ? (
-        <p className="text-[15px] text-slate-700">Bu adrese kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi. E-postanızı (gereksiz klasörü dahil) kontrol edin; bağlantı 30 dakika geçerlidir.</p>
+        <p className="text-base text-slate-700">Bu adrese kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi. E-postanızı (gereksiz klasörü dahil) kontrol edin; bağlantı 30 dakika geçerlidir.</p>
       ) : state === 'no-email' ? (
-        <p className="text-[15px] text-slate-700">Sunucuda e-posta gönderimi ayarlı değil. Şifrenizi yöneticinizden sıfırlamasını isteyin (Ayarlar → Kullanıcılar).</p>
+        <p className="text-base text-slate-700">Sunucuda e-posta gönderimi ayarlı değil. Şifrenizi yöneticinizden sıfırlamasını isteyin (Ayarlar → Kullanıcılar).</p>
       ) : (
         <form onSubmit={submit}>
           <p className="mb-4 text-sm text-slate-600">Hesabınızın e-posta adresini yazın; şifrenizi yenilemeniz için bir bağlantı gönderelim.</p>
@@ -88,8 +88,8 @@ export function ResetPasswordPage() {
   return (
     <Shell>
       <h1 className="mb-2 text-lg font-bold text-navy-900">Yeni şifre belirleyin</h1>
-      {!token ? <p className="text-[15px] text-slate-700">Bağlantı eksik. E-postadaki bağlantıyı açın ya da yeniden "Şifremi unuttum" deyin.</p>
-        : done ? <p className="text-[15px] text-slate-700">Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz; diğer cihazlardaki oturumlar kapatıldı.</p>
+      {!token ? <p className="text-base text-slate-700">Bağlantı eksik. E-postadaki bağlantıyı açın ya da yeniden "Şifremi unuttum" deyin.</p>
+        : done ? <p className="text-base text-slate-700">Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz; diğer cihazlardaki oturumlar kapatıldı.</p>
         : (
           <form onSubmit={submit}>
             <label className="mb-3 block">
@@ -100,7 +100,7 @@ export function ResetPasswordPage() {
               <span className="label">Yeni şifre (tekrar)</span>
               <input className="input" type="password" required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             </label>
-            <p className="mb-3 text-[13px] text-slate-500">En az 8 karakter; harf ve rakam içermeli.</p>
+            <p className="mb-3 text-sm text-slate-500">En az 8 karakter; harf ve rakam içermeli.</p>
             {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <Button type="submit" className="w-full" loading={loading}>Şifreyi Değiştir</Button>
           </form>

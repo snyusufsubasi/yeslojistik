@@ -140,13 +140,13 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             <span className="label">Logo (fatura PDF'i için)</span>
             <div className="flex items-center gap-3">
               {logo ? <img src={logo} alt="Logo" className="h-12 max-w-40 rounded border border-slate-200 object-contain p-1" /> : <span className="text-sm text-slate-500">Logo yok</span>}
-              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
                 <Upload className="size-3.5" /> {logo ? 'Logoyu Değiştir' : 'Logo Seç'}
                 <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => onLogo(e.target.files?.[0])} />
               </label>
               {logo && <Button type="button" size="sm" variant="ghost" onClick={() => setValue('logoDataUrl', null)}>Kaldır</Button>}
             </div>
-            {errors.logoDataUrl && <span className="text-[13px] text-red-600">{errors.logoDataUrl.message}</span>}
+            {errors.logoDataUrl && <span className="text-sm text-red-600">{errors.logoDataUrl.message}</span>}
           </div>
         </div>
       </Card>
@@ -163,11 +163,11 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             </Field>
             <Field label="Varsayılan Vade (gün)" error={errors.defaultPaymentTermDays?.message}><input className="input" type="number" {...register('defaultPaymentTermDays', { valueAsNumber: true })} /></Field>
           </div>
-          <h3 className="mt-5 mb-2 text-[15px] font-semibold text-slate-800">e-Fatura / e-Arşiv</h3>
+          <h3 className="mt-5 mb-2 text-base font-semibold text-slate-800">e-Fatura / e-Arşiv</h3>
           <label className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('eInvoiceEnabled')} />
             <span>
-              <span className="block text-[15px] font-medium text-slate-800">e-Fatura açık</span>
+              <span className="block text-base font-medium text-slate-800">e-Fatura açık</span>
               <span className="block text-sm text-slate-600">Kesilen faturaya ETTN ve GİB numarası verilir, UBL-TR XML üretilir. Entegratör sözleşmesi yoksa XML'i indirip entegratör portalına ya da muhasebeciye verirsiniz.</span>
             </span>
           </label>
@@ -193,19 +193,19 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
           <label className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('dailyDigestEnabled')} />
             <span>
-              <span className="block text-[15px] font-medium text-slate-800">Sabah uyarı özeti</span>
+              <span className="block text-base font-medium text-slate-800">Sabah uyarı özeti</span>
               <span className="block text-sm text-slate-600">Her sabah 08:00'de yöneticilere yaklaşan bakım, muayene, sigorta, şoför belgeleri ve vadesi geçen alacakların listesi e-postayla gelir. Uyarı yoksa e-posta gönderilmez.</span>
             </span>
           </label>
           <p className="mt-3 text-sm text-slate-600">Müşterilere sefer durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
-          <h3 className="mt-5 mb-2 text-[15px] font-semibold text-slate-800">Şoför uygulaması: teslim kuralları</h3>
+          <h3 className="mt-5 mb-2 text-base font-semibold text-slate-800">Şoför uygulaması: teslim kuralları</h3>
           <label className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('requireDeliveryPhoto')} />
-            <span className="text-[15px] text-slate-800">Teslimde en az bir fotoğraf zorunlu</span>
+            <span className="text-base text-slate-800">Teslimde en az bir fotoğraf zorunlu</span>
           </label>
           <label className="mt-2 flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('requireDeliverySignature')} />
-            <span className="text-[15px] text-slate-800">Teslimde teslim alanın imzası zorunlu</span>
+            <span className="text-base text-slate-800">Teslimde teslim alanın imzası zorunlu</span>
           </label>
           <div className="mt-4 flex justify-end"><Button type="submit" loading={save.isPending}>Kaydet</Button></div>
         </Card>
@@ -237,7 +237,7 @@ function UsersTab() {
   const cols: Column<User>[] = [
     { key: 'n', header: 'Ad Soyad', render: (u) => <span className="font-medium">{u.fullName}</span> },
     { key: 'e', header: 'E-posta', render: (u) => u.email },
-    { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-[13px] text-slate-500">{u.driverName}</span>}</> },
+    { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-sm text-slate-500">{u.driverName}</span>}</> },
     { key: 'a', header: 'Durum', render: (u) => <><Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge>
       {u.lockoutUntil && <span className="ml-1"><Badge tone="red">Kilitli</Badge></span>}</> },
     { key: 'c', header: 'Son giriş', render: (u) => u.lastLoginAt ? dateTime(u.lastLoginAt) : '—' },
@@ -256,7 +256,7 @@ function UsersTab() {
     <Card title="Kullanıcılar" icon={<Users className="size-4" />} bodyClassName="p-0"
       actions={<Button size="sm" icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Kullanıcı</Button>}>
       <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(u) => u.id} />
-      <div className="border-t border-slate-100 p-3 text-[13px] text-slate-500">
+      <div className="border-t border-slate-100 p-3 text-sm text-slate-500">
         <b>Yönetici:</b> her şey · <b>Operasyon:</b> sefer, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
         <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi seferlerini görür, durum ve fotoğraf gönderir.
       </div>
@@ -368,7 +368,7 @@ function ResetDataCard() {
 
   return (
     <Card title="Demo verilerini temizle (canlıya geçiş)" icon={<DatabaseZap className="size-4" />} className="max-w-2xl">
-      <div className="space-y-4 text-[15px] text-slate-700">
+      <div className="space-y-4 text-base text-slate-700">
         <p>Programı denemek için girilen bütün kayıtları siler ve sistemi gerçek kullanıma hazırlar. Bu işlem geri alınamaz.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-red-200 bg-red-50 p-3">
@@ -409,12 +409,12 @@ function BackupCard() {
   const used = data ? Math.min(100, Math.round((data.databaseBytes / DB_LIMIT_BYTES) * 100)) : 0
   return (
     <Card title="Yedekler ve depolama" icon={<HardDrive className="size-4" />} className="max-w-2xl">
-      <div className="space-y-4 text-[15px] text-slate-700">
+      <div className="space-y-4 text-base text-slate-700">
         <p>Yedek dosyası tüm kayıtları ve yüklenen dosyaları (fotoğraf, irsaliye) içerir. Haftada bir indirip telefonunuza
           veya bilgisayarınıza kaydetmeniz önerilir. Her gece ayrıca otomatik yedek alınır.</p>
         <div className="flex flex-wrap gap-2">
-          <a className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-[15px] font-medium transition shadow-sm bg-brand-600 text-white hover:bg-brand-700" href="/api/admin/backup?files=true" download><Download className="size-4" />Tam yedeği indir</a>
-          <a className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-[15px] font-medium transition shadow-sm border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" href="/api/admin/backup?files=false" download><Download className="size-4" />Dosyasız yedeği indir</a>
+          <a className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-base font-medium transition shadow-sm bg-brand-600 text-white hover:bg-brand-700" href="/api/admin/backup?files=true" download><Download className="size-4" />Tam yedeği indir</a>
+          <a className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-4 py-2 text-base font-medium transition shadow-sm border border-slate-300 bg-white text-slate-700 hover:bg-slate-50" href="/api/admin/backup?files=false" download><Download className="size-4" />Dosyasız yedeği indir</a>
         </div>
         <div className="text-sm text-slate-600">Son yedek: {data?.lastBackupAt ? dateTime(data.lastBackupAt) : 'henüz alınmadı'}</div>
         {data && (
@@ -469,7 +469,7 @@ function GoLiveCard() {
           <li key={x.key} className={`flex gap-3 rounded-lg border p-3 ${x.done ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
             {x.manual
               ? <input type="checkbox" className="mt-1 size-5 accent-emerald-600" checked={x.done} onChange={() => toggle(x.key)} aria-label={x.title} />
-              : x.done ? <CheckCircle2 className="size-5 shrink-0 text-emerald-600" /> : <Circle className="size-5 shrink-0 text-slate-400" />}
+              : x.done ? <CheckCircle2 className="size-5 shrink-0 text-emerald-600" /> : <Circle className="size-5 shrink-0 text-slate-500" />}
             <div>
               <div className={`font-semibold ${x.done ? 'text-emerald-800' : 'text-navy-900'}`}>{x.title}</div>
               <div className="text-sm text-slate-600">{x.text}</div>
@@ -499,7 +499,7 @@ function NotificationPrefsCard() {
           <label key={p.type} className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" checked={p.push} disabled={save.isPending}
               onChange={(e) => save.mutate([{ type: p.type, push: e.target.checked }])} />
-            <span className="text-[15px] text-slate-800">{p.label}</span>
+            <span className="text-base text-slate-800">{p.label}</span>
           </label>
         ))}
       </div>
@@ -552,7 +552,7 @@ function MigrationCheckCard() {
       {!s ? <Spinner /> : (
         <>
           <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(JSON.stringify(s)).then(() => toast.success('Sayım kopyalandı.'), () => toast.error('Kopyalanamadı.'))}>Sayımı kopyala</Button>
-          <textarea className="input mt-3 h-20 font-mono text-[13px]" aria-label="Diğer sunucunun sayımı" placeholder="Diğer sunucunun sayımını buraya yapıştırın"
+          <textarea className="input mt-3 h-20 font-mono text-sm" aria-label="Diğer sunucunun sayımı" placeholder="Diğer sunucunun sayımını buraya yapıştırın"
             value={other} onChange={(e) => setOther(e.target.value)} />
           {parseError && <p className="mt-2 text-sm text-red-600">{parseError}</p>}
           {parsed && (

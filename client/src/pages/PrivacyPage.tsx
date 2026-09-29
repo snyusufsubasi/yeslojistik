@@ -27,7 +27,7 @@ function Page({ title, children }: { title: string; children: ReactNode }) {
       <header className="bg-navy-900 px-4 py-4"><div className="mx-auto max-w-3xl"><Logo /></div></header>
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="mb-4 text-2xl font-bold text-navy-900">{title}</h1>
-        <div className="space-y-4 rounded-xl bg-white p-5 text-[15px] leading-relaxed text-slate-800 shadow-sm sm:p-7">{children}</div>
+        <div className="space-y-4 rounded-xl bg-white p-5 text-base leading-relaxed text-slate-800 shadow-sm sm:p-7">{children}</div>
         <p className="mt-6 text-center text-sm text-slate-500">
           <Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link> · <Link className="hover:underline" to="/hesap-silme">Hesap ve veri silme</Link> · <Link className="hover:underline" to="/giris">Giriş</Link>
         </p>

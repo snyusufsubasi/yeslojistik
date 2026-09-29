@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, errorMessage, get, post, put } from '../api/client'
 import type { ListParams, LookupItem, PagedResult } from '../api/types'
@@ -64,3 +65,16 @@ export const crud = <T, TBody>(resource: string) => ({
   update: (id: number, body: TBody) => put<T>(`/${resource}/${id}`, body),
   remove: (id: number) => del(`/${resource}/${id}`),
 })
+
+/** Adreste ?new=1 varsa (ör. ana sayfadaki hızlı işlem kutusundan gelindiyse) true döner ve parametreyi adresten siler. */
+export function useOpenNewFromUrl() {
+  const [params, setParams] = useSearchParams()
+  const [initial] = useState(() => params.get('new') !== null)
+  useEffect(() => {
+    if (params.get('new') === null) return
+    const next = new URLSearchParams(params)
+    next.delete('new')
+    setParams(next, { replace: true })
+  }, [params, setParams])
+  return initial
+}

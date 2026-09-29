@@ -11,7 +11,7 @@ function Section({ icon, title, children, open }: { icon: ReactNode; title: stri
         <span className="flex-1">{title}</span>
         <span className="text-slate-500 transition group-open:rotate-90">›</span>
       </summary>
-      <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-[15px] leading-relaxed text-slate-700">{children}</div>
+      <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-base leading-relaxed text-slate-700">{children}</div>
     </details>
   )
 }

@@ -7,7 +7,7 @@ import { PaymentForm } from '../components/PaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 
 const api = crud<Payment, unknown>('payments')
@@ -19,7 +19,8 @@ export default function PaymentsPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
-  const [editing, setEditing] = useState<Payment | 'new' | null>(null)
+  const openNew = useOpenNewFromUrl()
+  const [editing, setEditing] = useState<Payment | 'new' | null>(openNew ? 'new' : null)
   const [deleting, setDeleting] = useState<Payment | null>(null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')

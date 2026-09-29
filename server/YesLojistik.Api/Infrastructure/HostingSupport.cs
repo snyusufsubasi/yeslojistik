@@ -64,10 +64,10 @@ public static class HostingSupport
         app.UseStaticFiles(PanelFiles);
     }
 
-    /// <summary>Panel sayfaları için içerik güvenliği: yalnızca kendi sunucumuz, harita karoları ve Google Fonts.</summary>
+    /// <summary>Panel sayfaları için içerik güvenliği: yalnızca kendi sunucumuz, harita karoları.</summary>
     public const string ContentSecurityPolicy =
         "default-src 'self'; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+        "style-src 'self' 'unsafe-inline'; font-src 'self'; " +
         "connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'";
 
     public const string PermissionsPolicy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";

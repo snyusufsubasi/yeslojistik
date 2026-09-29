@@ -75,7 +75,7 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
           </Field>
         )}
         <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
-        {payment?.endorsedFromPaymentId && <p className="text-[13px] text-amber-700 sm:col-span-2">Bu ödeme bir çek/senet cirosundan geldi; Çek/Senet sayfasından yönetin.</p>}
+        {payment?.endorsedFromPaymentId && <p className="text-sm text-amber-700 sm:col-span-2">Bu ödeme bir çek/senet cirosundan geldi; Çek/Senet sayfasından yönetin.</p>}
         <button type="submit" className="hidden" />
       </form>
     </Modal>

@@ -48,14 +48,14 @@ export default function ChecksPage() {
       const d = daysUntil(p.instrumentDueDate)
       const open = p.instrumentStatus === 'Portfolio' || p.instrumentStatus === 'InCollection'
       return <><span className={open && d !== null && d <= 7 ? (d < 0 ? 'font-medium text-red-600' : 'font-medium text-amber-600') : ''}>{date(p.instrumentDueDate)}</span>
-        {open && d !== null && <span className="block text-[13px] text-slate-500">{d < 0 ? `${-d} gün geçti` : d === 0 ? 'bugün' : `${d} gün kaldı`}</span>}</>
+        {open && d !== null && <span className="block text-sm text-slate-500">{d < 0 ? `${-d} gün geçti` : d === 0 ? 'bugün' : `${d} gün kaldı`}</span>}</>
     } },
-    { key: 'customer', header: 'Müşteri', sortKey: 'customer', render: (p) => <>{p.customerTitle}<span className="block text-[13px] text-slate-500">Alış: {date(p.date)}</span></> },
-    { key: 'no', header: 'Çek / Senet', render: (p) => <>{paymentMethodLabel[p.method]} {p.instrumentNo ?? ''}{p.bank && <span className="block text-[13px] text-slate-500">{p.bank}</span>}</> },
+    { key: 'customer', header: 'Müşteri', sortKey: 'customer', render: (p) => <>{p.customerTitle}<span className="block text-sm text-slate-500">Alış: {date(p.date)}</span></> },
+    { key: 'no', header: 'Çek / Senet', render: (p) => <>{paymentMethodLabel[p.method]} {p.instrumentNo ?? ''}{p.bank && <span className="block text-sm text-slate-500">{p.bank}</span>}</> },
     { key: 'status', header: 'Durum', render: (p) => p.instrumentStatus && <>
       <Badge tone={instrumentStatusTone[p.instrumentStatus]}>{instrumentStatusLabel[p.instrumentStatus]}</Badge>
-      {p.endorsedTo && <span className="mt-0.5 block text-[13px] text-slate-500">→ {p.endorsedTo}</span>}
-      {p.cashAccountName && p.instrumentStatus === 'Collected' && <span className="mt-0.5 block text-[13px] text-slate-500">{p.cashAccountName}</span>}
+      {p.endorsedTo && <span className="mt-0.5 block text-sm text-slate-500">→ {p.endorsedTo}</span>}
+      {p.cashAccountName && p.instrumentStatus === 'Collected' && <span className="mt-0.5 block text-sm text-slate-500">{p.cashAccountName}</span>}
     </> },
     { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (p) => <span className="font-medium">{tl2(p.amount)}</span> },
   ]

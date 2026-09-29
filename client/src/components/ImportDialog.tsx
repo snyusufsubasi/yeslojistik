@@ -80,8 +80,8 @@ function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void
           <div className="mb-1 font-medium">1. Şablonu indirip doldurun</div>
           <Button size="sm" variant="secondary" icon={<Download className="size-3.5" />}
             onClick={() => download(`/import/${entity}/template`, undefined, `${entity}-sablon.xlsx`)}>Şablonu İndir</Button>
-          {hints[entity] && <p className="mt-1 text-[13px] text-slate-500">{hints[entity]}</p>}
-          <p className="mt-1 text-[13px] text-slate-500">Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler.</p>
+          {hints[entity] && <p className="mt-1 text-sm text-slate-500">{hints[entity]}</p>}
+          <p className="mt-1 text-sm text-slate-500">Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler.</p>
         </li>
         <li>
           <div className="mb-1 font-medium">2. Doldurduğunuz dosyayı seçin</div>
@@ -91,7 +91,7 @@ function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void
         </li>
         <li>
           <div className="mb-1 font-medium">3. Kontrol edin ve aktarın</div>
-          <p className="text-[13px] text-slate-500">Önce kontrol edilir; hatalı satır varsa hiçbir kayıt aktarılmaz. Sistemde zaten olan kayıtlar atlanır.</p>
+          <p className="text-sm text-slate-500">Önce kontrol edilir; hatalı satır varsa hiçbir kayıt aktarılmaz. Sistemde zaten olan kayıtlar atlanır.</p>
         </li>
       </ol>
 
@@ -113,7 +113,7 @@ function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void
             </div>
           )}
           {result.warnings.length > 0 && (
-            <ul className="max-h-32 list-inside list-disc overflow-y-auto text-[13px] text-amber-700">
+            <ul className="max-h-32 list-inside list-disc overflow-y-auto text-sm text-amber-700">
               {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
             </ul>
           )}

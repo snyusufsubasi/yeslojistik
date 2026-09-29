@@ -54,13 +54,13 @@ export default function DriversPage() {
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['drivers', 'vehicles'], success: 'Şoför silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Driver>[] = [
-    { key: 'name', header: 'Ad Soyad', sortKey: 'fullName', render: (d) => <span className="font-medium">{d.fullName}{d.supplierTitle && <span className="block text-[13px] font-normal text-slate-500">Taşeron: {d.supplierTitle}</span>}</span> },
+    { key: 'name', header: 'Ad Soyad', sortKey: 'fullName', render: (d) => <span className="font-medium">{d.fullName}{d.supplierTitle && <span className="block text-sm font-normal text-slate-500">Taşeron: {d.supplierTitle}</span>}</span> },
     { key: 'phone', header: 'Telefon', render: (d) => d.phone ? <a className="text-brand-600" href={`tel:${d.phone.replace(/\s/g, '')}`} onClick={(e) => e.stopPropagation()}>{d.phone}</a> : '—' },
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
     { key: 'license', header: 'Ehliyet Bitiş', sortKey: 'licenseExpiry', render: (d) => <DueDate value={d.licenseExpiry} warn={30} /> },
     { key: 'src', header: 'SRC Bitiş', sortKey: 'srcExpiry', render: (d) => <DueDate value={d.srcExpiry} warn={30} /> },
     { key: 'psy', header: 'Psikoteknik', render: (d) => <DueDate value={d.psychotechnicExpiry} warn={30} /> },
-    { key: 'app', header: 'Uygulama', render: (d) => !d.hasAppAccount ? <span className="text-slate-400">—</span>
+    { key: 'app', header: 'Uygulama', render: (d) => !d.hasAppAccount ? <span className="text-slate-500">—</span>
       : d.locationConsentAt ? <Badge tone="green">Konum izni var</Badge> : <Badge tone="yellow">Konum izni yok</Badge> },
     { key: 'active', header: 'Durum', sortKey: 'isActive', render: (d) => <Badge tone={d.isActive ? 'green' : 'gray'}>{d.isActive ? 'Aktif' : 'Pasif'}</Badge> },
   ]

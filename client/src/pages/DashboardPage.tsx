@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CalendarClock, CheckCircle2, CircleDollarSign, Clock, FileText, Plus, Route, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, Wallet, HandCoins, Receipt, UserPlus, CheckCircle, Circle, X, CalendarClock, CheckCircle2, CircleDollarSign, Clock, FileText, Route, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
@@ -25,13 +25,13 @@ export default function DashboardPage() {
 
   const tripCols: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', render: (t) => date(t.loadingDate) },
-    { key: 'customer', header: 'Müşteri', className: 'whitespace-normal! min-w-32', render: (t) => <>{t.customerTitle}<span className="block text-[13px] text-slate-500">{t.vehiclePlate}</span></> },
+    { key: 'customer', header: 'Müşteri', className: 'whitespace-normal! min-w-32', render: (t) => <>{t.customerTitle}<span className="block text-sm text-slate-500">{t.vehiclePlate}</span></> },
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-44', render: (t) => <>{t.loadingAddress} <span className="text-slate-500">→</span> {t.deliveryAddress}</> },
     { key: 'status', header: 'Durum', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'price', header: 'Tutar', align: 'right', render: (t) => tl(t.salePrice) },
   ]
   const vehicleCols: Column<Vehicle>[] = [
-    { key: 'plate', header: 'Plaka', render: (v) => <><span className="font-medium">{v.plate}</span><span className="block text-[13px] text-slate-500">{v.km.toLocaleString('tr-TR')} km</span></> },
+    { key: 'plate', header: 'Plaka', render: (v) => <><span className="font-medium">{v.plate}</span><span className="block text-sm text-slate-500">{v.km.toLocaleString('tr-TR')} km</span></> },
     { key: 'type', header: 'Araç Tipi', render: (v) => [v.brand, v.model].filter(Boolean).join(' ') || v.type },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
@@ -43,27 +43,23 @@ export default function DashboardPage() {
     },
   ]
   const invoiceCols: Column<Invoice>[] = [
-    { key: 'no', header: 'Fatura', render: (i) => <><span className="font-medium">{i.invoiceNo}</span><span className="block max-w-36 truncate text-[13px] text-slate-500">{i.customerTitle}</span></> },
+    { key: 'no', header: 'Fatura', render: (i) => <><span className="font-medium">{i.invoiceNo}</span><span className="block max-w-36 truncate text-sm text-slate-500">{i.customerTitle}</span></> },
     { key: 'total', header: 'Tutar', align: 'right', render: (i) => <>{tl(i.total)}<span className="mt-0.5 block"><Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge></span></> },
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-navy-900">Hoş Geldiniz, {user?.fullName}</h1>
-          <p className="text-sm text-slate-500">YES LOJİSTİK – Nakliye Takip Sistemi</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {can('operations') && <Button icon={<Plus className="size-4" />} onClick={() => navigate('/seferler?new=1')}>Yeni Sefer</Button>}
-          {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
-          <Button variant="success" icon={<Plus className="size-4" />} onClick={() => navigate('/musteriler?new=1')}>Yeni Müşteri</Button>
-          {can('accounting') && <Button variant="secondary" icon={<BarChart3 className="size-4" />} onClick={() => navigate('/raporlar')}>Raporlar</Button>}
+          <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{greeting()}, {user?.fullName}</h1>
+          <p className="mt-1 text-base text-slate-600">Bugün ne yapmak istiyorsunuz? Aşağıdaki kutulardan birine tıklayın.</p>
         </div>
       </div>
 
+      <QuickActions />
+
       {data.setup.sampleData && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[15px] text-amber-900">
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-base text-amber-900">
           <span><b>Şu an örnek (demo) veriler görüntüleniyor.</b> Gerçek kullanıma başlamadan önce bunları temizleyin.</span>
           {can('admin') && <Button size="sm" variant="secondary" onClick={() => navigate('/ayarlar?tab=data')}>Demo verilerini temizle</Button>}
         </div>
@@ -71,6 +67,7 @@ export default function DashboardPage() {
 
       <SetupCard setup={data.setup} />
 
+      <h2 className="-mb-2 text-lg font-bold text-navy-900">Özet</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard color="blue" title="Toplam Sefer" value={data.monthTripCount} sub="Bu ay" icon={<Truck className="size-7" />}
           onClick={() => navigate('/seferler')} />
@@ -85,17 +82,17 @@ export default function DashboardPage() {
       {can('accounting') && (data.uninvoicedTripCount > 0 || data.pendingExpenseCount > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.uninvoicedTripCount > 0 && (
-            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-brand-800 hover:bg-brand-100">
+            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-4 text-base text-brand-800 hover:bg-brand-100">
               <span><span className="font-semibold">{data.uninvoicedTripCount} teslim edilmiş sefer faturalanmadı</span>
                 <span className="block text-sm">Toplam {tl(data.uninvoicedTripTotal)} + KDV</span></span>
-              <span className="whitespace-nowrap text-sm font-semibold">Fatura kes →</span>
+              <span className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-2 font-semibold text-white">Fatura kes →</span>
             </Link>
           )}
           {data.pendingExpenseCount > 0 && (
-            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 hover:bg-amber-100">
+            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-900 hover:bg-amber-100">
               <span><span className="font-semibold">{data.pendingExpenseCount} şoför masrafı onay bekliyor</span>
                 <span className="block text-sm">Toplam {tl(data.pendingExpenseTotal)}</span></span>
-              <span className="whitespace-nowrap text-sm font-semibold">İncele →</span>
+              <span className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-2 font-semibold text-white">İncele →</span>
             </Link>
           )}
         </div>
@@ -103,7 +100,7 @@ export default function DashboardPage() {
 
       {can('accounting') && <CashFlowCard />}
 
-      <div className="grid items-start gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2" title="Günlük Seferler" icon={<Route className="size-4" />} bodyClassName="p-0"
           actions={<Button size="sm" variant="ghost" onClick={() => navigate('/seferler')}>Tümünü Gör →</Button>}>
           <DataTable columns={tripCols} rows={data.todayTrips} rowKey={(t) => t.id} empty="Bugün için sefer yok." />
@@ -114,7 +111,7 @@ export default function DashboardPage() {
           </div>
         </Card>
         <Card title="Bu Ay" icon={<BarChart3 className="size-4" />}>
-          <dl className="space-y-3 text-sm">
+          <dl className="space-y-3.5 text-base">
             <Row label="Sefer cirosu" value={tl(data.monthRevenue)} />
             <Row label="Araç maliyeti + giderler" value={tl(data.monthExpenses)} />
             <Row label="Brüt kâr" value={tl(data.monthRevenue - data.monthExpenses)} strong
@@ -123,7 +120,7 @@ export default function DashboardPage() {
             {can('accounting') && (
               <button type="button" className="block w-full text-left" onClick={() => navigate('/tedarikciler')}>
                 <Row label="Ödenecek (taşeron)" value={tl(data.payableTotal)} tone={data.payableTotal > 0 ? 'text-orange-600' : undefined} />
-                {data.payableOverdue > 0 && <p className="mt-1 text-right text-xs text-red-600">Vadesi geçen: {tl(data.payableOverdue)}</p>}
+                {data.payableOverdue > 0 && <p className="mt-1 text-right text-sm text-red-600">Vadesi geçen: {tl(data.payableOverdue)}</p>}
               </button>
             )}
           </dl>
@@ -131,28 +128,28 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2" title="Araç Takip / Araçlar" icon={<Truck className="size-4" />} bodyClassName="p-0"
           actions={<Button size="sm" variant="ghost" onClick={() => navigate('/araclar')}>Tümünü Gör →</Button>}>
           <DataTable columns={vehicleCols} rows={data.vehicles} rowKey={(v) => v.id} empty="Henüz araç eklenmemiş." />
         </Card>
         <div className="space-y-4">
           <Card title="Dikkat Edilecekler" icon={<AlertTriangle className="size-4" />} bodyClassName="p-0">
-            {alerts.data?.length === 0 && <p className="px-4 py-6 text-center text-sm text-slate-500">Her şey yolunda.</p>}
+            {alerts.data?.length === 0 && <p className="px-4 py-8 text-center text-base text-slate-600">Her şey yolunda.</p>}
             <ul className="divide-y divide-slate-100">
               {alerts.data?.slice(0, 5).map((a, i) => (
                 <li key={i}>
-                  <Link to={a.link} className="flex gap-3 px-4 py-2.5 hover:bg-slate-50">
-                    <span className={clsx('mt-1.5 size-2 shrink-0 rounded-full', a.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400')} />
-                    <span className="min-w-0 text-sm">
-                      <span className="font-medium text-slate-800">{a.title}</span>
-                      <span className="block text-slate-500">{a.message}</span>
+                  <Link to={a.link} className="flex gap-3 px-5 py-3 hover:bg-slate-50">
+                    <span className={clsx('mt-2 size-2.5 shrink-0 rounded-full', a.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400')} />
+                    <span className="min-w-0 text-base">
+                      <span className="font-semibold text-slate-900">{a.title}</span>
+                      <span className="block text-slate-600">{a.message}</span>
                     </span>
                   </Link>
                 </li>
               ))}
             </ul>
-            {(alerts.data?.length ?? 0) > 5 && <p className="border-t border-slate-100 px-4 py-2 text-[13px] text-slate-500">+{alerts.data!.length - 5} uyarı daha (zil simgesi)</p>}
+            {(alerts.data?.length ?? 0) > 5 && <p className="border-t border-slate-100 px-4 py-2 text-sm text-slate-500">+{alerts.data!.length - 5} uyarı daha (zil simgesi)</p>}
           </Card>
           <Card title="Son Faturalar" icon={<FileText className="size-4" />} bodyClassName="p-0"
             actions={<Button size="sm" variant="ghost" onClick={() => navigate('/faturalar')}>Tümünü Gör →</Button>}>
@@ -167,11 +164,11 @@ export default function DashboardPage() {
 
 function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+    <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
       <span className="text-brand-600">{icon}</span>
       <div>
-        <div className="text-[13px] text-slate-500">{label}</div>
-        <div className="text-lg font-bold text-navy-900">{value}</div>
+        <div className="text-sm text-slate-600">{label}</div>
+        <div className="text-xl font-bold text-navy-900">{value}</div>
       </div>
     </div>
   )
@@ -180,7 +177,7 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
 function Row({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: string }) {
   return (
     <div className="flex justify-between gap-2">
-      <dt className="text-slate-500">{label}</dt>
+      <dt className="text-slate-600">{label}</dt>
       <dd className={`${strong ? 'font-bold' : 'font-medium'} ${tone ?? 'text-slate-800'}`}>{value}</dd>
     </div>
   )
@@ -192,7 +189,7 @@ function TrendChart({ rows }: { rows: Dashboard['trend'] }) {
   if (rows.every((r) => r.revenue === 0 && r.cost === 0)) return null
   return (
     <div className="mt-4 border-t border-slate-100 pt-3">
-      <div className="mb-1 flex items-center justify-between text-[13px] text-slate-500">
+      <div className="mb-1 flex items-center justify-between text-sm text-slate-500">
         <span>Son 6 ay</span>
         <span className="flex gap-3">
           <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-[#2a78d6]" />Ciro</span>
@@ -245,7 +242,7 @@ function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
           <li key={s.title}>
             <Link to={s.to} className={clsx('flex h-full gap-3 rounded-lg border p-3 transition hover:border-brand-500 hover:bg-brand-50',
               s.done ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200')}>
-              {s.done ? <CheckCircle2 className="size-6 shrink-0 text-emerald-600" /> : <Circle className="size-6 shrink-0 text-slate-400" />}
+              {s.done ? <CheckCircle2 className="size-6 shrink-0 text-emerald-600" /> : <Circle className="size-6 shrink-0 text-slate-500" />}
               <span>
                 <span className={clsx('block font-semibold', s.done ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-navy-900')}>{i + 1}. {s.title}</span>
                 <span className="block text-sm text-slate-600">{s.text}</span>
@@ -279,5 +276,39 @@ function CashFlowCard() {
         </table>
       </div>
     </Card>
+  )
+}
+
+function greeting() {
+  const h = new Date().getHours()
+  return h < 5 ? 'İyi geceler' : h < 12 ? 'Günaydın' : h < 18 ? 'İyi günler' : 'İyi akşamlar'
+}
+
+/** Ana sayfanın üstündeki büyük kutular: en sık yapılan işler tek tıkla açılır (yetkiye göre). */
+function QuickActions() {
+  const { can } = useAuth()
+  const actions = [
+    can('operations') && { to: '/seferler?new=1', label: 'Yeni Sefer', hint: 'Yük ve araç bilgisini gir', icon: Truck, tone: 'from-brand-500 to-brand-700' },
+    can('accounting') && { to: '/tahsilatlar?new=1', label: 'Tahsilat Gir', hint: 'Müşteriden gelen para', icon: Wallet, tone: 'from-emerald-500 to-emerald-700' },
+    can('accounting') && { to: '/odemeler?new=1', label: 'Taşerona Ödeme', hint: 'Araç sahibine yapılan ödeme', icon: HandCoins, tone: 'from-orange-500 to-orange-600' },
+    { to: '/giderler?new=1', label: 'Gider Ekle', hint: 'Yakıt, bakım, otoyol…', icon: Receipt, tone: 'from-rose-500 to-rose-700' },
+    can('accounting') && { to: '/faturalar/yeni', label: 'Fatura Kes', hint: 'Teslim edilen seferler için', icon: FileText, tone: 'from-violet-500 to-violet-700' },
+    { to: '/musteriler?new=1', label: 'Müşteri Ekle', hint: 'Yeni firma kaydı', icon: UserPlus, tone: 'from-teal-500 to-teal-700' },
+  ].filter(Boolean) as { to: string; label: string; hint: string; icon: typeof Truck; tone: string }[]
+  return (
+    <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      {actions.map((a) => (
+        <Link key={a.to} to={a.to}
+          className="group flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg">
+          <span className={clsx('flex size-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm', a.tone)}>
+            <a.icon className="size-6" />
+          </span>
+          <span>
+            <span className="block text-lg font-bold leading-tight text-navy-900 group-hover:text-brand-700">{a.label}</span>
+            <span className="mt-0.5 block text-sm text-slate-600">{a.hint}</span>
+          </span>
+        </Link>
+      ))}
+    </nav>
   )
 }

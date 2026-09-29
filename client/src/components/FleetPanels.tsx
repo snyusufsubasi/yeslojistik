@@ -60,7 +60,7 @@ export function DocumentsPanel({ ownerType, ownerId }: { ownerType: DocumentOwne
             <tbody>
               {docs.data.map((d) => (
                 <tr key={d.id}>
-                  <td className="td font-medium">{documentTypeLabel[d.type]}{d.note && <span className="block text-[13px] font-normal text-slate-500">{d.note}</span>}</td>
+                  <td className="td font-medium">{documentTypeLabel[d.type]}{d.note && <span className="block text-sm font-normal text-slate-500">{d.note}</span>}</td>
                   <td className="td">{d.no ?? '—'}</td>
                   <td className="td">{date(d.expiryDate)} <DaysLeft days={d.daysLeft} /></td>
                   <td className="td">{d.hasFile
@@ -170,7 +170,7 @@ export function MaintenancePanel({ vehicleId, currentKm }: { vehicleId: number; 
                 <tr key={m.id}>
                   <td className="td">{date(m.date)}</td>
                   <td className="td"><span className="font-medium">{maintenanceTypeLabel[m.type]}</span>
-                    {(m.description || m.supplierTitle) && <span className="block text-[13px] text-slate-500">{[m.description, m.supplierTitle].filter(Boolean).join(' · ')}</span>}</td>
+                    {(m.description || m.supplierTitle) && <span className="block text-sm text-slate-500">{[m.description, m.supplierTitle].filter(Boolean).join(' · ')}</span>}</td>
                   <td className="td text-right">{m.km?.toLocaleString('tr-TR') ?? '—'}</td>
                   <td className="td text-right">{tl2(m.cost)}</td>
                   <td className="td">{[m.nextDueKm && `${m.nextDueKm.toLocaleString('tr-TR')} km`, m.nextDueDate && date(m.nextDueDate)].filter(Boolean).join(' · ') || '—'}</td>
@@ -272,12 +272,12 @@ export function DriverLedgerPanel({ driverId }: { driverId: number }) {
               <thead><tr><th className="th">Tarih</th><th className="th">İşlem</th><th className="th text-right">Verilen</th><th className="th text-right">Harcanan / İade</th><th className="th text-right">Bakiye</th><th className="th" /></tr></thead>
               <tbody>
                 {l.rows.map((r, i) => (
-                  <tr key={i} className={r.approvalStatus && r.approvalStatus !== 'Approved' ? 'text-slate-400' : ''}>
+                  <tr key={i} className={r.approvalStatus && r.approvalStatus !== 'Approved' ? 'text-slate-500' : ''}>
                     <td className="td">{date(r.date)}</td>
                     <td className="td">{r.kind}
                       {r.approvalStatus === 'Pending' && <span className="ml-1"><Badge tone="yellow">Onay bekliyor</Badge></span>}
                       {r.approvalStatus === 'Rejected' && <span className="ml-1"><Badge tone="red">Reddedildi</Badge></span>}
-                      {r.description && <span className="block text-[13px] text-slate-500">{r.description}</span>}</td>
+                      {r.description && <span className="block text-sm text-slate-500">{r.description}</span>}</td>
                     <td className="td text-right">{r.debit ? tl2(r.debit) : ''}</td>
                     <td className="td text-right">{r.credit ? tl2(r.credit) : ''}</td>
                     <td className="td text-right font-medium">{tl2(r.balance)}</td>
@@ -300,7 +300,7 @@ export function DriverLedgerPanel({ driverId }: { driverId: number }) {
 function Stat({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: string }) {
   return (
     <div className="rounded-lg border border-slate-200 px-3 py-2">
-      <div className="text-[13px] text-slate-500">{label}</div>
+      <div className="text-sm text-slate-500">{label}</div>
       <div className={`${strong ? 'text-lg font-bold' : 'font-semibold'} ${tone ?? 'text-slate-800'}`}>{value}</div>
     </div>
   )
