@@ -24,7 +24,8 @@ public record TripEventDto(long Id, TripStatus Status, DateTime OccurredAt, Date
     TripEventSource Source, string? Note);
 
 /// <param name="OccurredAt">Şoför uygulaması çevrimdışıyken durumun gerçekten değiştiği an.</param>
-public record TripStatusRequest(TripStatus Status, DateTime? OccurredAt = null, string? Note = null);
+/// <summary>Durum değişikliği. ReceivedBy: teslim alan kişi (yalnızca teslimde).</summary>
+public record TripStatusRequest(TripStatus Status, DateTime? OccurredAt = null, string? Note = null, string? ReceivedBy = null);
 
 public record TripQuery : ListQuery
 {

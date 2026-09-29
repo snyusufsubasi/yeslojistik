@@ -36,13 +36,23 @@ public class DriverAppService(AppDbContext db, TripService trips)
     }
 
     public async Task<DriverTripDto> ChangeStatusAsync(int driverId, int tripId, TripStatus status, CancellationToken ct = default,
-        DateTime? occurredAt = null, string? note = null)
+        DateTime? occurredAt = null, string? note = null, string? receivedBy = null)
     {
         await EnsureOwnAsync(driverId, tripId, ct);
         var current = await db.Trips.Where(t => t.Id == tripId).Select(t => t.Status).FirstAsync(ct);
+        // Çevrimdışı kuyruk aynı isteği tekrar gönderebilir: sefer zaten o durumdaysa hata vermeden mevcut hâli döner.
+        if (current == status) return await GetAsync(driverId, tripId, ct);
         if (!Forward.TryGetValue(current, out var next) || next != status)
             throw new DomainException("Bu durum değişikliği yalnızca ofisten yapılabilir.");
-        await trips.ChangeStatusAsync(tripId, status, TripEventSource.Driver, occurredAt, note, ct);
+        if (status == TripStatus.Delivered)
+        {
+            var s = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
+            if (s.RequireDeliveryPhoto && !await db.TripAttachments.AnyAsync(a => a.TripId == tripId && a.Kind == AttachmentKind.Photo, ct))
+                throw new DomainException("Teslim için en az bir teslim fotoğrafı yükleyin.");
+            if (s.RequireDeliverySignature && !await db.TripAttachments.AnyAsync(a => a.TripId == tripId && a.Kind == AttachmentKind.Signature, ct))
+                throw new DomainException("Teslim için teslim alan kişinin imzasını alın.");
+        }
+        await trips.ChangeStatusAsync(tripId, status, TripEventSource.Driver, occurredAt, note, ct, receivedBy);
         return await GetAsync(driverId, tripId, ct);
     }
 

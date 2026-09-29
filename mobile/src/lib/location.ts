@@ -67,7 +67,7 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(LOCATION_TASK, 
   await flushQueue(data.locations.map(toPing))
 })
 
-export type TrackingState = 'off' | 'on' | 'denied' | 'foreground-only'
+export type TrackingState = 'off' | 'on' | 'denied' | 'foreground-only' | 'no-consent'
 
 /**
  * Aktif sefer varken konum paylaşımını başlatır. Arka plan izni yoksa uygulama açıkken paylaşır.

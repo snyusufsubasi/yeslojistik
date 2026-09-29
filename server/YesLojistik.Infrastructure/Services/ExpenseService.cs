@@ -10,10 +10,11 @@ namespace YesLojistik.Infrastructure.Services;
 /// <summary>Gider kaydı: panel ve şoför uygulaması aynı kuralları kullanır.</summary>
 public class ExpenseService(AppDbContext db, IFileStorage storage)
 {
-    public async Task<int> CreateAsync(ExpenseSaveRequest req, CancellationToken ct = default)
+    public async Task<int> CreateAsync(ExpenseSaveRequest req, CancellationToken ct = default, Action<Expense>? extra = null)
     {
         var e = new Expense();
         await ApplyAsync(e, req, ct);
+        extra?.Invoke(e);
         db.Expenses.Add(e);
         await db.SaveChangesAsync(ct);
         return e.Id;

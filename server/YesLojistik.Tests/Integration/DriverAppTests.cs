@@ -235,4 +235,96 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await (await s.Admin.GetAsync($"/api/vehicles/{s.VehicleId}")).ReadAsync<VehicleDto>()).Km.Should().Be(12_345);
         (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000 - 8_900 - 450);
     }
+
+    [Fact]
+    public async Task Offline_queue_retries_do_not_duplicate()
+    {
+        var s = await SetupAsync("110");
+        var key = Guid.NewGuid();
+        async Task<HttpResponseMessage> Post()
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"/api/driver/trips/{s.TripId}/expenses")
+            { Content = JsonContent.Create(new DriverExpenseRequest(ExpenseCategory.Toll, 300, null, null, "Köprü")) };
+            req.Headers.Add("Idempotency-Key", key.ToString());
+            return await s.Driver.SendAsync(req);
+        }
+        var first = await (await Post()).ReadAsync<DriverExpenseDto>();
+        var second = await (await Post()).ReadAsync<DriverExpenseDto>();
+        second.Id.Should().Be(first.Id);
+        first.ApprovalStatus.Should().Be(ApprovalStatus.Pending);
+        var office = await (await s.Admin.GetAsync($"/api/expenses?tripId={s.TripId}")).ReadAsync<PagedResult<ExpenseDto>>();
+        office.Items.Should().ContainSingle().Which.Should().BeEquivalentTo(new { PaidBy = ExpensePaidBy.Driver, ApprovalStatus = ApprovalStatus.Pending });
+
+        // Fotoğraf: aynı anahtarla iki yükleme tek dosya
+        var photoKey = Guid.NewGuid().ToString();
+        for (var i = 0; i < 2; i++)
+        {
+            using var form = new MultipartFormDataContent();
+            form.Add(new ByteArrayContent(Jpeg) { Headers = { ContentType = new MediaTypeHeaderValue("image/jpeg") } }, "file", "fis.jpg");
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"/api/driver/trips/{s.TripId}/attachments") { Content = form };
+            req.Headers.Add("Idempotency-Key", photoKey);
+            (await s.Driver.SendAsync(req)).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}/attachments")).ReadAsync<List<AttachmentDto>>()).Should().ContainSingle();
+
+        // Fiş fotoğrafı
+        using var receipt = new MultipartFormDataContent();
+        receipt.Add(new ByteArrayContent(Jpeg) { Headers = { ContentType = new MediaTypeHeaderValue("image/jpeg") } }, "file", "fis.jpg");
+        (await s.Driver.PostAsync($"/api/driver/expenses/{first.Id}/receipt", receipt)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Aynı durum iki kez gelirse 200
+        var status = new TripStatusRequest(TripStatus.Loaded, DateTime.UtcNow.AddMinutes(-30));
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", status)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", status)).StatusCode.Should().Be(HttpStatusCode.OK);
+        var events = await (await s.Admin.GetAsync($"/api/trips/{s.TripId}/events")).ReadAsync<List<TripEventView>>();
+        events.Where(e => e.Status == TripStatus.Loaded).Should().ContainSingle()
+            .Which.OccurredAt.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(-30), TimeSpan.FromMinutes(1));
+    }
+
+    private record TripEventView(TripStatus Status, DateTime OccurredAt);
+
+    [Fact]
+    public async Task Delivery_requires_signature_when_enabled_and_records_receiver()
+    {
+        var s = await SetupAsync("111");
+        var settings = await (await s.Admin.GetAsync("/api/settings")).ReadAsync<CompanySettingsDto>();
+        (await s.Admin.PutJsonAsync("/api/settings", settings with { RequireDeliverySignature = true })).EnsureSuccessStatusCode();
+        try
+        {
+            foreach (var st in new[] { TripStatus.Loaded, TripStatus.OnRoad })
+                (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(st))).EnsureSuccessStatusCode();
+            var deliver = new TripStatusRequest(TripStatus.Delivered, null, null, "Ayşe Yılmaz");
+            (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", deliver)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+            byte[] png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52];
+            using var form = new MultipartFormDataContent();
+            form.Add(new ByteArrayContent(png) { Headers = { ContentType = new MediaTypeHeaderValue("image/png") } }, "file", "imza.png");
+            form.Add(new StringContent("Signature"), "kind");
+            (await s.Driver.PostAsync($"/api/driver/trips/{s.TripId}/attachments", form)).EnsureSuccessStatusCode();
+            (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", deliver)).EnsureSuccessStatusCode();
+            var trip = await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>();
+            trip.ReceivedBy.Should().Be("Ayşe Yılmaz");
+            trip.Status.Should().Be(TripStatus.Delivered);
+        }
+        finally
+        {
+            (await s.Admin.PutJsonAsync("/api/settings", settings with { RequireDeliverySignature = false })).EnsureSuccessStatusCode();
+        }
+    }
+
+    [Fact]
+    public async Task Location_consent_is_recorded_and_visible_to_office()
+    {
+        var s = await SetupAsync("112");
+        (await s.Driver.PostJsonAsync("/api/driver/consent", new LocationConsentRequest(true, "1"))).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var me = await (await s.Driver.GetAsync("/api/driver/me")).ReadAsync<DriverProfileDto>();
+        me.LocationConsentAt.Should().NotBeNull();
+        me.LocationConsentVersion.Should().Be("1");
+        var drivers = await (await s.Admin.GetAsync("/api/drivers?search=Şoför 112")).ReadAsync<PagedResult<DriverDto>>();
+        drivers.Items.Single(d => d.Id == s.DriverId).Should().BeEquivalentTo(new { HasAppAccount = true });
+        drivers.Items.Single(d => d.Id == s.DriverId).LocationConsentAt.Should().NotBeNull();
+
+        (await s.Driver.PostJsonAsync("/api/driver/consent", new LocationConsentRequest(false, "1"))).EnsureSuccessStatusCode();
+        (await (await s.Driver.GetAsync("/api/driver/me")).ReadAsync<DriverProfileDto>()).LocationConsentAt.Should().BeNull();
+    }
 }

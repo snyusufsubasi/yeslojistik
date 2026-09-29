@@ -1,10 +1,12 @@
 export type TripStatus = 'Planned' | 'Loaded' | 'OnRoad' | 'Delivered' | 'Cancelled'
 
+export type Role = 'Admin' | 'Operations' | 'Accounting' | 'Driver'
+
 export interface User {
   id: number
   fullName: string
   email: string
-  role: 'Admin' | 'Operations' | 'Accounting' | 'Driver'
+  role: Role
 }
 
 export interface TokenResponse {
@@ -21,6 +23,13 @@ export interface DriverProfile {
   vehiclePlate?: string | null
   companyName: string
   companyPhone?: string | null
+  licenseExpiry?: string | null
+  srcExpiry?: string | null
+  psychotechnicExpiry?: string | null
+  locationConsentAt?: string | null
+  locationConsentVersion?: string | null
+  requireDeliveryPhoto?: boolean
+  requireDeliverySignature?: boolean
 }
 
 export interface DriverTrip {
@@ -72,4 +81,6 @@ export interface DriverExpense {
   liters?: number | null
   odometer?: number | null
   description?: string | null
+  approvalStatus?: 'Approved' | 'Pending' | 'Rejected'
+  hasReceipt?: boolean
 }

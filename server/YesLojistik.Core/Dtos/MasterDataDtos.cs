@@ -30,7 +30,7 @@ public record VehicleSaveRequest(string Plate, string Type, string? Brand, strin
 
 public record DriverDto(int Id, string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,
-    string? SupplierTitle = null);
+    string? SupplierTitle = null, bool HasAppAccount = false, DateTime? LocationConsentAt = null);
 
 public record DriverSaveRequest(string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null);

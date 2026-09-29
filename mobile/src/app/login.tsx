@@ -37,7 +37,7 @@ export default function LoginScreen() {
           <Text style={s.brand}>YES LOJİSTİK</Text>
           <Text style={s.slogan}>Güvenle, Her Yere...</Text>
           <View style={s.card}>
-            <Text style={s.title}>Şoför Girişi</Text>
+            <Text style={s.title}>Giriş</Text>
             <Text style={s.label}>E-posta</Text>
             <TextInput style={s.input} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email"
               keyboardType="email-address" placeholder="ornek@yeslojistik.com" accessibilityLabel="E-posta" />
@@ -48,7 +48,7 @@ export default function LoginScreen() {
               <>
                 <Text style={s.label}>Sunucu adresi</Text>
                 <TextInput style={s.input} value={server} onChangeText={setServer} autoCapitalize="none" keyboardType="url"
-                  placeholder="https://panel.yeslojistik.com" accessibilityLabel="Sunucu adresi" />
+                  placeholder="https://yeslojistik.onrender.com" accessibilityLabel="Sunucu adresi" />
               </>
             )}
             {!!error && <Text style={s.error}>{error}</Text>}

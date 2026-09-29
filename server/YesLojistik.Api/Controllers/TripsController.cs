@@ -57,7 +57,7 @@ public class TripsController(TripService trips) : ControllerBase
     [Authorize(Policy = Policies.Operations)]
     [HttpPost("{id:int}/status")]
     public Task<TripDto> ChangeStatus(int id, TripStatusRequest req, CancellationToken ct) =>
-        trips.ChangeStatusAsync(id, req.Status, Core.Entities.TripEventSource.Panel, null, req.Note, ct);
+        trips.ChangeStatusAsync(id, req.Status, Core.Entities.TripEventSource.Panel, null, req.Note, ct, req.ReceivedBy);
 
     /// <summary>Durum zaman çizelgesi (ne zaman yüklendi, yola çıktı, teslim edildi).</summary>
     [HttpGet("{id:int}/events")]

@@ -4,4 +4,4 @@ public record CompanySettingsDto(string CompanyName, string? Slogan, string? Tax
     string? Phone, string? Email, string? Iban, string? LogoDataUrl, string InvoicePrefix, int NextInvoiceNumber,
     decimal DefaultVatRate, int DefaultWithholdingTenths, int DefaultPaymentTermDays, bool EmailEnabled = false, bool DailyDigestEnabled = false,
     string? City = null, string? District = null, string? MersisNo = null, string? TradeRegistryNo = null, string? Website = null,
-    DateTime? LastBackupAt = null, DateTime? SampleDataClearedAt = null);
+    DateTime? LastBackupAt = null, DateTime? SampleDataClearedAt = null, bool RequireDeliveryPhoto = false, bool RequireDeliverySignature = false);

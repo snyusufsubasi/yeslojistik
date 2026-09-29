@@ -55,7 +55,9 @@ export default function ExpensesPage() {
 
   const columns: Column<Expense>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'date', render: (e) => date(e.date) },
-    { key: 'cat', header: 'Kategori', sortKey: 'category', render: (e) => <Badge tone="blue">{expenseCategoryLabel[e.category]}</Badge> },
+    { key: 'cat', header: 'Kategori', sortKey: 'category', render: (e) => <><Badge tone="blue">{expenseCategoryLabel[e.category]}</Badge>
+      {e.approvalStatus === 'Pending' && <span className="mt-1 block"><Badge tone="yellow">Onay bekliyor</Badge></span>}
+      {e.paidBy === 'Driver' && <span className="mt-0.5 block text-[13px] text-slate-500">Şoför ödedi</span>}</> },
     { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-[13px] text-slate-500">{e.driverName}</span>}</> },
     { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
     { key: 'desc', header: 'Açıklama', render: (e) => <>{e.description ?? ''}{e.supplierTitle && <span className="block text-[13px] text-slate-500">{e.supplierTitle}{e.isOnCredit && ' · vadeli'}</span>}

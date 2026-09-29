@@ -1,12 +1,14 @@
 import Constants from 'expo-constants'
 import { storage } from './storage'
-import type { TokenResponse } from './types'
+import type { Role, TokenResponse } from './types'
 
 const KEY_SERVER = 'yl.server'
 const KEY_ACCESS = 'yl.access'
 const KEY_REFRESH = 'yl.refresh'
+const KEY_ROLE = 'yl.role'
 
 export const defaultServer = (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? ''
+const legacyServers = (Constants.expoConfig?.extra?.legacyApiUrls as string[] | undefined) ?? []
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
@@ -14,19 +16,31 @@ export class ApiError extends Error {
   }
 }
 
+/** Kayıtlı sunucu; eski (taşınmış) bir adresse yeni adrese geçirilir. */
 export async function getServer() {
-  return (await storage.get(KEY_SERVER)) ?? defaultServer
+  const saved = await storage.get(KEY_SERVER)
+  if (saved && legacyServers.includes(saved) && defaultServer) {
+    await storage.set(KEY_SERVER, defaultServer)
+    return defaultServer
+  }
+  return saved ?? defaultServer
 }
 
 export async function saveSession(server: string, t: TokenResponse) {
   await storage.set(KEY_SERVER, server)
   await storage.set(KEY_ACCESS, t.accessToken)
   await storage.set(KEY_REFRESH, t.refreshToken)
+  await storage.set(KEY_ROLE, t.user.role)
 }
 
 export async function clearSession() {
   await storage.remove(KEY_ACCESS)
   await storage.remove(KEY_REFRESH)
+  await storage.remove(KEY_ROLE)
+}
+
+export async function getRole(): Promise<Role | null> {
+  return (await storage.get(KEY_ROLE)) as Role | null
 }
 
 export async function hasSession() {
@@ -64,9 +78,6 @@ export async function login(server: string, email: string, password: string) {
   }
   if (!res.ok) throw new ApiError(await readError(res), res.status)
   const data = (await res.json()) as TokenResponse
-  if (data.user.role !== 'Driver') {
-    throw new ApiError('Bu uygulama yalnızca şoför hesapları içindir. Ofis kullanıcıları web panelini kullanmalıdır.', 403)
-  }
   await saveSession(base, data)
   return data
 }
@@ -127,8 +138,10 @@ export async function request<T>(path: string, init: RequestInit = {}, retried =
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body ?? {}) }),
+  post: <T>(path: string, body?: unknown, headers?: Record<string, string>) =>
+    request<T>(path, { method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body ?? {}), headers }),
+  put: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body ?? {}) }),
+  del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
 
 export async function logout() {

@@ -127,3 +127,11 @@ Herkes tüm kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
 
 *Ayarlar → Firma Bilgileri* ekranında fatura PDF'inde görünecek firma bilgileri, logo, IBAN, fatura ön eki,
 varsayılan KDV/tevkifat ve vade süresi ayarlanır.
+
+## Şoför uygulaması: teslim ve masraf
+
+- Şoför teslimde teslim alanın adını, imzasını ve fotoğrafını alır; bunlar seferin **Dosyalar** sekmesine, teslim alan kişi seferin bilgisine düşer.
+- **Ayarlar → Bildirimler → Teslim kuralları** ile teslimde fotoğraf ve/veya imza zorunlu yapılabilir.
+- Şoförün girdiği masraflar **Giderler**'de *Onay bekliyor* ve *Şoför ödedi* olarak görünür (onay akışı sonraki sürümde).
+- **Şoförler** listesindeki *Uygulama* sütunu, şoförün konum paylaşımına onay verip vermediğini gösterir.
+- Kurulum ve izin adımları şoförlere gönderilecek [MOBIL-KURULUM.md](MOBIL-KURULUM.md) dosyasında.

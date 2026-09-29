@@ -39,7 +39,8 @@ public record PaymentQuery : ListQuery
 public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId,
     string? VehiclePlate, int? TripId, string? TripLabel, string? Description,
     int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null,
-    int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false);
+    int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false,
+    ExpensePaidBy PaidBy = ExpensePaidBy.Company, ApprovalStatus ApprovalStatus = ApprovalStatus.Approved);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
     string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null, int? SupplierId = null,

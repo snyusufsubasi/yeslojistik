@@ -39,4 +39,13 @@ public record PushTokenRequest(string Token, string? Platform);
 /// <summary>Şoförün yolda girdiği masraf (yakıt, otoyol, bakım/onarım, diğer).</summary>
 public record DriverExpenseRequest(ExpenseCategory Category, decimal Amount, decimal? Liters, int? Odometer, string? Description);
 
-public record DriverExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, decimal? Liters, int? Odometer, string? Description);
+public record DriverExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, decimal? Liters, int? Odometer, string? Description,
+    ApprovalStatus ApprovalStatus = ApprovalStatus.Approved, bool HasReceipt = false);
+
+/// <summary>Konum paylaşımı rızası. Version: uygulamada gösterilen açıklama metninin sürümü.</summary>
+public record LocationConsentRequest(bool Accepted, string Version);
+
+/// <summary>Şoförün ana ekranı: kendi bilgileri, belge bitiş tarihleri ve firmanın teslim kuralları.</summary>
+public record DriverProfileDto(int DriverId, string FullName, string? Phone, string? VehiclePlate, string CompanyName, string? CompanyPhone,
+    DateOnly? LicenseExpiry = null, DateOnly? SrcExpiry = null, DateOnly? PsychotechnicExpiry = null, DateTime? LocationConsentAt = null,
+    string? LocationConsentVersion = null, bool RequireDeliveryPhoto = false, bool RequireDeliverySignature = false);

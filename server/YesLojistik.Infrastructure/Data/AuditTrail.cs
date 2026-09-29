@@ -34,6 +34,8 @@ internal static class AuditTrail
         ["LoadingCity"] = "Yükleme ili", ["DeliveryCity"] = "Teslim ili", ["LoadingContact"] = "Yüklemede yetkili", ["DeliveryContact"] = "Teslimde yetkili",
         ["CarrierSupplierId"] = "Taşeron", ["CarrierInvoiceNo"] = "Taşeron fatura no", ["CarrierInvoiceDate"] = "Taşeron fatura tarihi",
         ["ReceivedBy"] = "Teslim alan", ["IsOnCredit"] = "Vadeli", ["TripId"] = "Sefer", ["DeliveredAt"] = "Teslim anı", ["IsEInvoiceUser"] = "e-Fatura mükellefi", ["EInvoiceAlias"] = "PK etiketi",
+        ["PaidBy"] = "Ödeyen", ["ApprovalStatus"] = "Onay", ["LocationConsentAt"] = "Konum izni", ["LocationConsentVersion"] = "İzin metni sürümü",
+        ["RequireDeliveryPhoto"] = "Teslimde fotoğraf zorunlu", ["RequireDeliverySignature"] = "Teslimde imza zorunlu", ["ClientRequestId"] = "İstek kimliği",
         ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
     };
 
@@ -95,6 +97,8 @@ internal static class AuditTrail
         ["ExpenseCategory.Tire"] = "Lastik", ["ExpenseCategory.Insurance"] = "Sigorta/Kasko", ["ExpenseCategory.Tax"] = "Vergi/Harç",
         ["ExpenseCategory.Other"] = "Diğer",
         ["SupplierKind.Carrier"] = "Taşeron", ["SupplierKind.Service"] = "Servis", ["SupplierKind.Fuel"] = "Akaryakıt", ["SupplierKind.Other"] = "Diğer",
+        ["ExpensePaidBy.Company"] = "Firma", ["ExpensePaidBy.Driver"] = "Şoför",
+        ["ApprovalStatus.Approved"] = "Onaylı", ["ApprovalStatus.Pending"] = "Onay bekliyor", ["ApprovalStatus.Rejected"] = "Reddedildi",
         ["VehicleOwnership.Own"] = "Özmal", ["VehicleOwnership.Rented"] = "Kiralık",
         ["AttachmentKind.Photo"] = "Fotoğraf", ["AttachmentKind.Document"] = "Belge", ["AttachmentKind.Signature"] = "İmza",
     };
