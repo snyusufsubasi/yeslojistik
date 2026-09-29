@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { IdCard, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -15,6 +15,9 @@ import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { FormSelect } from '../components/FormSelect'
 import { DueDate } from './VehiclesPage'
+import { ChoiceCards, ControlledToggle } from '../components/Choice'
+import { DateQuick, MoreFields, Section, SuggestChips } from '../components/Inputs'
+import { companyIcon, vehicleOwnershipIcon } from '../lib/icons'
 
 const schema = z.object({
   fullName: req('Ad soyad zorunlu.'),
@@ -106,7 +109,7 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
   const editable = can('operations')
   const [tab, setTab] = useState<'info' | 'docs' | 'ledger'>(editable || !driver ? 'info' : 'ledger')
   const suppliers = useLookup('suppliers')
-  const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setError, setValue, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       fullName: driver?.fullName ?? '', phone: driver?.phone ?? '', nationalId: driver?.nationalId ?? '',
@@ -118,7 +121,12 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
     invalidate: ['drivers', 'vehicles'], success: driver ? 'Şoför güncellendi.' : 'Şoför eklendi.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
-  const submit = handleSubmit((v) => save.mutate(v))
+  const [carrier, setCarrier] = useState(driver?.supplierId != null)
+  const submit = handleSubmit((v) => {
+    if (carrier && v.supplierId == null) { setError('supplierId', { message: 'Şoförün çalıştığı taşeronu seçin.' }); return }
+    save.mutate(v)
+  })
+  const licenseClass = useWatch({ control, name: 'licenseClass' })
   return (
     <Modal open onClose={onClose} title={driver ? driver.fullName : 'Yeni Şoför'} size={tab === 'info' ? 'md' : 'lg'}
       footer={tab === 'info' && editable ? <><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>
@@ -127,19 +135,44 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
         tabs={[{ value: 'info', label: 'Bilgiler' }, { value: 'docs', label: 'Belgeler' }, { value: 'ledger', label: 'Hesap' }]} /></div>}
       {driver && tab === 'docs' && <DocumentsPanel ownerType="Driver" ownerId={driver.id} />}
       {driver && tab === 'ledger' && <DriverLedgerPanel driverId={driver.id} />}
-      <form onSubmit={submit} className={tab === 'info' ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
-        <fieldset disabled={!editable} className="contents">
-        <Field label="Ad Soyad" required error={errors.fullName?.message}><input className="input" {...register('fullName')} /></Field>
-        <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0532 123 45 67" {...register('phone')} /></Field>
-        <Field label="TC Kimlik No" error={errors.nationalId?.message}><input className="input" inputMode="numeric" maxLength={11} {...register('nationalId')} /></Field>
-        <Field label="Ehliyet Sınıfı" error={errors.licenseClass?.message}><input className="input uppercase" placeholder="CE" {...register('licenseClass')} /></Field>
-        <Field label="Ehliyet Bitiş"><input className="input" type="date" {...register('licenseExpiry')} /></Field>
-        <Field label="SRC Belgesi Bitiş"><input className="input" type="date" {...register('srcExpiry')} /></Field>
-        <Field label="Psikoteknik Bitiş"><input className="input" type="date" {...register('psychotechnicExpiry')} /></Field>
-        <Field label="Çalıştığı taşeron" hint="Boş: firmanın kendi şoförü. Taşeron şoförleri belge uyarılarına girmez.">
-          <FormSelect control={control} name="supplierId" placeholder="Kendi şoförümüz" options={(suppliers.data ?? []).filter((s) => s.extra === 'Carrier').map((s) => ({ value: s.id, label: s.label }))} />
-        </Field>
-        <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" {...register('isActive')} /> Aktif</label>
+      <form onSubmit={submit} className={tab === 'info' ? '' : 'hidden'}>
+        <fieldset disabled={!editable} className="min-w-0 space-y-6">
+        <Section n={1} title="Kim?">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Ad Soyad" required error={errors.fullName?.message}><input className="input" {...register('fullName')} /></Field>
+            <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0532 123 45 67" {...register('phone')} /></Field>
+            <Field group className="sm:col-span-2" label="Kimin şoförü?" hint="Taşeron şoförleri belge uyarılarına girmez.">
+              <ChoiceCards label="Şoför kimin" columns={2} value={carrier ? 'carrier' : 'own'} disabled={!editable}
+                onChange={(v) => { setCarrier(v === 'carrier'); if (v === 'own') setValue('supplierId', null) }}
+                options={[{ value: 'own', label: 'Kendi şoförümüz', icon: companyIcon }, { value: 'carrier', label: 'Taşeron şoförü', icon: vehicleOwnershipIcon.Rented }]} />
+            </Field>
+            {carrier && (
+              <Field className="sm:col-span-2" label="Çalıştığı taşeron" error={errors.supplierId?.message}>
+                <FormSelect control={control} name="supplierId" placeholder="Taşeron seçin" options={(suppliers.data ?? []).filter((s) => s.extra === 'Carrier').map((s) => ({ value: s.id, label: s.label }))} />
+              </Field>
+            )}
+          </div>
+        </Section>
+        <Section n={2} title="Ehliyet ve belgeler" hint="Bitişe 30 gün kala uyarı çıkar.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Ehliyet Sınıfı" error={errors.licenseClass?.message}>
+              <input className="input uppercase" placeholder="CE" {...register('licenseClass')} />
+              <SuggestChips values={['B', 'C', 'CE', 'D', 'DE']} value={licenseClass} disabled={!editable}
+                onPick={(v) => setValue('licenseClass', v, { shouldDirty: true })} />
+            </Field>
+            <Field label="Ehliyet Bitiş"><DateQuick control={control} name="licenseExpiry" quick="expiry" years={[5, 10]} disabled={!editable} /></Field>
+            <Field label="SRC Belgesi Bitiş"><DateQuick control={control} name="srcExpiry" quick="expiry" years={[5]} disabled={!editable} /></Field>
+            <Field label="Psikoteknik Bitiş"><DateQuick control={control} name="psychotechnicExpiry" quick="expiry" years={[5]} disabled={!editable} /></Field>
+          </div>
+        </Section>
+        <MoreFields title="TC kimlik no ve durum (isteğe bağlı)" defaultOpen={!!driver} hasError={!!errors.nationalId}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="TC Kimlik No" error={errors.nationalId?.message}><input className="input" inputMode="numeric" maxLength={11} {...register('nationalId')} /></Field>
+            <Field group label="Durum" hint="Pasif şoförler yeni seferde listelenmez.">
+              <ControlledToggle control={control} name="isActive" label="Şoför durumu" labels={['Aktif', 'Pasif']} disabled={!editable} />
+            </Field>
+          </div>
+        </MoreFields>
         </fieldset>
         <button type="submit" className="hidden" />
       </form>

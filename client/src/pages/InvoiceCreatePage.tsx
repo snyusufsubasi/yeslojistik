@@ -8,8 +8,12 @@ import { Badge, Button, Card, Empty, Field, IconButton, PageHeader, Select, Spin
 import { addDaysIso, date, tl2, todayIso } from '../lib/format'
 import { useLookup, useSave } from '../lib/hooks'
 import { tripStatusLabel, tripStatusTone, withholdingOptions } from '../lib/labels'
+import { ChoiceChips } from '../components/Choice'
 
 const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100
+const dueDays = [0, 15, 30, 60, 90]
+/** Faturaya sık eklenen ek kalemler: tıklayınca açıklaması dolu satır eklenir, tutar girilir. */
+const quickLines = ['Bekleme ücreti', 'Hamaliye', 'Ek teslim noktası', 'Ardiye']
 
 interface ExtraLine { key: number; description: string; amount: string }
 
@@ -105,6 +109,15 @@ export default function InvoiceCreatePage() {
           </Card>
           <Card title="Ek Satırlar" actions={<Button size="sm" variant="secondary" icon={<Plus className="size-3.5" />} disabled={customerId === ''}
             onClick={() => setExtra((x) => [...x, { key: Date.now(), description: '', amount: '' }])}>Satır Ekle</Button>}>
+            {customerId !== '' && (
+              <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-sm text-slate-600">Hızlı ekle:</span>
+                {quickLines.map((d) => (
+                  <button key={d} type="button" className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    onClick={() => setExtra((x) => [...x, { key: Date.now(), description: d, amount: '' }])}>+ {d}</button>
+                ))}
+              </div>
+            )}
             {extra.length === 0 ? <p className="text-sm text-slate-500">Hamaliye, bekleme ücreti gibi ek kalemler ekleyebilirsiniz.</p> : (
               <div className="space-y-2">
                 {extra.map((l, i) => (
@@ -123,16 +136,21 @@ export default function InvoiceCreatePage() {
 
         <Card title="Fatura Bilgileri" className="h-fit xl:sticky xl:top-20">
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Fatura Tarihi" required><input className="input" type="date" value={invDate} onChange={(e) => setInvDate(e.target.value)} /></Field>
-              <Field label="Vade Tarihi"><input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
-              <Field label="KDV (%)">
-                <Select value={vatRate} onChange={(v) => setVatRate(v === '' ? 0 : v)} options={[0, 1, 10, 20].map((v) => ({ value: v, label: `%${v}` }))} />
-              </Field>
-              <Field label="KDV Tevkifatı">
-                <Select value={withholding} onChange={(v) => setWithholding(v === '' ? 0 : v)} options={withholdingOptions} />
-              </Field>
-            </div>
+            <Field label="Fatura Tarihi" required><input className="input" type="date" value={invDate} onChange={(e) => setInvDate(e.target.value)} /></Field>
+            <Field group label="Vade">
+              <input className="input" type="date" aria-label="Vade Tarihi" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <div className="mt-2">
+                <ChoiceChips label="Vade günü" value={dueDays.find((d) => addDaysIso(invDate, d) === dueDate) ?? ''}
+                  onChange={(d) => setDueDate(addDaysIso(invDate, d))}
+                  options={dueDays.map((d) => ({ value: d, label: d === 0 ? 'Peşin' : `${d} gün` }))} />
+              </div>
+            </Field>
+            <Field group label="KDV oranı">
+              <ChoiceChips label="KDV oranı" value={vatRate} onChange={setVatRate} options={[0, 1, 10, 20].map((v) => ({ value: v, label: `%${v}` }))} />
+            </Field>
+            <Field group label="KDV tevkifatı" hint="Nakliyede genelde 2/10.">
+              <ChoiceChips label="KDV tevkifatı" value={withholding} onChange={setWithholding} options={withholdingOptions} />
+            </Field>
             <Field label="Not"><textarea className="input min-h-16" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
             <div className="space-y-1 rounded-lg bg-slate-50 p-3 text-sm">
               <Line label={`Ara Toplam (${lineAmounts.length} kalem)`} value={subtotal} />

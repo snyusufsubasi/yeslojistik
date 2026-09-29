@@ -226,6 +226,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   const sd = page.getByRole('dialog', { name: 'Yeni Tedarikçi' })
   await sd.getByLabel(/^Ünvan/).fill(`E2E Nakliyat ${u}`)
   await sd.getByLabel('IBAN').fill('TR33 0006 1005 1978 6457 8413 26')
+  await sd.getByRole('button', { name: /Vergi, adres/ }).click()
   await sd.locator('select[name="city"]').selectOption('Kocaeli')
   await sd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByRole('heading', { name: `E2E Nakliyat ${u}` })).toBeVisible()
@@ -236,7 +237,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   const plate = `41 E ${u.slice(-4)}`
   await vd.getByLabel(/^Plaka/).fill(plate)
   await vd.getByLabel(/^Araç Tipi/).fill('Tır')
-  await vd.locator('select[name=ownership]').selectOption('Rented')
+  await vd.getByRole('radio', { name: 'Kiralık (taşeron)' }).click()
   await vd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(vd.getByText('Kiralık araç için araç sahibini seçin.')).toBeVisible()
   await vd.locator('select[name=supplierId]').selectOption({ label: `E2E Nakliyat ${u}` })

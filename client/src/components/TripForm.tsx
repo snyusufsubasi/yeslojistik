@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query'
 import { errorMessage, get, openPdf, post } from '../api/client'
 import type { CustomerRisk, Driver, Trip, TripEvent, TripStatus, Vehicle } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
-import { dateTime, moneyHint, tl, todayIso } from '../lib/format'
+import { dateTime, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { tripEventSourceLabel, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 import { CityOptions } from './CityOptions'
@@ -23,6 +23,8 @@ import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
 import { TripAttachments, TripTracking } from './TripExtras'
 import { AuditLogTable } from './AuditLog'
+import { AmountInput, DateQuick, MoreFields, Section, SuggestChips } from './Inputs'
+import { vehicleOwnershipIcon } from '../lib/icons'
 import { useAuth } from '../lib/auth'
 
 const schema = z.object({
@@ -126,6 +128,9 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     enabled: !!vehicleId && !Number.isNaN(vehicleId),
   })
   const rented = vehicle.data?.ownership === 'Rented'
+  const loadingDate = useWatch({ control, name: 'loadingDate' })
+  const cargoType = useWatch({ control, name: 'cargoType' })
+  const cargoUnit = useWatch({ control, name: 'cargoUnit' })
 
   const onVehicleChange = (id: number) => {
     // Taşeron ve dorse yeni aracın bilgisinden gelsin (sunucu boş alanları araçtan doldurur).
@@ -188,124 +193,136 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           Bu sefer {trip?.invoiceNo} numaralı faturaya bağlı. Müşteri ve satış fiyatı değiştirilemez.
         </p>
       )}
-      <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit((v) => save.mutate(v))}>
-        <div className="space-y-3">
-          <Field label="Müşteri" required error={errors.customerId?.message}>
-            <FormSelect control={control} name="customerId" disabled={invoiced}
-              options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
-            <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
+      <form className="space-y-6" onSubmit={handleSubmit((v) => save.mutate(v))}>
+        <Section n={1} title="Müşteri ve güzergâh">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Müşteri" required error={errors.customerId?.message}>
+              <FormSelect control={control} name="customerId" disabled={invoiced}
+                options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
+              <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
+            </Field>
+            <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
+              <input className="input" placeholder="4500123" {...register('customerReference')} />
+            </Field>
             {overLimit && risk.data && (
-              <p role="alert" className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-sm text-red-700">
+              <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-base text-red-800 md:col-span-2">
                 Risk limiti aşılıyor: açık bakiye {tl(risk.data.openBalance)} + faturalanmamış {tl(risk.data.uninvoicedDelivered)} + bu sefer {tl(Number(price) || 0)} &gt; limit {tl(risk.data.creditLimit!)}. Kayıt yine de yapılabilir.
               </p>
             )}
-          </Field>
-          <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
-            <input className="input" placeholder="4500123" {...register('customerReference')} />
-          </Field>
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-            <Field label="Yükleme İli" error={errors.loadingCity?.message}><select className="input" {...register('loadingCity')}><CityOptions placeholder="İl" /></select></Field>
-            <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
-              <input className="input" placeholder="Tuzla OSB" {...register('loadingAddress')} />
-            </Field>
-          </div>
-          <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-            <Field label="Teslim İli" error={errors.deliveryCity?.message}><select className="input" {...register('deliveryCity')}><CityOptions placeholder="İl" /></select></Field>
-            <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
-              <input className="input" placeholder="Balçova" {...register('deliveryAddress')} />
-            </Field>
-          </div>
-          <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
-          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+              <Field label="Yükleme İli" error={errors.loadingCity?.message}><select className="input" {...register('loadingCity')}><CityOptions placeholder="İl" /></select></Field>
+              <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
+                <input className="input" placeholder="Tuzla OSB" {...register('loadingAddress')} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+              <Field label="Teslim İli" error={errors.deliveryCity?.message}><select className="input" {...register('deliveryCity')}><CityOptions placeholder="İl" /></select></Field>
+              <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
+                <input className="input" placeholder="Balçova" {...register('deliveryAddress')} />
+              </Field>
+            </div>
             <Field label="Yükleme Tarihi" required error={errors.loadingDate?.message}>
-              <input className="input" type="date" {...register('loadingDate')} />
+              <DateQuick control={control} name="loadingDate" />
             </Field>
-            <Field label="Teslim Tarihi" error={errors.deliveryDate?.message}>
-              <input className="input" type="date" {...register('deliveryDate')} />
+            <Field label="Teslim Tarihi" error={errors.deliveryDate?.message} hint="Yükleme gününden kaç gün sonra?">
+              <DateQuick control={control} name="deliveryDate" quick="due" from={loadingDate} dueDays={[1, 2, 3]} />
             </Field>
+            {trip?.receivedBy && (
+              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-base text-emerald-800 md:col-span-2">
+                Teslim alan: <b>{trip.receivedBy}</b>{trip.deliveredAt && ` · ${dateTime(trip.deliveredAt)}`}
+              </p>
+            )}
           </div>
-          {trip?.receivedBy && (
-            <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              Teslim alan: <b>{trip.receivedBy}</b>{trip.deliveredAt && ` · ${dateTime(trip.deliveredAt)}`}
-            </p>
-          )}
-          <Field label="Açıklama" error={errors.description?.message}>
-            <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
-          </Field>
-        </div>
-        <div className="space-y-3">
-          <Field label="Araç" required error={errors.vehicleId?.message}>
-            <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange}
-              options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
-            <MissingHint show={vehicles.data?.length === 0} to="/araclar" text="Henüz araç yok — önce araç ekleyin →" />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Şoför" required error={errors.driverId?.message}>
+        </Section>
+
+        <Section n={2} title="Araç ve şoför">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Araç" required error={errors.vehicleId?.message}>
+              <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange}
+                options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
+              <MissingHint show={vehicles.data?.length === 0} to="/araclar?new=1" text="Henüz araç yok — önce araç ekleyin →" />
+            </Field>
+            <Field label="Şoför" required error={errors.driverId?.message} hint="Araç seçince aracın varsayılan şoförü gelir.">
               <FormSelect control={control} name="driverId" options={[
                 ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
                 ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
               ]} />
-              <button type="button" className="mt-1 text-sm font-medium text-brand-700 underline underline-offset-2" onClick={() => setQuickDriver(true)}>+ Hızlı şoför ekle</button>
+              <button type="button" className="mt-2 text-base font-semibold text-brand-700 underline underline-offset-2" onClick={() => setQuickDriver(true)}>+ Hızlı şoför ekle</button>
             </Field>
-            <Field label="Dorse Plakası" error={errors.trailerPlate?.message}>
+            <Field label="Dorse Plakası" error={errors.trailerPlate?.message} hint={vehicle.data?.trailerPlate ? 'Boş bırakılırsa aracın dorsesi yazılır.' : undefined}>
               <input className="input uppercase" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
             </Field>
           </div>
-          <div className="rounded-lg border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-semibold text-navy-900">Yük Bilgisi</div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field className="col-span-2" label="Yük Cinsi" error={errors.cargoType?.message}>
-                <input className="input" placeholder="Mobilya" list="cargo-types" {...register('cargoType')} />
-                <datalist id="cargo-types">{['Mobilya', 'Genel kargo', 'İnşaat malzemesi', 'Gıda', 'Tekstil', 'Otomotiv parçası', 'Makine'].map((t) => <option key={t} value={t} />)}</datalist>
-              </Field>
-              <Field label="Miktar" error={errors.cargoQuantity?.message}>
-                <div className="flex gap-2">
-                  <input className="input min-w-0" type="number" min="0" {...register('cargoQuantity', { valueAsNumber: true })} />
-                  <input className="input w-24" placeholder="palet" list="cargo-units" {...register('cargoUnit')} />
-                  <datalist id="cargo-units">{['palet', 'koli', 'adet', 'ton', 'm³'].map((t) => <option key={t} value={t} />)}</datalist>
-                </div>
-              </Field>
-              <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
-                <input className="input" type="number" min="0" step="1" {...register('cargoWeightKg', { valueAsNumber: true })} />
-              </Field>
-            </div>
-          </div>
           {(rented || trip?.carrierSupplierId) && (
-            <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3">
-              <div className="mb-2 text-sm font-semibold text-navy-900">Taşeron (kiralık araç)</div>
+            <div className="space-y-4 rounded-xl border-2 border-violet-200 bg-violet-50/40 p-4">
+              <div className="flex items-center gap-2 text-base font-bold text-navy-900 [&_svg]:size-5">{vehicleOwnershipIcon.Rented} Taşeron (kiralık araç)</div>
               <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi.">
                 <FormSelect control={control} name="carrierSupplierId" placeholder={vehicle.data?.supplierTitle ? `Araç sahibi: ${vehicle.data.supplierTitle}` : 'Aracın sahibi'}
                   options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))} />
               </Field>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Taşeron Fatura No" error={errors.carrierInvoiceNo?.message}><input className="input" {...register('carrierInvoiceNo')} /></Field>
-                <Field label="Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><input className="input" type="date" {...register('carrierInvoiceDate')} /></Field>
+                <Field label="Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><DateQuick control={control} name="carrierInvoiceDate" /></Field>
               </div>
             </div>
           )}
-          <div className="rounded-lg border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-semibold text-navy-900">Nakliye Fiyatları</div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message} hint={moneyHint(cost)}>
-                <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('vehicleCost', { valueAsNumber: true })} />
-              </Field>
-              <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message} hint={moneyHint(price)}>
-                <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" disabled={invoiced} {...register('salePrice', { valueAsNumber: true })} />
-              </Field>
-            </div>
+        </Section>
+
+        <Section n={3} title="Yük" hint="İsteğe bağlı; sevk belgesine yazılır.">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field className="md:col-span-3" label="Yük Cinsi" error={errors.cargoType?.message}>
+              <input className="input" placeholder="Mobilya" {...register('cargoType')} />
+              <SuggestChips values={['Mobilya', 'Genel kargo', 'İnşaat malzemesi', 'Gıda', 'Tekstil', 'Otomotiv parçası', 'Makine']} value={cargoType}
+                onPick={(v) => setValue('cargoType', v, { shouldDirty: true })} />
+            </Field>
+            <Field label="Miktar" error={errors.cargoQuantity?.message}>
+              <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('cargoQuantity', { valueAsNumber: true })} />
+            </Field>
+            <Field label="Birim" error={errors.cargoUnit?.message}>
+              <input className="input" placeholder="palet" {...register('cargoUnit')} />
+              <SuggestChips values={['palet', 'koli', 'adet', 'ton', 'm³']} value={cargoUnit} onPick={(v) => setValue('cargoUnit', v, { shouldDirty: true })} />
+            </Field>
+            <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
+              <input className="input tabular-nums" type="number" min="0" step="1" inputMode="numeric" {...register('cargoWeightKg', { valueAsNumber: true })} />
+            </Field>
+          </div>
+        </Section>
+
+        <Section n={4} title="Fiyat">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message}>
+              <AmountInput control={control} name="vehicleCost" />
+            </Field>
+            <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message}>
+              <AmountInput control={control} name="salePrice" disabled={invoiced} />
+            </Field>
+          </div>
+          <div className="space-y-1.5 rounded-xl bg-slate-50 px-4 py-3 text-base">
+            <div className="flex justify-between gap-2"><span className="text-slate-600">Satış fiyatı</span><span className="tabular-nums">{tl(Number(price) || 0)}</span></div>
+            <div className="flex justify-between gap-2"><span className="text-slate-600">− {rented ? 'Taşerona ödenecek' : 'Araç maliyeti'}</span><span className="tabular-nums">{tl(Number(cost) || 0)}</span></div>
             {trip && trip.expenseTotal > 0 && (
-              <div className="mt-2 flex justify-between text-sm text-slate-600">
-                <span>Sefere bağlı giderler</span>
-                <Link className="text-brand-600 hover:underline" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-600">− Sefere bağlı giderler</span>
+                <Link className="tabular-nums text-brand-700 underline underline-offset-2" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
               </div>
             )}
-            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-sm font-semibold">
+            <div className="flex justify-between gap-2 border-t border-slate-200 pt-1.5 text-lg font-bold">
               <span>Tahmini Kâr</span>
-              <span className={profit < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(profit)}</span>
+              <span className={profit < 0 ? 'text-red-700' : 'text-emerald-700'}>{tl(profit)}</span>
             </div>
           </div>
-        </div>
+        </Section>
+
+        <MoreFields title="Yetkililer ve not (isteğe bağlı)" hasError={!!(errors.loadingContact || errors.deliveryContact || errors.description)}
+          defaultOpen={!!trip || !!(copyOf?.loadingContact || copyOf?.deliveryContact || copyOf?.description)}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
+            <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
+            <Field className="md:col-span-2" label="Açıklama" error={errors.description?.message}>
+              <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
+            </Field>
+          </div>
+        </MoreFields>
         <button type="submit" className="hidden" />
       </form>
       </div>

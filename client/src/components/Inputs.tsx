@@ -70,19 +70,21 @@ interface DateProps<F extends FieldValues> {
   /** "due" ve "expiry" için başlangıç tarihi (boşsa bugün). */
   from?: string
   dueDays?: number[]
+  /** "expiry" için yıl seçenekleri (ehliyet 10, SRC 5 yıl gibi). */
+  years?: number[]
   disabled?: boolean
   id?: string
 }
 
 /** Tarih kutusu ve yanında tek tıklık hazır seçenekler ("Bugün", "+30 gün", "+1 yıl"). */
-export function DateQuick<F extends FieldValues>({ control, name, quick = 'today', from, dueDays = [15, 30, 60, 90], disabled, id }: DateProps<F>) {
+export function DateQuick<F extends FieldValues>({ control, name, quick = 'today', from, dueDays = [15, 30, 60, 90], years = [1, 2, 5], disabled, id }: DateProps<F>) {
   const { field: { value: raw, onChange, onBlur, ref } } = useController({ control, name })
   const value = (raw as string | null | undefined) ?? ''
   const base = from || todayIso()
   const chips: { label: string; v: string }[] =
     quick === 'today' ? [{ label: 'Bugün', v: todayIso() }, { label: 'Dün', v: addDays(todayIso(), -1) }, { label: 'Yarın', v: addDays(todayIso(), 1) }]
     : quick === 'due' ? dueDays.map((d) => ({ label: `+${d} gün`, v: addDays(base, d) }))
-    : quick === 'expiry' ? [1, 2, 5].map((y) => ({ label: `+${y} yıl`, v: addYears(base, y) }))
+    : quick === 'expiry' ? years.map((y) => ({ label: `+${y} yıl`, v: addYears(base, y) }))
     : []
   return (
     <div className="space-y-2">
@@ -104,6 +106,63 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+const chip = (active: boolean) => clsx('min-h-9 rounded-full border px-3 text-sm font-semibold transition',
+  active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')
+
+interface DaysProps<F extends FieldValues> {
+  control: Control<F>
+  name: FieldPath<F>
+  /** Hazır gün seçenekleri; 0 "Peşin" olarak yazılır. */
+  options?: number[]
+  /** Verilirse boş bırakılabilir; boş seçeneğin adı (ör. "Firma varsayılanı"). */
+  emptyLabel?: string
+  disabled?: boolean
+  id?: string
+}
+
+/** Vade günü: sağında "gün" yazan sayı kutusu ve altında "Peşin · 15 · 30 · 60 gün" gibi hazır seçenekler. Boşsa NaN iletilir. */
+export function DaysInput<F extends FieldValues>({ control, name, options = [0, 15, 30, 45, 60, 90], emptyLabel, disabled, id }: DaysProps<F>) {
+  const { field: { value, onChange, onBlur, ref }, fieldState } = useController({ control, name })
+  const v = value as number | null | undefined
+  const has = v != null && !Number.isNaN(v)
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <input id={id} ref={ref} name={name} type="number" min="0" max="365" inputMode="numeric" disabled={disabled} placeholder={emptyLabel}
+          className={clsx('input pr-14 tabular-nums', fieldState.error && 'input-error')}
+          value={has ? String(v) : ''} onBlur={onBlur}
+          onChange={(e) => onChange(e.target.value === '' ? NaN : Number(e.target.value))} />
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-base text-slate-500">gün</span>
+      </div>
+      {!disabled && (
+        <div className="flex flex-wrap gap-1.5">
+          {emptyLabel && <button type="button" className={chip(!has)} onClick={() => onChange(NaN)}>{emptyLabel}</button>}
+          {options.map((d) => (
+            <button key={d} type="button" className={chip(has && v === d)} onClick={() => onChange(d)}>{d === 0 ? 'Peşin' : `${d} gün`}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Serbest metin kutusunun altındaki hazır öneriler (araç tipi, yük cinsi, ehliyet sınıfı…): tıklayınca kutuya yazılır,
+ * listede olmayan değer yine elle yazılabilir. Kutuyu forma bağlayan üst bileşen `onPick` ile değeri set eder.
+ */
+export function SuggestChips({ values, value, onPick, disabled }: { values: string[]; value?: string | null; onPick: (v: string) => void; disabled?: boolean }) {
+  if (disabled) return null
+  const current = (value ?? '').trim().toLocaleLowerCase('tr')
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {values.map((v) => {
+        const active = current === v.toLocaleLowerCase('tr')
+        return <button key={v} type="button" aria-pressed={active} className={chip(active)} onClick={() => onPick(v)}>{v}</button>
+      })}
     </div>
   )
 }

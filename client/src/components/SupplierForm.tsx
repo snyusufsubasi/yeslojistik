@@ -7,6 +7,10 @@ import { crud, useSave } from '../lib/hooks'
 import { supplierKindLabel } from '../lib/labels'
 import { CityOptions } from './CityOptions'
 import { Button, Field, Modal } from './ui'
+import { ControlledChoice, ControlledToggle } from './Choice'
+import { AmountInput, DateQuick, DaysInput, MoreFields, Section } from './Inputs'
+import { choices } from '../lib/choices'
+import { supplierKindIcon } from '../lib/icons'
 
 const schema = z.object({
   title: req('Tedarikçi ünvanı zorunlu.'),
@@ -31,7 +35,7 @@ const api = crud<Supplier, FormValues>('suppliers')
 
 export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrier' }:
   { supplier: Supplier | null; onClose: () => void; onSaved?: (s: Supplier) => void; defaultKind?: SupplierKind }) {
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: supplier?.title ?? '', kind: supplier?.kind ?? defaultKind, taxNumber: supplier?.taxNumber ?? '', taxOffice: supplier?.taxOffice ?? '',
@@ -47,40 +51,49 @@ export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrie
     onError: (e) => applyServerErrors(e, setError),
   })
   const submit = handleSubmit((v) => save.mutate(v))
+  const more = !!(errors.taxNumber || errors.taxOffice || errors.email || errors.city || errors.district || errors.address || errors.openingBalance || errors.openingBalanceDate || errors.notes)
   return (
     <Modal open onClose={onClose} title={supplier ? supplier.title : 'Yeni Tedarikçi'} size="lg"
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <Field className="sm:col-span-2" label="Ünvan" required error={errors.title?.message}><input className="input" placeholder="Demir Nakliyat" {...register('title')} /></Field>
-        <Field label="Tür" error={errors.kind?.message}>
-          <select className="input" {...register('kind')}>
-            {Object.entries(supplierKindLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label="Yetkili Kişi" error={errors.contactName?.message}><input className="input" {...register('contactName')} /></Field>
-        <Field label="VKN / TCKN" error={errors.taxNumber?.message}><input className="input" inputMode="numeric" maxLength={11} {...register('taxNumber')} /></Field>
-        <Field label="Vergi Dairesi" error={errors.taxOffice?.message}><input className="input" {...register('taxOffice')} /></Field>
-        <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0532 111 22 33" {...register('phone')} /></Field>
-        <Field label="E-posta" error={errors.email?.message}><input className="input" type="email" {...register('email')} /></Field>
-        <Field className="sm:col-span-2" label="IBAN" error={errors.iban?.message} hint="Ödeme yaparken kopyalamak için.">
-          <input className="input font-mono" placeholder="TR00 0000 0000 0000 0000 0000 00" {...register('iban')} />
-        </Field>
-        <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
-        <Field label="İlçe" error={errors.district?.message}><input className="input" {...register('district')} /></Field>
-        <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" {...register('address')} /></Field>
-        <Field label="Ödeme Vadesi (gün)" required error={errors.paymentTermDays?.message} hint="Sefer tarihinden itibaren kaç günde ödenir.">
-          <input className="input" type="number" min="0" max="365" {...register('paymentTermDays', { valueAsNumber: true })} />
-        </Field>
-        <div />
-        <Field label="Devir Borcu (TL)" error={errors.openingBalance?.message} hint="Sisteme geçerken bu tedarikçiye olan borcunuz.">
-          <input className="input text-right" type="number" step="0.01" min="0" {...register('openingBalance', { valueAsNumber: true })} />
-        </Field>
-        <Field label="Devir Tarihi" error={errors.openingBalanceDate?.message}><input className="input" type="date" {...register('openingBalanceDate')} /></Field>
-        <Field className="sm:col-span-2" label="Notlar" error={errors.notes?.message}><textarea className="input min-h-16" {...register('notes')} /></Field>
-        <label className="flex items-center gap-3 sm:col-span-2">
-          <input type="checkbox" className="size-4 accent-brand-600" {...register('isActive')} />
-          <span className="text-base text-slate-800">Aktif <span className="text-sm text-slate-500">(pasif tedarikçiler seçim listelerinde görünmez)</span></span>
-        </label>
+      <form onSubmit={submit} className="space-y-6">
+        <Section n={1} title="Kim?">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field className="sm:col-span-2" label="Ünvan" required error={errors.title?.message}><input className="input" placeholder="Demir Nakliyat" {...register('title')} /></Field>
+            <Field group className="sm:col-span-2" label="Ne iş yapıyor?" error={errors.kind?.message}>
+              <ControlledChoice control={control} name="kind" label="Tedarikçi türü" columns={4} options={choices(supplierKindLabel, supplierKindIcon)} />
+            </Field>
+            <Field label="Yetkili Kişi" error={errors.contactName?.message}><input className="input" {...register('contactName')} /></Field>
+            <Field label="Telefon" error={errors.phone?.message}><input className="input" type="tel" placeholder="0532 111 22 33" {...register('phone')} /></Field>
+          </div>
+        </Section>
+        <Section n={2} title="Ödeme" hint="Borç bu vadeye göre “ödenecekler” listesine düşer.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Ödeme Vadesi" required error={errors.paymentTermDays?.message} hint="Sefer tarihinden itibaren kaç günde ödenir.">
+              <DaysInput control={control} name="paymentTermDays" />
+            </Field>
+            <Field label="IBAN" error={errors.iban?.message} hint="Ödeme yaparken kopyalamak için.">
+              <input className="input font-mono" placeholder="TR00 0000 0000 0000 0000 0000 00" {...register('iban')} />
+            </Field>
+          </div>
+        </Section>
+        <MoreFields title="Vergi, adres, devir borcu ve notlar (isteğe bağlı)" defaultOpen={!!supplier} hasError={more}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="VKN / TCKN" error={errors.taxNumber?.message}><input className="input" inputMode="numeric" maxLength={11} {...register('taxNumber')} /></Field>
+            <Field label="Vergi Dairesi" error={errors.taxOffice?.message}><input className="input" {...register('taxOffice')} /></Field>
+            <Field className="sm:col-span-2" label="E-posta" error={errors.email?.message}><input className="input" type="email" {...register('email')} /></Field>
+            <Field label="İl" error={errors.city?.message}><select className="input" {...register('city')}><CityOptions /></select></Field>
+            <Field label="İlçe" error={errors.district?.message}><input className="input" {...register('district')} /></Field>
+            <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" {...register('address')} /></Field>
+            <Field label="Devir Borcu (TL)" error={errors.openingBalance?.message} hint="Sisteme geçerken bu tedarikçiye olan borcunuz.">
+              <AmountInput control={control} name="openingBalance" words={false} />
+            </Field>
+            <Field label="Devir Tarihi" error={errors.openingBalanceDate?.message}><DateQuick control={control} name="openingBalanceDate" quick="none" /></Field>
+            <Field className="sm:col-span-2" label="Notlar" error={errors.notes?.message}><textarea className="input min-h-16" {...register('notes')} /></Field>
+            <Field group className="sm:col-span-2" label="Durum" hint="Pasif tedarikçiler seçim listelerinde görünmez.">
+              <ControlledToggle control={control} name="isActive" label="Tedarikçi durumu" labels={['Aktif', 'Pasif']} />
+            </Field>
+          </div>
+        </MoreFields>
         <button type="submit" className="hidden" />
       </form>
     </Modal>

@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Check } from 'lucide-react'
 import { useController, type Control, type FieldPath, type FieldValues } from 'react-hook-form'
@@ -110,4 +110,29 @@ export function ControlledChoice<F extends FieldValues, T extends string | numbe
   return variant === 'chips'
     ? <ChoiceChips options={options} value={field.value as T} onChange={onChange} label={label} disabled={disabled} name={name} />
     : <ChoiceCards options={options} value={field.value as T} onChange={onChange} label={label} columns={columns} disabled={disabled} name={name} />
+}
+
+interface ToggleProps<F extends FieldValues> {
+  control: Control<F>
+  name: FieldPath<F>
+  label: string
+  /** Doğru ve yanlış seçeneklerin yazısı, ör. ['Aktif', 'Pasif']. */
+  labels: [string, string]
+  icons?: [ReactNode, ReactNode]
+  variant?: 'cards' | 'chips'
+  disabled?: boolean
+}
+
+/** Onay kutusu yerine iki şıklı seçim (Aktif / Pasif, e-Fatura / e-Arşiv, Ödendi / Vadeli): ne seçildiği hep yazıyla görünür. */
+export function ControlledToggle<F extends FieldValues>({ control, name, label, labels, icons, variant = 'chips', disabled }: ToggleProps<F>) {
+  const { field } = useController({ control, name })
+  const options: ChoiceOption<'yes' | 'no'>[] = [
+    { value: 'yes', label: labels[0], icon: icons?.[0] },
+    { value: 'no', label: labels[1], icon: icons?.[1] },
+  ]
+  const value = field.value ? 'yes' : 'no'
+  const onChange = (v: 'yes' | 'no') => field.onChange(v === 'yes')
+  return variant === 'cards'
+    ? <ChoiceCards options={options} value={value} onChange={onChange} label={label} columns={2} disabled={disabled} name={name} />
+    : <ChoiceChips options={options} value={value} onChange={onChange} label={label} disabled={disabled} name={name} />
 }

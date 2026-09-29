@@ -17,6 +17,10 @@ import { date, daysUntil } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, vehicleOwnershipLabel, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 import { SupplierForm } from '../components/SupplierForm'
+import { ControlledChoice } from '../components/Choice'
+import { DateQuick, MoreFields, Section, SuggestChips } from '../components/Inputs'
+import { choices } from '../lib/choices'
+import { vehicleOwnershipIcon, vehicleStatusIcon } from '../lib/icons'
 
 const schema = z.object({
   plate: req('Plaka zorunlu.').regex(/^(0[1-9]|[1-7]\d|8[01])\s*[a-zA-ZçğıöşüÇĞİÖŞÜ]{1,3}\s*\d{2,5}$/, 'Geçerli bir plaka girin (ör. 34 ABC 123).'),
@@ -140,6 +144,8 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
   })
   const submit = handleSubmit((v) => save.mutate(v))
   const ownership = useWatch({ control, name: 'ownership' })
+  const type = useWatch({ control, name: 'type' })
+  const lastMaintenance = useWatch({ control, name: 'lastMaintenanceDate' })
   const [tab, setTab] = useState<'info' | 'docs' | 'maint'>('info')
 
   return (
@@ -151,47 +157,61 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
         tabs={[{ value: 'info', label: 'Bilgiler' }, { value: 'docs', label: 'Belgeler' }, { value: 'maint', label: 'Bakım' }]} /></div>}
       {vehicle && tab === 'docs' && <DocumentsPanel ownerType="Vehicle" ownerId={vehicle.id} />}
       {vehicle && tab === 'maint' && <MaintenancePanel vehicleId={vehicle.id} currentKm={vehicle.km} />}
-      <form onSubmit={submit} className={tab === 'info' ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
-        <Field label="Plaka" required error={errors.plate?.message}><input className="input uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
-        <Field label="Araç Tipi" required error={errors.type?.message}>
-          <input className="input" list="vehicle-types" placeholder="Kamyon" {...register('type')} />
-          <datalist id="vehicle-types">{['Tır', 'Kamyon', 'Kamyonet', 'Panelvan', 'Lowbed', 'Frigorifik'].map((t) => <option key={t} value={t} />)}</datalist>
-        </Field>
-        <Field label="Marka" error={errors.brand?.message}><input className="input" placeholder="Ford" {...register('brand')} /></Field>
-        <Field label="Model" error={errors.model?.message}><input className="input" placeholder="Cargo" {...register('model')} /></Field>
-        <Field label="Model Yılı" error={errors.modelYear?.message}><input className="input" type="number" {...register('modelYear', { valueAsNumber: true })} /></Field>
-        <Field label="Km" required error={errors.km?.message}><input className="input" type="number" min="0" {...register('km', { valueAsNumber: true })} /></Field>
-        <Field label="Durum" error={errors.status?.message} hint="“Yolda” durumu seferlerden otomatik belirlenir.">
-          <select className="input" {...register('status')}>
-            {Object.entries(vehicleStatusLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message}>
-          <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
-        </Field>
-        <Field label="Son Bakım Tarihi"><input className="input" type="date" {...register('lastMaintenanceDate')} /></Field>
-        <Field label="Sonraki Bakım Tarihi"><input className="input" type="date" {...register('nextMaintenanceDate')} /></Field>
-        <Field label="Sonraki Bakım Km" error={errors.nextMaintenanceKm?.message} hint="1.000 km kala uyarı çıkar. Bakım kaydı girince kendiliğinden güncellenir.">
-          <input className="input" type="number" min="0" inputMode="numeric" {...register('nextMaintenanceKm', { valueAsNumber: true })} />
-        </Field>
-        <Field label="Muayene Bitiş"><input className="input" type="date" {...register('inspectionExpiry')} /></Field>
-        <Field label="Trafik Sigortası Bitiş"><input className="input" type="date" {...register('insuranceExpiry')} /></Field>
-        <Field label="Sahiplik" hint="Kiralık araçta araç maliyeti, araç sahibine (tedarikçi) borç olarak yazılır.">
-          <select className="input" {...register('ownership')}>
-            {Object.entries(vehicleOwnershipLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label="Dorse Plakası" error={errors.trailerPlate?.message}><input className="input uppercase" placeholder="34 DRS 01" {...register('trailerPlate')} /></Field>
-        {ownership === 'Rented' && (
-          <Field className="sm:col-span-2" label="Araç Sahibi (tedarikçi)" required error={errors.supplierId?.message}>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <FormSelect control={control} name="supplierId" placeholder="Tedarikçi seçin" options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
-              </div>
-              <Button type="button" variant="secondary" onClick={() => setNewSupplier(true)}>Yeni</Button>
-            </div>
-          </Field>
-        )}
+      <form onSubmit={submit} className={tab === 'info' ? 'space-y-6' : 'hidden'}>
+        <Section n={1} title="Araç">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Plaka" required error={errors.plate?.message}><input className="input uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
+            <Field label="Araç Tipi" required error={errors.type?.message}>
+              <input className="input" placeholder="Kamyon" {...register('type')} />
+              <SuggestChips values={['Tır', 'Kamyon', 'Kamyonet', 'Panelvan', 'Lowbed', 'Frigorifik']} value={type}
+                onPick={(v) => setValue('type', v, { shouldValidate: true, shouldDirty: true })} />
+            </Field>
+            <Field group className="sm:col-span-2" label="Kimin aracı?" hint="Kiralık araçta araç maliyeti, araç sahibine (tedarikçi) borç olarak yazılır.">
+              <ControlledChoice control={control} name="ownership" label="Sahiplik" columns={2}
+                options={choices(vehicleOwnershipLabel, vehicleOwnershipIcon)} onValueChange={(v) => { if (v === 'Own') setValue('supplierId', null) }} />
+            </Field>
+            {ownership === 'Rented' && (
+              <Field className="sm:col-span-2" label="Araç Sahibi (tedarikçi)" required error={errors.supplierId?.message}>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <FormSelect control={control} name="supplierId" placeholder="Tedarikçi seçin" options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
+                  </div>
+                  <Button type="button" variant="secondary" className="self-end" onClick={() => setNewSupplier(true)}>Yeni</Button>
+                </div>
+              </Field>
+            )}
+            <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message} hint="Yeni seferde araçla birlikte gelir.">
+              <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
+            </Field>
+            <Field label="Dorse Plakası" error={errors.trailerPlate?.message}><input className="input uppercase" placeholder="34 DRS 01" {...register('trailerPlate')} /></Field>
+          </div>
+        </Section>
+        <Section n={2} title="Durum ve kilometre">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field group className="sm:col-span-2" label="Şu an ne durumda?" error={errors.status?.message} hint="“Yolda” durumu seferlerden kendiliğinden belirlenir.">
+              <ControlledChoice control={control} name="status" label="Araç durumu" columns={3} options={choices(vehicleStatusLabel, vehicleStatusIcon)} />
+            </Field>
+            <Field label="Km" required error={errors.km?.message}><input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('km', { valueAsNumber: true })} /></Field>
+            <Field label="Sonraki Bakım Km" error={errors.nextMaintenanceKm?.message} hint="1.000 km kala uyarı çıkar. Bakım kaydı girince kendiliğinden güncellenir.">
+              <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('nextMaintenanceKm', { valueAsNumber: true })} />
+            </Field>
+          </div>
+        </Section>
+        <Section n={3} title="Muayene, sigorta ve bakım" hint="Bitişe 30 gün kala uyarı çıkar.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Muayene Bitiş"><DateQuick control={control} name="inspectionExpiry" quick="expiry" years={[1, 2]} /></Field>
+            <Field label="Trafik Sigortası Bitiş"><DateQuick control={control} name="insuranceExpiry" quick="expiry" years={[1]} /></Field>
+            <Field label="Son Bakım Tarihi"><DateQuick control={control} name="lastMaintenanceDate" /></Field>
+            <Field label="Sonraki Bakım Tarihi"><DateQuick control={control} name="nextMaintenanceDate" quick="due" from={lastMaintenance || undefined} dueDays={[90, 180, 365]} /></Field>
+          </div>
+        </Section>
+        <MoreFields title="Marka, model ve yıl (isteğe bağlı)" defaultOpen={!!vehicle?.brand} hasError={!!(errors.brand || errors.model || errors.modelYear)}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Marka" error={errors.brand?.message}><input className="input" placeholder="Ford" {...register('brand')} /></Field>
+            <Field label="Model" error={errors.model?.message}><input className="input" placeholder="Cargo" {...register('model')} /></Field>
+            <Field label="Model Yılı" error={errors.modelYear?.message}><input className="input" type="number" inputMode="numeric" {...register('modelYear', { valueAsNumber: true })} /></Field>
+          </div>
+        </MoreFields>
         <button type="submit" className="hidden" />
       </form>
     </Modal>

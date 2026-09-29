@@ -9,9 +9,13 @@ import { del, get, post, put } from '../api/client'
 import type { CashAccount, CashMovement, CashTransfer } from '../api/types'
 import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, PageHeader, Spinner } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
-import { date, moneyHint, tl2, todayIso } from '../lib/format'
+import { date, tl2, todayIso } from '../lib/format'
 import { useSave } from '../lib/hooks'
 import { cashAccountKindLabel } from '../lib/labels'
+import { ControlledChoice, ControlledToggle } from '../components/Choice'
+import { AmountInput, DateQuick } from '../components/Inputs'
+import { choices } from '../lib/choices'
+import { cashAccountKindIcon } from '../lib/icons'
 
 const accountSchema = z.object({
   name: req('Hesap adı zorunlu.'),
@@ -129,24 +133,25 @@ function AccountForm({ account, onClose }: { account: CashAccount | null; onClos
       : { name: '', kind: 'Bank', iban: '', openingBalance: 0, openingBalanceDate: todayIso(), isActive: true },
   })
   const kind = useWatch({ control, name: 'kind' })
-  const opening = useWatch({ control, name: 'openingBalance' })
   const save = useSave((v: AccountValues) => account ? put(`/cash-accounts/${account.id}`, nullify(v)) : post('/cash-accounts', nullify(v)),
     { invalidate: ['cash-accounts'], success: 'Hesap kaydedildi.', onSuccess: onClose, onError: (e) => applyServerErrors(e, setError) })
   const submit = handleSubmit((v) => save.mutate(v))
   return (
     <Modal open onClose={onClose} title={account ? 'Hesap Düzenle' : 'Hesap Ekle'} size="sm"
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3">
+      <form onSubmit={submit} className="grid gap-4">
+        <Field group label="Ne tür hesap?">
+          <ControlledChoice control={control} name="kind" label="Hesap türü" columns={2} options={choices(cashAccountKindLabel, cashAccountKindIcon)} />
+        </Field>
         <Field label="Hesap adı" required error={errors.name?.message}><input className="input" placeholder="İş Bankası TL, Merkez Kasa" {...register('name')} /></Field>
-        <Field label="Tür"><select className="input" {...register('kind')}>{Object.entries(cashAccountKindLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-        {kind === 'Bank' && <Field label="IBAN" error={errors.iban?.message}><input className="input" placeholder="TR.." {...register('iban')} /></Field>}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Açılış bakiyesi" error={errors.openingBalance?.message} hint={moneyHint(opening)}>
-            <input className="input text-right" type="number" step="0.01" inputMode="decimal" {...register('openingBalance', { valueAsNumber: true })} />
-          </Field>
-          <Field label="Açılış tarihi"><input className="input" type="date" {...register('openingBalanceDate')} /></Field>
-        </div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...register('isActive')} /> Aktif</label>
+        {kind === 'Bank' && <Field label="IBAN" error={errors.iban?.message}><input className="input font-mono" placeholder="TR.." {...register('iban')} /></Field>}
+        <Field label="Açılış bakiyesi" error={errors.openingBalance?.message} hint={kind === 'CreditCard' ? 'Kart borcu varsa başına eksi yazın (ör. -12.500).' : 'Sisteme geçtiğiniz gün hesapta olan para.'}>
+          <AmountInput control={control} name="openingBalance" words={false} />
+        </Field>
+        <Field label="Açılış tarihi"><DateQuick control={control} name="openingBalanceDate" /></Field>
+        <Field group label="Durum">
+          <ControlledToggle control={control} name="isActive" label="Hesap durumu" labels={['Aktif', 'Pasif']} />
+        </Field>
         <button type="submit" className="hidden" />
       </form>
     </Modal>
@@ -164,30 +169,26 @@ type TransferValues = z.infer<typeof transferSchema>
 
 function TransferForm({ accounts, onClose }: { accounts: CashAccount[]; onClose: () => void }) {
   const active = accounts.filter((a) => a.isActive)
+  const accountOptions = active.map((a) => ({ value: a.id, label: a.name, icon: cashAccountKindIcon[a.kind], hint: tl2(a.balance) }))
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm<TransferValues>({
     resolver: zodResolver(transferSchema),
     defaultValues: { fromAccountId: active[0]?.id, toAccountId: active[1]?.id, date: todayIso(), note: '' },
   })
-  const amount = useWatch({ control, name: 'amount' })
   const save = useSave((v: TransferValues) => post('/cash-transfers', nullify(v)),
     { invalidate: ['cash-accounts'], success: 'Virman kaydedildi.', onSuccess: onClose, onError: (e) => applyServerErrors(e, setError) })
   const submit = handleSubmit((v) => save.mutate(v))
   return (
     <Modal open onClose={onClose} title="Virman (hesaplar arası aktarım)" size="sm"
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3">
-        <Field label="Çıkış hesabı" error={errors.fromAccountId?.message}>
-          <select className="input" {...register('fromAccountId', { valueAsNumber: true })}>{active.map((a) => <option key={a.id} value={a.id}>{a.name} ({tl2(a.balance)})</option>)}</select>
+      <form onSubmit={submit} className="grid gap-4">
+        <Field group label="Para hangi hesaptan çıktı?" error={errors.fromAccountId?.message}>
+          <ControlledChoice control={control} name="fromAccountId" label="Çıkış hesabı" columns={2} options={accountOptions} />
         </Field>
-        <Field label="Giriş hesabı" error={errors.toAccountId?.message}>
-          <select className="input" {...register('toAccountId', { valueAsNumber: true })}>{active.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        <Field group label="Hangi hesaba girdi?" error={errors.toAccountId?.message}>
+          <ControlledChoice control={control} name="toAccountId" label="Giriş hesabı" columns={2} options={accountOptions} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Tarih" error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
-          <Field label="Tutar" error={errors.amount?.message} hint={moneyHint(amount)}>
-            <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('amount', { valueAsNumber: true })} />
-          </Field>
-        </div>
+        <Field label="Tutar" required error={errors.amount?.message}><AmountInput control={control} name="amount" /></Field>
+        <Field label="Tarih" error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
         <Field label="Not"><input className="input" placeholder="Kasadan bankaya yatırıldı" {...register('note')} /></Field>
         <button type="submit" className="hidden" />
       </form>
