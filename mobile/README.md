@@ -1,13 +1,17 @@
-# YES Lojistik Şoför Uygulaması
+# YES Lojistik Mobil Uygulaması
 
-Expo (React Native) ile yazılmış şoför uygulaması. Şoför kendi seferlerini görür, durumu günceller
-(**Yükü Aldım → Yola Çıktım → Teslim Ettim**), teslim fotoğrafı/irsaliye yükler. Sefer yüklendiği andan teslime kadar
-konum otomatik paylaşılır; ofis haritada, müşteri takip linkinde görür.
+Expo (React Native) ile yazılmış tek uygulama: girişte hesabın rolüne göre **şoför** ya da **ofis (yönetici)** ekranları açılır.
+Şoför kendi seferlerini görür, durumu günceller (**Yükü Aldım → Yola Çıktım → Teslim Ettim**), teslimde teslim alanın adını,
+imzasını ve fotoğrafı alır, masraf ve fiş girer. Çekim yokken yapılan her işlem telefonda bekler ve internet gelince
+kendiliğinden gönderilir (aynı işlem iki kez kaydedilmez). Sefer yüklendiği andan teslime kadar konum, şoförün onayıyla
+paylaşılır; ofis haritada, müşteri takip linkinde görür.
+
+Şoförlere dağıtılacak kurulum kılavuzu: [docs/MOBIL-KURULUM.md](../docs/MOBIL-KURULUM.md).
 
 ## Giriş hesabı
 
 Web panelde **Ayarlar → Kullanıcılar → Yeni Kullanıcı** ile rolü **Şoför (mobil)** olan, bir şoföre bağlı hesap açılır.
-Şoför bu e-posta/şifreyle uygulamaya girer. Sunucu adresi `app.json` → `extra.apiUrl` içindedir; giriş ekranındaki
+Şoför bu e-posta/şifreyle uygulamaya girer. Sunucu adresi `app.config.ts` → `extra.apiUrl` içindedir (derlemede `API_URL` ortam değişkeniyle değiştirilebilir); giriş ekranındaki
 “Sunucu ayarı” ile değiştirilebilir.
 
 ## Geliştirme
@@ -40,7 +44,7 @@ Ofis şoföre sefer atadığında, seferin güzergâhını/tarihini değiştirdi
 ettiğinde şoförün telefonuna bildirim gider; bildirime dokununca sefer açılır. Ücretsiz Expo Push servisi kullanılır.
 
 Bir kerelik kurulum:
-1. `npx eas-cli@latest init` → `app.json` içindeki `expo.extra.eas.projectId` otomatik dolar.
+1. `npx eas-cli@latest init` ile proje açılır; verilen proje kimliği `EAS_PROJECT_ID` olarak derlemeye verilir (`app.config.ts`).
 2. Android: Firebase projesi açıp FCM V1 anahtarını `npx eas-cli@latest credentials` ile yükleyin
    ([adımlar](https://docs.expo.dev/push-notifications/fcm-credentials/)).
 3. iOS: ilk `eas build` sırasında “Setup Push Notifications” sorusuna evet deyin (Apple geliştirici hesabı gerekir).
@@ -50,7 +54,7 @@ Bir kerelik kurulum:
 
 ## Masraf girişi
 
-Sefer ekranındaki **Masraf / Yakıt** bölümünden yakıt (tutar, litre, araç km), otoyol/köprü, bakım/onarım ve diğer masraflar girilir. Tutar `4.450,50` ya da `4450.5` şeklinde yazılabilir. Masraf sefere, seferin aracına ve şoföre bağlanır; yakıtta girilen km aracın kilometresini günceller.
+Sefer ekranındaki **Masraf / Yakıt** bölümünden yakıt (tutar, litre, araç km), otoyol/köprü, bakım/onarım ve diğer masraflar girilir. Tutar `4.450,50` ya da `4450.5` şeklinde yazılabilir. Masraf sefere, seferin aracına ve şoföre bağlanır, ofiste **onay bekliyor** olarak görünür; yakıtta girilen km aracın kilometresini günceller. İsteğe bağlı fiş fotoğrafı masrafla birlikte gider.
 
 ## Konum ve pil
 

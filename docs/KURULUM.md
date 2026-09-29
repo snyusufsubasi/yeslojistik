@@ -143,7 +143,8 @@ ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add <Ad> -p YesLojistik.
 ## 6. Şoför uygulaması
 
 Derleme ve dağıtım adımları [mobile/README.md](../mobile/README.md) içinde. Uygulamadaki varsayılan sunucu adresi
-`mobile/app.json` → `expo.extra.apiUrl`; canlı alan adınızla güncelleyip derleyin.
+`mobile/app.config.ts` → `extra.apiUrl` (ya da derlemede `API_URL`); eski adres `legacyApiUrls` listesine eklenirse
+kurulu uygulamalar açılışta kendiliğinden yeni adrese geçer.
 
 ## 7. e-Fatura entegrasyonu
 
