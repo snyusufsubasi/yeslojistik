@@ -23,6 +23,10 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const MapPage = lazy(() => import('./pages/MapPage'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const PublicTrackingPage = lazy(() => import('./pages/PublicTrackingPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/PasswordResetPages').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('./pages/PasswordResetPages').then((m) => ({ default: m.ResetPasswordPage })))
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
+const AccountDeletionPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.AccountDeletionPage })))
 
 function RequireAuth() {
   const { user, loading } = useAuth()
@@ -58,6 +62,10 @@ export default function App() {
       <Routes>
         <Route path="/giris" element={<LoginPage />} />
         <Route path="/takip/:token" element={<PublicTrackingPage />} />
+        <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
+        <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
+        <Route path="/gizlilik" element={<PrivacyPage />} />
+        <Route path="/hesap-silme" element={<AccountDeletionPage />} />
         <Route element={<RequireAuth />}>
           <Route index element={<DashboardPage />} />
           <Route path="seferler" element={<TripsPage />} />

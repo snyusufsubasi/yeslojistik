@@ -87,4 +87,59 @@ public class AuthTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var res = await admin.PostJsonAsync("/api/users", new UserSaveRequest("Zayıf", "weak@test.local", UserRole.Operations, true, "123"));
         res.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Account_locks_after_five_wrong_passwords_and_admin_can_unlock()
+    {
+        var admin = await factory.LoginAsync();
+        var user = await (await admin.PostJsonAsync("/api/users", new UserSaveRequest("Kilit Test", "kilit@test.local", UserRole.Operations, true, "Kilit1234"))).ReadAsync<UserDto>();
+        var c = factory.CreateClient();
+        for (var i = 0; i < AuthControllerLimits.MaxFailed; i++)
+            (await c.PostAsJsonAsync("/api/auth/login", new { email = "kilit@test.local", password = "yanlis-1234" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        // Doğru şifre de kilit süresince reddedilir.
+        var locked = await c.PostAsJsonAsync("/api/auth/token", new { email = "kilit@test.local", password = "Kilit1234" });
+        locked.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await (await admin.GetAsync("/api/users")).ReadAsync<List<UserDto>>()).Single(u => u.Id == user.Id).LockoutUntil.Should().NotBeNull();
+
+        (await admin.PostAsync($"/api/users/{user.Id}/unlock", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await c.PostAsJsonAsync("/api/auth/login", new { email = "kilit@test.local", password = "Kilit1234" })).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Password_reset_link_is_single_use_and_signs_out_other_sessions()
+    {
+        var admin = await factory.LoginAsync();
+        await (await admin.PostJsonAsync("/api/users", new UserSaveRequest("Unutkan", "unutkan@test.local", UserRole.Accounting, true, "Eski12345"))).ReadAsync<UserDto>();
+        var mobile = factory.CreateClient();
+        var session = await (await mobile.PostAsJsonAsync("/api/auth/token", new { email = "unutkan@test.local", password = "Eski12345" })).ReadAsync<TokenLoginResponse>();
+
+        var anon = factory.CreateClient();
+        (await anon.PostAsJsonAsync("/api/auth/forgot-password", new { email = "yok@test.local" })).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await anon.PostAsJsonAsync("/api/auth/forgot-password", new { email = "Unutkan@test.local" })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var mail = factory.Email.Sent.Last(m => m.To == "unutkan@test.local");
+        var token = System.Text.RegularExpressions.Regex.Match(mail.Body, @"token=([\w-]+)").Groups[1].Value;
+        token.Should().NotBeEmpty();
+        factory.Email.Sent.Should().NotContain(m => m.To == "yok@test.local");
+
+        (await anon.PostAsJsonAsync("/api/auth/reset-password", new { token, newPassword = "kisa" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await anon.PostAsJsonAsync("/api/auth/reset-password", new { token, newPassword = "Yeni12345" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await anon.PostAsJsonAsync("/api/auth/reset-password", new { token, newPassword = "Baska12345" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        (await anon.PostAsJsonAsync("/api/auth/login", new { email = "unutkan@test.local", password = "Yeni12345" })).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await mobile.PostAsJsonAsync("/api/auth/token/refresh", new { refreshToken = session.RefreshToken })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Public_company_info_is_open_without_sensitive_fields()
+    {
+        var c = factory.CreateClient();
+        var company = await c.GetAsync("/api/public/company");
+        company.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await company.Content.ReadAsStringAsync()).Should().Contain("companyName").And.NotContain("iban");
+    }
+}
+
+internal static class AuthControllerLimits
+{
+    public const int MaxFailed = 5;
 }

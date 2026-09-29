@@ -43,6 +43,8 @@ export interface User extends CurrentUser {
   createdAt: string
   driverId?: number | null
   driverName?: string | null
+  lockoutUntil?: string | null
+  lastLoginAt?: string | null
 }
 
 export interface Customer {

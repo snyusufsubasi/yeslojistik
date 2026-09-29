@@ -327,4 +327,37 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await s.Driver.PostJsonAsync("/api/driver/consent", new LocationConsentRequest(false, "1"))).EnsureSuccessStatusCode();
         (await (await s.Driver.GetAsync("/api/driver/me")).ReadAsync<DriverProfileDto>()).LocationConsentAt.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Office_users_get_push_for_driver_actions_according_to_preferences()
+    {
+        var s = await SetupAsync("113");
+        (await s.Admin.PostJsonAsync("/api/me/push-token", new PushTokenRequest("ExponentPushToken[admin113]", "android")))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        bool Got(string title) => factory.Push.Sent.Any(m => m.Token == "ExponentPushToken[admin113]" && m.Title == title);
+
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(TripStatus.Loaded))).EnsureSuccessStatusCode();
+        Got("Yüklendi: Şoför Testi 113").Should().BeTrue();
+
+        // Yönetici "durum değişti" bildirimini kapatır; teslim bildirimi açık kalır.
+        var prefs = await (await s.Admin.PutJsonAsync("/api/me/notification-preferences",
+            new[] { new { type = "TripStatusChanged", push = false } })).ReadAsync<List<PrefView>>();
+        prefs.Single(p => p.Type == NotificationType.TripStatusChanged).Push.Should().BeFalse();
+        prefs.Single(p => p.Type == NotificationType.TripDelivered).Push.Should().BeTrue();
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(TripStatus.OnRoad))).EnsureSuccessStatusCode();
+        Got("Yolda: Şoför Testi 113").Should().BeFalse();
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/status", new TripStatusRequest(TripStatus.Delivered, null, null, "Ali Veli"))).EnsureSuccessStatusCode();
+        factory.Push.Sent.Should().Contain(m => m.Token == "ExponentPushToken[admin113]" && m.Title == "Teslim edildi: Şoför Testi 113"
+            && m.Body.Contains("Ali Veli") && m.Data!["tripId"] == s.TripId.ToString());
+
+        (await s.Driver.PostJsonAsync($"/api/driver/trips/{s.TripId}/expenses", new DriverExpenseRequest(ExpenseCategory.Toll, 250, null, null, null))).EnsureSuccessStatusCode();
+        factory.Push.Sent.Should().Contain(m => m.Token == "ExponentPushToken[admin113]" && m.Title.StartsWith("Masraf onay bekliyor"));
+
+        // Şoförün tercih listesi boştur.
+        (await (await s.Driver.GetAsync("/api/me/notification-preferences")).ReadAsync<List<PrefView>>()).Should().BeEmpty();
+        (await s.Admin.PutJsonAsync("/api/me/notification-preferences", new[] { new { type = "TripStatusChanged", push = true } })).EnsureSuccessStatusCode();
+        (await s.Admin.DeleteAsync("/api/me/push-token?token=ExponentPushToken%5Badmin113%5D")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    private record PrefView(NotificationType Type, string Label, bool Push);
 }

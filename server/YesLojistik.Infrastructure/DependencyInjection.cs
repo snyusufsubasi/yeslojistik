@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<DriverAppService>();
         services.AddScoped<ImportService>();
         services.AddScoped<DriverNotifier>();
+        services.AddScoped<StaffNotifier>();
         services.AddScoped<InvoiceMailer>();
         services.AddHttpClient<IPushSender, ExpoPushSender>(c => c.Timeout = TimeSpan.FromSeconds(5));
         // Database: dosyalar PostgreSQL'de (varsayılan, yedeğe dahil). Local: disk (Docker volume).

@@ -135,3 +135,9 @@ varsayılan KDV/tevkifat ve vade süresi ayarlanır.
 - Şoförün girdiği masraflar **Giderler**'de *Onay bekliyor* ve *Şoför ödedi* olarak görünür (onay akışı sonraki sürümde).
 - **Şoförler** listesindeki *Uygulama* sütunu, şoförün konum paylaşımına onay verip vermediğini gösterir.
 - Kurulum ve izin adımları şoförlere gönderilecek [MOBIL-KURULUM.md](MOBIL-KURULUM.md) dosyasında.
+
+## Hesap güvenliği ve KVKK
+
+- **Şifremi unuttum:** Giriş ekranındaki bağlantı, e-posta ayarlıysa 30 dakika geçerli, tek kullanımlık bir sıfırlama bağlantısı gönderir. E-posta ayarlı değilse yönetici **Ayarlar → Kullanıcılar**'dan yeni şifre verir.
+- **Hesap kilidi:** Aynı hesaba 5 hatalı giriş denemesinde hesap 15 dakika kilitlenir. Yönetici Kullanıcılar listesindeki **Kilidi aç** ile hemen açabilir; **Oturumları kapat** o kullanıcının tüm cihazlardaki oturumunu sonlandırır.
+- **Gizlilik ve KVKK:** `/gizlilik` (aydınlatma metni) ve `/hesap-silme` sayfaları herkese açıktır; firma bilgileri Ayarlar'dan gelir. Metin bir şablondur: avukat/mali müşavir gözden geçirmeli, VERBİS kaydı gerekip gerekmediği teyit edilmelidir.

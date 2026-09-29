@@ -17,11 +17,12 @@ const categories: { value: DriverExpenseCategory; label: string }[] = [
 ]
 const labelOf = Object.fromEntries(categories.map((c) => [c.value, c.label])) as Record<DriverExpenseCategory, string>
 
-/** "1.234,50" veya "1234.5" → 1234.5 */
+/** "1.234,50", "14.500" (binlik) veya "1234.5" → sayı */
 export function parseNumber(text: string): number | null {
   const t = text.trim().replace(/\s/g, '')
   if (!t) return null
-  const normalized = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t
+  const normalized = t.includes(',') ? t.replace(/\./g, '').replace(',', '.')
+    : /^\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '') : t
   const n = Number(normalized)
   return Number.isFinite(n) ? n : NaN
 }

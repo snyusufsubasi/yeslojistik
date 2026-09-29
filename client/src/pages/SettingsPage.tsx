@@ -15,11 +15,11 @@ import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { CityOptions } from '../components/CityOptions'
 import { AuditLogTable } from '../components/AuditLog'
-import { date, dateTime, fileSize, tl2 } from '../lib/format'
+import { dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'audit' | 'data' | 'password'
+type Tab = 'company' | 'users' | 'audit' | 'data' | 'notifications' | 'password'
 
 export default function SettingsPage() {
   const { can } = useAuth()
@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const tabs = [
     ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' },
       { value: 'audit' as const, label: 'İşlem Geçmişi' }, { value: 'data' as const, label: 'Veriler' }] : []),
+    { value: 'notifications' as const, label: 'Telefon Bildirimleri' },
     { value: 'password' as const, label: 'Şifre Değiştir' },
   ]
   return (
@@ -49,6 +50,7 @@ export default function SettingsPage() {
           <ResetDataCard />
         </div>
       )}
+      {tab === 'notifications' && <NotificationPrefsCard />}
       {tab === 'password' && <PasswordForm />}
     </>
   )
@@ -200,15 +202,20 @@ function UsersTab() {
   const [deleting, setDeleting] = useState<User | null>(null)
   const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: () => get<User[]>('/users') })
   const del = useSave((id: number) => usersApi.remove(id), { invalidate: ['users'], success: 'Kullanıcı silindi.', onSuccess: () => setDeleting(null) })
+  const unlock = useSave((id: number) => post(`/users/${id}/unlock`), { invalidate: ['users'], success: 'Hesabın kilidi açıldı.' })
+  const signOut = useSave((id: number) => post(`/users/${id}/sign-out`), { invalidate: ['users'], success: 'Kullanıcının tüm oturumları kapatıldı.' })
   const cols: Column<User>[] = [
     { key: 'n', header: 'Ad Soyad', render: (u) => <span className="font-medium">{u.fullName}</span> },
     { key: 'e', header: 'E-posta', render: (u) => u.email },
     { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-[13px] text-slate-500">{u.driverName}</span>}</> },
-    { key: 'a', header: 'Durum', render: (u) => <Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge> },
-    { key: 'c', header: 'Oluşturma', render: (u) => date(u.createdAt) },
+    { key: 'a', header: 'Durum', render: (u) => <><Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge>
+      {u.lockoutUntil && <span className="ml-1"><Badge tone="red">Kilitli</Badge></span>}</> },
+    { key: 'c', header: 'Son giriş', render: (u) => u.lastLoginAt ? dateTime(u.lastLoginAt) : '—' },
     {
       key: 'x', header: '', align: 'right', render: (u) => (
         <div className="flex justify-end gap-1">
+          {u.lockoutUntil && <Button size="sm" variant="secondary" onClick={() => unlock.mutate(u.id)}>Kilidi aç</Button>}
+          {u.id !== me?.id && <Button size="sm" variant="ghost" onClick={() => signOut.mutate(u.id)}>Oturumları kapat</Button>}
           <IconButton label="Düzenle" onClick={() => setEditing(u)}><Pencil className="size-4" /></IconButton>
           <IconButton label="Sil" disabled={u.id === me?.id} onClick={() => setDeleting(u)}><Trash2 className="size-4" /></IconButton>
         </div>
@@ -440,6 +447,32 @@ function GoLiveCard() {
           </li>
         ))}
       </ol>
+    </Card>
+  )
+}
+
+interface NotificationPref { type: string; label: string; push: boolean }
+
+/** Kişisel telefon bildirimi tercihleri (YES Lojistik mobil uygulamasına giriş yapılmış telefona gider). */
+function NotificationPrefsCard() {
+  const q = useQuery({ queryKey: ['me', 'notification-preferences'], queryFn: () => get<NotificationPref[]>('/me/notification-preferences') })
+  const save = useSave((v: { type: string; push: boolean }[]) => put<NotificationPref[]>('/me/notification-preferences', v),
+    { invalidate: ['me'], success: 'Bildirim tercihleri kaydedildi.' })
+  if (!q.data) return <Spinner />
+  return (
+    <Card title="Telefon Bildirimleri" icon={<Bell className="size-4" />} className="max-w-2xl">
+      <p className="mb-3 text-sm text-slate-600">
+        YES Lojistik mobil uygulamasına kendi hesabınızla giriş yaptığınız telefona gönderilir. Tercihler yalnızca sizin hesabınız içindir.
+      </p>
+      <div className="flex flex-col gap-3">
+        {q.data.map((p) => (
+          <label key={p.type} className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1 size-4 accent-brand-600" checked={p.push} disabled={save.isPending}
+              onChange={(e) => save.mutate([{ type: p.type, push: e.target.checked }])} />
+            <span className="text-[15px] text-slate-800">{p.label}</span>
+          </label>
+        ))}
+      </div>
     </Card>
   )
 }

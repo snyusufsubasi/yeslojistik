@@ -36,7 +36,7 @@ function RootStack() {
     const tripId = data?.tripId
     if (!signedIn || (typeof tripId !== 'string' && typeof tripId !== 'number')) return
     if (driver) router.push({ pathname: '/sofor/sefer/[id]', params: { id: String(tripId) } })
-    else router.push({ pathname: '/yonetim', params: { tripId: String(tripId) } })
+    else router.push({ pathname: '/yonetim/sefer/[id]', params: { id: String(tripId) } })
   }, [lastResponse, signedIn, driver])
 
   if (!ready) {

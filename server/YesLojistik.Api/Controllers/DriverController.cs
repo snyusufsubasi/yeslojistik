@@ -15,7 +15,7 @@ namespace YesLojistik.Api.Controllers;
 [Route("api/driver")]
 [Authorize(Roles = nameof(UserRole.Driver))]
 public class DriverController(AppDbContext db, ICurrentUser current, DriverAppService app, AttachmentService attachments,
-    TrackingService tracking) : ControllerBase
+    TrackingService tracking, StaffNotifier staff) : ControllerBase
 {
     private async Task<int> DriverIdAsync(CancellationToken ct) =>
         await db.Users.Where(u => u.Id == current.Id && u.IsActive).Select(u => u.DriverId).FirstOrDefaultAsync(ct)
@@ -85,7 +85,12 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
         var expenseId = await expenses.CreateAsync(new ExpenseSaveRequest(req.Category, req.Amount, Clock.Today, null, id,
             string.IsNullOrWhiteSpace(req.Description) ? "Şoför girişi" : req.Description, driverId, req.Liters, req.Odometer), ct,
             e => { e.PaidBy = ExpensePaidBy.Driver; e.ApprovalStatus = ApprovalStatus.Pending; e.ClientRequestId = idempotencyKey; });
-        return await db.Expenses.AsNoTracking().Where(e => e.Id == expenseId).Select(ExpenseProjection).FirstAsync(ct);
+        var dto = await db.Expenses.AsNoTracking().Where(e => e.Id == expenseId).Select(ExpenseProjection).FirstAsync(ct);
+        var who = await db.Drivers.AsNoTracking().Where(d => d.Id == driverId).Select(d => d.FullName).FirstAsync(ct);
+        await staff.NotifyAsync(NotificationType.DriverExpenseAdded, $"Masraf onay bekliyor: {Formatters.Currency(dto.Amount)}",
+            $"{who} · {CategoryLabel(dto.Category)}{(dto.Description is { } d && d != "Şoför girişi" ? $" · {d}" : "")}",
+            new Dictionary<string, string> { ["tripId"] = id.ToString(), ["expenseId"] = dto.Id.ToString() }, ct);
+        return dto;
     }
 
     private async Task<DriverExpenseDto?> ExistingExpenseAsync(Guid key, int driverId, CancellationToken ct) =>
@@ -116,9 +121,19 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
     public async Task<AttachmentDto> Upload(int id, IFormFile file, [FromForm] AttachmentKind kind = AttachmentKind.Photo,
         [FromForm] string? note = null, [FromHeader(Name = "Idempotency-Key")] Guid? idempotencyKey = null, CancellationToken ct = default)
     {
-        await app.EnsureOwnAsync(await DriverIdAsync(ct), id, ct);
+        var driverId = await DriverIdAsync(ct);
+        await app.EnsureOwnAsync(driverId, id, ct);
+        var repeat = idempotencyKey != null && await db.TripAttachments.AnyAsync(a => a.ClientRequestId == idempotencyKey, ct);
         await using var stream = file.OpenReadStream();
-        return await attachments.UploadAsync(id, stream, file.Length, file.FileName, kind, note, ct, idempotencyKey);
+        var dto = await attachments.UploadAsync(id, stream, file.Length, file.FileName, kind, note, ct, idempotencyKey);
+        if (!repeat && kind != AttachmentKind.Signature)
+        {
+            var who = await db.Drivers.AsNoTracking().Where(d => d.Id == driverId).Select(d => d.FullName).FirstAsync(ct);
+            var customer = await db.Trips.AsNoTracking().Where(t => t.Id == id).Select(t => t.Customer.Title).FirstAsync(ct);
+            await staff.NotifyAsync(NotificationType.DriverPhotoUploaded, $"Yeni fotoğraf: {customer}",
+                $"{who}{(string.IsNullOrWhiteSpace(note) ? "" : $" · {note.Trim()}")}", new Dictionary<string, string> { ["tripId"] = id.ToString() }, ct);
+        }
+        return dto;
     }
 
     /// <summary>Telefonun bildirim adresini kaydeder (yeni sefer, iptal vb. bildirimleri için).</summary>
@@ -153,4 +168,9 @@ public class DriverController(AppDbContext db, ICurrentUser current, DriverAppSe
             if (p.Latitude is < -90 or > 90 || p.Longitude is < -180 or > 180) throw new DomainException("Geçersiz konum.");
         return new { saved = await tracking.RecordAsync(await DriverIdAsync(ct), pings, ct) };
     }
+
+    private static string CategoryLabel(ExpenseCategory c) => c switch
+    {
+        ExpenseCategory.Fuel => "Yakıt", ExpenseCategory.Toll => "Otoyol/Köprü", ExpenseCategory.Maintenance => "Bakım/Onarım", _ => "Diğer",
+    };
 }

@@ -69,6 +69,15 @@ public class LocationPingValidator : AbstractValidator<LocationPing>
     }
 }
 
+public class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequest>
+{
+    public ResetPasswordRequestValidator()
+    {
+        RuleFor(x => x.Token).NotEmpty().WithMessage("Bağlantı geçersiz.");
+        RuleFor(x => x.NewPassword).Must(PasswordPolicy.IsValid).WithMessage(PasswordPolicy.Message);
+    }
+}
+
 public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {
     public ChangePasswordRequestValidator()
