@@ -93,8 +93,7 @@ export default function TripsPage() {
         d.nationalId && `TC: ${d.nationalId}`, `Plaka: ${t.vehiclePlate}`, d.phone && `Telefon: ${d.phone}`, `Şoför: ${t.driverName}`,
         `Yükleme yeri: ${route(t.loadingCity, t.loadingAddress)}`, `İndirme yeri: ${route(t.deliveryCity, t.deliveryAddress)}`,
         t.cargoType && `Taşınan mal: ${t.cargoType}`,
-      ].filter(Boolean).join('
-')
+      ].filter(Boolean).join('\n')
       await navigator.clipboard.writeText(text)
       toast.success('Şoför ve sefer bilgisi kopyalandı.')
     } catch {

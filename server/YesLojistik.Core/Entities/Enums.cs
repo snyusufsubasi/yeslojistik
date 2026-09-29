@@ -20,6 +20,8 @@ public enum CommissionStatus { Pending, Received, DeductFromInvoice }
 public enum DriverRating { Excellent, Workable, NoCommission, StealsCustomers, BadAttitude, Unreliable, QuitsJobs }
 /// <summary>Alınan faturanın türü.</summary>
 public enum PurchaseInvoiceKind { EInvoice, EArchive, Paper, Receipt }
+/// <summary>Fatura notunun kullanıldığı fatura tipi.</summary>
+public enum InvoiceNoteKind { Sale, Withholding }
 
 public enum InvoiceStatus { Draft, Issued, Cancelled }
 

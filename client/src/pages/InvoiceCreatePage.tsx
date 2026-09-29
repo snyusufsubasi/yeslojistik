@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, FileText, Plus, Trash2 } from 'lucide-react'
 import { get, post } from '../api/client'
-import type { CompanySettings, Invoice, PagedResult, Trip } from '../api/types'
+import type { CompanySettings, CustomerInvoiceDefaults, Invoice, PagedResult, Trip } from '../api/types'
 import { Badge, Button, Card, Empty, Field, IconButton, PageHeader, Spinner } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { addDaysIso, date, tl2, todayIso } from '../lib/format'
@@ -27,13 +27,20 @@ export default function InvoiceCreatePage() {
   const [customerId, setCustomerId] = useState<number | ''>(params.get('customerId') ? Number(params.get('customerId')) : '')
   const [extra, setExtra] = useState<ExtraLine[]>([])
   const [invDate, setInvDate] = useState(todayIso())
-  const [notes, setNotes] = useState('')
+  // Not: kullanıcı yazana kadar müşterinin fatura şablonundaki not (ve seçili hazır not) önerilir.
+  const [notesOverride, setNotes] = useState<string | null>(null)
   // Kullanıcı değiştirmediği sürece varsayılanlar firma ayarlarından gelir.
   const [vatOverride, setVatRate] = useState<number | null>(null)
   const [withholdingOverride, setWithholding] = useState<number | null>(null)
   const [dueOverride, setDueDate] = useState<string | null>(null)
   const vatRate = vatOverride ?? settings.data?.defaultVatRate ?? 20
   const withholding = withholdingOverride ?? settings.data?.defaultWithholdingTenths ?? 0
+  const defaults = useQuery({
+    queryKey: ['customers', customerId, 'invoice-defaults', withholding > 0],
+    queryFn: () => get<CustomerInvoiceDefaults>(`/customers/${customerId}/invoice-defaults`, { withholding: withholding > 0 }),
+    enabled: customerId !== '',
+  })
+  const notes = notesOverride ?? defaults.data?.notes ?? ''
   const dueDate = dueOverride ?? (settings.data ? addDaysIso(invDate, settings.data.defaultPaymentTermDays) : '')
 
   const trips = useQuery({
@@ -78,7 +85,7 @@ export default function InvoiceCreatePage() {
         <div className="space-y-4 xl:col-span-2">
           <Card title="Müşteri ve Seferler" icon={<FileText className="size-4" />}>
             <Field label="Müşteri" required className="mb-4 max-w-md">
-              <SearchSelect value={customerId === '' ? null : customerId} onChange={(v) => { setCustomerId(v ?? ''); setExtra([]) }} placeholder="Müşteri adı yazın veya seçin"
+              <SearchSelect value={customerId === '' ? null : customerId} onChange={(v) => { setCustomerId(v ?? ''); setExtra([]); setNotes(null) }} placeholder="Müşteri adı yazın veya seçin"
                 options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
             </Field>
             {customerId === '' ? <Empty>Faturalanacak seferleri görmek için müşteri seçin.</Empty>

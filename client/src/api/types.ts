@@ -72,6 +72,57 @@ export interface Customer {
   paymentTermDays?: number | null
   isActive?: boolean
   creditLimit?: number | null
+  extras?: CustomerExtras | null
+  invoiceTemplate?: InvoiceTemplate | null
+  groups?: string[] | null
+}
+
+/** e-Fatura için ayrıntılı adres ve iletişim. */
+export interface CustomerExtras {
+  country?: string | null
+  neighborhood?: string | null
+  street?: string | null
+  buildingName?: string | null
+  buildingNo?: string | null
+  doorNo?: string | null
+  postalCode?: string | null
+  fax?: string | null
+  website?: string | null
+}
+
+/** Müşterinin fatura şablonu. */
+export interface InvoiceTemplate {
+  lineDate: boolean
+  lineLoading: boolean
+  lineDelivery: boolean
+  linePlate: boolean
+  lineVehicleType: boolean
+  lineDeliveryDocumentNo: boolean
+  lineCargo: boolean
+  lineDescription: boolean
+  tripFooterNotes: boolean
+  note?: string | null
+  saleNoteId?: number | null
+  withholdingNoteId?: number | null
+  scenario?: EInvoiceScenario | null
+}
+
+export type InvoiceNoteKind = 'Sale' | 'Withholding'
+
+/** Faturaya eklenecek hazır not (hesap, IBAN, açıklama). */
+export interface InvoiceNote {
+  id: number
+  kind: InvoiceNoteKind
+  title: string
+  accountName?: string | null
+  iban?: string | null
+  text?: string | null
+}
+
+export interface CustomerInvoiceDefaults {
+  notes?: string | null
+  scenario?: EInvoiceScenario | null
+  paymentTermDays?: number | null
 }
 
 export interface Supplier {
@@ -247,21 +298,6 @@ export interface TripTerms {
   deliveredBy?: string | null
   paymentTerms?: string | null
   externalRef?: string | null
-}
-
-/** Filtredeki seferlerin kazanç tablosu. */
-export interface TripTotals {
-  count: number
-  sale: number
-  cost: number
-  grossMargin: number
-  commissionBank: number
-  commissionCash: number
-  commission: number
-  extraCharge: number
-  driverBonus: number
-  expenses: number
-  profit: number
 }
 
 export interface JobRequest {
@@ -847,7 +883,10 @@ export interface SupplierCariRow {
   opening: number; tripCost: number; creditExpenses: number; paid: number; balance: number; overdue: number
   tripCount: number; missingInvoiceCount: number
 }
-export interface TripTotals { count: number; sale: number; vehicleCost: number; expenses: number; profit: number; uninvoicedCount: number; uninvoicedTotal: number }
+export interface TripTotals {
+  count: number; sale: number; vehicleCost: number; expenses: number; profit: number; uninvoicedCount: number; uninvoicedTotal: number
+  commission: number; commissionBank: number; extraCharge: number; driverBonus: number
+}
 
 export type StaffTransactionKind = 'Advance' | 'Bonus' | 'SalaryPayment'
 export interface Staff {
@@ -858,6 +897,7 @@ export interface StaffTransaction { id: number; staffId: number; date: string; k
 export interface RecurringPayment {
   id: number; title: string; detail: string | null; amount: number; dueDay: number; category: ExpenseCategory
   cashAccountId: number | null; cashAccountName: string | null; isActive: boolean; dueDate: string; paidDate: string | null; paidAmount: number | null; lastPaidDate: string | null
+}
 
 export type PurchaseInvoiceKind = 'EInvoice' | 'EArchive' | 'Paper' | 'Receipt'
 

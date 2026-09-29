@@ -83,24 +83,25 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return query;
     }
 
-    /// <summary>Filtredeki seferlerin kazanç tablosu. İptal edilen seferler sayılmaz.</summary>
+    /// <summary>Filtredeki seferlerin kazanç tablosu (eski paneldeki "Kazanç Tablosu"). İptal edilen seferler sayılmaz.</summary>
     public async Task<TripTotalsDto> TotalsAsync(TripQuery q, CancellationToken ct = default)
     {
         var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled).Select(t => new
         {
             t.SalePrice, t.VehicleCost, t.Commission, CommissionToBank = t.CommissionAccount != null && t.CommissionAccount.Kind != CashAccountKind.Cash,
             t.ExtraCharge, t.ExtraChargeInvoiced, t.DriverBonus,
+            Uninvoiced = t.InvoiceId == null && !t.IsLegacy && t.Status == TripStatus.Delivered,
             Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
         }).ToListAsync(ct);
         var sale = rows.Sum(r => r.SalePrice);
         var cost = rows.Sum(r => r.VehicleCost);
-        var bank = rows.Where(r => r.CommissionToBank).Sum(r => r.Commission);
-        var cash = rows.Where(r => !r.CommissionToBank).Sum(r => r.Commission);
+        var commission = rows.Sum(r => r.Commission);
         var extra = rows.Where(r => !r.ExtraChargeInvoiced).Sum(r => r.ExtraCharge);
         var bonus = rows.Sum(r => r.DriverBonus);
         var expenses = rows.Sum(r => r.Expenses);
-        return new TripTotalsDto(rows.Count, sale, cost, sale - cost, bank, cash, bank + cash, extra, bonus, expenses,
-            sale - cost + bank + cash - extra - bonus - expenses);
+        return new TripTotalsDto(rows.Count, sale, cost, expenses, sale - cost + commission - extra - bonus - expenses,
+            rows.Count(r => r.Uninvoiced), rows.Where(r => r.Uninvoiced).Sum(r => r.SalePrice),
+            commission, rows.Where(r => r.CommissionToBank).Sum(r => r.Commission), extra, bonus);
     }
 
     /// <param name="export">Excel için: sayfa boyutu sınırı <see cref="QueryExtensions.ExportLimit"/> olur.</param>
@@ -113,24 +114,6 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return new PagedResult<TripDto>(rows.Select(ToDto).ToList(), total, page, size);
     }
 
-    public async Task<TripTotalsDto> TotalsAsync(TripQuery q, CancellationToken ct = default)
-    {
-        var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled)
-            .Select(t => new
-            {
-                t.SalePrice, t.VehicleCost, Uninvoiced = t.InvoiceId == null && !t.IsLegacy && t.Status == TripStatus.Delivered,
-                Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
-            })
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                Count = g.Count(), Sale = g.Sum(x => x.SalePrice), Cost = g.Sum(x => x.VehicleCost), Exp = g.Sum(x => x.Expenses),
-                UnCount = g.Count(x => x.Uninvoiced), UnTotal = g.Where(x => x.Uninvoiced).Sum(x => x.SalePrice),
-            })
-            .FirstOrDefaultAsync(ct);
-        return rows == null ? new TripTotalsDto(0, 0, 0, 0, 0, 0, 0)
-            : new TripTotalsDto(rows.Count, rows.Sale, rows.Cost, rows.Exp, rows.Sale - rows.Cost - rows.Exp, rows.UnCount, rows.UnTotal);
-    }
 
     public async Task<List<TripDto>> QueryAsync(IQueryable<Trip> query, CancellationToken ct = default) =>
         (await query.Select(Projection).ToListAsync(ct)).Select(ToDto).ToList();

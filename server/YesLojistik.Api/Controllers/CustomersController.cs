@@ -69,6 +69,7 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
     {
         var c = new Customer();
         Apply(c, req);
+        await SyncGroupsAsync(c, req.Groups, ct);
         db.Customers.Add(c);
         await db.SaveChangesAsync(ct);
         return await accounts.SummaryAsync(c.Id, ct);
@@ -79,6 +80,7 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
     {
         var c = await db.Customers.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Müşteri bulunamadı.");
         Apply(c, req);
+        await SyncGroupsAsync(c, req.Groups, ct);
         await db.SaveChangesAsync(ct);
         return await accounts.SummaryAsync(id, ct);
     }
@@ -117,6 +119,63 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
         c.PaymentTermDays = r.PaymentTermDays;
         c.IsActive = r.IsActive;
         c.CreditLimit = r.CreditLimit is > 0 ? Money.Round(r.CreditLimit.Value) : null;
+        if (r.Extras is { } x)
+        {
+            c.Country = NullIfEmpty(x.Country);
+            c.Neighborhood = NullIfEmpty(x.Neighborhood);
+            c.Street = NullIfEmpty(x.Street);
+            c.BuildingName = NullIfEmpty(x.BuildingName);
+            c.BuildingNo = NullIfEmpty(x.BuildingNo);
+            c.DoorNo = NullIfEmpty(x.DoorNo);
+            c.PostalCode = NullIfEmpty(x.PostalCode);
+            c.Fax = Formatters.NormalizePhone(x.Fax) ?? NullIfEmpty(x.Fax);
+            c.Website = NullIfEmpty(x.Website);
+        }
+        if (r.InvoiceTemplate is { } t)
+        {
+            c.InvoiceTemplate ??= new InvoiceTemplate();
+            var it = c.InvoiceTemplate;
+            it.LineDate = t.LineDate;
+            it.LineLoading = t.LineLoading;
+            it.LineDelivery = t.LineDelivery;
+            it.LinePlate = t.LinePlate;
+            it.LineVehicleType = t.LineVehicleType;
+            it.LineDeliveryDocumentNo = t.LineDeliveryDocumentNo;
+            it.LineCargo = t.LineCargo;
+            it.LineDescription = t.LineDescription;
+            it.TripFooterNotes = t.TripFooterNotes;
+            it.Note = NullIfEmpty(t.Note);
+            it.SaleNoteId = t.SaleNoteId;
+            it.WithholdingNoteId = t.WithholdingNoteId;
+            it.Scenario = t.Scenario;
+        }
+    }
+
+    /// <summary>İstekte grup listesi geldiyse müşterinin gruplarını onunla eşitler (yeni eklenir, çıkarılan silinir).</summary>
+    private async Task SyncGroupsAsync(Customer c, IReadOnlyList<string>? names, CancellationToken ct)
+    {
+        if (names == null) return;
+        var wanted = names.Select(n => n.Trim()).Where(n => n.Length > 0).Distinct(StringComparer.CurrentCultureIgnoreCase).ToList();
+        var current = c.Id == 0 ? [] : await db.CustomerGroups.Where(g => g.CustomerId == c.Id).ToListAsync(ct);
+        foreach (var g in current.Where(g => !wanted.Contains(g.Name, StringComparer.CurrentCultureIgnoreCase))) g.IsDeleted = true;
+        foreach (var n in wanted.Where(n => !current.Any(g => string.Equals(g.Name, n, StringComparison.CurrentCultureIgnoreCase))))
+            c.Groups.Add(new CustomerGroup { Name = n });
+    }
+
+    /// <summary>Yeni fatura formu için öneriler: müşterinin şablon notu, seçili hazır not ve senaryo.</summary>
+    [HttpGet("{id:int}/invoice-defaults")]
+    public async Task<CustomerInvoiceDefaultsDto> InvoiceDefaults(int id, [FromQuery] bool withholding, CancellationToken ct)
+    {
+        var c = await db.Customers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Müşteri bulunamadı.");
+        var noteId = withholding ? c.InvoiceTemplate.WithholdingNoteId ?? c.InvoiceTemplate.SaleNoteId : c.InvoiceTemplate.SaleNoteId;
+        var note = noteId is { } nid ? await db.InvoiceNotes.AsNoTracking().FirstOrDefaultAsync(n => n.Id == nid, ct) : null;
+        var parts = new[]
+        {
+            c.InvoiceTemplate.Note,
+            note == null ? null : string.Join(" ", new[] { note.Text, note.AccountName, note.Iban is { } iban ? $"IBAN: {iban}" : null }.Where(s => !string.IsNullOrWhiteSpace(s))),
+        }.Where(s => !string.IsNullOrWhiteSpace(s));
+        var text = string.Join("\n", parts);
+        return new CustomerInvoiceDefaultsDto(text.Length == 0 ? null : text, c.InvoiceTemplate.Scenario, c.PaymentTermDays);
     }
 
     internal static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

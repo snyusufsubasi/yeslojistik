@@ -110,7 +110,7 @@ export function CommissionFields({ control, register, errors }: { control: AnyCo
 }
 
 /** Evrak, fatura ve diğer sefer bilgileri (kapalı durur). */
-export function DocumentFields({ register, errors }: { register: AnyRegister; errors: AnyErrors }) {
+export function DocumentFields({ register, errors, groups }: { register: AnyRegister; errors: AnyErrors; groups?: string[] }) {
   const e = errors.terms ?? {}
   const hasError = Object.keys(e).length > 0
   return (
@@ -123,7 +123,10 @@ export function DocumentFields({ register, errors }: { register: AnyRegister; er
       </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('terms.deliveryDocumentApproved')} />Teslim evrakı onaylandı</label>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Firma Grup / Şantiye" hint="Müşterinin alt grubu veya proje no." error={e.customerGroup?.message}><input className="input" {...register('terms.customerGroup')} /></Field>
+        <Field label="Firma Grup / Şantiye" hint="Müşterinin alt grubu veya proje no." error={e.customerGroup?.message}>
+          <input className="input" list="customer-groups" {...register('terms.customerGroup')} />
+          <datalist id="customer-groups">{(groups ?? []).map((g) => <option key={g} value={g} />)}</datalist>
+        </Field>
         <Field label="Mesafe (km)" error={e.distanceKm?.message}><input className="input" type="number" min="0" {...register('terms.distanceKm', { valueAsNumber: true })} /></Field>
         <Field label="Teslim Eden" error={e.deliveredBy?.message}><input className="input" {...register('terms.deliveredBy')} /></Field>
         <Field label="Ödeme Şekli" error={e.paymentTerms?.message}><input className="input" placeholder="Peşin, 30 gün…" {...register('terms.paymentTerms')} /></Field>

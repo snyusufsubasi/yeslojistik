@@ -39,6 +39,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<CashAccount> CashAccounts => Set<CashAccount>();
     public DbSet<CashTransfer> CashTransfers => Set<CashTransfer>();
     public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
+    public DbSet<CustomerGroup> CustomerGroups => Set<CustomerGroup>();
+    public DbSet<InvoiceNoteTemplate> InvoiceNotes => Set<InvoiceNoteTemplate>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder b)
     {
@@ -94,6 +96,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.ContactName).HasMaxLength(100);
             e.Property(x => x.EInvoiceAlias).HasMaxLength(200);
             e.HasIndex(x => x.Title);
+            e.Property(x => x.Country).HasMaxLength(50);
+            e.Property(x => x.Neighborhood).HasMaxLength(100);
+            e.Property(x => x.Street).HasMaxLength(150);
+            e.Property(x => x.BuildingName).HasMaxLength(100);
+            e.Property(x => x.BuildingNo).HasMaxLength(20);
+            e.Property(x => x.DoorNo).HasMaxLength(20);
+            e.Property(x => x.PostalCode).HasMaxLength(10);
+            e.Property(x => x.Fax).HasMaxLength(20);
+            e.Property(x => x.Website).HasMaxLength(200);
+            e.OwnsOne(x => x.InvoiceTemplate, t =>
+            {
+                t.Property(x => x.Note).HasMaxLength(1000);
+            });
+            e.Navigation(x => x.InvoiceTemplate).IsRequired();
+        });
+        b.Entity<CustomerGroup>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(50);
+            e.HasOne(x => x.Customer).WithMany(c => c.Groups).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.CustomerId, x.Name }).IsUnique().HasFilter("is_deleted = false");
+        });
+        b.Entity<InvoiceNoteTemplate>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(100);
+            e.Property(x => x.AccountName).HasMaxLength(100);
+            e.Property(x => x.Iban).HasMaxLength(34);
+            e.Property(x => x.Text).HasMaxLength(1000);
         });
         b.Entity<Supplier>(e =>
         {

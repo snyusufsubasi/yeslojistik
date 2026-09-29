@@ -21,7 +21,9 @@ public class EInvoiceService(AppDbContext db, IEInvoiceProvider provider, ILogge
         var s = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         if (!s.EInvoiceEnabled || invoice.Ettn != null) return;
         var customer = await db.Customers.AsNoTracking().FirstAsync(c => c.Id == invoice.CustomerId, ct);
-        invoice.Scenario = customer.IsEInvoiceUser ? s.DefaultScenario : EInvoiceScenario.EArsiv;
+        // Müşterinin şablonunda senaryo seçildiyse o (e-Fatura mükellefine Temel/Ticari); değilse firma varsayılanı.
+        invoice.Scenario = !customer.IsEInvoiceUser ? EInvoiceScenario.EArsiv
+            : customer.InvoiceTemplate.Scenario is { } pref and not EInvoiceScenario.EArsiv ? pref : s.DefaultScenario;
         invoice.TypeCode = invoice.WithholdingTenths > 0 ? EInvoiceTypeCode.Tevkifat : EInvoiceTypeCode.Satis;
         invoice.WithholdingCode = invoice.WithholdingTenths > 0 ? invoice.WithholdingCode ?? EInvoiceCodes.DefaultWithholdingCode : null;
         invoice.Ettn = Guid.NewGuid();

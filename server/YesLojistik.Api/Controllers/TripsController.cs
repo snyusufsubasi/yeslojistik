@@ -47,9 +47,6 @@ public class TripsController(TripService trips) : ControllerBase
             new("Eski No", t => t.Terms?.ExternalRef)), "seferler");
     }
 
-    /// <summary>Filtredeki seferlerin kazanç tablosu: satış, maliyet, komisyon, masraf, prim ve net kazanç.</summary>
-    [HttpGet("totals")]
-    public Task<TripTotalsDto> Totals([FromQuery] TripQuery q, CancellationToken ct) => trips.TotalsAsync(q, ct);
 
     /// <summary>Yeni sefer formu önerileri: son sefer, kayıtlı adresler, sık yük cinsleri ve güzergâh fiyatı.</summary>
     [HttpGet("hints")]

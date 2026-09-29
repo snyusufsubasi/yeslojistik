@@ -47,8 +47,9 @@ public class TripTermsTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         var totals = await (await c.GetAsync($"/api/trips/totals?customerId={customer.Id}")).ReadAsync<TripTotalsDto>();
         totals.Count.Should().Be(1);
-        totals.GrossMargin.Should().Be(5_000);
-        totals.CommissionCash.Should().Be(500);
+        totals.Sale.Should().Be(9_500);
+        totals.Commission.Should().Be(500);
+        totals.CommissionBank.Should().Be(0);
         totals.Profit.Should().Be(5_300);
 
         var groups = await (await c.GetAsync($"/api/trips?customerGroup={Uri.EscapeDataString("Şantiye-7")}")).ReadAsync<PagedResult<TripDto>>();

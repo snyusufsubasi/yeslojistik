@@ -67,14 +67,25 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         if (trips.Any(t => t.IsLegacy)) throw new DomainException("Eski sistemden aktarılan seferler yeniden faturalanamaz (tutarları devir bakiyesinde).");
         if (trips.Any(t => t.Status == TripStatus.Cancelled)) throw new DomainException("İptal edilmiş sefer faturalanamaz.");
 
-        static string Fit(string s) => s.Length <= 300 ? s : s[..297] + "...";
+        // Sahip olunan tip tek başına izlenmeden sorgulanamaz; müşteriyle birlikte okunur.
+        var template = (await db.Customers.AsNoTracking().FirstAsync(c => c.Id == req.CustomerId, ct)).InvoiceTemplate ?? new InvoiceTemplate();
         var lines = trips.Select(t => new InvoiceLine
         {
             TripId = t.Id,
-            Description = Fit($"{Formatters.Date(t.LoadingDate)} {t.LoadingAddress} → {t.DeliveryAddress} nakliye bedeli ({t.Vehicle.Plate})"
-                + (t.CustomerReference is { } r ? $" (Ref: {r})" : "")),
+            Description = LineDescription(t, template),
             Amount = t.SalePrice,
         }).ToList();
+        // Müşteriye faturalanan sefer masrafları ayrı satır olur (eski paneldeki "masraf – faturalandır").
+        lines.AddRange(trips.Where(t => t.ExtraChargeInvoiced && t.ExtraCharge > 0).Select(t => new InvoiceLine
+        {
+            TripId = t.Id,
+            Description = Fit($"{Formatters.Date(t.LoadingDate)} {t.LoadingAddress} → {t.DeliveryAddress} ek masraf" + (t.ExtraChargeTitle is { } m ? $" ({m})" : "")),
+            // Tutar KDV dahil girildiyse fatura satırına KDV hariç yazılır.
+            Amount = t.ExtraChargeVatIncluded && req.VatRate > 0 ? Money.Round(t.ExtraCharge * 100 / (100 + req.VatRate)) : t.ExtraCharge,
+        }));
+        // Seferlerde "faturaya yansıt" işaretli notlar faturanın notuna eklenir.
+        var tripNotes = template.TripFooterNotes
+            ? trips.Where(t => t.ShowFooterNote && t.InvoiceFooterNote != null).Select(t => t.InvoiceFooterNote!).Distinct().ToList() : [];
         lines.AddRange((req.ExtraLines ?? []).Select(l => new InvoiceLine { Description = l.Description.Trim(), Amount = Money.Round(l.Amount) }));
 
         var totals = InvoiceCalculator.Calculate(lines.Select(l => l.Amount), req.VatRate, req.WithholdingTenths);
@@ -91,7 +102,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
             WithholdingAmount = totals.WithholdingAmount,
             Total = totals.Total,
             Status = req.AsDraft ? InvoiceStatus.Draft : InvoiceStatus.Issued,
-            Notes = req.Notes?.Trim(),
+            Notes = string.Join('\n', new[] { req.Notes?.Trim() }.Concat(tripNotes).Where(s => !string.IsNullOrWhiteSpace(s))) is { Length: > 0 } n ? n : null,
             Lines = lines,
         };
         if (invoice.Status == InvoiceStatus.Issued) await eInvoice.PrepareAsync(invoice, ct);
@@ -102,6 +113,33 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         await tx.CommitAsync(ct);
         await AutoSendAsync(invoice, ct);
         return await GetAsync(invoice.Id, ct);
+    }
+
+    private static string Fit(string s) => s.Length <= 300 ? s : s[..297] + "...";
+
+    /// <summary>Fatura satırı açıklaması: müşterinin şablonunda işaretli sefer bilgileri + "nakliye bedeli".</summary>
+    public static string LineDescription(Trip t, InvoiceTemplate x)
+    {
+        var parts = new List<string>();
+        if (x.LineDate) parts.Add(Formatters.Date(t.LoadingDate));
+        var route = (x.LineLoading, x.LineDelivery) switch
+        {
+            (true, true) => $"{t.LoadingAddress} → {t.DeliveryAddress}",
+            (true, false) => t.LoadingAddress,
+            (false, true) => t.DeliveryAddress,
+            _ => null,
+        };
+        if (route != null) parts.Add(route);
+        parts.Add("nakliye bedeli");
+        var extra = new List<string>();
+        if (x.LinePlate) extra.Add(t.Vehicle.Plate);
+        if (x.LineVehicleType && !string.IsNullOrWhiteSpace(t.Vehicle.Type)) extra.Add(t.Vehicle.Type);
+        if (x.LineCargo && t.CargoType != null) extra.Add(t.CargoType);
+        if (x.LineDeliveryDocumentNo && t.DeliveryDocumentNo != null) extra.Add($"Teslim No: {t.DeliveryDocumentNo}");
+        var text = string.Join(" ", parts) + (extra.Count > 0 ? $" ({string.Join(", ", extra)})" : "");
+        if (t.CustomerReference is { } r) text += $" (Ref: {r})";
+        if (x.LineDescription && !string.IsNullOrWhiteSpace(t.Description)) text += $" – {t.Description}";
+        return Fit(text);
     }
 
     public async Task<InvoiceDto> IssueAsync(int id, CancellationToken ct = default)

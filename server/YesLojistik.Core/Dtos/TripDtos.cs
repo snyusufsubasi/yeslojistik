@@ -67,10 +67,6 @@ public record TripQuery : ListQuery
     public bool? CarrierInvoiced { get; init; }
 }
 
-/// <summary>Filtredeki seferlerin kazanç tablosu (eski paneldeki "Kazanç Tablosu").</summary>
-public record TripTotalsDto(int Count, decimal Sale, decimal Cost, decimal GrossMargin, decimal CommissionBank, decimal CommissionCash,
-    decimal Commission, decimal ExtraCharge, decimal DriverBonus, decimal Expenses, decimal Profit);
-
 /// <summary>Müşterinin daha önce kullanılmış bir yükleme / teslim adresi (kaç seferde geçtiğiyle).</summary>
 public record TripAddressHint(string Address, string? City, string? Contact, int Count);
 
@@ -82,4 +78,6 @@ public record TripHintsDto(TripDto? LastTrip, IReadOnlyList<TripAddressHint> Loa
     IReadOnlyList<string> CargoTypes, TripRouteHint? Route);
 
 /// <summary>Sefer listesindeki süzgece uyan seferlerin toplamı (eski paneldeki "Kazanç Tablosu"). İptal edilen seferler sayılmaz.</summary>
-public record TripTotalsDto(int Count, decimal Sale, decimal VehicleCost, decimal Expenses, decimal Profit, int UninvoicedCount, decimal UninvoicedTotal);
+/// <remarks>Kazanç = satış − maliyet + komisyon − prim − (faturalanmayan) ek masraf − giderler.</remarks>
+public record TripTotalsDto(int Count, decimal Sale, decimal VehicleCost, decimal Expenses, decimal Profit, int UninvoicedCount, decimal UninvoicedTotal,
+    decimal Commission = 0, decimal CommissionBank = 0, decimal ExtraCharge = 0, decimal DriverBonus = 0);

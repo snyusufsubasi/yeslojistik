@@ -105,6 +105,17 @@ public class CustomerSaveRequestValidator : AbstractValidator<CustomerSaveReques
         RuleFor(x => x.ContactName).MaximumLength(100);
         RuleFor(x => x.EInvoiceAlias).MaximumLength(200);
         RuleFor(x => x.PaymentTermDays).InclusiveBetween(0, 365).WithMessage("Vade 0-365 gün arasında olmalı.").When(x => x.PaymentTermDays.HasValue);
+        RuleFor(x => x.Extras!.Country).MaximumLength(50).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.Neighborhood).MaximumLength(100).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.Street).MaximumLength(150).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.BuildingName).MaximumLength(100).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.BuildingNo).MaximumLength(20).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.DoorNo).MaximumLength(20).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.PostalCode).MaximumLength(10).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.Fax).MaximumLength(20).When(x => x.Extras != null);
+        RuleFor(x => x.Extras!.Website).MaximumLength(200).When(x => x.Extras != null);
+        RuleFor(x => x.InvoiceTemplate!.Note).MaximumLength(1000).When(x => x.InvoiceTemplate != null);
+        RuleForEach(x => x.Groups).MaximumLength(50).WithMessage("Grup adı en fazla 50 karakter olabilir.");
     }
 }
 
@@ -474,6 +485,8 @@ public class RecurringPayRequestValidator : AbstractValidator<RecurringPayReques
     public RecurringPayRequestValidator()
     {
         RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+    }
+}
 
 public class PurchaseInvoiceSaveRequestValidator : AbstractValidator<PurchaseInvoiceSaveRequest>
 {
@@ -489,5 +502,17 @@ public class PurchaseInvoiceSaveRequestValidator : AbstractValidator<PurchaseInv
         RuleFor(x => x.DueDate).GreaterThanOrEqualTo(x => x.Date).WithMessage("Vade fatura tarihinden önce olamaz.").When(x => x.DueDate.HasValue);
         RuleFor(x => x.Notes).MaximumLength(1000);
         RuleFor(x => x.ExternalRef).MaximumLength(40);
+    }
+}
+
+public class InvoiceNoteSaveRequestValidator : AbstractValidator<InvoiceNoteSaveRequest>
+{
+    public InvoiceNoteSaveRequestValidator()
+    {
+        RuleFor(x => x.Kind).IsInEnum();
+        RuleFor(x => x.Title).NotEmpty().WithMessage("Başlık zorunlu.").MaximumLength(100);
+        RuleFor(x => x.AccountName).MaximumLength(100);
+        RuleFor(x => x.Iban).Must(v => IbanValidator.IsValid(v!)).WithMessage("Geçersiz IBAN.").When(x => !string.IsNullOrWhiteSpace(x.Iban));
+        RuleFor(x => x.Text).MaximumLength(1000);
     }
 }

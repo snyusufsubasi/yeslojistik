@@ -16,11 +16,12 @@ import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { CitySelect } from '../components/CitySelect'
 import { AuditLogTable } from '../components/AuditLog'
+import { InvoiceNotesCard } from '../components/InvoiceNotesCard'
 import { dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'audit' | 'data' | 'notifications' | 'password'
+type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'notifications' | 'password'
 
 export default function SettingsPage() {
   const { can } = useAuth()
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) ?? (can('admin') ? 'company' : 'password'))
   const tabs = [
     ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' },
+      { value: 'invoiceNotes' as const, label: 'Fatura Notları' },
       { value: 'audit' as const, label: 'İşlem Geçmişi' }, { value: 'data' as const, label: 'Veriler' }] : []),
     { value: 'notifications' as const, label: 'Telefon Bildirimleri' },
     { value: 'password' as const, label: 'Şifre Değiştir' },
@@ -41,6 +43,7 @@ export default function SettingsPage() {
         <Card className="mt-4" title="Firma Belgeleri" icon={<FileText className="size-4" />}><DocumentsPanel ownerType="Company" /></Card>
       </>}
       {tab === 'users' && can('admin') && <UsersTab />}
+      {tab === 'invoiceNotes' && can('admin') && <InvoiceNotesCard />}
       {tab === 'audit' && can('admin') && (
         <Card title="İşlem Geçmişi" icon={<History className="size-4" />} bodyClassName="p-0">
           <p className="px-4 pt-3 text-sm text-slate-600">Kim, ne zaman, hangi kaydı oluşturdu, değiştirdi ya da sildi. Kayıtlar 2 yıl saklanır.</p>

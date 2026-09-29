@@ -13,7 +13,12 @@ public class CustomerAccountService(AppDbContext db, BalanceService balances)
         c.Id, "", c.Title, c.TaxNumber, c.TaxOffice, c.Phone, c.Email, c.Address, c.Notes,
         c.OpeningBalance + (c.Invoices.Where(i => i.Status == InvoiceStatus.Issued).Sum(i => (decimal?)i.Total) ?? 0)
         - (c.Payments.Where(p => (p.InstrumentStatus == null || (p.InstrumentStatus != InstrumentStatus.Bounced && p.InstrumentStatus != InstrumentStatus.Returned))).Sum(p => (decimal?)p.Amount) ?? 0), c.OpeningBalance, c.OpeningBalanceDate, c.NotifyStatusByEmail,
-        c.City, c.District, c.ContactName, c.IsEInvoiceUser, c.EInvoiceAlias, c.PaymentTermDays, c.IsActive, c.CreditLimit));
+        c.City, c.District, c.ContactName, c.IsEInvoiceUser, c.EInvoiceAlias, c.PaymentTermDays, c.IsActive, c.CreditLimit,
+        new CustomerExtras(c.Country, c.Neighborhood, c.Street, c.BuildingName, c.BuildingNo, c.DoorNo, c.PostalCode, c.Fax, c.Website),
+        new InvoiceTemplateDto(c.InvoiceTemplate.LineDate, c.InvoiceTemplate.LineLoading, c.InvoiceTemplate.LineDelivery, c.InvoiceTemplate.LinePlate,
+            c.InvoiceTemplate.LineVehicleType, c.InvoiceTemplate.LineDeliveryDocumentNo, c.InvoiceTemplate.LineCargo, c.InvoiceTemplate.LineDescription,
+            c.InvoiceTemplate.TripFooterNotes, c.InvoiceTemplate.Note, c.InvoiceTemplate.SaleNoteId, c.InvoiceTemplate.WithholdingNoteId, c.InvoiceTemplate.Scenario),
+        c.Groups.OrderBy(g => g.Name).Select(g => g.Name).ToList()));
 
     public static CustomerDto WithNo(CustomerDto c) => c with { CustomerNo = c.Id.ToString("D5") };
 

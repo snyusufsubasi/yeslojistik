@@ -12,7 +12,7 @@ function MissingHint({ show, to, text }: { show: boolean; to: string; text: stri
 }
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage, get, openPdf, post } from '../api/client'
-import type { CustomerRisk, Driver, Trip, TripAddressHint, TripEvent, TripHints, TripStatus, Vehicle } from '../api/types'
+import type { CustomerRisk, CustomerSummary, Driver, Trip, TripAddressHint, TripEvent, TripHints, TripStatus, Vehicle } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
 import { date, dateTime, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
@@ -150,6 +150,10 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     queryKey: ['customers', 'risk', customerId, trip?.id],
     queryFn: () => get<CustomerRisk>(`/customers/${customerId}/risk`, { excludeTripId: trip?.id }),
     enabled: !!customerId && !Number.isNaN(customerId) && !invoiced,
+  })
+  const customerDetail = useQuery({
+    queryKey: ['customers', 'detail', customerId], queryFn: () => get<CustomerSummary>(`/customers/${customerId}`),
+    enabled: !!customerId && !Number.isNaN(customerId), staleTime: 60_000,
   })
   const overLimit = risk.data?.creditLimit != null && risk.data.used + (Number(price) || 0) > risk.data.creditLimit
 
@@ -429,7 +433,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           <CommissionFields control={termsControl} register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
         </Section>
 
-        <DocumentFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
+        <DocumentFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} groups={customerDetail.data?.customer.groups ?? undefined} />
 
         <MoreFields title="Yetkililer ve not (isteğe bağlı)" hasError={!!(errors.loadingContact || errors.deliveryContact || errors.description)}
           defaultOpen={!!trip || !!(copyOf?.loadingContact || copyOf?.deliveryContact || copyOf?.description)}>
