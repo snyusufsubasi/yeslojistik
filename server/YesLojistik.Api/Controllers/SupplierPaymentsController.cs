@@ -27,7 +27,8 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
 
     private static readonly Expression<Func<SupplierPayment, SupplierPaymentDto>> Projection = p => new SupplierPaymentDto(p.Id, p.SupplierId,
         p.Supplier.Title, p.Date, p.Amount, p.Method, p.TripId,
-        p.Trip != null ? p.Trip.LoadingAddress + " → " + p.Trip.DeliveryAddress : null, p.Description);
+        p.Trip != null ? p.Trip.LoadingAddress + " → " + p.Trip.DeliveryAddress : null, p.Description,
+        p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.EndorsedFromPaymentId);
 
     private IQueryable<SupplierPayment> Filter(SupplierPaymentQuery q)
     {
@@ -81,6 +82,7 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
     public async Task<SupplierPaymentDto> Update(int id, SupplierPaymentSaveRequest req, CancellationToken ct)
     {
         var p = await db.SupplierPayments.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Ödeme bulunamadı.");
+        if (p.EndorsedFromPaymentId != null) throw new DomainException("Bu ödeme bir çek/senet cirosundan geldi; Çek/Senet sayfasından yönetin.");
         await ApplyAsync(p, req, ct);
         await db.SaveChangesAsync(ct);
         return await Get(id, ct);
@@ -91,6 +93,7 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var p = await db.SupplierPayments.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Ödeme bulunamadı.");
+        if (p.EndorsedFromPaymentId != null) throw new DomainException("Bu ödeme bir çek/senet cirosundan geldi; Çek/Senet sayfasından ciroyu geri alın.");
         p.IsDeleted = true;
         await db.SaveChangesAsync(ct);
         return NoContent();
@@ -111,5 +114,7 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
         p.Method = r.Method;
         p.TripId = r.TripId;
         p.Description = CustomersController.NullIfEmpty(r.Description);
+        if (r.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
+        p.CashAccountId = r.CashAccountId;
     }
 }

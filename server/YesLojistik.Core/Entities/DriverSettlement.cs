@@ -10,4 +10,6 @@ public class DriverSettlement : BaseEntity
     public SettlementDirection Direction { get; set; }
     public PaymentMethod Method { get; set; } = PaymentMethod.Cash;
     public string? Note { get; set; }
+    public int? CashAccountId { get; set; }
+    public CashAccount? CashAccount { get; set; }
 }

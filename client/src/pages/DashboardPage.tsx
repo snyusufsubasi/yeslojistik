@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { get } from '../api/client'
-import type { Alert, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
+import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Spinner, StatCard } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
@@ -100,6 +100,8 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {can('accounting') && <CashFlowCard />}
 
       <div className="grid items-start gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2" title="Günlük Seferler" icon={<Route className="size-4" />} bodyClassName="p-0"
@@ -252,6 +254,30 @@ function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
           </li>
         ))}
       </ol>
+    </Card>
+  )
+}
+
+/** Önümüzdeki 4 hafta: beklenen tahsilat (fatura vadeleri + portföydeki çek/senet) ve ödemeler (taşeron/tedarikçi vadeleri). */
+function CashFlowCard() {
+  const flow = useQuery({ queryKey: ['dashboard', 'cash-flow'], queryFn: () => get<CashFlow>('/dashboard/cash-flow') })
+  if (!flow.data) return null
+  const b = flow.data.buckets
+  const net = (i: number) => b[i].expectedIn + b[i].instrumentsIn - b[i].expectedOut
+  return (
+    <Card title="Nakit Akışı: Önümüzdeki 30 Gün" icon={<CircleDollarSign className="size-4" />} bodyClassName="p-0"
+      actions={<Link to="/kasa-banka" className="text-sm font-medium text-brand-700">Kasa / banka: {tl(flow.data.cashOnHand)} →</Link>}>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead><tr><th className="th" />{b.map((x) => <th key={x.label} className="th text-right">{x.label}</th>)}</tr></thead>
+          <tbody>
+            <tr><td className="td">Beklenen tahsilat</td>{b.map((x, i) => <td key={i} className="td text-right">{tl(x.expectedIn)}</td>)}</tr>
+            <tr><td className="td">Çek / senet vadesi</td>{b.map((x, i) => <td key={i} className="td text-right">{tl(x.instrumentsIn)}</td>)}</tr>
+            <tr><td className="td">Ödenecek (taşeron/tedarikçi)</td>{b.map((x, i) => <td key={i} className="td text-right text-orange-700">{tl(x.expectedOut)}</td>)}</tr>
+            <tr className="font-semibold"><td className="td">Net</td>{b.map((_, i) => <td key={i} className={clsx('td text-right', net(i) < 0 ? 'text-red-600' : 'text-emerald-700')}>{tl(net(i))}</td>)}</tr>
+          </tbody>
+        </table>
+      </div>
     </Card>
   )
 }

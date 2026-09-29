@@ -42,6 +42,11 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
     [HttpGet("{id:int}")]
     public Task<CustomerSummaryDto> Get(int id, CancellationToken ct) => accounts.SummaryAsync(id, ct);
 
+    /// <summary>Risk limiti kullanımı: açık bakiye + faturalanmamış (yüklenmiş/yolda/teslim) seferler.</summary>
+    [HttpGet("{id:int}/risk")]
+    public Task<CustomerRiskDto> Risk(int id, [FromQuery] int? excludeTripId, [FromServices] CashService cash, CancellationToken ct) =>
+        cash.RiskAsync(id, excludeTripId, ct);
+
     [HttpGet("{id:int}/movements")]
     public Task<List<AccountMovementDto>> Movements(int id, CancellationToken ct) => accounts.MovementsAsync(id, ct);
 
@@ -111,6 +116,7 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
         c.EInvoiceAlias = r.IsEInvoiceUser ? NullIfEmpty(r.EInvoiceAlias) : null;
         c.PaymentTermDays = r.PaymentTermDays;
         c.IsActive = r.IsActive;
+        c.CreditLimit = r.CreditLimit is > 0 ? Money.Round(r.CreditLimit.Value) : null;
     }
 
     internal static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

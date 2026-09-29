@@ -151,5 +151,7 @@ public class DriverSettlementsController(AppDbContext db) : ControllerBase
         s.Direction = r.Direction;
         s.Method = r.Method;
         s.Note = CustomersController.NullIfEmpty(r.Note);
+        if (r.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
+        s.CashAccountId = r.CashAccountId;
     }
 }

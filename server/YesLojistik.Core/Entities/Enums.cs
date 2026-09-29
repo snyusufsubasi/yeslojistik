@@ -22,7 +22,7 @@ public enum EInvoiceTypeCode { Satis, Tevkifat }
 
 public enum EInvoiceStatus { None, Ready, Sent, Delivered, Accepted, Rejected, Failed, CancelRequested, Cancelled }
 
-public enum PaymentMethod { Cash, BankTransfer, Check, CreditCard }
+public enum PaymentMethod { Cash, BankTransfer, Check, CreditCard, PromissoryNote }
 
 public enum SupplierKind { Carrier, Service, Fuel, Other }
 
@@ -44,3 +44,8 @@ public enum DocumentType
 }
 
 public enum MaintenanceType { Periodic, Oil, Tire, Brake, Breakdown, Other }
+
+/// <summary>Çek/senedin durumu: portföyde → tahsile verildi → tahsil edildi; ya da ciro edildi, karşılıksız, iade.</summary>
+public enum InstrumentStatus { Portfolio, InCollection, Collected, Endorsed, Bounced, Returned }
+
+public enum CashAccountKind { Cash, Bank, Pos, CreditCard }

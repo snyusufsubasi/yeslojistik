@@ -5,12 +5,13 @@ namespace YesLojistik.Core.Dtos;
 public record CustomerDto(int Id, string CustomerNo, string Title, string? TaxNumber, string? TaxOffice,
     string? Phone, string? Email, string? Address, string? Notes, decimal Balance, decimal OpeningBalance = 0,
     DateOnly? OpeningBalanceDate = null, bool NotifyStatusByEmail = false, string? City = null, string? District = null,
-    string? ContactName = null, bool IsEInvoiceUser = false, string? EInvoiceAlias = null, int? PaymentTermDays = null, bool IsActive = true);
+    string? ContactName = null, bool IsEInvoiceUser = false, string? EInvoiceAlias = null, int? PaymentTermDays = null, bool IsActive = true,
+    decimal? CreditLimit = null);
 
 public record CustomerSaveRequest(string Title, string? TaxNumber, string? TaxOffice, string? Phone,
     string? Email, string? Address, string? Notes, decimal OpeningBalance = 0, DateOnly? OpeningBalanceDate = null,
     bool NotifyStatusByEmail = false, string? City = null, string? District = null, string? ContactName = null,
-    bool IsEInvoiceUser = false, string? EInvoiceAlias = null, int? PaymentTermDays = null, bool IsActive = true);
+    bool IsEInvoiceUser = false, string? EInvoiceAlias = null, int? PaymentTermDays = null, bool IsActive = true, decimal? CreditLimit = null);
 
 public record CustomerSummaryDto(CustomerDto Customer, decimal TotalDebit, decimal TotalCredit, decimal Balance,
     decimal OverdueAmount, int TripCount);

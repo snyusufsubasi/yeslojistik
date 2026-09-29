@@ -217,6 +217,10 @@ public class PaymentSaveRequestValidator : AbstractValidator<PaymentSaveRequest>
         RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
         RuleFor(x => x.Method).IsInEnum();
         RuleFor(x => x.Description).MaximumLength(500);
+        RuleFor(x => x.InstrumentDueDate).NotNull().When(x => x.Method is PaymentMethod.Check or PaymentMethod.PromissoryNote)
+            .WithMessage("Çek/senet için vade tarihini girin.");
+        RuleFor(x => x.InstrumentNo).MaximumLength(50);
+        RuleFor(x => x.Bank).MaximumLength(100);
     }
 }
 
@@ -329,5 +333,36 @@ public class ExpenseRejectRequestValidator : AbstractValidator<ExpenseRejectRequ
     public ExpenseRejectRequestValidator()
     {
         RuleFor(x => x.Reason).NotEmpty().WithMessage("Reddetme gerekçesini yazın; şoföre iletilecek.").MaximumLength(300);
+    }
+}
+
+public class CashAccountSaveRequestValidator : AbstractValidator<CashAccountSaveRequest>
+{
+    public CashAccountSaveRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().WithMessage("Hesap adı zorunlu.").MaximumLength(100);
+        RuleFor(x => x.Kind).IsInEnum();
+        RuleFor(x => x.Iban).Must(IbanValidator.IsValid).When(x => !string.IsNullOrWhiteSpace(x.Iban)).WithMessage("IBAN geçersiz (TR ile başlayan 26 karakter).");
+        RuleFor(x => x.OpeningBalance).Amount();
+    }
+}
+
+public class CashTransferSaveRequestValidator : AbstractValidator<CashTransferSaveRequest>
+{
+    public CashTransferSaveRequestValidator()
+    {
+        RuleFor(x => x.FromAccountId).GreaterThan(0).WithMessage("Çıkış hesabını seçin.");
+        RuleFor(x => x.ToAccountId).GreaterThan(0).WithMessage("Giriş hesabını seçin.");
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+        RuleFor(x => x.Note).MaximumLength(500);
+    }
+}
+
+public class InstrumentStatusRequestValidator : AbstractValidator<InstrumentStatusRequest>
+{
+    public InstrumentStatusRequestValidator()
+    {
+        RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.SupplierId).NotNull().When(x => x.Status == InstrumentStatus.Endorsed).WithMessage("Ciro için tedarikçiyi seçin.");
     }
 }

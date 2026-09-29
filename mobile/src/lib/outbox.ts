@@ -177,10 +177,25 @@ async function send(item: OutboxItem) {
 const transient = (e: unknown) => !(e instanceof ApiError) || e.status === 0 || e.status >= 500 || [401, 408, 429].includes(e.status)
 
 let running: Promise<void> | null = null
+let again: { force: boolean } | null = null
 
-/** Kuyruğu sırayla gönderir. Aynı seferin işlemleri sırasını korur (önce fotoğraf/imza, sonra "Teslim Edildi"). */
+/**
+ * Kuyruğu sırayla gönderir. Aynı seferin işlemleri sırasını korur (önce fotoğraf/imza, sonra "Teslim Edildi").
+ * Gönderim sürerken yeni işlem eklenirse, mevcut tur bitince kuyruk bir kez daha işlenir (yeni işlem 30 sn beklemez).
+ */
 export function processQueue(force = false): Promise<void> {
-  running ??= run(force).finally(() => { running = null })
+  if (running) {
+    again = { force: (again?.force ?? false) || force }
+    return running
+  }
+  running = (async () => {
+    let next: { force: boolean } | null = { force }
+    while (next) {
+      again = null
+      await run(next.force)
+      next = again
+    }
+  })().finally(() => { running = null; again = null })
   return running
 }
 

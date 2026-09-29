@@ -18,6 +18,8 @@ const InvoicesPage = lazy(() => import('./pages/InvoicesPage'))
 const InvoiceCreatePage = lazy(() => import('./pages/InvoiceCreatePage'))
 const PaymentsPage = lazy(() => import('./pages/PaymentsPage'))
 const ExpensesPage = lazy(() => import('./pages/ExpensesPage'))
+const ChecksPage = lazy(() => import('./pages/ChecksPage'))
+const CashAccountsPage = lazy(() => import('./pages/CashAccountsPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const MapPage = lazy(() => import('./pages/MapPage'))
@@ -81,6 +83,8 @@ export default function App() {
           <Route path="tahsilatlar" element={<PaymentsPage />} />
           <Route path="odemeler" element={<SupplierPaymentsPage />} />
           <Route path="giderler" element={<ExpensesPage />} />
+          <Route path="cek-senet" element={<ChecksPage />} />
+          <Route path="kasa-banka" element={<Guard perm="accounting"><CashAccountsPage /></Guard>} />
           <Route path="raporlar" element={<Guard perm="accounting"><ReportsPage /></Guard>} />
           <Route path="ayarlar" element={<SettingsPage />} />
           <Route path="yardim" element={<HelpPage />} />

@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<ExpenseService>();
         services.AddScoped<DriverLedgerService>();
         services.AddScoped<FleetService>();
+        services.AddScoped<CashService>();
         services.AddScoped<DailyDigestService>();
         services.AddScoped<StatementPdfGenerator>();
         services.AddScoped<InvoicePdfGenerator>();

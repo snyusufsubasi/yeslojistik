@@ -12,8 +12,8 @@ public class CustomerAccountService(AppDbContext db, BalanceService balances)
     public static IQueryable<CustomerDto> Project(IQueryable<Customer> query) => query.Select(c => new CustomerDto(
         c.Id, "", c.Title, c.TaxNumber, c.TaxOffice, c.Phone, c.Email, c.Address, c.Notes,
         c.OpeningBalance + (c.Invoices.Where(i => i.Status == InvoiceStatus.Issued).Sum(i => (decimal?)i.Total) ?? 0)
-        - (c.Payments.Sum(p => (decimal?)p.Amount) ?? 0), c.OpeningBalance, c.OpeningBalanceDate, c.NotifyStatusByEmail,
-        c.City, c.District, c.ContactName, c.IsEInvoiceUser, c.EInvoiceAlias, c.PaymentTermDays, c.IsActive));
+        - (c.Payments.Where(p => (p.InstrumentStatus == null || (p.InstrumentStatus != InstrumentStatus.Bounced && p.InstrumentStatus != InstrumentStatus.Returned))).Sum(p => (decimal?)p.Amount) ?? 0), c.OpeningBalance, c.OpeningBalanceDate, c.NotifyStatusByEmail,
+        c.City, c.District, c.ContactName, c.IsEInvoiceUser, c.EInvoiceAlias, c.PaymentTermDays, c.IsActive, c.CreditLimit));
 
     public static CustomerDto WithNo(CustomerDto c) => c with { CustomerNo = c.Id.ToString("D5") };
 
@@ -23,7 +23,7 @@ public class CustomerAccountService(AppDbContext db, BalanceService balances)
             ?? throw new NotFoundException("Müşteri bulunamadı.");
         var debit = customer.OpeningBalance
             + (await db.Invoices.Where(i => i.CustomerId == id && i.Status == InvoiceStatus.Issued).SumAsync(i => (decimal?)i.Total, ct) ?? 0);
-        var credit = await db.Payments.Where(p => p.CustomerId == id).SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+        var credit = await db.Payments.Where(p => p.CustomerId == id).Where(Payment.Counts).SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
         var bal = await balances.InvoiceBalancesAsync([id], ct);
         var today = Clock.Today;
         var overdue = bal.Values.Where(b => b.Remaining > 0 && b.DueDate < today).Sum(b => b.Remaining);
@@ -40,15 +40,22 @@ public class CustomerAccountService(AppDbContext db, BalanceService balances)
         var invoices = await db.Invoices.AsNoTracking().Where(i => i.CustomerId == id && i.Status == InvoiceStatus.Issued)
             .Select(i => new { i.Date, i.CreatedAt, i.InvoiceNo, i.Notes, i.Total, i.Id }).ToListAsync(ct);
         var payments = await db.Payments.AsNoTracking().Where(p => p.CustomerId == id)
-            .Select(p => new { p.Date, p.CreatedAt, p.Id, p.Method, p.Description, p.Amount, InvoiceNo = p.Invoice != null ? p.Invoice.InvoiceNo : null })
+            .Select(p => new { p.Date, p.CreatedAt, p.Id, p.Method, p.Description, p.Amount, p.InstrumentStatus, p.InstrumentNo, InvoiceNo = p.Invoice != null ? p.Invoice.InvoiceNo : null })
             .ToListAsync(ct);
         var bal = await balances.InvoiceBalancesAsync([id], ct);
 
         var rows = invoices.Select(i => (i.Date, i.CreatedAt, Type: "Fatura", Ref: i.InvoiceNo, Desc: i.Notes, Debit: i.Total, Credit: 0m,
                 Status: BalanceService.PaymentStatus(InvoiceStatus.Issued, bal.GetValueOrDefault(i.Id))))
             .Concat(payments.Select(p => (p.Date, p.CreatedAt, Type: "Tahsilat", Ref: $"T-{p.Id:D6}",
-                Desc: p.Description ?? (p.InvoiceNo != null ? $"{p.InvoiceNo} tahsilatı" : null), Debit: 0m, Credit: p.Amount,
-                Status: MethodLabel(p.Method))))
+                Desc: p.Description ?? (p.InvoiceNo != null ? $"{p.InvoiceNo} tahsilatı" : null), Debit: 0m,
+                Credit: p.InstrumentStatus is InstrumentStatus.Bounced or InstrumentStatus.Returned ? 0m : p.Amount,
+                Status: p.InstrumentStatus switch
+                {
+                    InstrumentStatus.Bounced => $"{MethodLabel(p.Method)} karşılıksız ({p.Amount:N2} TL sayılmadı)",
+                    InstrumentStatus.Returned => $"{MethodLabel(p.Method)} iade ({p.Amount:N2} TL sayılmadı)",
+                    { } st => $"{MethodLabel(p.Method)} · {InstrumentStatusLabel(st)}",
+                    _ => MethodLabel(p.Method),
+                })))
             .ToList();
         if (opening.OpeningBalance > 0)
             rows.Insert(0, (opening.OpeningBalanceDate ?? DateOnly.FromDateTime(opening.CreatedAt), DateTime.MinValue, Type: "Devir", Ref: "DEVİR",
@@ -70,6 +77,18 @@ public class CustomerAccountService(AppDbContext db, BalanceService balances)
         PaymentMethod.BankTransfer => "Havale/EFT",
         PaymentMethod.Check => "Çek",
         PaymentMethod.CreditCard => "Kredi Kartı",
+        PaymentMethod.PromissoryNote => "Senet",
         _ => m.ToString(),
+    };
+
+    public static string InstrumentStatusLabel(InstrumentStatus s) => s switch
+    {
+        InstrumentStatus.Portfolio => "Portföyde",
+        InstrumentStatus.InCollection => "Tahsilde",
+        InstrumentStatus.Collected => "Tahsil edildi",
+        InstrumentStatus.Endorsed => "Ciro edildi",
+        InstrumentStatus.Bounced => "Karşılıksız",
+        InstrumentStatus.Returned => "İade",
+        _ => s.ToString(),
     };
 }

@@ -3,7 +3,9 @@ export type AttachmentKind = 'Photo' | 'Document' | 'Signature'
 export type VehicleStatus = 'Available' | 'OnRoad' | 'Maintenance'
 export type TripStatus = 'Planned' | 'Loaded' | 'OnRoad' | 'Delivered' | 'Cancelled'
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Cancelled'
-export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard'
+export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard' | 'PromissoryNote'
+export type InstrumentStatus = 'Portfolio' | 'InCollection' | 'Collected' | 'Endorsed' | 'Bounced' | 'Returned'
+export type CashAccountKind = 'Cash' | 'Bank' | 'Pos' | 'CreditCard'
 export type SupplierKind = 'Carrier' | 'Service' | 'Fuel' | 'Other'
 export type VehicleOwnership = 'Own' | 'Rented'
 export type TripEventSource = 'Panel' | 'Driver' | 'Import'
@@ -68,6 +70,7 @@ export interface Customer {
   eInvoiceAlias?: string | null
   paymentTermDays?: number | null
   isActive?: boolean
+  creditLimit?: number | null
 }
 
 export interface Supplier {
@@ -258,6 +261,14 @@ export interface Payment {
   amount: number
   method: PaymentMethod
   description?: string | null
+  cashAccountId?: number | null
+  cashAccountName?: string | null
+  instrumentNo?: string | null
+  bank?: string | null
+  instrumentDueDate?: string | null
+  instrumentStatus?: InstrumentStatus | null
+  endorsedSupplierPaymentId?: number | null
+  endorsedTo?: string | null
 }
 
 export interface Expense {
@@ -281,6 +292,7 @@ export interface Expense {
   paidBy?: 'Company' | 'Driver'
   approvalStatus?: ApprovalStatus
   rejectionReason?: string | null
+  cashAccountId?: number | null
 }
 
 export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected'
@@ -540,6 +552,9 @@ export interface SupplierPayment {
   tripId?: number | null
   tripLabel?: string | null
   description?: string | null
+  cashAccountId?: number | null
+  cashAccountName?: string | null
+  endorsedFromPaymentId?: number | null
 }
 
 export interface SupplierSummary {
@@ -631,4 +646,82 @@ export interface MaintenanceRecord {
   nextDueKm?: number | null
   nextDueDate?: string | null
   expenseId?: number | null
+}
+
+export interface CashAccount {
+  id: number
+  name: string
+  kind: CashAccountKind
+  iban?: string | null
+  openingBalance: number
+  openingBalanceDate?: string | null
+  isActive: boolean
+  balance: number
+}
+
+export interface CashMovement {
+  date: string
+  kind: string
+  description: string
+  in: number
+  out: number
+  balance: number
+  link?: string | null
+}
+
+export interface CashTransfer {
+  id: number
+  fromAccountId: number
+  fromAccountName: string
+  toAccountId: number
+  toAccountName: string
+  date: string
+  amount: number
+  note?: string | null
+}
+
+export interface CashFlow {
+  buckets: { label: string; from?: string | null; to?: string | null; expectedIn: number; instrumentsIn: number; expectedOut: number }[]
+  totalIn: number
+  totalOut: number
+  cashOnHand: number
+}
+
+export interface CustomerRisk {
+  customerId: number
+  creditLimit?: number | null
+  openBalance: number
+  uninvoicedDelivered: number
+  used: number
+  available?: number | null
+}
+
+export interface CustomerProfitRow {
+  customerId: number
+  customer: string
+  tripCount: number
+  revenue: number
+  cost: number
+  profit: number
+  marginPercent?: number | null
+  openReceivable: number
+  collectionDays?: number | null
+}
+
+export interface RouteProfitRow {
+  from: string
+  to: string
+  tripCount: number
+  avgRevenue: number
+  avgCost: number
+  profit: number
+  marginPercent?: number | null
+}
+
+export interface SearchResult {
+  type: 'trip' | 'customer' | 'supplier' | 'vehicle' | 'driver' | 'invoice'
+  id: number
+  title: string
+  subtitle?: string | null
+  link: string
 }

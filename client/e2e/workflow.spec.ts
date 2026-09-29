@@ -371,6 +371,8 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
 
   // Araç kartı: belgeler (demo kasko) ve bakım kaydı
   await page.getByRole('link', { name: 'Araçlar', exact: true }).click()
+  // Önceki sayfadaki gider satırı da plakayı içerir: araç listesi yüklenmeden tıklanmasın.
+  await expect(page.getByRole('heading', { name: 'Araçlar', exact: true })).toBeVisible()
   await page.getByRole('row').filter({ hasText: '34 VES 01' }).first().click()
   const vd = page.getByRole('dialog', { name: /Araç: 34 VES 01/ })
   await vd.getByRole('button', { name: 'Belgeler' }).click()
@@ -388,10 +390,71 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
 
   // Şoför kartı → Hesap
   await page.getByRole('link', { name: 'Şoförler', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Şoförler', exact: true })).toBeVisible()
   await page.getByRole('row').filter({ hasText: 'Mehmet Yılmaz' }).first().click()
   const dd = page.getByRole('dialog', { name: 'Mehmet Yılmaz' })
   await dd.getByRole('button', { name: 'Hesap' }).click()
   await expect(dd.getByText('Onay bekleyen masraf')).toBeVisible()
   await expect(dd.getByText('Avans').first()).toBeVisible()
   await expect(dd.getByText('Reddedildi').first()).toBeVisible()
+})
+
+test('çek ciro edilir, kasa/banka virmanı ve nakit akışı', async ({ page }) => {
+  const u = unique()
+  await login(page)
+  await expect(page.getByText('Nakit Akışı: Önümüzdeki 30 Gün')).toBeVisible()
+
+  // Yeni çek: tahsilat olarak girilir, portföye düşer.
+  await page.getByRole('link', { name: 'Tahsilatlar', exact: true }).click()
+  await page.getByRole('button', { name: /Tahsilat Ekle/ }).first().click()
+  const pd = page.getByRole('dialog', { name: 'Tahsilat Ekle' })
+  await pd.locator('select[name=customerId]').selectOption({ index: 1 })
+  await pd.getByLabel(/^Tutar/).fill('3250')
+  await pd.locator('select[name=method]').selectOption('Check')
+  await pd.getByLabel('Çek no').fill(`E2E${u}`)
+  await pd.getByLabel('Banka').fill('Akbank')
+  await pd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(pd.getByText('Çek/senet için vade tarihini girin.')).toBeVisible()
+  await pd.getByLabel(/Vade tarihi/).fill(new Date(Date.now() + 3 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }))
+  await pd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Tahsilat kaydedildi.')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Çek / Senet', exact: true }).click()
+  const row = page.getByRole('row').filter({ hasText: `E2E${u}` })
+  await expect(row.getByText('Portföyde')).toBeVisible()
+  await row.getByRole('button', { name: 'Ciro et' }).click()
+  const cd = page.getByRole('dialog', { name: /Ciro et/ })
+  await cd.locator('select').first().selectOption({ index: 1 })
+  await cd.getByRole('button', { name: 'Ciro et' }).click()
+  await expect(page.getByText(/Ciro edildi” olarak işaretlendi/)).toBeVisible()
+  await page.getByLabel('Durum').selectOption('Endorsed')
+  await expect(page.getByRole('row').filter({ hasText: `E2E${u}` }).getByText('Ciro edildi')).toBeVisible()
+
+  // Kasa / Banka: demo hesaplar ve virman
+  await page.getByRole('link', { name: 'Kasa / Banka', exact: true }).click()
+  await expect(page.getByRole('button', { name: /Merkez Kasa/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Virman' }).click()
+  const vd = page.getByRole('dialog', { name: /Virman/ })
+  await vd.getByLabel(/^Tutar/).fill('1000')
+  await vd.getByLabel('Not').fill(`Bankaya yatırıldı ${u}`)
+  await vd.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByText('Virman kaydedildi.')).toBeVisible()
+  await expect(page.getByText(`Bankaya yatırıldı ${u}`).first()).toBeVisible()
+})
+
+test('genel arama (Ctrl+K) ve kârlılık raporları', async ({ page }) => {
+  await login(page)
+  await page.keyboard.press('Control+k')
+  const sd = page.getByRole('dialog', { name: 'Ara' })
+  await sd.getByLabel('Arama').fill('34 VES 01')
+  await sd.getByRole('option').filter({ hasText: 'Araç' }).first().click()
+  await expect(page.getByRole('dialog', { name: /Araç: 34 VES 01/ })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('link', { name: 'Raporlar', exact: true }).click()
+  await page.getByRole('button', { name: 'Müşteri Kârlılığı' }).click()
+  await expect(page.getByRole('columnheader', { name: 'Marj' })).toBeVisible()
+  await expect(page.getByRole('row').nth(1)).toBeVisible()
+  await page.getByRole('button', { name: 'Güzergâh' }).click()
+  await expect(page.getByRole('row').filter({ hasText: '→' }).first()).toBeVisible()
 })

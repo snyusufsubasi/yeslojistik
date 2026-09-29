@@ -26,16 +26,26 @@ public record InvoiceQuery : ListQuery
 }
 
 public record PaymentDto(int Id, int CustomerId, string CustomerTitle, int? InvoiceId, string? InvoiceNo, DateOnly Date,
-    decimal Amount, PaymentMethod Method, string? Description);
+    decimal Amount, PaymentMethod Method, string? Description, int? CashAccountId = null, string? CashAccountName = null,
+    string? InstrumentNo = null, string? Bank = null, DateOnly? InstrumentDueDate = null, InstrumentStatus? InstrumentStatus = null,
+    int? EndorsedSupplierPaymentId = null, string? EndorsedTo = null);
 
 public record PaymentSaveRequest(int CustomerId, int? InvoiceId, DateOnly Date, decimal Amount, PaymentMethod Method,
-    string? Description);
+    string? Description, int? CashAccountId = null, string? InstrumentNo = null, string? Bank = null, DateOnly? InstrumentDueDate = null);
+
+/// <summary>Çek/senet durum değişikliği. Ciroda tedarikçi zorunlu; tahsilde/tahsil edildiğinde hesap seçilebilir.</summary>
+public record InstrumentStatusRequest(InstrumentStatus Status, int? SupplierId = null, DateOnly? Date = null, int? CashAccountId = null);
 
 public record PaymentQuery : ListQuery
 {
     public int? CustomerId { get; init; }
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
+    /// <summary>Yalnızca çek ve senetler.</summary>
+    public bool? Instruments { get; init; }
+    public InstrumentStatus? InstrumentStatus { get; init; }
+    public DateOnly? DueTo { get; init; }
+    public int? CashAccountId { get; init; }
 }
 
 public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId,
@@ -43,11 +53,11 @@ public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateO
     int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null,
     int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false,
     ExpensePaidBy PaidBy = ExpensePaidBy.Company, ApprovalStatus ApprovalStatus = ApprovalStatus.Approved,
-    string? RejectionReason = null);
+    string? RejectionReason = null, int? CashAccountId = null);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
     string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null, int? SupplierId = null,
-    bool IsOnCredit = false);
+    bool IsOnCredit = false, int? CashAccountId = null);
 
 public record ExpenseQuery : ListQuery
 {
@@ -65,9 +75,10 @@ public record ExpenseQuery : ListQuery
 public record InvoiceEmailRequest(string? To, string? Message);
 
 public record SupplierPaymentDto(int Id, int SupplierId, string SupplierTitle, DateOnly Date, decimal Amount, PaymentMethod Method,
-    int? TripId, string? TripLabel, string? Description);
+    int? TripId, string? TripLabel, string? Description, int? CashAccountId = null, string? CashAccountName = null, int? EndorsedFromPaymentId = null);
 
-public record SupplierPaymentSaveRequest(int SupplierId, DateOnly Date, decimal Amount, PaymentMethod Method, int? TripId, string? Description);
+public record SupplierPaymentSaveRequest(int SupplierId, DateOnly Date, decimal Amount, PaymentMethod Method, int? TripId, string? Description,
+    int? CashAccountId = null);
 
 public record SupplierPaymentQuery : ListQuery
 {

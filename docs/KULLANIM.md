@@ -104,6 +104,21 @@ Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle 
 - Yakıt giderine **litre** ve **araç kilometresi** yazılırsa, *Raporlar → Yakıt* araç başına 100 km'de yakılan litreyi gösterir. Filo ortalamasının %15'ten fazla üstündeki araç kırmızı görünür.
 - Şoföre verilen avans **Şoför Avansı** kategorisiyle ve şoför seçilerek girilir. *Raporlar → Şoför Bazlı* avans ve harcırah toplamlarını gösterir.
 
+## Genel arama, raporlar ve telefona kurma
+
+- Üst çubuktaki **Ara** (Ctrl+K): plaka, müşteri, sefer referans no, fatura no, şoför, tedarikçi.
+- Raporlar → **Müşteri Kârlılığı** (ciro, maliyet, marj, açık alacak, yaklaşık tahsil süresi) ve **Güzergâh** (il → il sefer sayısı, ortalama satış/maliyet, marj). Hepsi Excel'e aktarılabilir.
+- Paneli telefona kurma: iPhone Safari → Paylaş → Ana Ekrana Ekle; Android Chrome → Uygulamayı yükle.
+
+## Çek / senet, kasa / banka ve nakit akışı
+
+- Çek/senetle tahsilat: Tahsilatlar'da yöntem **Çek** ya da **Senet**, numara, banka ve vade. **Çek / Senet** sayfasında portföy; vadesine 7 gün kala uyarı.
+- Durumlar: Tahsile ver, Tahsil edildi (hesap seçilir), Ciro et (seçilen tedarikçiye ödeme yazılır, borcu düşer), Karşılıksız, İade. Karşılıksız/iade çek müşterinin bakiyesinden düşmez; ciro edilmişse tedarikçi ödemesi de geri alınır.
+- **Kasa / Banka**: hesaplar açılış bakiyesiyle açılır; tahsilat, ödeme, gider ve şoför ödemesinde hesap seçilirse bakiye hesaplanır. Çek/senet yalnızca tahsil edilince hesaba girer. Hesaplar arası aktarım: **Virman**.
+- Ana sayfa **Nakit Akışı**: önümüzdeki 4 hafta beklenen tahsilat (fatura vadeleri + çek/senet) ve taşeron/tedarikçi ödemeleri.
+- Müşteri **Risk limiti**: açık bakiye + faturalanmamış (yüklenmiş/yolda/teslim) seferler limiti aşınca sefer formunda ve bildirimlerde uyarı; kayıt engellenmez.
+- **Vade Hatırlatma** (müşteri sayfası): ekstre ekli e-posta ya da hazır WhatsApp mesajı.
+
 ## Şoför masraf onayı ve şoför hesabı
 
 - Şoförün uygulamadan girdiği masraf **Onay bekliyor** olarak düşer; ana sayfada sayısı görünür. Giderler sayfasında **Onayla** ya da gerekçe yazıp **Reddet**. Gerekçe şoföre bildirim olarak gider. Yönetici mobil uygulamasında: Daha → Onay Bekleyen Masraflar.

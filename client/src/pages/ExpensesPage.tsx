@@ -30,6 +30,7 @@ const schema = z.object({
   odometer: z.number().int('Tam sayı girin.').min(0).nullable().or(z.nan().transform(() => null)),
   supplierId: z.number().nullable().or(z.nan().transform(() => null)),
   isOnCredit: z.boolean(),
+  cashAccountId: z.number().nullable().or(z.nan().transform(() => null)),
 }).refine((v) => v.category !== 'DriverAdvance' || v.driverId != null || v.tripId != null, { path: ['driverId'], message: 'Avans için şoför seçin.' })
   .refine((v) => !v.isOnCredit || v.supplierId != null, { path: ['supplierId'], message: 'Vadeli gider için tedarikçi seçin.' })
 type FormValues = z.infer<typeof schema>
@@ -145,6 +146,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
   const suppliers = useLookup('suppliers')
+  const accounts = useLookup('cash-accounts')
   const toast = useToast()
   const [receipt, setReceipt] = useState<File | null>(null)
   const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
@@ -152,9 +154,9 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
     defaultValues: expense
       ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
         driverId: expense.driverId ?? null, liters: expense.liters ?? null, odometer: expense.odometer ?? null,
-        supplierId: expense.supplierId ?? null, isOnCredit: expense.isOnCredit ?? false }
+        supplierId: expense.supplierId ?? null, isOnCredit: expense.isOnCredit ?? false, cashAccountId: expense.cashAccountId ?? null }
       : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '', driverId: null, liters: null, odometer: null,
-        supplierId: null, isOnCredit: false },
+        supplierId: null, isOnCredit: false, cashAccountId: null },
   })
   const amount = useWatch({ control, name: 'amount' })
   const category = useWatch({ control, name: 'category' })
@@ -222,6 +224,11 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
           <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" {...register('isOnCredit')} />
           <span>Vadeli (henüz ödenmedi) <span className="block text-[13px] text-slate-500">Tutar tedarikçiye borç yazılır.</span></span>
         </label>
+        {(accounts.data?.length ?? 0) > 0 && (
+          <Field className="sm:col-span-2" label="Kasa / Banka" hint="İsteğe bağlı: firmanın ödediği giderde paranın çıktığı hesap (vadelide dikkate alınmaz).">
+            <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
+          </Field>
+        )}
         <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
         <Field className="sm:col-span-2" label="Fiş / fatura görseli" hint={expense?.hasReceipt ? 'Bu giderin fişi var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
           <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />

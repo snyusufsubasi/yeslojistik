@@ -17,8 +17,8 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
     private static readonly string[] Tables =
     [
         "vehicle_locations", "trip_events", "trip_attachments", "payments", "supplier_payments", "invoice_lines", "maintenance_records",
-        "driver_settlements", "documents", "expenses", "trips", "invoices",
-        "vehicles", "drivers", "customers", "suppliers",
+        "driver_settlements", "documents", "expenses", "cash_transfers", "trips", "invoices",
+        "vehicles", "drivers", "customers", "suppliers", "cash_accounts",
     ];
 
     public async Task ResetAsync(string actor, CancellationToken ct = default)

@@ -20,7 +20,7 @@ public class BalanceService(AppDbContext db)
     {
         var ids = customerIds?.Distinct().ToList();
         var invQuery = db.Invoices.Where(i => i.Status == InvoiceStatus.Issued);
-        var payQuery = db.Payments.AsQueryable();
+        var payQuery = db.Payments.Where(Payment.Counts);
         if (ids != null)
         {
             invQuery = invQuery.Where(i => ids.Contains(i.CustomerId));

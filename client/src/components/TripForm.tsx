@@ -12,7 +12,7 @@ function MissingHint({ show, to, text }: { show: boolean; to: string; text: stri
 }
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage, get, openPdf, post } from '../api/client'
-import type { Driver, Trip, TripEvent, TripStatus, Vehicle } from '../api/types'
+import type { CustomerRisk, Driver, Trip, TripEvent, TripStatus, Vehicle } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
 import { dateTime, moneyHint, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
@@ -112,6 +112,13 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const price = useWatch({ control, name: 'salePrice' })
   const profit = (Number(price) || 0) - (Number(cost) || 0) - (trip?.expenseTotal ?? 0)
   const invoiced = !!trip?.invoiceId
+  const customerId = useWatch({ control, name: 'customerId' })
+  const risk = useQuery({
+    queryKey: ['customers', 'risk', customerId, trip?.id],
+    queryFn: () => get<CustomerRisk>(`/customers/${customerId}/risk`, { excludeTripId: trip?.id }),
+    enabled: !!customerId && !Number.isNaN(customerId) && !invoiced,
+  })
+  const overLimit = risk.data?.creditLimit != null && risk.data.used + (Number(price) || 0) > risk.data.creditLimit
 
   const vehicleId = useWatch({ control, name: 'vehicleId' })
   const vehicle = useQuery({
@@ -187,6 +194,11 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             <FormSelect control={control} name="customerId" disabled={invoiced}
               options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
             <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
+            {overLimit && risk.data && (
+              <p role="alert" className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-[13px] text-red-700">
+                Risk limiti aşılıyor: açık bakiye {tl(risk.data.openBalance)} + faturalanmamış {tl(risk.data.uninvoicedDelivered)} + bu sefer {tl(Number(price) || 0)} &gt; limit {tl(risk.data.creditLimit!)}. Kayıt yine de yapılabilir.
+              </p>
+            )}
           </Field>
           <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
             <input className="input" placeholder="4500123" {...register('customerReference')} />

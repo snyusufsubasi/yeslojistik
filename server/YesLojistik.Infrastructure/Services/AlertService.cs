@@ -12,6 +12,7 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
     public const int MaintenanceWarnDays = 15;
     public const int DocumentWarnDays = 30;
     public const int MaintenanceWarnKm = 1_000;
+    public const int InstrumentWarnDays = 7;
 
     public async Task<List<AlertDto>> GetAsync(CancellationToken ct = default)
     {
@@ -76,7 +77,8 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
             Check(d.PsychotechnicExpiry, DocumentWarnDays, "psychotechnic", d.FullName, "Psikoteknik belgesi", $"/soforler?id={d.Id}");
         }
 
-        var overdue = (await balances.BalancesByCustomerAsync(null, ct))
+        var allBalances = await balances.BalancesByCustomerAsync(null, ct);
+        var overdue = allBalances
             .Select(g => (CustomerId: g.Key, Items: g.Where(b => b.Remaining > 0 && b.DueDate < today).ToList()))
             .Where(x => x.Items.Count > 0).ToList();
         if (overdue.Count > 0)
@@ -89,6 +91,32 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
                 alerts.Add(new AlertDto("receivable", "danger", titles.GetValueOrDefault(customerId, "?"),
                     $"{items.Count} {what} vadesi geçmiş {Formatters.Currency(items.Sum(b => b.Remaining))} alacak.",
                     $"/musteriler/{customerId}", items.Min(b => b.DueDate)));
+            }
+        }
+
+        // Vadesi 7 gün içinde gelen (ya da geçmiş) portföydeki çek/senetler.
+        var dueInstruments = await db.Payments.AsNoTracking()
+            .Where(p => (p.InstrumentStatus == InstrumentStatus.Portfolio || p.InstrumentStatus == InstrumentStatus.InCollection)
+                && p.InstrumentDueDate != null && p.InstrumentDueDate <= today.AddDays(InstrumentWarnDays))
+            .Select(p => new { p.Id, p.Method, p.InstrumentNo, p.InstrumentDueDate, p.Amount, Customer = p.Customer.Title }).ToListAsync(ct);
+        foreach (var p in dueInstruments)
+            Check(p.InstrumentDueDate, InstrumentWarnDays, "instrument", p.Customer,
+                $"{CustomerAccountService.MethodLabel(p.Method)} {p.InstrumentNo} ({Formatters.Currency(p.Amount)}) vadesi", "/cek-senet");
+
+        // Risk limiti aşılan müşteriler: açık bakiye + faturalanmamış yüklenmiş/yolda/teslim seferler.
+        var limited = await db.Customers.AsNoTracking().Where(c => c.CreditLimit != null).Select(c => new { c.Id, c.Title, c.CreditLimit }).ToListAsync(ct);
+        if (limited.Count > 0)
+        {
+            var ids = limited.Select(c => c.Id).ToList();
+            var uninvoiced = await db.Trips.Where(t => ids.Contains(t.CustomerId) && t.InvoiceId == null
+                    && (t.Status == TripStatus.Delivered || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad))
+                .GroupBy(t => t.CustomerId).Select(g => new { g.Key, Sum = g.Sum(t => t.SalePrice) }).ToDictionaryAsync(x => x.Key, x => x.Sum, ct);
+            foreach (var c in limited)
+            {
+                var used = allBalances[c.Id].Sum(b => b.Remaining) + uninvoiced.GetValueOrDefault(c.Id);
+                if (used > c.CreditLimit)
+                    alerts.Add(new AlertDto("credit-limit", "danger", c.Title,
+                        $"Risk limiti aşıldı: {Formatters.Currency(used)} / {Formatters.Currency(c.CreditLimit!.Value)}.", $"/musteriler/{c.Id}", null));
             }
         }
 

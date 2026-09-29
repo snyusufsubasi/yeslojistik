@@ -20,7 +20,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .ToListAsync(ct);
         var invoiced = await db.Invoices.Where(i => i.Date >= from && i.Date <= to && i.Status == InvoiceStatus.Issued)
             .GroupBy(i => i.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(i => i.Total) }).ToListAsync(ct);
-        var collected = await db.Payments.Where(p => p.Date >= from && p.Date <= to)
+        var collected = await db.Payments.Where(Payment.Counts).Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
         var carrierPaid = await db.SupplierPayments.Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
@@ -147,5 +147,46 @@ public class ReportService(AppDbContext db, BalanceService balances)
         var rows = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => e.Category).Select(g => new { g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
         return rows.OrderByDescending(r => r.Sum).Select(r => new ExpenseCategoryRow(r.Key.ToString(), r.Sum)).ToList();
+    }
+
+    public async Task<List<CustomerProfitRow>> CustomerProfitAsync(DateOnly from, DateOnly to, BalanceService balances, CancellationToken ct = default)
+    {
+        var rows = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
+            .GroupBy(t => new { t.CustomerId, t.Customer.Title })
+            .Select(g => new
+            {
+                g.Key.CustomerId, g.Key.Title, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), VehicleCost = g.Sum(t => t.VehicleCost),
+                Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
+            }).ToListAsync(ct);
+        var open = (await balances.BalancesByCustomerAsync(rows.Select(r => r.CustomerId), ct));
+        var days = Math.Max(1, to.DayNumber - from.DayNumber + 1);
+        return rows.Select(r =>
+        {
+            var cost = r.VehicleCost + r.Expenses;
+            var profit = r.Revenue - cost;
+            var receivable = open[r.CustomerId].Sum(b => b.Remaining);
+            // Yaklaşık tahsil süresi (DSO): açık alacak / (dönem cirosu KDV'li ≈ ×1,2 / gün)
+            int? dso = r.Revenue > 0 ? (int)Math.Round(receivable / (r.Revenue * 1.2m / days)) : null;
+            return new CustomerProfitRow(r.CustomerId, r.Title, r.Count, r.Revenue, cost, profit,
+                r.Revenue > 0 ? Math.Round(profit / r.Revenue * 100, 1) : null, receivable, dso);
+        }).OrderByDescending(r => r.Profit).ToList();
+    }
+
+    public async Task<List<RouteProfitRow>> RouteProfitAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var rows = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
+            .GroupBy(t => new { t.LoadingCity, t.DeliveryCity })
+            .Select(g => new
+            {
+                g.Key.LoadingCity, g.Key.DeliveryCity, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), VehicleCost = g.Sum(t => t.VehicleCost),
+                Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
+            }).ToListAsync(ct);
+        return rows.Select(r =>
+        {
+            var cost = r.VehicleCost + r.Expenses;
+            var profit = r.Revenue - cost;
+            return new RouteProfitRow(r.LoadingCity ?? "İl girilmemiş", r.DeliveryCity ?? "İl girilmemiş", r.Count,
+                Money.Round(r.Revenue / r.Count), Money.Round(cost / r.Count), profit, r.Revenue > 0 ? Math.Round(profit / r.Revenue * 100, 1) : null);
+        }).OrderByDescending(r => r.TripCount).ThenByDescending(r => r.Profit).ToList();
     }
 }

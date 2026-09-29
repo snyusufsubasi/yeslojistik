@@ -152,6 +152,24 @@ export default function HelpPage() {
           </ul>
         </Section>
 
+        <Section icon={<HelpCircle className="size-5" />} title="Genel arama ve telefona kurma">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Üst çubuktaki <b>Ara</b> kutusu (ya da <b>Ctrl+K</b>): plaka, müşteri, sefer referans no, fatura no, şoför ve tedarikçi arar; sonuca tıklayınca kayıt açılır.</li>
+            <li>Paneli telefona uygulama gibi kurmak için: iPhone'da Safari → Paylaş → <b>Ana Ekrana Ekle</b>; Android'de Chrome menüsü → <b>Uygulamayı yükle</b>.</li>
+            <li><L to="/raporlar">Raporlar</L> → <b>Müşteri Kârlılığı</b> ve <b>Güzergâh</b>: hangi müşteri ve hangi il-il hattının ne kadar kazandırdığını gösterir.</li>
+          </ul>
+        </Section>
+
+        <Section icon={<Wallet className="size-5" />} title="Çek / senet, kasa / banka ve nakit akışı">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Çek ya da senetle gelen tahsilatı Tahsilatlar'da yöntemi <b>Çek</b> / <b>Senet</b> seçip numarası, bankası ve vadesiyle girin; <L to="/cek-senet">Çek / Senet</L> portföyüne düşer. Vadesine 7 gün kala uyarı çıkar.</li>
+            <li>Portföydeki çeki <b>Tahsile ver</b>, <b>Tahsil edildi</b> (hesabını seçin), <b>Ciro et</b> (tedarikçiye ödeme olarak yazılır) ya da <b>Karşılıksız</b> / <b>İade</b> olarak işaretleyin. Karşılıksız ve iade çek müşterinin bakiyesinden düşmez; ciro edilmişse tedarikçi ödemesi de geri alınır.</li>
+            <li><L to="/kasa-banka">Kasa / Banka</L>: hesaplarınızı açılış bakiyesiyle açın. Tahsilat, ödeme, gider ve şoför ödemesinde hesap seçerseniz bakiye kendiliğinden hesaplanır. Hesaplar arası para aktarımı için <b>Virman</b>.</li>
+            <li>Ana sayfadaki <b>Nakit Akışı</b> kartı önümüzdeki 4 haftada beklenen tahsilatı (fatura vadeleri, çek/senetler) ve taşeron/tedarikçi ödemelerini gösterir.</li>
+            <li>Müşteri kartında <b>Risk limiti</b> girerseniz, açık bakiye + faturalanmamış seferler limiti aşınca sefer formunda ve bildirimlerde uyarı çıkar. Vadesi geçmiş alacakta müşteri sayfasındaki <b>Vade Hatırlatma</b> e-posta (ekstre ekli) ya da WhatsApp mesajı hazırlar.</li>
+          </ul>
+        </Section>
+
         <Section icon={<Wallet className="size-5" />} title="Şoför masraf onayı ve şoför hesabı">
           <ul className="list-disc space-y-1 pl-5">
             <li>Şoförün uygulamadan girdiği masraf <b>Onay bekliyor</b> olarak düşer; ana sayfada sayısı görünür. <L to="/giderler?onay=Pending">Giderler</L> sayfasında <b>Onayla</b> ya da gerekçe yazıp <b>Reddet</b> deyin. Gerekçe şoföre bildirim olarak gider.</li>
