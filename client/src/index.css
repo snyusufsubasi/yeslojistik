@@ -34,6 +34,6 @@
   .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-100; }
   .label { @apply mb-1 block text-sm font-medium text-slate-700; }
   .card { @apply min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm; }
-  .th { @apply whitespace-nowrap border-b border-slate-200 bg-slate-50 px-2.5 py-2.5 text-left text-[13px] font-semibold text-slate-700; }
-  .td { @apply whitespace-nowrap border-b border-slate-100 px-2.5 py-2.5 text-[15px] text-slate-800; }
+  .th { @apply border-b border-slate-200 bg-slate-50 px-2.5 py-2.5 text-left text-[13px] font-semibold text-slate-700; }
+  .td { @apply break-words border-b border-slate-100 px-2.5 py-2.5 text-[15px] text-slate-800; }
 }

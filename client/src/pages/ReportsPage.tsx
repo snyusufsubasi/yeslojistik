@@ -104,11 +104,9 @@ function Monthly({ year }: { year: number }) {
     { key: 'rev', header: 'Sefer Cirosu', align: 'right', render: (r) => tl(r.tripRevenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'exp', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'cc', header: 'Taşeron Maliyeti', align: 'right', render: (r) => tl(r.carrierCost) },
-    { key: 'cp', header: 'Taşeron Ödemesi', align: 'right', render: (r) => tl(r.carrierPaid) },
+    { key: 'cc', header: <>Taşeron Maliyeti<span className="block font-normal text-slate-500">ödenen</span></>, align: 'right', render: (r) => <>{tl(r.carrierCost)}<span className="block text-[13px] text-slate-500">{tl(r.carrierPaid)}</span></> },
     { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : r.netProfit > 0 ? 'font-medium text-emerald-700' : 'text-slate-500'}>{tl(r.netProfit)}</span> },
-    { key: 'inv', header: 'Faturalanan', align: 'right', render: (r) => tl(r.invoiced) },
-    { key: 'col', header: 'Tahsil Edilen', align: 'right', render: (r) => tl(r.collected) },
+    { key: 'inv', header: <>Faturalanan<span className="block font-normal text-slate-500">tahsil edilen</span></>, align: 'right', render: (r) => <>{tl(r.invoiced)}<span className="block text-[13px] text-slate-500">{tl(r.collected)}</span></> },
   ]
   return (
     <div>

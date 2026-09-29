@@ -72,7 +72,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
               <tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={clsx(onRowClick && 'cursor-pointer', 'hover:bg-slate-50', rowClassName?.(row))}>
                 {columns.map((c) => (
-                  <td key={c.key} className={clsx('td', c.align === 'right' && 'text-right tabular-nums', c.align === 'center' && 'text-center', c.className)}>
+                  <td key={c.key} className={clsx('td', c.align === 'right' && 'whitespace-nowrap text-right tabular-nums', c.align === 'center' && 'text-center', c.className)}>
                     {c.render(row)}
                   </td>
                 ))}

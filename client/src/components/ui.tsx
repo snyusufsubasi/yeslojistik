@@ -147,7 +147,7 @@ export function Empty({ children = 'Kayıt bulunamadı.' }: { children?: ReactNo
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <div className="-mb-px flex gap-1 overflow-x-auto border-b border-slate-200">
+    <div className="-mb-px flex flex-wrap gap-x-1 border-b border-slate-200">
       {tabs.map((t) => (
         <button key={t.value} onClick={() => onChange(t.value)}
           className={clsx('whitespace-nowrap border-b-2 px-3 py-2.5 text-[15px] font-medium transition',

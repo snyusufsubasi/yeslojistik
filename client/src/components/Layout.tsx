@@ -83,7 +83,7 @@ export function Layout() {
             Bakım çalışması yapılıyor: şu an yalnızca görüntüleme yapılabilir, kayıt eklenemez ve değiştirilemez.
           </div>
         )}
-        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 lg:p-6">
+        <main className="w-full min-w-0 flex-1 p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

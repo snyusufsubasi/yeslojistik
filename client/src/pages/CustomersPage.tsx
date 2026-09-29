@@ -27,9 +27,11 @@ export default function CustomersPage() {
     { key: 'no', header: 'No', sortKey: 'id', render: (c) => <span className="text-slate-500">{c.customerNo}</span> },
     { key: 'title', header: 'Müşteri', sortKey: 'title', render: (c) => <span className="font-medium">{c.title}</span> },
     { key: 'tax', header: 'VKN/TCKN', render: (c) => c.taxNumber ?? '—' },
-    { key: 'phone', header: 'Telefon', render: (c) => c.phone ?? '—' },
-    { key: 'email', header: 'E-posta', render: (c) => c.email ?? '—' },
-    { key: 'address', header: 'Adres', className: 'whitespace-normal! min-w-40', render: (c) => c.address ?? '—' },
+    { key: 'contact', header: 'İletişim', render: (c) => c.phone || c.email ? <>
+      {c.phone && <span className="block whitespace-nowrap">{c.phone}</span>}
+      {c.email && <span className="block break-all text-[13px] text-slate-500">{c.email}</span>}
+    </> : '—' },
+    { key: 'address', header: 'Adres', className: 'min-w-40', render: (c) => c.address ?? '—' },
     {
       key: 'balance', header: 'Cari Bakiye', sortKey: 'balance', align: 'right',
       render: (c) => <span className={c.balance > 0 ? 'font-semibold text-red-600' : c.balance < 0 ? 'font-semibold text-emerald-700' : ''}>{tl(c.balance)}</span>,
