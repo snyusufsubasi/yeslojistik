@@ -8,7 +8,7 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceProvider eInvoice)
+public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.EInvoiceService eInvoice)
 {
     private static readonly Dictionary<string, Expression<Func<Invoice, object?>>> SortMap = new()
     {
@@ -93,17 +93,13 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
             Notes = req.Notes?.Trim(),
             Lines = lines,
         };
+        if (invoice.Status == InvoiceStatus.Issued) await eInvoice.PrepareAsync(invoice, ct);
         db.Invoices.Add(invoice);
         await db.SaveChangesAsync(ct);
         foreach (var t in trips) t.InvoiceId = invoice.Id;
         await db.SaveChangesAsync(ct);
-
-        if (invoice.Status == InvoiceStatus.Issued && eInvoice.IsEnabled)
-        {
-            invoice.ExternalId = await eInvoice.SendAsync(invoice, ct);
-            await db.SaveChangesAsync(ct);
-        }
         await tx.CommitAsync(ct);
+        await AutoSendAsync(invoice, ct);
         return await GetAsync(invoice.Id, ct);
     }
 
@@ -111,10 +107,20 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
     {
         var inv = await db.Invoices.Include(i => i.Lines).FirstOrDefaultAsync(i => i.Id == id, ct) ?? throw new NotFoundException("Fatura bulunamadı.");
         if (inv.Status != InvoiceStatus.Draft) throw new DomainException("Yalnızca taslak faturalar kesilebilir.");
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         inv.Status = InvoiceStatus.Issued;
-        if (eInvoice.IsEnabled) inv.ExternalId = await eInvoice.SendAsync(inv, ct);
+        await eInvoice.PrepareAsync(inv, ct);
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        await AutoSendAsync(inv, ct);
         return await GetAsync(id, ct);
+    }
+
+    /// <summary>Entegratör bağlıysa kesilen e-Fatura hemen gönderilir; hata faturayı geri almaz, durumu "Hata" olur.</summary>
+    private async Task AutoSendAsync(Invoice inv, CancellationToken ct)
+    {
+        if (inv.Ettn != null && inv.EInvoiceStatus == EInvoiceStatus.Ready && eInvoice.Provider.CanSend)
+            await eInvoice.SendAsync(inv.Id, ct);
     }
 
     /// <summary>Fatura silinmez, iptal edilir (numara boşluğu oluşmasın). Bağlı seferler serbest kalır.</summary>
@@ -124,7 +130,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
         if (inv.Status == InvoiceStatus.Cancelled) throw new DomainException("Fatura zaten iptal edilmiş.");
         if (await db.Payments.AnyAsync(p => p.InvoiceId == id, ct))
             throw new DomainException("Bu faturaya bağlı tahsilatlar var. Önce tahsilatların fatura bağlantısını kaldırın.");
-        if (inv.Status == InvoiceStatus.Issued && eInvoice.IsEnabled) await eInvoice.CancelAsync(inv, ct);
+        if (inv.Status == InvoiceStatus.Issued) await eInvoice.OnCancelAsync(inv, ct);
         inv.Status = InvoiceStatus.Cancelled;
         foreach (var t in inv.Trips) t.InvoiceId = null;
         await db.SaveChangesAsync(ct);
@@ -153,13 +159,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, IEInvoiceP
         var remaining = i.Status == InvoiceStatus.Issued ? b?.Remaining ?? i.Total : 0;
         return new InvoiceDto(i.Id, i.InvoiceNo, i.CustomerId, customerTitle, i.Date, i.DueDate, i.Subtotal, i.VatRate,
             i.VatAmount, i.WithholdingTenths, i.WithholdingAmount, i.Total, paid, remaining, i.Status,
-            BalanceService.PaymentStatus(i.Status, b), i.Notes, lines);
+            BalanceService.PaymentStatus(i.Status, b), i.Notes, lines, i.Scenario, i.TypeCode, i.Ettn, i.EInvoiceNo, i.EInvoiceStatus,
+            i.EInvoiceMessage, i.EInvoiceSentAt, i.WithholdingCode);
     }
-}
-
-public class NullEInvoiceProvider : IEInvoiceProvider
-{
-    public bool IsEnabled => false;
-    public Task<string?> SendAsync(Invoice invoice, CancellationToken ct = default) => Task.FromResult<string?>(null);
-    public Task CancelAsync(Invoice invoice, CancellationToken ct = default) => Task.CompletedTask;
 }

@@ -22,6 +22,21 @@ public class Invoice : BaseEntity
     public string? Notes { get; set; }
     public string? ExternalId { get; set; }
 
+    // --- e-Fatura / e-Arşiv (UBL-TR) ---
+    public EInvoiceScenario? Scenario { get; set; }
+    public EInvoiceTypeCode? TypeCode { get; set; }
+    /// <summary>Evrensel tekil fatura numarası (UUID); fatura kesilirken üretilir.</summary>
+    public Guid? Ettn { get; set; }
+    /// <summary>GİB biçiminde 16 karakter: seri (3) + yıl (4) + sıra (9), ör. YES2026000000001.</summary>
+    public string? EInvoiceNo { get; set; }
+    public EInvoiceStatus EInvoiceStatus { get; set; } = EInvoiceStatus.None;
+    public string? EInvoiceMessage { get; set; }
+    public DateTime? EInvoiceSentAt { get; set; }
+    /// <summary>Tevkifat kodu (yük taşımacılığı: 624). Oran ve kod mali müşavirle teyit edilmeli.</summary>
+    public string? WithholdingCode { get; set; }
+    /// <summary>KDV %0 ise istisna kodu (ör. 301).</summary>
+    public string? VatExemptionCode { get; set; }
+
     public List<InvoiceLine> Lines { get; set; } = new();
     public List<Trip> Trips { get; set; } = new();
     public List<Payment> Payments { get; set; } = new();
@@ -35,4 +50,13 @@ public class InvoiceLine
     public int? TripId { get; set; }
     public string Description { get; set; } = "";
     public decimal Amount { get; set; }
+}
+
+/// <summary>GİB e-Fatura/e-Arşiv numara dizisi: seri öneki + yıl başına boşluksuz sıra.</summary>
+public class EInvoiceSequence
+{
+    public int Id { get; set; }
+    public string Prefix { get; set; } = "";
+    public int Year { get; set; }
+    public long Next { get; set; } = 1;
 }

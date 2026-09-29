@@ -15,6 +15,13 @@ public enum TripStatus { Planned, Loaded, OnRoad, Delivered, Cancelled }
 
 public enum InvoiceStatus { Draft, Issued, Cancelled }
 
+/// <summary>e-Arşiv: e-Fatura mükellefi olmayan alıcı. Temel/Ticari: e-Fatura mükellefi (ticaride alıcı kabul/ret verir).</summary>
+public enum EInvoiceScenario { EArsiv, Temel, Ticari }
+
+public enum EInvoiceTypeCode { Satis, Tevkifat }
+
+public enum EInvoiceStatus { None, Ready, Sent, Delivered, Accepted, Rejected, Failed, CancelRequested, Cancelled }
+
 public enum PaymentMethod { Cash, BankTransfer, Check, CreditCard }
 
 public enum SupplierKind { Carrier, Service, Fuel, Other }

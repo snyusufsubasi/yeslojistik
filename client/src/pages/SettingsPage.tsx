@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Bell, Building2, CheckCircle2, Circle, DatabaseZap, Download, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
-import type { CompanySettings, Dashboard, DataStats, User, UserRole } from '../api/types'
+import type { CompanySettings, Dashboard, DataStats, EInvoiceInfo, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
@@ -47,6 +47,7 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-4">
           <GoLiveCard />
           <BackupCard />
+          <MigrationCheckCard />
           <ResetDataCard />
         </div>
       )}
@@ -74,6 +75,11 @@ const companySchema = z.object({
   dailyDigestEnabled: z.boolean(),
   requireDeliveryPhoto: z.boolean(),
   requireDeliverySignature: z.boolean(),
+  eInvoiceEnabled: z.boolean(),
+  eInvoiceSeriesPrefix: z.string().trim().regex(/^[A-Z0-9]{3}$/, '3 karakter olmalı (ör. YES).'),
+  eArchiveSeriesPrefix: z.string().trim().regex(/^[A-Z0-9]{3}$/, '3 karakter olmalı (ör. YEA).'),
+  defaultScenario: z.enum(['Temel', 'Ticari', 'EArsiv']),
+  senderAlias: optStr,
   city: optStr,
   district: optStr,
   mersisNo: z.string().trim().regex(/^(\d{16})?$/, 'MERSİS no 16 hane olmalı.'),
@@ -153,6 +159,26 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             </Field>
             <Field label="Varsayılan Vade (gün)" error={errors.defaultPaymentTermDays?.message}><input className="input" type="number" {...register('defaultPaymentTermDays', { valueAsNumber: true })} /></Field>
           </div>
+          <h3 className="mt-5 mb-2 text-[15px] font-semibold text-slate-800">e-Fatura / e-Arşiv</h3>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('eInvoiceEnabled')} />
+            <span>
+              <span className="block text-[15px] font-medium text-slate-800">e-Fatura açık</span>
+              <span className="block text-sm text-slate-600">Kesilen faturaya ETTN ve GİB numarası verilir, UBL-TR XML üretilir. Entegratör sözleşmesi yoksa XML'i indirip entegratör portalına ya da muhasebeciye verirsiniz.</span>
+            </span>
+          </label>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label="e-Fatura seri öneki" error={errors.eInvoiceSeriesPrefix?.message}><input className="input uppercase" maxLength={3} {...register('eInvoiceSeriesPrefix', { setValueAs: (v: string) => v.toUpperCase() })} /></Field>
+            <Field label="e-Arşiv seri öneki" error={errors.eArchiveSeriesPrefix?.message}><input className="input uppercase" maxLength={3} {...register('eArchiveSeriesPrefix', { setValueAs: (v: string) => v.toUpperCase() })} /></Field>
+            <Field label="Mükellef alıcıda senaryo">
+              <select className="input" {...register('defaultScenario')}>
+                <option value="Temel">Temel fatura</option>
+                <option value="Ticari">Ticari fatura (alıcı kabul/ret verir)</option>
+              </select>
+            </Field>
+            <Field label="Gönderici etiketi (GB)" hint="Entegratörün verdiği etiket, ör. urn:mail:defaultgb@firma.com"><input className="input" {...register('senderAlias')} /></Field>
+          </div>
+          <EInvoiceProviderInfo />
         </Card>
         <Card title="Bildirimler" icon={<Bell className="size-4" />} className="h-fit">
           {!settings.emailEnabled && (
@@ -473,6 +499,80 @@ function NotificationPrefsCard() {
           </label>
         ))}
       </div>
+    </Card>
+  )
+}
+
+/** Hangi e-Fatura sağlayıcısının bağlı olduğu (ortam değişkeniyle seçilir; anahtar panelden girilmez). */
+function EInvoiceProviderInfo() {
+  const info = useQuery({ queryKey: ['einvoice', 'info'], queryFn: () => get<EInvoiceInfo>('/einvoice/info'), staleTime: 300_000 })
+  if (!info.data) return null
+  return (
+    <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      Sağlayıcı: <b>{info.data.providerName}</b>
+      {info.data.canSend ? ' · faturalar otomatik gönderilir.' : ' · XML elle yüklenir. Entegratörle sözleşme sonrası kurulum adımları docs/E-FATURA.md dosyasında.'}
+    </p>
+  )
+}
+
+const statLabels: Record<string, string> = {
+  customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', trips: 'Sefer', invoices: 'Fatura', payments: 'Tahsilat', expenses: 'Gider',
+  attachments: 'Sefer dosyası', users: 'Kullanıcı', suppliers: 'Tedarikçi', supplierPayments: 'Taşeron ödemesi', tripEvents: 'Durum kaydı', storedFiles: 'Saklanan dosya',
+}
+
+/** Sunucu taşınması: eski sunucudaki sayımı yapıştırıp buradakiyle karşılaştırır (sayılar ve para toplamları birebir aynı olmalı). */
+function MigrationCheckCard() {
+  const toast = useToast()
+  const stats = useQuery({ queryKey: ['admin', 'stats'], queryFn: () => get<DataStats>('/admin/stats') })
+  const [other, setOther] = useState('')
+  let parsed: DataStats | null = null
+  let parseError = ''
+  if (other.trim()) {
+    try { parsed = JSON.parse(other) as DataStats } catch { parseError = 'Yapıştırılan metin geçerli değil. Diğer sunucuda "Sayımı kopyala" deyip tamamını yapıştırın.' }
+  }
+  const s = stats.data
+  const rows: { label: string; here: number; there?: number; money?: boolean }[] = s ? [
+    ...Object.entries(s.counts).map(([k, v]) => ({ label: statLabels[k] ?? k, here: v, there: parsed?.counts?.[k] })),
+    { label: 'Müşteri bakiyeleri toplamı', here: s.customerBalanceTotal, there: parsed?.customerBalanceTotal, money: true },
+    { label: 'Kesilen faturalar toplamı', here: s.issuedInvoiceTotal, there: parsed?.issuedInvoiceTotal, money: true },
+    { label: 'Taşeron ödemeleri toplamı', here: s.supplierPaymentTotal ?? 0, there: parsed?.supplierPaymentTotal, money: true },
+    { label: 'Giderler toplamı', here: s.expenseTotal ?? 0, there: parsed?.expenseTotal, money: true },
+  ] : []
+  const diff = parsed ? rows.filter((r) => r.there !== undefined && Math.abs(r.here - (r.there ?? 0)) > 0.001).length : 0
+
+  return (
+    <Card title="Taşınma kontrolü" icon={<DatabaseZap className="size-4" />} className="max-w-2xl">
+      <p className="mb-3 text-sm text-slate-600">
+        Sunucu değiştirirken eski sunucuda <b>Sayımı kopyala</b> deyip buraya (yeni sunucuya) yapıştırın. Tüm sayılar ve toplamlar aynıysa taşınma eksiksizdir.
+      </p>
+      {!s ? <Spinner /> : (
+        <>
+          <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(JSON.stringify(s)).then(() => toast.success('Sayım kopyalandı.'), () => toast.error('Kopyalanamadı.'))}>Sayımı kopyala</Button>
+          <textarea className="input mt-3 h-20 font-mono text-[13px]" aria-label="Diğer sunucunun sayımı" placeholder="Diğer sunucunun sayımını buraya yapıştırın"
+            value={other} onChange={(e) => setOther(e.target.value)} />
+          {parseError && <p className="mt-2 text-sm text-red-600">{parseError}</p>}
+          {parsed && (
+            <p className={`mt-2 rounded-md px-3 py-2 text-sm font-medium ${diff === 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`}>
+              {diff === 0 ? '✓ Tüm sayılar ve toplamlar aynı. Taşınma eksiksiz.' : `${diff} satırda fark var. Taşımayı tamamlamadan önce kontrol edin.`}
+            </p>
+          )}
+          <table className="mt-3 w-full text-sm">
+            <thead><tr><th className="th">Kayıt</th><th className="th text-right">Bu sunucu</th>{parsed && <th className="th text-right">Diğer sunucu</th>}</tr></thead>
+            <tbody>
+              {rows.map((r) => {
+                const bad = parsed && r.there !== undefined && Math.abs(r.here - (r.there ?? 0)) > 0.001
+                return (
+                  <tr key={r.label} className={bad ? 'bg-red-50' : ''}>
+                    <td className="td">{r.label}</td>
+                    <td className="td text-right">{r.money ? tl2(r.here) : r.here.toLocaleString('tr-TR')}</td>
+                    {parsed && <td className="td text-right">{r.there === undefined ? '—' : r.money ? tl2(r.there) : r.there.toLocaleString('tr-TR')}</td>}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
     </Card>
   )
 }

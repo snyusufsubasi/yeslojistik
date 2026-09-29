@@ -254,6 +254,9 @@ public class CompanySettingsValidator : AbstractValidator<CompanySettingsDto>
             .When(x => !string.IsNullOrWhiteSpace(x.TaxNumber));
         RuleFor(x => x.Phone).ValidPhone();
         RuleFor(x => x.InvoicePrefix).NotEmpty().Matches("^[A-Z]{1,5}$").WithMessage("Fatura ön eki 1-5 büyük harf olmalı.");
+        RuleFor(x => x.EInvoiceSeriesPrefix).Matches("^[A-Za-z0-9]{3}$").WithMessage("e-Fatura seri öneki 3 karakter olmalı (ör. YES).");
+        RuleFor(x => x.EArchiveSeriesPrefix).Matches("^[A-Za-z0-9]{3}$").WithMessage("e-Arşiv seri öneki 3 karakter olmalı (ör. YEA).")
+            .Must((x, p) => !string.Equals(p, x.EInvoiceSeriesPrefix, StringComparison.OrdinalIgnoreCase)).WithMessage("e-Arşiv ve e-Fatura seri önekleri farklı olmalı.");
         RuleFor(x => x.NextInvoiceNumber).GreaterThan(0);
         RuleFor(x => x.DefaultVatRate).InclusiveBetween(0, 100);
         RuleFor(x => x.DefaultWithholdingTenths).InclusiveBetween(0, 10);

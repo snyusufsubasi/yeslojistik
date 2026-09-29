@@ -27,6 +27,24 @@ public static class HostingSupport
         }.ConnectionString;
     }
 
+    /// <summary>
+    /// Sunucu taşındıktan sonra eski adres yönlendirici olarak kalır (App:RedirectTo): /api/health dışındaki her istek
+    /// yol ve sorgu korunarak 308 ile yeni adrese gider. 308 yöntemi ve gövdeyi de korur; eski mobil sürümler ve müşteriye
+    /// gönderilmiş takip linkleri çalışmaya devam eder.
+    /// </summary>
+    public static void UseMigrationRedirect(this WebApplication app)
+    {
+        var target = app.Configuration["App:RedirectTo"]?.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(target)) return;
+        app.Use((ctx, next) =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/api/health")) return next();
+            ctx.Response.StatusCode = StatusCodes.Status308PermanentRedirect;
+            ctx.Response.Headers.Location = target + ctx.Request.PathBase + ctx.Request.Path + ctx.Request.QueryString;
+            return Task.CompletedTask;
+        });
+    }
+
     /// <summary>wwwroot'taki paneli sunar; bilinmeyen (api dışı) yollar index.html'e düşer.</summary>
     public static void UseBundledPanel(this WebApplication app)
     {

@@ -65,6 +65,8 @@ public static class DbSeeder
         settings.TaxOffice = DemoCompany.TaxOffice;
         settings.TaxNumber = DemoCompany.TaxNumber;
         settings.Iban = DemoCompany.Iban;
+        settings.City ??= "İstanbul";
+        settings.District ??= "Tuzla";
 
         var customers = new[]
         {

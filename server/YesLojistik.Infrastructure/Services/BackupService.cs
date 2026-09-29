@@ -9,7 +9,7 @@ using YesLojistik.Infrastructure.Data;
 namespace YesLojistik.Infrastructure.Services;
 
 public record DataStats(Dictionary<string, long> Counts, decimal CustomerBalanceTotal, decimal IssuedInvoiceTotal,
-    long FileCount, long FileBytes, long DatabaseBytes, DateTime? LastBackupAt);
+    long FileCount, long FileBytes, long DatabaseBytes, DateTime? LastBackupAt, decimal SupplierPaymentTotal = 0, decimal ExpenseTotal = 0);
 
 /// <summary>pg_dump / pg_restore ile yedek alma ve geri yükleme. Şifre komut satırına değil ortam değişkenine yazılır.</summary>
 public class BackupService(AppDbContext db, IConfiguration config)
@@ -68,6 +68,10 @@ public class BackupService(AppDbContext db, IConfiguration config)
             ["expenses"] = await db.Expenses.LongCountAsync(ct),
             ["attachments"] = await db.TripAttachments.LongCountAsync(ct),
             ["users"] = await db.Users.LongCountAsync(ct),
+            ["suppliers"] = await db.Suppliers.LongCountAsync(ct),
+            ["supplierPayments"] = await db.SupplierPayments.LongCountAsync(ct),
+            ["tripEvents"] = await db.TripEvents.LongCountAsync(ct),
+            ["storedFiles"] = await db.StoredFiles.LongCountAsync(ct),
         };
         var issued = await db.Invoices.Where(i => i.Status == InvoiceStatus.Issued).SumAsync(i => (decimal?)i.Total, ct) ?? 0;
         var paid = await db.Payments.SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
@@ -76,6 +80,8 @@ public class BackupService(AppDbContext db, IConfiguration config)
         var fileBytes = await db.StoredFiles.SumAsync(f => (long?)f.Size, ct) ?? 0;
         var dbBytes = (await db.Database.SqlQuery<long>($"SELECT pg_database_size(current_database()) AS \"Value\"").ToListAsync(ct)).Single();
         var last = await db.CompanySettings.Select(s => s.LastBackupAt).FirstAsync(ct);
-        return new DataStats(counts, opening + issued - paid, issued, fileCount, fileBytes, dbBytes, last);
+        var supplierPaid = await db.SupplierPayments.SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+        var expenses = await db.Expenses.SumAsync(e => (decimal?)e.Amount, ct) ?? 0;
+        return new DataStats(counts, opening + issued - paid, issued, fileCount, fileBytes, dbBytes, last, supplierPaid, expenses);
     }
 }

@@ -8,7 +8,7 @@ namespace YesLojistik.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads", string storageProvider = "Database")
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads", string storageProvider = "Database", string eInvoiceProvider = "FileExport")
     {
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -42,7 +42,11 @@ public static class DependencyInjection
             services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
         else
             services.AddScoped<IFileStorage, DatabaseFileStorage>();
-        services.AddSingleton<IEInvoiceProvider, NullEInvoiceProvider>();
+        // e-Fatura sağlayıcısı: FileExport (varsayılan, XML elle yüklenir) ya da Mock (yalnızca geliştirme/test).
+        // Gerçek entegratör sözleşmesinden sonra buraya adaptörü eklenir (docs/E-FATURA.md).
+        if (eInvoiceProvider.Equals("Mock", StringComparison.OrdinalIgnoreCase)) services.AddSingleton<IEInvoiceProvider, EInvoice.MockEInvoiceProvider>();
+        else services.AddSingleton<IEInvoiceProvider, EInvoice.FileExportEInvoiceProvider>();
+        services.AddScoped<EInvoice.EInvoiceService>();
         return services;
     }
 }

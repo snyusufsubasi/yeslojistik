@@ -34,5 +34,13 @@ public class CompanySettings
     /// <summary>Şoför "Teslim Edildi" demeden önce en az bir fotoğraf / imza yüklemiş olmalı.</summary>
     public bool RequireDeliveryPhoto { get; set; }
     public bool RequireDeliverySignature { get; set; }
+    /// <summary>e-Fatura açık: kesilen faturaya ETTN ve GİB numarası verilir, UBL-TR XML üretilir.</summary>
+    public bool EInvoiceEnabled { get; set; }
+    public string EInvoiceSeriesPrefix { get; set; } = "YES";
+    public string EArchiveSeriesPrefix { get; set; } = "YEA";
+    /// <summary>e-Fatura mükellefi alıcılar için varsayılan senaryo (Temel ya da Ticari).</summary>
+    public EInvoiceScenario DefaultScenario { get; set; } = EInvoiceScenario.Temel;
+    /// <summary>Gönderici birim (GB) etiketi, ör. urn:mail:defaultgb@firma.com</summary>
+    public string? SenderAlias { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
