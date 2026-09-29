@@ -106,7 +106,7 @@ export default function ExpensesPage() {
       )}
       <Card title="Gider Listesi" icon={<Receipt className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Açıklama, plaka..." />}>
-        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <Select aria-label="Onay durumu" value={approvalStatus} onChange={setApprovalStatus} options={options(approvalStatusLabel)} placeholder="Tüm onay durumları" />
           <Select aria-label="Kategori" value={category} onChange={setCategory} options={options(expenseCategoryLabel)} placeholder="Tüm kategoriler" />
           <Select aria-label="Araç" value={vehicleId} onChange={setVehicleId} placeholder="Tüm araçlar"
@@ -118,7 +118,7 @@ export default function ExpensesPage() {
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to || approvalStatus ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."}
           footer={data && data.items.length > 0 ? (
-            <tr className="bg-slate-50 text-sm font-semibold"><td className="td" colSpan={5}>Sayfa toplamı</td><td className="td text-right">{tl2(pageTotal)}</td><td className="td" /></tr>
+            <tr className="bg-slate-50 text-sm font-medium"><td className="td" colSpan={5}>Sayfa toplamı</td><td className="td text-right">{tl2(pageTotal)}</td><td className="td" /></tr>
           ) : undefined} />
       </Card>
       {editing && <ExpenseForm expense={editing === 'new' ? null : editing} defaultTripId={tripId} onClose={() => setEditing(null)} />}

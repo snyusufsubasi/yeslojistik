@@ -77,7 +77,7 @@ export default function ChecksPage() {
       <p className="mb-3 text-sm text-slate-600">Yeni çek/senet, Tahsilatlar'da ödeme yöntemi “Çek” ya da “Senet” seçilerek girilir. Karşılıksız ya da iade edilen çek müşterinin bakiyesinden düşmez.</p>
       <Card title="Portföy" icon={<ScrollText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, açıklama..." />}>
-        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 border-b border-slate-100 px-6 py-4 md:grid-cols-4">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(instrumentStatusLabel)} placeholder="Tüm durumlar" />
           <DateFilter label="Vadesi şu tarihe kadar" value={dueTo} onChange={setDueTo} />
         </div>
@@ -86,7 +86,7 @@ export default function ChecksPage() {
           page={page} total={data?.total} onPage={setPage}
           empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'}
           footer={data && data.items.length > 0 ? (
-            <tr className="bg-slate-50 text-sm font-semibold"><td className="td" colSpan={4}>Sayfa toplamı</td><td className="td text-right">{tl2(total)}</td>{can('accounting') && <td className="td" />}</tr>
+            <tr className="bg-slate-50 text-sm font-medium"><td className="td" colSpan={4}>Sayfa toplamı</td><td className="td text-right">{tl2(total)}</td>{can('accounting') && <td className="td" />}</tr>
           ) : undefined} />
       </Card>
       {action && <InstrumentActionDialog action={action} onClose={() => setAction(null)} />}

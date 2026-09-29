@@ -85,7 +85,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
       {!rows && loading && <Spinner />}
       {rows && rows.length === 0 && <Empty>{empty}</Empty>}
       {onPage && total !== undefined && total > pageSize && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-base text-slate-700">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[0.9375rem] text-slate-700">
           <span>Toplam <b>{total}</b> kayıt</span>
           <div className="flex items-center gap-2">
             <button className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50 disabled:opacity-40" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">

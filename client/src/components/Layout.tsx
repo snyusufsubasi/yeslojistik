@@ -64,7 +64,7 @@ const navGroups: { title?: string; items: NavItem[] }[] = [
 ]
 
 const badgeTone: Record<Badge['tone'], string> = {
-  blue: 'bg-sky-400 text-navy-950', red: 'bg-red-500 text-white', orange: 'bg-amber-400 text-navy-950', violet: 'bg-violet-400 text-navy-950',
+  blue: 'bg-brand-100 text-brand-800', red: 'bg-red-100 text-red-700', orange: 'bg-amber-100 text-amber-800', violet: 'bg-violet-100 text-violet-800',
 }
 
 const COLLAPSE_KEY = 'yes.navCollapsed'
@@ -88,12 +88,12 @@ export function Layout() {
   return (
     <div className="flex min-h-full">
       {open && <div className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden" onClick={() => setOpen(false)} />}
-      <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-gradient-to-b from-navy-900 to-navy-950 text-white transition-[transform,width] lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+      <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-68 flex-col border-r border-slate-200 bg-sidebar text-slate-800 transition-[transform,width] lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
         slim && 'lg:w-20', open ? 'translate-x-0' : '-translate-x-full')}>
         <div className={clsx('flex items-center justify-between py-4', slim ? 'lg:justify-center lg:px-2' : 'px-5')}>
-          <div className={clsx(slim && 'lg:hidden')}><Logo /></div>
-          <button className="rounded-lg p-2 hover:bg-white/10 lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
-          <button className="hidden rounded-lg p-2 text-blue-100 hover:bg-white/10 lg:block" onClick={() => setCollapsed(!collapsed)}
+          <div className={clsx(slim && 'lg:hidden')}><Logo dark /></div>
+          <button className="rounded-lg p-2 text-slate-600 hover:bg-slate-200/70 lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
+          <button className="hidden rounded-lg p-2 text-slate-500 hover:bg-slate-200/70 hover:text-slate-800 lg:block" onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'} title={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}>
             {collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}
           </button>
@@ -103,25 +103,25 @@ export function Layout() {
             const items = g.items.filter((n) => !n.perm || can(n.perm))
             if (items.length === 0) return null
             return (
-              <div key={gi} className={gi > 0 ? 'mt-3' : ''}>
+              <div key={gi} className={gi > 0 ? 'mt-5' : ''}>
                 {g.title && (slim
-                  ? <div className="mx-3 mb-2 hidden border-t border-white/15 lg:block" aria-hidden />
+                  ? <div className="mx-3 mb-2 hidden border-t border-slate-200 lg:block" aria-hidden />
                   : null)}
-                {g.title && <div className={clsx('mb-1 px-3 text-[0.8125rem] font-bold uppercase tracking-wider text-sky-200/90', slim && 'lg:hidden')}>{g.title}</div>}
+                {g.title && <div className={clsx('mb-1 px-3 text-[0.8125rem] font-medium text-slate-500', slim && 'lg:hidden')}>{g.title}</div>}
                 <div className="space-y-0.5">
                   {items.map((n) => {
                     const b = n.badge?.(dashboard, alerts) ?? null
                     return (
                       <NavLink key={n.to} to={n.to} end={n.to === '/'} title={n.hint}
-                        className={({ isActive }) => clsx('group relative flex min-h-11 items-center gap-3 rounded-xl px-3 transition',
+                        className={({ isActive }) => clsx('group relative flex min-h-10 items-center gap-3 rounded-lg px-3 transition',
                           slim && 'lg:justify-center lg:px-0',
-                          isActive ? 'bg-white text-navy-900 shadow-md' : 'text-blue-50 hover:bg-white/10 hover:text-white')}>
+                          isActive ? 'bg-white text-slate-900 shadow-[0_1px_2px_rgba(31,30,27,0.08)] ring-1 ring-slate-200' : 'text-slate-700 hover:bg-slate-200/60 hover:text-slate-900')}>
                         {({ isActive }) => (<>
-                          <n.icon className={clsx('size-5 shrink-0', isActive ? 'text-brand-600' : 'text-sky-200 group-hover:text-white')} />
-                          <span className={clsx('min-w-0 flex-1 truncate text-[1.0625rem]', isActive ? 'font-bold' : 'font-medium', slim && 'lg:hidden')}>{n.label}</span>
+                          <n.icon className={clsx('size-[1.125rem] shrink-0', isActive ? 'text-brand-600' : 'text-slate-500 group-hover:text-slate-700')} />
+                          <span className={clsx('min-w-0 flex-1 truncate text-[0.9375rem]', isActive ? 'font-medium' : 'font-normal', slim && 'lg:hidden')}>{n.label}</span>
                           {b && (
                             <span aria-hidden title={`${b.count} ${b.title}`}
-                              className={clsx('flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-bold', badgeTone[b.tone],
+                              className={clsx('flex h-5.5 min-w-5.5 items-center justify-center rounded-full px-1.5 text-[0.8125rem] font-medium', badgeTone[b.tone],
                                 slim && 'lg:absolute lg:right-1 lg:top-0.5 lg:h-5 lg:min-w-5 lg:text-xs')}>
                               {b.count > 99 ? '99+' : b.count}
                             </span>
@@ -135,18 +135,18 @@ export function Layout() {
             )
           })}
         </nav>
-        <div className={clsx('border-t border-white/10 px-5 py-3 text-sm text-blue-100/70', slim && 'lg:hidden')}>
+        <div className={clsx('border-t border-slate-200 px-5 py-3 text-sm text-slate-500', slim && 'lg:hidden')}>
           YES Lojistik · Nakliye Takip v{health?.version ?? '2'}{health?.commit && ` (${health.commit.slice(0, 7)})`}
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-slate-200/80 bg-white/90 px-3 backdrop-blur sm:gap-3 lg:px-6">
-          <button className="flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-navy-900 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label="Menüyü aç"><Menu className="size-6" /><span className="hidden sm:inline">Menü</span></button>
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-slate-200/70 bg-canvas/90 px-3 backdrop-blur sm:gap-3 lg:px-8">
+          <button className="flex min-h-11 items-center gap-2 rounded-lg px-2 font-medium text-slate-800 hover:bg-slate-100 lg:hidden" onClick={() => setOpen(true)} aria-label="Menüyü aç"><Menu className="size-6" /><span className="hidden sm:inline">Menü</span></button>
           <GlobalSearch />
           <div className="flex-1" />
-          <div className="hidden items-center gap-2 text-base text-slate-700 xl:flex">
-            <CalendarDays className="size-5" />
+          <div className="hidden items-center gap-2 text-sm text-slate-600 xl:flex">
+            <CalendarDays className="size-4" />
             {longDate()}
           </div>
           <NewMenu />
@@ -154,11 +154,11 @@ export function Layout() {
           <UserMenu name={user!.fullName} role={roleLabel[user!.role]} onLogout={logout} />
         </header>
         {health?.maintenance && (
-          <div role="status" className="bg-amber-100 px-4 py-2 text-center text-base font-medium text-amber-900">
+          <div role="status" className="bg-amber-100 px-4 py-2 text-center text-[0.9375rem] font-medium text-amber-900">
             Bakım çalışması yapılıyor: şu an yalnızca görüntüleme yapılabilir, kayıt eklenemez ve değiştirilemez.
           </div>
         )}
-        <main className="w-full min-w-0 flex-1 px-4 pb-28 pt-5 lg:px-8 lg:py-7">
+        <main className="mx-auto w-full min-w-0 max-w-[1500px] flex-1 px-4 pb-28 pt-6 lg:px-10 lg:py-10">
           <Outlet />
         </main>
       </div>
@@ -176,8 +176,8 @@ function NewMenu() {
   return (
     <div className="relative hidden sm:block" ref={ref}>
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu"
-        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 text-base font-semibold text-white shadow-sm shadow-brand-600/20 hover:bg-brand-700">
-        <Plus className="size-5" /> Yeni
+        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-4 text-[0.9375rem] font-medium text-white hover:bg-brand-700">
+        <Plus className="size-[1.125rem]" /> Yeni
       </button>
       {open && <QuickActionMenu items={items} onPick={() => setOpen(false)} className="absolute right-0 top-13 w-64" />}
     </div>
@@ -186,11 +186,11 @@ function NewMenu() {
 
 function QuickActionMenu({ items, onPick, className }: { items: typeof quickActions; onPick: () => void; className?: string }) {
   return (
-    <div role="menu" className={clsx('z-50 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl', className)}>
+    <div role="menu" className={clsx('z-50 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg', className)}>
       {items.map((a) => (
-        <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50" title={a.hint}>
-          <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white', a.tone)}><a.icon className="size-5" /></span>
-          <span className="text-base font-semibold text-navy-900">{a.label}</span>
+        <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-3 rounded-lg px-2.5 py-1.5 hover:bg-slate-100" title={a.hint}>
+          <span className={clsx('flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white', a.tone)}><a.icon className="size-4" /></span>
+          <span className="text-[0.9375rem] text-slate-800">{a.label}</span>
         </Link>
       ))}
     </div>
@@ -207,7 +207,7 @@ function BottomBar({ onMenu }: { onMenu: () => void }) {
   const items = quickActions.filter((a) => !a.perm || can(a.perm))
   const link = (to: string, label: string, Icon: typeof Home, end = false) => (
     <NavLink to={to} end={end} aria-label={`${label} (kısayol)`}
-      className={({ isActive }) => clsx('flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-semibold', isActive ? 'text-brand-700' : 'text-slate-600')}>
+      className={({ isActive }) => clsx('flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium', isActive ? 'text-brand-700' : 'text-slate-600')}>
       <Icon className="size-6" />{label}
     </NavLink>
   )
@@ -220,12 +220,12 @@ function BottomBar({ onMenu }: { onMenu: () => void }) {
         {link('/seferler', 'Seferler', Truck)}
         <div className="flex flex-1 items-center justify-center">
           <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
-            className="-mt-6 flex size-15 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 ring-4 ring-white">
+            className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-md ring-4 ring-white">
             {open ? <X className="size-7" /> : <Plus className="size-8" />}
           </button>
         </div>
         {link('/musteriler', 'Cariler', Users)}
-        <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-semibold text-slate-600">
+        <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium text-slate-600">
           <Menu className="size-6" />Menü
         </button>
       </nav>
@@ -253,19 +253,19 @@ function AlertsBell() {
       <button className="relative rounded-full p-2.5 text-slate-700 hover:bg-slate-100" onClick={() => setOpen((o) => !o)} aria-label="Bildirimler">
         <Bell className="size-6" />
         {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold leading-5 text-white ring-2 ring-white">
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-semibold leading-5 text-white ring-2 ring-white">
             {count > 99 ? '99+' : count}
           </span>
         )}
       </button>
       {open && (
-        <div className="fixed inset-x-2 top-16 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-13 sm:w-[26rem]">
-          <div className="border-b border-slate-100 px-5 py-3 text-lg font-bold text-navy-900">Bildirimler</div>
-          {count === 0 && <div className="px-4 py-8 text-center text-base text-slate-600">Her şey yolunda, bildirim yok.</div>}
+        <div className="fixed inset-x-2 top-16 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-13 sm:w-[26rem]">
+          <div className="border-b border-slate-100 px-5 py-3 text-lg text-slate-900" role="heading" aria-level={2}>Bildirimler</div>
+          {count === 0 && <div className="px-4 py-8 text-center text-[0.9375rem] text-slate-600">Her şey yolunda, bildirim yok.</div>}
           {data?.map((a, i) => (
             <Link key={i} to={a.link} onClick={() => setOpen(false)} className="flex gap-3 border-b border-slate-100 px-5 py-3 hover:bg-slate-50">
               <span className={clsx('mt-2 size-2.5 shrink-0 rounded-full', a.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400')} />
-              <span className="text-base">
+              <span className="text-[0.9375rem]">
                 <span className="font-medium text-slate-800">{a.title}</span>
                 <span className="block text-slate-600">{a.message}</span>
               </span>
@@ -284,20 +284,20 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
   return (
     <div className="relative" ref={ref}>
       <button className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-slate-100" onClick={() => setOpen((o) => !o)} aria-label="Hesabım">
-        <UserCircle2 className="size-9 text-navy-800" />
+        <UserCircle2 className="size-8 text-slate-600" />
         <span className="hidden text-left leading-tight sm:block">
-          <span className="block text-base font-semibold text-slate-900">{name}</span>
+          <span className="block text-[0.9375rem] font-medium text-slate-900">{name}</span>
           <span className="block text-sm text-slate-600">{role}</span>
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 top-14 z-50 w-72 rounded-2xl border border-slate-200 bg-white py-2 shadow-2xl">
+        <div className="absolute right-0 top-14 z-50 w-72 rounded-xl border border-slate-200 bg-white py-2 shadow-lg">
           <div className="px-4 pb-2 pt-1">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700"><Type className="size-4" /> Yazı boyutu</div>
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700"><Type className="size-4" /> Yazı boyutu</div>
             <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Yazı boyutu">
-              {([['md', 'Normal', 'text-sm'], ['lg', 'Büyük', 'text-base'], ['xl', 'Çok büyük', 'text-lg']] as const).map(([v, l, cls]) => (
+              {([['md', 'Normal', 'text-sm'], ['lg', 'Büyük', 'text-[0.9375rem]'], ['xl', 'Çok büyük', 'text-lg']] as const).map(([v, l, cls]) => (
                 <button key={v} role="radio" aria-checked={textSize === v} onClick={() => setTextSize(v)}
-                  className={clsx('min-h-11 rounded-lg border px-1 font-semibold leading-tight', cls,
+                  className={clsx('min-h-11 rounded-lg border px-1 font-medium leading-tight', cls,
                     textSize === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>
                   {l}
                 </button>
@@ -305,10 +305,10 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
             </div>
           </div>
           <div className="my-1 border-t border-slate-100" />
-          <Link to="/ayarlar?tab=password" onClick={() => setOpen(false)} className="flex min-h-11 items-center gap-3 px-4 text-base hover:bg-slate-50">
+          <Link to="/ayarlar?tab=password" onClick={() => setOpen(false)} className="flex min-h-10 items-center gap-3 px-4 text-[0.9375rem] hover:bg-slate-50">
             <CreditCard className="size-5" /> Şifre Değiştir
           </Link>
-          <button onClick={onLogout} className="flex min-h-11 w-full items-center gap-3 px-4 text-base font-medium text-red-700 hover:bg-red-50">
+          <button onClick={onLogout} className="flex min-h-10 w-full items-center gap-3 px-4 text-[0.9375rem] text-red-700 hover:bg-red-50">
             <LogOut className="size-5" /> Çıkış Yap
           </button>
         </div>

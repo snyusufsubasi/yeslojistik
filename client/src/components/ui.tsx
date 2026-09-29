@@ -9,10 +9,10 @@ import { usePageTitle } from '../lib/usePageTitle'
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/20',
-  secondary: 'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-xs',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20',
-  danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-600/20',
+  primary: 'bg-brand-600 text-white hover:bg-brand-700',
+  secondary: 'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 hover:border-slate-400',
+  success: 'bg-emerald-600 text-white hover:bg-emerald-700',
+  danger: 'bg-red-600 text-white hover:bg-red-700',
   ghost: 'text-slate-700 hover:bg-slate-100',
 }
 
@@ -20,8 +20,8 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
   ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md'; loading?: boolean; icon?: ReactNode }) {
   return (
     <button
-      className={clsx('inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-5',
-        size === 'sm' ? 'min-h-10 px-3.5 text-[0.9375rem]' : 'min-h-11 px-5 text-base', variants[variant], className)}
+      className={clsx('inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-[1.125rem]',
+        size === 'sm' ? 'min-h-9 px-3 text-sm' : 'min-h-10 px-4 text-[0.9375rem]', variants[variant], className)}
       disabled={disabled || loading}
       {...rest}
     >
@@ -45,7 +45,7 @@ const tones: Record<Tone, string> = {
   yellow: 'bg-amber-100 text-amber-800',
   green: 'bg-emerald-100 text-emerald-800',
   blue: 'bg-blue-100 text-blue-800',
-  gray: 'bg-slate-100 text-slate-600',
+  gray: 'bg-slate-100 text-slate-700',
   red: 'bg-red-100 text-red-700',
   teal: 'bg-teal-100 text-teal-800',
   orange: 'bg-orange-100 text-orange-800',
@@ -53,7 +53,7 @@ const tones: Record<Tone, string> = {
 }
 
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold leading-none', tones[tone])}>{children}</span>
+  return <span className={clsx('inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-medium leading-none', tones[tone])}>{children}</span>
 }
 
 export function Card({ title, icon, actions, children, className, bodyClassName }:
@@ -61,15 +61,15 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
   return (
     <section className={clsx('card', className)}>
       {(title || actions) && (
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-          <h2 className="flex items-center gap-2.5 text-lg font-bold text-navy-900">
-            {icon && <span className="flex size-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600 [&_svg]:size-5">{icon}</span>}
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+          <h2 className="flex items-center gap-2.5 text-lg text-slate-900">
+            {icon && <span className="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600 [&_svg]:size-[1.125rem]">{icon}</span>}
             {title}
           </h2>
           {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
-      <div className={clsx(bodyClassName ?? 'p-5')}>{children}</div>
+      <div className={clsx(bodyClassName ?? 'p-6')}>{children}</div>
     </section>
   )
 }
@@ -79,18 +79,18 @@ export function PageHeader({ title, subtitle, actions, back }: { title: string; 
   const { pathname } = useLocation()
   const page = pathname.split('/')[1] ?? ''
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
         {back && (
-          <nav aria-label="Konum" className="mb-1 text-base">
-            <Link to={back.to} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline"><ChevronLeft className="size-5" />{back.label}</Link>
+          <nav aria-label="Konum" className="mb-1.5 text-sm">
+            <Link to={back.to} className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"><ChevronLeft className="size-4" />{back.label}</Link>
           </nav>
         )}
         <div className="flex items-center">
-          <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{title}</h1>
+          <h1 className="text-[1.875rem] leading-tight text-slate-900">{title}</h1>
           {!back && <HelpTip page={page} />}
         </div>
-        {subtitle && <p className="mt-1 text-base text-slate-600">{subtitle}</p>}
+        {subtitle && <p className="mt-1.5 text-[0.9375rem] text-slate-600">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -106,7 +106,7 @@ export function Field({ label, error, required, children, className, hint, group
     <Tag className={clsx('block', className)} {...(group ? { role: 'group', 'aria-label': label } : {})}>
       <span className="label">{label}{required && <span className="text-red-600" title="Zorunlu alan"> *</span>}</span>
       {children}
-      {error ? <span className="mt-1.5 block text-sm font-medium text-red-700">{error}</span>
+      {error ? <span className="mt-1.5 block text-sm text-red-700">{error}</span>
         : hint ? <span className="mt-1.5 block text-sm text-slate-600">{hint}</span> : null}
     </Tag>
   )
@@ -124,16 +124,16 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }:
   if (!open) return null
   const width = { sm: 'sm:max-w-md', md: 'sm:max-w-2xl', lg: 'sm:max-w-4xl', xl: 'sm:max-w-6xl' }[size]
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onMouseDown={onClose}>
       <div role="dialog" aria-modal="true" aria-label={title}
-        className={clsx('flex max-h-[95vh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl', width)}
+        className={clsx('flex max-h-[95vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl', width)}
         onMouseDown={(e) => e.stopPropagation()}>
-        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-xl font-bold text-navy-900">{title}</h2>
+        <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="text-xl text-slate-900">{title}</h2>
           <IconButton label="Kapat" onClick={onClose}><X className="size-5" /></IconButton>
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer && <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-slate-50/60 px-6 py-4 sm:rounded-b-2xl">{footer}</footer>}
+        <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
+        {footer && <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:rounded-b-2xl">{footer}</footer>}
       </div>
     </div>
   )
@@ -147,7 +147,7 @@ export function ConfirmDialog({ open, title, message, confirmText = 'Evet', dang
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button>
         <Button variant={danger ? 'danger' : 'primary'} loading={loading} onClick={onConfirm}>{confirmText}</Button>
       </>}>
-      <div className="text-base text-slate-700">{message}</div>
+      <div className="text-[0.9375rem] text-slate-700">{message}</div>
     </Modal>
   )
 }
@@ -157,7 +157,7 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function Empty({ children = 'Kayıt bulunamadı.' }: { children?: ReactNode }) {
-  return <div className="px-4 py-12 text-center text-base text-slate-600">{children}</div>
+  return <div className="px-4 py-14 text-center text-[0.9375rem] text-slate-600">{children}</div>
 }
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
@@ -165,8 +165,8 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { valu
     <div className="-mb-px flex flex-wrap gap-x-1 border-b border-slate-200">
       {tabs.map((t) => (
         <button key={t.value} onClick={() => onChange(t.value)}
-          className={clsx('whitespace-nowrap border-b-[3px] px-3.5 py-3 text-base font-semibold transition',
-            value === t.value ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900')}>
+          className={clsx('whitespace-nowrap border-b-2 px-3.5 py-3 text-[0.9375rem] font-medium transition',
+            value === t.value ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900')}>
           {t.label}
         </button>
       ))}
@@ -192,25 +192,25 @@ export function Select<T extends string | number>({ value, onChange, options, pl
 
 export function StatCard({ title, value, sub, icon, color, onClick }:
   { title: string; value: ReactNode; sub?: ReactNode; icon: ReactNode; color: 'blue' | 'green' | 'orange' | 'red'; onClick?: () => void }) {
-  const bg = { blue: 'bg-gradient-to-br from-brand-500 to-brand-700', green: 'bg-gradient-to-br from-emerald-500 to-emerald-700', orange: 'bg-gradient-to-br from-orange-500 to-orange-600', red: 'bg-gradient-to-br from-red-500 to-red-700' }[color]
+  const chip = { blue: 'bg-brand-50 text-brand-600', green: 'bg-emerald-50 text-emerald-600', orange: 'bg-orange-50 text-orange-600', red: 'bg-red-50 text-red-600' }[color]
   return (
-    <button onClick={onClick} className={clsx('group flex w-full items-center gap-4 rounded-2xl p-5 text-left text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg', bg)}>
-      <div className="rounded-xl bg-white/15 p-3">{icon}</div>
+    <button onClick={onClick} className="card group flex w-full items-start gap-4 p-5 text-left transition hover:border-slate-300 hover:shadow-sm">
+      <div className={clsx('rounded-xl p-2.5 [&_svg]:size-5', chip)}>{icon}</div>
       <div className="min-w-0">
-        <div className="text-base font-semibold text-white/95">{title}</div>
-        <div className="text-[2rem] font-bold leading-tight tracking-tight">{value}</div>
-        {sub && <div className="truncate text-sm text-white/90">{sub}</div>}
+        <div className="text-sm text-slate-600">{title}</div>
+        <div className="mt-0.5 text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900">{value}</div>
+        {sub && <div className="mt-0.5 text-sm text-slate-500">{sub}</div>}
       </div>
     </button>
   )
 }
 
-/** Filtre çubuklarındaki tarih kutusu: üst kenarında küçük etiket ("Başlangıç", "Bitiş"). */
+/** Filtre çubuklarındaki tarih kutusu: etiket kutunun içinde solda ("Başlangıç", "Bitiş"). */
 export function DateFilter({ label, value, onChange, className }: { label: string; value: string; onChange: (v: string) => void; className?: string }) {
   return (
-    <label className={clsx('relative block', className)}>
-      <span className="pointer-events-none absolute -top-2 left-2.5 z-10 bg-white px-1 text-sm font-semibold leading-none text-slate-600">{label}</span>
-      <input className="input" type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
+    <label className={clsx('input flex items-center gap-2 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100', className)}>
+      <span className="shrink-0 text-sm text-slate-500">{label}</span>
+      <input className="min-w-0 flex-1 bg-transparent outline-none" type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   )
 }

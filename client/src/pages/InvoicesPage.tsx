@@ -68,7 +68,7 @@ export default function InvoicesPage() {
         </>} />
       <Card title="Fatura Listesi" icon={<FileText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, müşteri..." />}>
-        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" />
@@ -87,7 +87,7 @@ export default function InvoicesPage() {
           mobileCard={(i) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-navy-900">{i.invoiceNo}</span>
+                <span className="font-medium text-navy-900">{i.invoiceNo}</span>
                 <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge>
               </div>
               <div className="text-sm">{i.customerTitle}</div>
@@ -99,7 +99,7 @@ export default function InvoicesPage() {
             </div>
           )}
           footer={data && data.items.length > 0 ? (
-            <tr className="bg-slate-50 text-sm font-semibold">
+            <tr className="bg-slate-50 text-sm font-medium">
               <td className="td" colSpan={4}>Sayfa toplamı</td>
               <td className="td text-right">{tl2(total)}</td>
               <td className="td text-right text-red-600">{tl2(remaining)}</td>
@@ -190,7 +190,7 @@ function EInvoicePanel({ inv }: { inv: Invoice }) {
   return (
     <div className="rounded-lg border border-slate-200 p-3 text-sm">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="font-semibold text-navy-900">{inv.scenario ? scenarioLabel[inv.scenario] : 'e-Fatura'}{inv.typeCode === 'Tevkifat' && ' · Tevkifatlı'}</span>
+        <span className="font-medium text-navy-900">{inv.scenario ? scenarioLabel[inv.scenario] : 'e-Fatura'}{inv.typeCode === 'Tevkifat' && ' · Tevkifatlı'}</span>
         <Badge tone={eInvoiceStatusTone[status]}>{eInvoiceStatusLabel[status]}</Badge>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
@@ -221,7 +221,7 @@ function KV({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function Sum({ label, value, bold, tone }: { label: string; value: number; bold?: boolean; tone?: string }) {
-  return <div className={`flex justify-between ${bold ? 'font-bold' : ''} ${tone ?? ''}`}><span>{label}</span><span>{tl2(value)}</span></div>
+  return <div className={`flex justify-between ${bold ? 'font-semibold' : ''} ${tone ?? ''}`}><span>{label}</span><span>{tl2(value)}</span></div>
 }
 
 function EmailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {

@@ -31,7 +31,7 @@ export default function SuppliersPage() {
     { key: 'city', header: 'İl', sortKey: 'city', render: (s) => s.city ?? '—' },
     {
       key: 'balance', header: 'Borcumuz', align: 'right',
-      render: (s) => <span className={s.balance > 0 ? 'font-semibold text-red-600' : ''}>{tl(s.balance)}</span>,
+      render: (s) => <span className={s.balance > 0 ? 'font-medium text-red-600' : ''}>{tl(s.balance)}</span>,
     },
   ]
 
@@ -58,10 +58,10 @@ export default function SuppliersPage() {
           mobileCard={(s) => (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate font-semibold text-navy-900">{s.title}</div>
+                <div className="truncate font-medium text-navy-900">{s.title}</div>
                 <div className="truncate text-sm text-slate-500">{[supplierKindLabel[s.kind], s.phone].filter(Boolean).join(' · ')}</div>
               </div>
-              <span className={s.balance > 0 ? 'shrink-0 font-semibold text-red-600' : 'shrink-0 text-slate-500'}>{tl(s.balance)}</span>
+              <span className={s.balance > 0 ? 'shrink-0 font-medium text-red-600' : 'shrink-0 text-slate-500'}>{tl(s.balance)}</span>
             </div>
           )} />
       </Card>

@@ -32,7 +32,7 @@ export function GlobalSearch() {
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Ara (Ctrl+K)"
-        className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3.5 text-base text-slate-600 shadow-xs hover:border-slate-400 hover:bg-slate-50 sm:min-w-80">
+        className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3.5 text-[0.9375rem] text-slate-600 shadow-xs hover:border-slate-400 hover:bg-slate-50 sm:min-w-80">
         <Search className="size-5" />
         <span className="hidden sm:inline">Ne arıyorsunuz? (plaka, müşteri, fatura…)</span>
         <kbd className="ml-auto hidden rounded-md border border-slate-200 bg-slate-50 px-1.5 text-sm text-slate-500 lg:inline">Ctrl K</kbd>

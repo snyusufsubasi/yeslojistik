@@ -58,7 +58,7 @@ export default function PaymentsPage() {
         </>} />
       <Card title="Tahsilat Listesi" icon={<Wallet className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, fatura no, açıklama..." />}>
-        <div className="grid grid-cols-1 gap-2 border-b border-slate-100 p-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">
           <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />

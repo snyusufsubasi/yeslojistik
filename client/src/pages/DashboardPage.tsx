@@ -49,18 +49,13 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{greeting()}, {user?.fullName}</h1>
-          
-        </div>
-      </div>
+    <div className="space-y-8">
+      <h1 className="text-[2rem] leading-tight text-slate-900">{greeting()}, {user?.fullName}</h1>
 
       <QuickActions />
 
       {data.setup.sampleData && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-base text-amber-900">
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[0.9375rem] text-amber-900">
           <span><b>Şu an örnek (demo) veriler görüntüleniyor.</b> Gerçek kullanıma başlamadan önce bunları temizleyin.</span>
           {can('admin') && <Button size="sm" variant="secondary" onClick={() => navigate('/ayarlar?tab=data')}>Demo verilerini temizle</Button>}
         </div>
@@ -68,7 +63,7 @@ export default function DashboardPage() {
 
       <SetupCard setup={data.setup} />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard color="blue" title="Toplam Sefer" value={data.monthTripCount} sub="Bu ay" icon={<Truck className="size-7" />}
           onClick={() => navigate('/seferler')} />
         <StatCard color="green" title="Teslim Edilen" value={data.monthDeliveredCount} sub="Bu ay" icon={<CheckCircle2 className="size-7" />}
@@ -82,17 +77,17 @@ export default function DashboardPage() {
       {can('accounting') && (data.uninvoicedTripCount > 0 || data.pendingExpenseCount > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.uninvoicedTripCount > 0 && (
-            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-4 text-base text-brand-800 hover:bg-brand-100">
-              <span><span className="font-semibold">{data.uninvoicedTripCount} teslim edilmiş sefer faturalanmadı</span>
+            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-5 py-4 text-[0.9375rem] text-brand-800 hover:bg-brand-100">
+              <span><span className="font-medium">{data.uninvoicedTripCount} teslim edilmiş sefer faturalanmadı</span>
                 <span className="block text-sm">Toplam {tl(data.uninvoicedTripTotal)} + KDV</span></span>
-              <span className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-2 font-semibold text-white">Fatura kes →</span>
+              <span className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-2 font-medium text-white">Fatura kes →</span>
             </Link>
           )}
           {data.pendingExpenseCount > 0 && (
-            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-900 hover:bg-amber-100">
-              <span><span className="font-semibold">{data.pendingExpenseCount} şoför masrafı onay bekliyor</span>
+            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-xl border border-amber-200/70 bg-amber-50/70 px-5 py-4 text-[0.9375rem] text-amber-900 hover:bg-amber-100">
+              <span><span className="font-medium">{data.pendingExpenseCount} şoför masrafı onay bekliyor</span>
                 <span className="block text-sm">Toplam {tl(data.pendingExpenseTotal)}</span></span>
-              <span className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-2 font-semibold text-white">İncele →</span>
+              <span className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-2 font-medium text-white">İncele →</span>
             </Link>
           )}
         </div>
@@ -100,7 +95,7 @@ export default function DashboardPage() {
 
       {can('accounting') && <CashFlowCard />}
 
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2" title="Günlük Seferler" icon={<Route className="size-4" />} bodyClassName="p-0"
           actions={<Button size="sm" variant="ghost" onClick={() => navigate('/seferler')}>Tümünü Gör →</Button>}>
           <DataTable columns={tripCols} rows={data.todayTrips} rowKey={(t) => t.id} empty="Bugün için sefer yok." />
@@ -111,7 +106,7 @@ export default function DashboardPage() {
           </div>
         </Card>
         <Card title="Bu Ay" icon={<BarChart3 className="size-4" />}>
-          <dl className="space-y-3.5 text-base">
+          <dl className="space-y-3.5 text-[0.9375rem]">
             <Row label="Sefer cirosu" value={tl(data.monthRevenue)} />
             <Row label="Araç maliyeti + giderler" value={tl(data.monthExpenses)} />
             <Row label="Brüt kâr" value={tl(data.monthRevenue - data.monthExpenses)} strong
@@ -128,21 +123,21 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2" title="Araç Takip / Araçlar" icon={<Truck className="size-4" />} bodyClassName="p-0"
           actions={<Button size="sm" variant="ghost" onClick={() => navigate('/araclar')}>Tümünü Gör →</Button>}>
           <DataTable columns={vehicleCols} rows={data.vehicles} rowKey={(v) => v.id} empty="Henüz araç eklenmemiş." />
         </Card>
         <div className="space-y-4">
           <Card title="Dikkat Edilecekler" icon={<AlertTriangle className="size-4" />} bodyClassName="p-0">
-            {alerts.data?.length === 0 && <p className="px-4 py-8 text-center text-base text-slate-600">Her şey yolunda.</p>}
+            {alerts.data?.length === 0 && <p className="px-4 py-8 text-center text-[0.9375rem] text-slate-600">Her şey yolunda.</p>}
             <ul className="divide-y divide-slate-100">
               {alerts.data?.slice(0, 5).map((a, i) => (
                 <li key={i}>
                   <Link to={a.link} className="flex gap-3 px-5 py-3 hover:bg-slate-50">
                     <span className={clsx('mt-2 size-2.5 shrink-0 rounded-full', a.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400')} />
-                    <span className="min-w-0 text-base">
-                      <span className="font-semibold text-slate-900">{a.title}</span>
+                    <span className="min-w-0 text-[0.9375rem]">
+                      <span className="font-medium text-slate-900">{a.title}</span>
                       <span className="block text-slate-600">{a.message}</span>
                     </span>
                   </Link>
@@ -168,7 +163,7 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
       <span className="text-brand-600">{icon}</span>
       <div>
         <div className="text-sm text-slate-600">{label}</div>
-        <div className="text-xl font-bold text-navy-900">{value}</div>
+        <div className="text-xl font-semibold text-navy-900">{value}</div>
       </div>
     </div>
   )
@@ -178,7 +173,7 @@ function Row({ label, value, strong, tone }: { label: string; value: string; str
   return (
     <div className="flex justify-between gap-2">
       <dt className="text-slate-600">{label}</dt>
-      <dd className={`${strong ? 'font-bold' : 'font-medium'} ${tone ?? 'text-slate-800'}`}>{value}</dd>
+      <dd className={`${strong ? 'font-semibold' : 'font-medium'} ${tone ?? 'text-slate-800'}`}>{value}</dd>
     </div>
   )
 }
@@ -244,7 +239,7 @@ function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
               s.done ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200')}>
               {s.done ? <CheckCircle2 className="size-6 shrink-0 text-emerald-600" /> : <Circle className="size-6 shrink-0 text-slate-500" />}
               <span>
-                <span className={clsx('block font-semibold', s.done ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-navy-900')}>{i + 1}. {s.title}</span>
+                <span className={clsx('block font-medium', s.done ? 'text-emerald-800 line-through decoration-emerald-400' : 'text-navy-900')}>{i + 1}. {s.title}</span>
                 <span className="block text-sm text-slate-600">{s.text}</span>
               </span>
             </Link>
@@ -271,7 +266,7 @@ function CashFlowCard() {
             <tr><td className="td">Beklenen tahsilat</td>{b.map((x, i) => <td key={i} className="td text-right">{tl(x.expectedIn)}</td>)}</tr>
             <tr><td className="td">Çek / senet vadesi</td>{b.map((x, i) => <td key={i} className="td text-right">{tl(x.instrumentsIn)}</td>)}</tr>
             <tr><td className="td">Ödenecek (taşeron/tedarikçi)</td>{b.map((x, i) => <td key={i} className="td text-right text-orange-700">{tl(x.expectedOut)}</td>)}</tr>
-            <tr className="font-semibold"><td className="td">Net</td>{b.map((_, i) => <td key={i} className={clsx('td text-right', net(i) < 0 ? 'text-red-600' : 'text-emerald-700')}>{tl(net(i))}</td>)}</tr>
+            <tr className="font-medium"><td className="td">Net</td>{b.map((_, i) => <td key={i} className={clsx('td text-right', net(i) < 0 ? 'text-red-600' : 'text-emerald-700')}>{tl(net(i))}</td>)}</tr>
           </tbody>
         </table>
       </div>
@@ -292,11 +287,11 @@ function QuickActions() {
     <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       {actions.map((a) => (
         <Link key={a.to} to={a.to}
-          className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg">
-          <span className={clsx('flex size-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm', a.tone)}>
-            <a.icon className="size-6" />
+          className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition hover:border-slate-300 hover:bg-slate-50">
+          <span className={clsx('flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white', a.tone)}>
+            <a.icon className="size-[1.125rem]" />
           </span>
-          <span className="text-lg font-bold leading-tight text-navy-900 group-hover:text-brand-700">{a.label}</span>
+          <span className="text-[0.9375rem] font-medium leading-tight text-slate-800">{a.label}</span>
         </Link>
       ))}
     </nav>

@@ -1,17 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --color-canvas: #f5f4f0;
-  --color-navy-950: #061a38;
-  --color-navy-900: #0b2a55;
-  --color-navy-800: #123a70;
-  --color-navy-700: #1b4b8c;
-  --color-brand-50: #eef5ff;
-  --color-brand-100: #d9e8ff;
-  --color-brand-500: #1e88e5;
-  --color-brand-600: #1570cd;
-  --color-brand-700: #115cab;
+  /* Claude'un görünümü: arayüzde sade yazı (Mac'te Apple'ın kendi fontu), başlıklarda tırnaklı (serif) yazı */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Source Serif 4 Variable", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --color-canvas: #faf9f5;
+  --color-sidebar: #f3f1ea;
+  /* Gri tonları sıcak (kırık beyaz / taş) tonlarla değiştirildi; bütün sayfalar birlikte yumuşar */
+  --color-slate-50: #f8f7f3;
+  --color-slate-100: #f1efe8;
+  --color-slate-200: #e6e3da;
+  --color-slate-300: #d5d1c5;
+  --color-slate-400: #a9a497;
+  --color-slate-500: #6f6b62;
+  --color-slate-600: #5a5750;
+  --color-slate-700: #45433d;
+  --color-slate-800: #302e2a;
+  --color-slate-900: #1f1e1b;
+  --color-navy-950: #141412;
+  --color-navy-900: #1f1e1b;
+  --color-navy-800: #302e2a;
+  --color-navy-700: #45433d;
+  --color-brand-50: #eef4fc;
+  --color-brand-100: #dbe8f8;
+  --color-brand-500: #2f7fd6;
+  --color-brand-600: #2268b8;
+  --color-brand-700: #1b5596;
+  --color-brand-800: #17467a;
 }
 
 @layer base {
@@ -20,7 +35,8 @@
   html { font-size: 16px; }
   html[data-text="lg"] { font-size: 17.5px; }
   html[data-text="xl"] { font-size: 19px; }
-  body { @apply bg-canvas text-slate-900 antialiased; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.005em; }
+  body { @apply bg-canvas text-[0.9375rem] leading-relaxed text-slate-800 antialiased; font-feature-settings: "cv11"; }
+  h1, h2, h3 { font-family: var(--font-serif); font-weight: 560; letter-spacing: -0.01em; }
   .tabular-nums, td { font-variant-numeric: tabular-nums; }
   input, select, textarea, button { font: inherit; }
   /* Klavyeyle gezinirken odak net görünsün */
@@ -33,13 +49,14 @@
 
 @layer components {
   .input {
-    /* 16px yazı: iPhone form kutusuna dokununca sayfayı büyütmesin; 44px yükseklik: kolay tıklanır */
-    @apply min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-base text-slate-900 shadow-xs outline-none transition
+    @apply min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[0.9375rem] text-slate-900 outline-none transition
       placeholder:text-slate-500 hover:border-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600;
   }
+  /* Telefonda 16px: iPhone form kutusuna dokununca sayfayı büyütmesin */
+  @media (pointer: coarse) { .input { font-size: max(16px, 1rem); } }
   .input-error { @apply border-red-500 focus:border-red-500 focus:ring-red-100; }
-  .label { @apply mb-1.5 block text-[0.9375rem] font-semibold text-slate-800; }
-  .card { @apply min-w-0 rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.04)]; }
-  .th { @apply border-b border-slate-200 bg-slate-50 px-3 py-3 text-left text-sm font-semibold text-slate-700; }
-  .td { @apply break-words border-b border-slate-100 px-3 py-3.5 text-base text-slate-900; }
+  .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+  .card { @apply min-w-0 rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(31,30,27,0.03)]; }
+  .th { @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-600; }
+  .td { @apply break-words border-b border-slate-100 px-4 py-3.5 text-[0.9375rem] text-slate-800; }
 }

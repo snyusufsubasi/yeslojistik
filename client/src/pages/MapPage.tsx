@@ -28,7 +28,7 @@ export default function MapPage() {
     onClick: () => setSelected(v.vehicleId),
     popup: (
       <div className="text-sm">
-        <div className="font-semibold">{v.plate} · {v.type}</div>
+        <div className="font-medium">{v.plate} · {v.type}</div>
         {v.driverName && <div>Şoför: {v.driverName}</div>}
         {v.activeTripLabel && <div>{v.activeTripLabel}</div>}
         <div className="text-slate-500">Son konum: {dateTime(v.lastLocationAt)}{v.speedKmh != null && ` · ${Math.round(v.speedKmh)} km/s`}</div>
@@ -53,7 +53,7 @@ export default function MapPage() {
                 <button onClick={() => setSelected(v.vehicleId === selected ? null : v.vehicleId)}
                   className={clsx('w-full px-4 py-2.5 text-left hover:bg-slate-50', v.vehicleId === selected && 'bg-brand-50')}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{v.plate}</span>
+                    <span className="font-medium">{v.plate}</span>
                     <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge>
                   </div>
                   {v.activeTripLabel && <div className="truncate text-sm text-slate-600">{v.activeTripLabel}</div>}

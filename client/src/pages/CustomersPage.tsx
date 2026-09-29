@@ -31,7 +31,7 @@ export default function CustomersPage() {
     { key: 'address', header: 'Adres', className: 'min-w-40', render: (c) => c.address ?? '—' },
     {
       key: 'balance', header: 'Cari Bakiye', sortKey: 'balance', align: 'right',
-      render: (c) => <span className={c.balance > 0 ? 'font-semibold text-red-600' : c.balance < 0 ? 'font-semibold text-emerald-700' : ''}>{tl(c.balance)}</span>,
+      render: (c) => <span className={c.balance > 0 ? 'font-medium text-red-600' : c.balance < 0 ? 'font-medium text-emerald-700' : ''}>{tl(c.balance)}</span>,
     },
   ]
 
@@ -51,10 +51,10 @@ export default function CustomersPage() {
           mobileCard={(c) => (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate font-semibold text-navy-900">{c.title}</div>
+                <div className="truncate font-medium text-navy-900">{c.title}</div>
                 <div className="truncate text-sm text-slate-500">{[c.phone, c.address].filter(Boolean).join(' · ') || `No ${c.customerNo}`}</div>
               </div>
-              <span className={c.balance > 0 ? 'shrink-0 font-semibold text-red-600' : 'shrink-0 text-slate-500'}>{tl(c.balance)}</span>
+              <span className={c.balance > 0 ? 'shrink-0 font-medium text-red-600' : 'shrink-0 text-slate-500'}>{tl(c.balance)}</span>
             </div>
           )} />
       </Card>

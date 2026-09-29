@@ -104,7 +104,7 @@ export function TripTracking({ trip }: { trip: Trip }) {
   return (
     <div className="space-y-4">
       <div className="rounded-lg bg-slate-50 p-3">
-        <div className="mb-2 text-sm font-semibold text-navy-900">Müşteri takip linki</div>
+        <div className="mb-2 text-sm font-medium text-navy-900">Müşteri takip linki</div>
         <p className="mb-3 text-sm text-slate-500">
           Müşteri bu linkle seferin durumunu ve araç yoldayken konumunu görür. Fiyat ve şoför bilgisi paylaşılmaz.
           Link teslimden 7 gün sonra kapanır.
@@ -127,7 +127,7 @@ export function TripTracking({ trip }: { trip: Trip }) {
         )}
       </div>
       <div>
-        <div className="mb-2 text-sm font-semibold text-navy-900">Sefer rotası</div>
+        <div className="mb-2 text-sm font-medium text-navy-900">Sefer rotası</div>
         {route.isLoading ? <Spinner /> : points.length === 0 ? (
           <Empty>Bu sefer için henüz konum kaydı yok. Şoför mobil uygulamada sefere başladığında rota burada görünür.</Empty>
         ) : (

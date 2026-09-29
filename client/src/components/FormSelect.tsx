@@ -51,7 +51,7 @@ export function FormSelect<T extends FieldValues>({ control, name, options, plac
           <span className="inline-flex items-center gap-1 text-sm text-slate-600"><History className="size-4" /> Son seçilenler:</span>
           {shortcuts.map((o) => (
             <button key={o.value} type="button" onClick={() => choose(o.value)}
-              className={clsx('min-h-9 max-w-[16rem] truncate rounded-full border px-3 text-sm font-semibold transition',
+              className={clsx('min-h-9 max-w-[16rem] truncate rounded-full border px-3 text-sm font-medium transition',
                 v === o.value ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
               {o.label}
             </button>

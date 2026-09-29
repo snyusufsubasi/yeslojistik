@@ -46,21 +46,21 @@ export default function PublicTrackingPage() {
         {isLoading && <Spinner />}
         {isError && (
           <div className="card p-6 text-center">
-            <h1 className="mb-2 text-xl font-semibold text-navy-900">Takip linki geçersiz</h1>
-            <p className="text-base text-slate-600">Link hatalı olabilir veya süresi dolmuş olabilir. Lütfen firmamızla iletişime geçin.</p>
+            <h1 className="mb-2 text-xl font-medium text-navy-900">Takip linki geçersiz</h1>
+            <p className="text-[0.9375rem] text-slate-600">Link hatalı olabilir veya süresi dolmuş olabilir. Lütfen firmamızla iletişime geçin.</p>
           </div>
         )}
         {data && (
           <>
             <div className={clsx('rounded-xl p-5 text-white shadow-sm', headline[data.status].tone)}>
               <div className="text-sm opacity-90">Sayın {data.customerTitle}</div>
-              <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold">
+              <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold">
                 <Truck className="size-7 shrink-0" /> {headline[data.status].text}
               </h1>
             </div>
-            <dl className="card grid gap-4 p-5 text-base sm:grid-cols-2">
-              <div><dt className="text-sm text-slate-600">Nereden</dt><dd className="font-semibold text-navy-900">{data.loadingAddress}</dd></div>
-              <div><dt className="text-sm text-slate-600">Nereye</dt><dd className="font-semibold text-navy-900">{data.deliveryAddress}</dd></div>
+            <dl className="card grid gap-4 p-5 text-[0.9375rem] sm:grid-cols-2">
+              <div><dt className="text-sm text-slate-600">Nereden</dt><dd className="font-medium text-navy-900">{data.loadingAddress}</dd></div>
+              <div><dt className="text-sm text-slate-600">Nereye</dt><dd className="font-medium text-navy-900">{data.deliveryAddress}</dd></div>
               <div><dt className="text-sm text-slate-600">Yükleme tarihi</dt><dd className="text-slate-800">{date(data.loadingDate)}</dd></div>
               <div><dt className="text-sm text-slate-600">{data.status === 'Delivered' ? 'Teslim tarihi' : 'Tahmini teslim'}</dt><dd className="text-slate-800">{data.deliveryDate ? date(data.deliveryDate) : '—'}</dd></div>
               <div><dt className="text-sm text-slate-600">Araç plakası</dt><dd className="text-slate-800">{data.vehiclePlate}</dd></div>
@@ -70,7 +70,7 @@ export default function PublicTrackingPage() {
               {steps.map((s, i) => (
                 <li key={s.status} className="flex items-center gap-3">
                   {i <= current ? <CheckCircle2 className="size-7 shrink-0 text-emerald-600" /> : <Circle className="size-7 shrink-0 text-slate-500" />}
-                  <span className={clsx('text-base', i === current ? 'font-semibold text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>
+                  <span className={clsx('text-[0.9375rem]', i === current ? 'font-medium text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>
                     {s.label}{i === current && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">şu an</span>}
                     {i <= current && eventAt(s.status) && <span className="block text-sm font-normal text-slate-500">{dateTime(eventAt(s.status)!)}</span>}
                   </span>
@@ -86,10 +86,10 @@ export default function PublicTrackingPage() {
             <div className="card flex flex-col items-center gap-3 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
                 <div className="text-sm text-slate-600">Sorunuz mu var?</div>
-                <div className="text-base font-semibold text-navy-900">{data.companyName}</div>
+                <div className="text-[0.9375rem] font-medium text-navy-900">{data.companyName}</div>
               </div>
               {data.companyPhone && (
-                <a className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-3 text-base font-semibold text-white hover:bg-brand-700" href={`tel:${data.companyPhone.replace(/\s/g, '')}`}>
+                <a className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-3 text-[0.9375rem] font-medium text-white hover:bg-brand-700" href={`tel:${data.companyPhone.replace(/\s/g, '')}`}>
                   <Phone className="size-5" /> Bizi arayın: {data.companyPhone}
                 </a>
               )}

@@ -71,7 +71,7 @@ export default function VehiclesPage() {
 
   const columns: Column<Vehicle>[] = [
     {
-      key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-semibold">{v.plate}
+      key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-medium">{v.plate}
         {v.ownership === 'Rented' && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}
         {(v.supplierTitle || v.trailerPlate) && <span className="block text-sm font-normal text-slate-500">{[v.supplierTitle, v.trailerPlate && `Dorse ${v.trailerPlate}`].filter(Boolean).join(' · ')}</span>}</span>,
     },
@@ -175,7 +175,7 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
           </Field>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Plaka" required error={errors.plate?.message}><input className="input text-lg font-semibold uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
+          <Field label="Plaka" required error={errors.plate?.message}><input className="input text-lg font-medium uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
           <Field label="Km" required error={errors.km?.message}><input className="input" type="number" min="0" inputMode="numeric" {...register('km', { valueAsNumber: true })} /></Field>
         </div>
         <Field label="Araç Tipi" required error={errors.type?.message}>
@@ -183,7 +183,7 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {vehicleTypes.map((t) => (
               <button key={t} type="button" onClick={() => setValue('type', t, { shouldValidate: true })}
-                className={`min-h-9 rounded-full border px-3 text-sm font-semibold transition ${type === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{t}</button>
+                className={`min-h-9 rounded-full border px-3 text-sm font-medium transition ${type === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{t}</button>
             ))}
           </div>
         </Field>
@@ -211,7 +211,7 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {[10000, 15000, 20000].map((k) => (
                   <button key={k} type="button" onClick={() => setValue('nextMaintenanceKm', (Number.isFinite(km) ? km : 0) + k, { shouldValidate: true })}
-                    className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
+                    className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
                 ))}
               </div>
             </Field>
