@@ -1,6 +1,8 @@
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { Loader2, X } from 'lucide-react'
+import { ChevronLeft, Loader2, X } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { HelpTip } from './Inputs'
 import type { Tone } from '../lib/labels'
 import { usePageTitle } from '../lib/usePageTitle'
 
@@ -72,12 +74,22 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
   )
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: { to: string; label: string } }) {
   usePageTitle(title)
+  const { pathname } = useLocation()
+  const page = pathname.split('/')[1] ?? ''
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{title}</h1>
+        {back && (
+          <nav aria-label="Konum" className="mb-1 text-base">
+            <Link to={back.to} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline"><ChevronLeft className="size-5" />{back.label}</Link>
+          </nav>
+        )}
+        <div className="flex items-center">
+          <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{title}</h1>
+          {!back && <HelpTip page={page} />}
+        </div>
         {subtitle && <p className="mt-1 text-base text-slate-600">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -85,15 +97,18 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   )
 }
 
-export function Field({ label, error, required, children, className, hint }:
-  { label: string; error?: string; required?: boolean; children: ReactNode; className?: string; hint?: string }) {
+export function Field({ label, error, required, children, className, hint, group }:
+  { label: string; error?: string; required?: boolean; children: ReactNode; className?: string; hint?: string
+    /** Şık usulü seçim gibi birden çok düğme içeren alanlar: <label> yerine grup olarak çizilir (etikete tıklamak ilk seçeneği seçmesin). */
+    group?: boolean }) {
+  const Tag = group ? 'div' : 'label'
   return (
-    <label className={clsx('block', className)}>
+    <Tag className={clsx('block', className)} {...(group ? { role: 'group', 'aria-label': label } : {})}>
       <span className="label">{label}{required && <span className="text-red-600" title="Zorunlu alan"> *</span>}</span>
       {children}
       {error ? <span className="mt-1.5 block text-sm font-medium text-red-700">{error}</span>
         : hint ? <span className="mt-1.5 block text-sm text-slate-600">{hint}</span> : null}
-    </label>
+    </Tag>
   )
 }
 

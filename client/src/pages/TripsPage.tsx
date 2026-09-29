@@ -9,7 +9,7 @@ import { ImportButton } from '../components/ImportDialog'
 import { TripForm } from '../components/TripForm'
 import { useAuth } from '../lib/auth'
 import { date, tl } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 
 const api = crud<Trip, unknown>('trips')
@@ -25,7 +25,8 @@ export default function TripsPage() {
   const [to, setTo] = useState(params.get('to') ?? '')
   const [invoiced, setInvoiced] = useState<'yes' | 'no' | 'carrier' | ''>(params.get('carrierInvoice') === 'missing' ? 'carrier' : '')
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
-  const [editing, setEditing] = useState<Trip | 'new' | null>(params.get('new') ? 'new' : null)
+  const [editing, setEditing] = useState<Trip | 'new' | null>(null)
+  useOpenNewFromUrl(() => setEditing('new'))
   const [copyOf, setCopyOf] = useState<Trip | null>(null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
   const debounced = useDebounce(search)
@@ -33,8 +34,7 @@ export default function TripsPage() {
 
   const [page, setPage] = usePage([debounced, status, customerId, from, to, invoiced])
   useEffect(() => {
-    if (params.get('new')) { params.delete('new'); setParams(params, { replace: true }) }
-    // Başka sayfadan (ör. tedarikçi detayı) belirli bir seferi açmak için ?id=
+        // Başka sayfadan (ör. tedarikçi detayı) belirli bir seferi açmak için ?id=
     const openId = Number(params.get('id'))
     if (openId) {
       params.delete('id')

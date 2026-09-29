@@ -12,7 +12,7 @@ import { DocumentsPanel, DriverLedgerPanel } from '../components/FleetPanels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { FormSelect } from '../components/FormSelect'
 import { DueDate } from './VehiclesPage'
 
@@ -37,6 +37,7 @@ export default function DriversPage() {
   const [showPassive, setShowPassive] = useState(false)
   const [sort, setSort] = useState({ key: 'fullName', desc: false })
   const [editing, setEditing] = useState<Driver | 'new' | null>(null)
+  useOpenNewFromUrl(() => setEditing('new'))
   const [deleting, setDeleting] = useState<Driver | null>(null)
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced, showPassive])

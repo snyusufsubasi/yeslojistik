@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, errorMessage, get, post, put } from '../api/client'
@@ -66,15 +66,19 @@ export const crud = <T, TBody>(resource: string) => ({
   remove: (id: number) => del(`/${resource}/${id}`),
 })
 
-/** Adreste ?new=1 varsa (ör. ana sayfadaki hızlı işlem kutusundan gelindiyse) true döner ve parametreyi adresten siler. */
-export function useOpenNewFromUrl() {
+/**
+ * Adreste ?new=1 varsa (ana sayfadaki kutu ya da üstteki "+ Yeni" menüsünden gelindiyse) formu açar ve parametreyi siler.
+ * Sayfa zaten açıkken menüden tekrar seçilirse de çalışır (yalnızca adres değişir, sayfa yeniden kurulmaz).
+ */
+export function useOpenNewFromUrl(open: () => void) {
   const [params, setParams] = useSearchParams()
-  const [initial] = useState(() => params.get('new') !== null)
+  const openRef = useRef(open)
+  useEffect(() => { openRef.current = open })
   useEffect(() => {
     if (params.get('new') === null) return
+    openRef.current()
     const next = new URLSearchParams(params)
     next.delete('new')
     setParams(next, { replace: true })
   }, [params, setParams])
-  return initial
 }

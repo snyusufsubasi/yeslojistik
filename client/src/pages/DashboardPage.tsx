@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, Wallet, HandCoins, Receipt, UserPlus, CheckCircle, Circle, X, CalendarClock, CheckCircle2, CircleDollarSign, Clock, FileText, Route, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CalendarClock, CheckCircle2, CircleDollarSign, Clock, FileText, Route, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
@@ -11,6 +11,7 @@ import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Spinner, StatCard } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useAuth } from '../lib/auth'
+import { quickActions } from '../lib/quickActions'
 import { date, daysUntil, MONTHS, tl } from '../lib/format'
 import { paymentStatusTone, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 
@@ -52,7 +53,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{greeting()}, {user?.fullName}</h1>
-          <p className="mt-1 text-base text-slate-600">Bugün ne yapmak istiyorsunuz? Aşağıdaki kutulardan birine tıklayın.</p>
+          
         </div>
       </div>
 
@@ -67,13 +68,12 @@ export default function DashboardPage() {
 
       <SetupCard setup={data.setup} />
 
-      <h2 className="-mb-2 text-lg font-bold text-navy-900">Özet</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard color="blue" title="Toplam Sefer" value={data.monthTripCount} sub="Bu ay" icon={<Truck className="size-7" />}
           onClick={() => navigate('/seferler')} />
         <StatCard color="green" title="Teslim Edilen" value={data.monthDeliveredCount} sub="Bu ay" icon={<CheckCircle2 className="size-7" />}
           onClick={() => navigate('/seferler?status=Delivered')} />
-        <StatCard color="orange" title="Bekleyen / Devam Eden" value={data.activeTripCount} sub={`${data.plannedTripCount} planlandı`} icon={<Clock className="size-7" />}
+        <StatCard color="orange" title="Devam Eden" value={data.activeTripCount} sub={`${data.plannedTripCount} planlandı`} icon={<Clock className="size-7" />}
           onClick={() => navigate('/seferler?status=Planned')} />
         <StatCard color="red" title="Tahsilat Bekleyen" value={data.receivableInvoiceCount} sub={`Toplam Tutar: ${tl(data.receivableTotal)}`}
           icon={<CircleDollarSign className="size-7" />} onClick={() => navigate('/faturalar?unpaid=1')} />
@@ -287,26 +287,16 @@ function greeting() {
 /** Ana sayfanın üstündeki büyük kutular: en sık yapılan işler tek tıkla açılır (yetkiye göre). */
 function QuickActions() {
   const { can } = useAuth()
-  const actions = [
-    can('operations') && { to: '/seferler?new=1', label: 'Yeni Sefer', hint: 'Yük ve araç bilgisini gir', icon: Truck, tone: 'from-brand-500 to-brand-700' },
-    can('accounting') && { to: '/tahsilatlar?new=1', label: 'Tahsilat Gir', hint: 'Müşteriden gelen para', icon: Wallet, tone: 'from-emerald-500 to-emerald-700' },
-    can('accounting') && { to: '/odemeler?new=1', label: 'Taşerona Ödeme', hint: 'Araç sahibine yapılan ödeme', icon: HandCoins, tone: 'from-orange-500 to-orange-600' },
-    { to: '/giderler?new=1', label: 'Gider Ekle', hint: 'Yakıt, bakım, otoyol…', icon: Receipt, tone: 'from-rose-500 to-rose-700' },
-    can('accounting') && { to: '/faturalar/yeni', label: 'Fatura Kes', hint: 'Teslim edilen seferler için', icon: FileText, tone: 'from-violet-500 to-violet-700' },
-    { to: '/musteriler?new=1', label: 'Müşteri Ekle', hint: 'Yeni firma kaydı', icon: UserPlus, tone: 'from-teal-500 to-teal-700' },
-  ].filter(Boolean) as { to: string; label: string; hint: string; icon: typeof Truck; tone: string }[]
+  const actions = quickActions.filter((a) => a.main && (!a.perm || can(a.perm)))
   return (
     <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       {actions.map((a) => (
         <Link key={a.to} to={a.to}
-          className="group flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg">
+          className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg">
           <span className={clsx('flex size-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm', a.tone)}>
             <a.icon className="size-6" />
           </span>
-          <span>
-            <span className="block text-lg font-bold leading-tight text-navy-900 group-hover:text-brand-700">{a.label}</span>
-            <span className="mt-0.5 block text-sm text-slate-600">{a.hint}</span>
-          </span>
+          <span className="text-lg font-bold leading-tight text-navy-900 group-hover:text-brand-700">{a.label}</span>
         </Link>
       ))}
     </nav>

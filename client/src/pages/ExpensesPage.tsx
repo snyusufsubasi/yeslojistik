@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
@@ -13,7 +13,11 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
-import { date, moneyHint, tl2, todayIso } from '../lib/format'
+import { ChoiceChips, ControlledChoice } from '../components/Choice'
+import { AmountInput, DateQuick, MoreFields } from '../components/Inputs'
+import { choices } from '../lib/choices'
+import { expenseCategoryIcon } from '../lib/icons'
+import { date, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { approvalStatusLabel, expenseCategoryLabel, options } from '../lib/labels'
 import { useAuth } from '../lib/auth'
@@ -48,8 +52,8 @@ export default function ExpensesPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
-  const openNew = useOpenNewFromUrl()
-  const [editing, setEditing] = useState<Expense | 'new' | null>(openNew ? 'new' : null)
+  const [editing, setEditing] = useState<Expense | 'new' | null>(null)
+  useOpenNewFromUrl(() => setEditing('new'))
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const debounced = useDebounce(search)
   const vehicles = useLookup('vehicles')
@@ -186,19 +190,23 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   return (
     <Modal open onClose={onClose} title={expense ? 'Gider Düzenle' : 'Gider Ekle'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <Field label="Kategori" required error={errors.category?.message}>
-          <select className="input" {...register('category')}>
-            {Object.entries(expenseCategoryLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
+      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field group className="sm:col-span-2" label="Ne için harcandı?" required error={errors.category?.message}>
+          <ControlledChoice control={control} name="category" label="Kategori" columns={3}
+            options={choices(expenseCategoryLabel, expenseCategoryIcon)} />
         </Field>
-        <Field label="Tutar (TL)" required error={errors.amount?.message} hint={moneyHint(amount)}>
-          <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('amount', { valueAsNumber: true })} />
+        <Field label="Tutar (TL)" required error={errors.amount?.message}>
+          <AmountInput control={control} name="amount" />
         </Field>
-        <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
-        <Field label="Araç" error={errors.vehicleId?.message}>
+        <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
+        <Field label="Araç" error={errors.vehicleId?.message} hint="Boş bırakılırsa genel gider sayılır.">
           <FormSelect control={control} name="vehicleId" placeholder="— Genel gider —"
             options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
+        </Field>
+        <Field label="Şoför" error={errors.driverId?.message}
+          hint={forDriver ? 'Avans/harcırahta zorunlu. Sefer seçerseniz seferin şoförü atanır.' : 'İsteğe bağlı: harcamayı yapan şoför.'}>
+          <FormSelect control={control} name="driverId" placeholder="— Şoför seçilmedi —"
+            options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
         </Field>
         {isFuel && <>
           <Field label="Litre" error={errors.liters?.message} hint={perLiter ? `Litre fiyatı: ${perLiter.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL` : 'Tüketim hesabı için girin.'}>
@@ -208,32 +216,34 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
             <input className="input text-right" type="number" step="1" min="0" inputMode="numeric" {...register('odometer', { valueAsNumber: true })} />
           </Field>
         </>}
-        <Field className={forDriver ? '' : 'sm:col-span-2'} label="Şoför" error={errors.driverId?.message}
-          hint={forDriver ? 'Sefer seçerseniz seferin şoförü otomatik atanır.' : 'İsteğe bağlı: harcamayı yapan şoför.'}>
-          <FormSelect control={control} name="driverId" placeholder="— Şoför seçilmedi —"
-            options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
-        </Field>
-        <Field className={forDriver ? '' : 'sm:col-span-2'} label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür.">
-          <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
-            options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
-        </Field>
-        <Field label="Tedarikçi (servis, istasyon)" error={errors.supplierId?.message}>
-          <FormSelect control={control} name="supplierId" placeholder="— Seçilmedi —"
-            options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
-        </Field>
-        <label className="flex items-start gap-2 self-end pb-2 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" {...register('isOnCredit')} />
-          <span>Vadeli (henüz ödenmedi) <span className="block text-sm text-slate-500">Tutar tedarikçiye borç yazılır.</span></span>
-        </label>
-        {(accounts.data?.length ?? 0) > 0 && (
-          <Field className="sm:col-span-2" label="Kasa / Banka" hint="İsteğe bağlı: firmanın ödediği giderde paranın çıktığı hesap (vadelide dikkate alınmaz).">
-            <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
-          </Field>
-        )}
-        <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
-        <Field className="sm:col-span-2" label="Fiş / fatura görseli" hint={expense?.hasReceipt ? 'Bu giderin fişi var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
-          <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
-        </Field>
+        <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" placeholder="Ör. Shell Gebze, 34 VES 01 depo" {...register('description')} /></Field>
+        <div className="sm:col-span-2">
+          <MoreFields title="Sefer, tedarikçi, ödeme ve fiş (isteğe bağlı)" defaultOpen={!!expense?.tripId || !!expense?.supplierId || !!defaultTripId}
+            hasError={!!(errors.tripId || errors.supplierId)}>
+            <Field label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür.">
+              <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
+                options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
+            </Field>
+            <Field label="Tedarikçi (servis, istasyon)" error={errors.supplierId?.message}>
+              <FormSelect control={control} name="supplierId" placeholder="— Seçilmedi —"
+                options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
+            </Field>
+            <Field group label="Ödendi mi?">
+              <Controller control={control} name="isOnCredit" render={({ field }) => (
+                <ChoiceChips label="Ödeme durumu" value={field.value ? 'credit' : 'paid'} onChange={(v) => field.onChange(v === 'credit')}
+                  options={[{ value: 'paid', label: 'Ödendi' }, { value: 'credit', label: 'Vadeli (tedarikçiye borç yaz)' }]} />
+              )} />
+            </Field>
+            {(accounts.data?.length ?? 0) > 0 && (
+              <Field label="Kasa / Banka" hint="Firmanın ödediği giderde paranın çıktığı hesap (vadelide dikkate alınmaz).">
+                <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
+              </Field>
+            )}
+            <Field label="Fiş / fatura görseli" hint={expense?.hasReceipt ? 'Bu giderin fişi var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
+              <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
+            </Field>
+          </MoreFields>
+        </div>
         <button type="submit" className="hidden" />
       </form>
     </Modal>
