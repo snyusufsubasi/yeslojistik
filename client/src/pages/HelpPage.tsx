@@ -152,6 +152,22 @@ export default function HelpPage() {
           </ul>
         </Section>
 
+        <Section icon={<Wallet className="size-5" />} title="Şoför masraf onayı ve şoför hesabı">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Şoförün uygulamadan girdiği masraf <b>Onay bekliyor</b> olarak düşer; ana sayfada sayısı görünür. <L to="/giderler?onay=Pending">Giderler</L> sayfasında <b>Onayla</b> ya da gerekçe yazıp <b>Reddet</b> deyin. Gerekçe şoföre bildirim olarak gider.</li>
+            <li>Raporlar, ana sayfa ve sefer kârı yalnızca <b>onaylı</b> masrafları sayar.</li>
+            <li>Şoför kartındaki <b>Hesap</b> sekmesi: verilen avans ve ödemeler bakiyeyi artırır; şoförün cebinden yaptığı onaylı masraflar ve geri verdiği para düşürür. Pozitif bakiye “şoförde kalan firma parası”, negatif bakiye “şoföre borcumuz” demektir. Mahsuplaşma için <b>Ödeme / İade Gir</b> kullanın.</li>
+          </ul>
+        </Section>
+
+        <Section icon={<FileText className="size-5" />} title="Araç ve şoför belgeleri, bakım">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Araç ya da şoför kartını açıp <b>Belgeler</b> sekmesinden kasko, K belgesi, takograf, SRC gibi belgeleri numarası, bitiş tarihi ve taranmış dosyasıyla ekleyin. Firma belgeleri Ayarlar → Firma Bilgileri'nde.</li>
+            <li>Bitişe 30 gün kala zil simgesinde ve sabah özetinde uyarı çıkar.</li>
+            <li>Araç kartındaki <b>Bakım</b> sekmesine girilen kayıt, tutarı “Bakım” gideri olarak da yazar (çift sayılmaz) ve aracın km'sini, son/sonraki bakımını günceller. <b>Sonraki bakım km</b>'sine 1.000 km kala uyarı çıkar.</li>
+          </ul>
+        </Section>
+
         <Section icon={<Mail className="size-5" />} title="Müşteriye otomatik e-posta ve sabah özeti">
           <ul className="list-disc space-y-1 pl-5">
             <li>Müşteri kartında <b>Sefer durumu değişince müşteriye e-posta gönder</b> işaretliyse, yük yüklendiğinde, yola çıktığında ve teslim edildiğinde müşteriye takip linkli e-posta gider.</li>

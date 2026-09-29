@@ -104,6 +104,17 @@ Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle 
 - Yakıt giderine **litre** ve **araç kilometresi** yazılırsa, *Raporlar → Yakıt* araç başına 100 km'de yakılan litreyi gösterir. Filo ortalamasının %15'ten fazla üstündeki araç kırmızı görünür.
 - Şoföre verilen avans **Şoför Avansı** kategorisiyle ve şoför seçilerek girilir. *Raporlar → Şoför Bazlı* avans ve harcırah toplamlarını gösterir.
 
+## Şoför masraf onayı ve şoför hesabı
+
+- Şoförün uygulamadan girdiği masraf **Onay bekliyor** olarak düşer; ana sayfada sayısı görünür. Giderler sayfasında **Onayla** ya da gerekçe yazıp **Reddet**. Gerekçe şoföre bildirim olarak gider. Yönetici mobil uygulamasında: Daha → Onay Bekleyen Masraflar.
+- Raporlar, ana sayfa ve sefer kârı yalnızca **onaylı** masrafları sayar.
+- Şoför kartı → **Hesap**: avans ve şoföre ödemeler bakiyeyi artırır; şoförün cebinden yaptığı onaylı masraflar ve geri verdiği para düşürür. Pozitif bakiye "şoförde kalan firma parası", negatif bakiye "şoföre borcumuz". Excel'e aktarılabilir.
+
+## Belgeler ve bakım
+
+- Araç/şoför kartı → **Belgeler**: kasko, K belgesi, takograf, SRC vb. numara, bitiş tarihi ve taranmış dosya. Firma belgeleri Ayarlar → Firma Bilgileri'nde. Bitişe 30 gün kala uyarı.
+- Araç kartı → **Bakım**: tutar "Bakım" gideri olarak da yazılır (çift sayılmaz); aracın km'si, son/sonraki bakım tarihi ve **sonraki bakım km**'si güncellenir. 1.000 km kala uyarı.
+
 ## E-posta bildirimleri
 
 E-postaların çalışması için sunucuda SMTP ayarı yapılmış olmalıdır (bkz. KURULUM.md).

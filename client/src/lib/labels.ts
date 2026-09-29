@@ -1,4 +1,4 @@
-import type { AttachmentKind, ExpenseCategory, InvoiceStatus, PaymentMethod, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
+import type { ApprovalStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
 
 export const tripStatusLabel: Record<TripStatus, string> = {
   Planned: 'Planlandı',
@@ -112,4 +112,44 @@ export const tripEventSourceLabel: Record<TripEventSource, string> = {
   Panel: 'Panel',
   Driver: 'Şoför uygulaması',
   Import: 'Excel aktarımı',
+}
+
+export const approvalStatusLabel: Record<ApprovalStatus, string> = {
+  Approved: 'Onaylı',
+  Pending: 'Onay bekliyor',
+  Rejected: 'Reddedildi',
+}
+
+export const settlementDirectionLabel: Record<SettlementDirection, string> = {
+  PaidToDriver: 'Şoföre ödeme',
+  ReceivedFromDriver: 'Şoförden alınan',
+}
+
+export const documentTypeLabel: Record<DocumentType, string> = {
+  Registration: 'Ruhsat',
+  TrafficInsurance: 'Trafik Sigortası',
+  Casco: 'Kasko',
+  Inspection: 'Muayene',
+  KCertificate: 'K Belgesi',
+  TachographCalibration: 'Takograf Kalibrasyonu',
+  Emission: 'Egzoz Emisyon',
+  License: 'Ehliyet',
+  Src: 'SRC',
+  Psychotechnic: 'Psikoteknik',
+  HealthReport: 'Sağlık Raporu',
+  Other: 'Diğer',
+}
+
+/** Sahibine göre önerilen belge türleri. */
+export const vehicleDocumentTypes: DocumentType[] = ['Registration', 'TrafficInsurance', 'Casco', 'Inspection', 'KCertificate', 'TachographCalibration', 'Emission', 'Other']
+export const driverDocumentTypes: DocumentType[] = ['License', 'Src', 'Psychotechnic', 'HealthReport', 'Other']
+export const companyDocumentTypes: DocumentType[] = ['KCertificate', 'Other']
+
+export const maintenanceTypeLabel: Record<MaintenanceType, string> = {
+  Periodic: 'Periyodik',
+  Oil: 'Yağ',
+  Tire: 'Lastik',
+  Brake: 'Fren',
+  Breakdown: 'Arıza',
+  Other: 'Diğer',
 }

@@ -7,7 +7,8 @@ import { Pencil, Plus, Trash2, Truck } from 'lucide-react'
 import { get } from '../api/client'
 import type { Vehicle, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, Tabs } from '../components/ui'
+import { DocumentsPanel, MaintenancePanel } from '../components/FleetPanels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
@@ -26,6 +27,7 @@ const schema = z.object({
   km: z.number({ error: 'Km girin.' }).int().min(0, 'Km negatif olamaz.'),
   lastMaintenanceDate: optStr,
   nextMaintenanceDate: optStr,
+  nextMaintenanceKm: z.number().int('Tam sayı girin.').min(0).nullable().or(z.nan().transform(() => null)),
   inspectionExpiry: optStr,
   insuranceExpiry: optStr,
   status: z.enum(['Available', 'OnRoad', 'Maintenance']),
@@ -70,7 +72,9 @@ export default function VehiclesPage() {
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
     { key: 'km', header: 'Km', sortKey: 'km', align: 'right', render: (v) => v.km.toLocaleString('tr-TR') },
-    { key: 'next', header: 'Sonraki Bakım', sortKey: 'nextMaintenanceDate', render: (v) => <><DueDate value={v.nextMaintenanceDate} warn={15} /><span className="block text-[13px] text-slate-500">Son: {date(v.lastMaintenanceDate)}</span></> },
+    { key: 'next', header: 'Sonraki Bakım', sortKey: 'nextMaintenanceDate', render: (v) => <><DueDate value={v.nextMaintenanceDate} warn={15} />
+      {v.nextMaintenanceKm != null && <span className={`block text-[13px] ${v.nextMaintenanceKm - v.km <= 1000 ? 'font-medium text-amber-600' : 'text-slate-500'}`}>{v.nextMaintenanceKm.toLocaleString('tr-TR')} km</span>}
+      <span className="block text-[13px] text-slate-500">Son: {date(v.lastMaintenanceDate)}</span></> },
     { key: 'docs', header: 'Muayene / Sigorta', render: (v) => <><span className="block"><span className="text-[13px] text-slate-500">M: </span><DueDate value={v.inspectionExpiry} warn={30} /></span><span className="block"><span className="text-[13px] text-slate-500">S: </span><DueDate value={v.insuranceExpiry} warn={30} /></span></> },
   ]
   if (can('operations')) columns.push({
@@ -125,8 +129,8 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
       lastMaintenanceDate: vehicle.lastMaintenanceDate ?? '', nextMaintenanceDate: vehicle.nextMaintenanceDate ?? '',
       inspectionExpiry: vehicle.inspectionExpiry ?? '', insuranceExpiry: vehicle.insuranceExpiry ?? '',
       defaultDriverId: vehicle.defaultDriverId ?? null, ownership: vehicle.ownership ?? 'Own', supplierId: vehicle.supplierId ?? null,
-      trailerPlate: vehicle.trailerPlate ?? '',
-    } : { status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '',
+      trailerPlate: vehicle.trailerPlate ?? '', nextMaintenanceKm: vehicle.nextMaintenanceKm ?? null,
+    } : { nextMaintenanceKm: null, status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '',
       ownership: 'Own', supplierId: null, trailerPlate: '', defaultDriverId: null },
   })
   const save = useSave((v: FormValues) => vehicle ? api.update(vehicle.id, nullify(v)) : api.create(nullify(v)), {
@@ -135,12 +139,18 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
   })
   const submit = handleSubmit((v) => save.mutate(v))
   const ownership = useWatch({ control, name: 'ownership' })
+  const [tab, setTab] = useState<'info' | 'docs' | 'maint'>('info')
 
   return (
     <>
-    <Modal open onClose={onClose} title={vehicle ? `Araç: ${vehicle.plate}` : 'Yeni Araç'}
-      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+    <Modal open onClose={onClose} title={vehicle ? `Araç: ${vehicle.plate}` : 'Yeni Araç'} size={tab === 'info' ? 'md' : 'lg'}
+      footer={tab === 'info' ? <><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>
+        : <Button variant="secondary" onClick={onClose}>Kapat</Button>}>
+      {vehicle && <div className="mb-3"><Tabs value={tab} onChange={setTab}
+        tabs={[{ value: 'info', label: 'Bilgiler' }, { value: 'docs', label: 'Belgeler' }, { value: 'maint', label: 'Bakım' }]} /></div>}
+      {vehicle && tab === 'docs' && <DocumentsPanel ownerType="Vehicle" ownerId={vehicle.id} />}
+      {vehicle && tab === 'maint' && <MaintenancePanel vehicleId={vehicle.id} currentKm={vehicle.km} />}
+      <form onSubmit={submit} className={tab === 'info' ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
         <Field label="Plaka" required error={errors.plate?.message}><input className="input uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
         <Field label="Araç Tipi" required error={errors.type?.message}>
           <input className="input" list="vehicle-types" placeholder="Kamyon" {...register('type')} />
@@ -160,6 +170,9 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
         </Field>
         <Field label="Son Bakım Tarihi"><input className="input" type="date" {...register('lastMaintenanceDate')} /></Field>
         <Field label="Sonraki Bakım Tarihi"><input className="input" type="date" {...register('nextMaintenanceDate')} /></Field>
+        <Field label="Sonraki Bakım Km" error={errors.nextMaintenanceKm?.message} hint="1.000 km kala uyarı çıkar. Bakım kaydı girince kendiliğinden güncellenir.">
+          <input className="input" type="number" min="0" inputMode="numeric" {...register('nextMaintenanceKm', { valueAsNumber: true })} />
+        </Field>
         <Field label="Muayene Bitiş"><input className="input" type="date" {...register('inspectionExpiry')} /></Field>
         <Field label="Trafik Sigortası Bitiş"><input className="input" type="date" {...register('insuranceExpiry')} /></Field>
         <Field label="Sahiplik" hint="Kiralık araçta araç maliyeti, araç sahibine (tedarikçi) borç olarak yazılır.">

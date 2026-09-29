@@ -4,11 +4,12 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Bell, Building2, CheckCircle2, Circle, DatabaseZap, Download, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { Bell, Building2, CheckCircle2, Circle, DatabaseZap, Download, FileText, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
 import type { CompanySettings, Dashboard, DataStats, EInvoiceInfo, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
+import { DocumentsPanel } from '../components/FleetPanels'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
@@ -35,7 +36,10 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Ayarlar" />
       <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={tabs} /></div>
-      {tab === 'company' && can('admin') && <CompanyForm />}
+      {tab === 'company' && can('admin') && <>
+        <CompanyForm />
+        <Card className="mt-4" title="Firma Belgeleri" icon={<FileText className="size-4" />}><DocumentsPanel ownerType="Company" /></Card>
+      </>}
       {tab === 'users' && can('admin') && <UsersTab />}
       {tab === 'audit' && can('admin') && (
         <Card title="İşlem Geçmişi" icon={<History className="size-4" />} bodyClassName="p-0">

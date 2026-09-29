@@ -4,18 +4,19 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Download, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
-import { api as apiClient, download, errorMessage, get, openPdf } from '../api/client'
+import { Check, Download, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
+import { api as apiClient, download, errorMessage, get, openPdf, post } from '../api/client'
 import { useToast } from '../components/Toast'
 import { compressImage } from '../lib/image'
-import type { Expense, ExpenseCategory, PagedResult, Trip } from '../api/types'
+import type { ApprovalStatus, Expense, ExpenseCategory, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { date, moneyHint, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
-import { expenseCategoryLabel, options } from '../lib/labels'
+import { approvalStatusLabel, expenseCategoryLabel, options } from '../lib/labels'
+import { useAuth } from '../lib/auth'
 
 const schema = z.object({
   category: z.enum(['Fuel', 'Maintenance', 'Toll', 'DriverAllowance', 'DriverAdvance', 'Tire', 'Insurance', 'Tax', 'Other']),
@@ -37,6 +38,9 @@ const api = crud<Expense, FormValues>('expenses')
 export default function ExpensesPage() {
   const [params, setParams] = useSearchParams()
   const tripId = params.get('tripId') ? Number(params.get('tripId')) : undefined
+  const { can } = useAuth()
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | ''>((params.get('onay') as ApprovalStatus) || '')
+  const [rejecting, setRejecting] = useState<Expense | null>(null)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<ExpenseCategory | ''>('')
   const [vehicleId, setVehicleId] = useState<number | ''>('')
@@ -47,16 +51,19 @@ export default function ExpensesPage() {
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const debounced = useDebounce(search)
   const vehicles = useLookup('vehicles')
-  const [page, setPage] = usePage([debounced, category, vehicleId, from, to, tripId])
+  const [page, setPage] = usePage([debounced, category, vehicleId, from, to, tripId, approvalStatus])
 
-  const query = { page, pageSize: 20, search: debounced, category, vehicleId, tripId, from, to, sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, search: debounced, category, vehicleId, tripId, from, to, approvalStatus, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Expense>('expenses', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['expenses', 'trips', 'suppliers'], success: 'Gider silindi.', onSuccess: () => setDeleting(null) })
+  const approveMut = useSave((id: number) => post(`/expenses/${id}/approve`), { invalidate: ['expenses', 'trips', 'driver-ledger'], success: 'Masraf onaylandı.' })
 
   const columns: Column<Expense>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'date', render: (e) => date(e.date) },
     { key: 'cat', header: 'Kategori', sortKey: 'category', render: (e) => <><Badge tone="blue">{expenseCategoryLabel[e.category]}</Badge>
       {e.approvalStatus === 'Pending' && <span className="mt-1 block"><Badge tone="yellow">Onay bekliyor</Badge></span>}
+      {e.approvalStatus === 'Rejected' && <span className="mt-1 block" title={e.rejectionReason ?? ''}><Badge tone="red">Reddedildi</Badge></span>}
+      {e.approvalStatus === 'Rejected' && e.rejectionReason && <span className="mt-0.5 block max-w-48 truncate text-[13px] text-red-600">{e.rejectionReason}</span>}
       {e.paidBy === 'Driver' && <span className="mt-0.5 block text-[13px] text-slate-500">Şoför ödedi</span>}</> },
     { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-[13px] text-slate-500">{e.driverName}</span>}</> },
     { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
@@ -66,6 +73,10 @@ export default function ExpensesPage() {
     {
       key: 'actions', header: '', align: 'right', render: (e) => (
         <div className="flex justify-end gap-1" onClick={(ev) => ev.stopPropagation()}>
+          {e.approvalStatus === 'Pending' && can('accounting') && <>
+            <Button size="sm" icon={<Check className="size-4" />} loading={approveMut.isPending && approveMut.variables === e.id} onClick={() => approveMut.mutate(e.id)}>Onayla</Button>
+            <Button size="sm" variant="secondary" onClick={() => setRejecting(e)}>Reddet</Button>
+          </>}
           <IconButton label="Düzenle" onClick={() => setEditing(e)}><Pencil className="size-4" /></IconButton>
           <IconButton label="Sil" onClick={() => setDeleting(e)}><Trash2 className="size-4" /></IconButton>
         </div>
@@ -89,7 +100,8 @@ export default function ExpensesPage() {
       )}
       <Card title="Gider Listesi" icon={<Receipt className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Açıklama, plaka..." />}>
-        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-3 md:grid-cols-5">
+          <Select aria-label="Onay durumu" value={approvalStatus} onChange={setApprovalStatus} options={options(approvalStatusLabel)} placeholder="Tüm onay durumları" />
           <Select aria-label="Kategori" value={category} onChange={setCategory} options={options(expenseCategoryLabel)} placeholder="Tüm kategoriler" />
           <Select aria-label="Araç" value={vehicleId} onChange={setVehicleId} placeholder="Tüm araçlar"
             options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
@@ -98,16 +110,34 @@ export default function ExpensesPage() {
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(e) => e.id} onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."}
+          page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to || approvalStatus ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."}
           footer={data && data.items.length > 0 ? (
             <tr className="bg-slate-50 text-sm font-semibold"><td className="td" colSpan={5}>Sayfa toplamı</td><td className="td text-right">{tl2(pageTotal)}</td><td className="td" /></tr>
           ) : undefined} />
       </Card>
       {editing && <ExpenseForm expense={editing === 'new' ? null : editing} defaultTripId={tripId} onClose={() => setEditing(null)} />}
+      {rejecting && <RejectDialog expense={rejecting} onClose={() => setRejecting(null)} />}
       <ConfirmDialog open={!!deleting} title="Gideri sil" loading={deleteMut.isPending} confirmText="Sil"
         message={<>{tl2(deleting?.amount)} tutarındaki gider silinecek. Emin misiniz?</>}
         onClose={() => setDeleting(null)} onConfirm={() => deleting && deleteMut.mutate(deleting.id)} />
     </>
+  )
+}
+
+function RejectDialog({ expense, onClose }: { expense: Expense; onClose: () => void }) {
+  const [reason, setReason] = useState('')
+  const reject = useSave((r: string) => post(`/expenses/${expense.id}/reject`, { reason: r }),
+    { invalidate: ['expenses', 'trips', 'driver-ledger'], success: 'Masraf reddedildi; şoföre bildirildi.', onSuccess: onClose })
+  return (
+    <Modal open onClose={onClose} title="Masrafı reddet" size="sm"
+      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button>
+        <Button variant="danger" loading={reject.isPending} disabled={!reason.trim()} onClick={() => reject.mutate(reason.trim())}>Reddet</Button></>}>
+      <p className="mb-3 text-sm text-slate-600">{expense.driverName ?? 'Şoför'} · {expenseCategoryLabel[expense.category]} · {tl2(expense.amount)}.
+        Reddedilen masraf raporlara ve şoför hesabına girmez; gerekçe şoföre bildirim olarak gider.</p>
+      <Field label="Gerekçe" required>
+        <input className="input" maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ör. Fiş okunmuyor, tekrar çekin." autoFocus />
+      </Field>
+    </Modal>
   )
 }
 
