@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
 export const ADMIN = { email: process.env.E2E_EMAIL ?? 'admin@yeslojistik.com', password: process.env.E2E_PASSWORD ?? 'Admin123!' }
 
@@ -22,4 +22,16 @@ export async function expectPdfOpens(page: Page, click: () => Promise<void>, url
   const res = await page.request.get(request.url())
   expect(res.headers()['content-type']).toBe('application/pdf')
   for (const p of page.context().pages()) if (p !== page) await p.close()
+}
+
+/** Aranabilir seçim kutusunda (SearchSelect) seçim yapar: adıyla ya da sıradaki yerine göre (1 = ilk seçenek). */
+export async function pick(input: Locator, option: string | { index: number }) {
+  await input.click()
+  const list = input.page().locator(`[id="${await input.getAttribute('aria-controls')}"]`)
+  if (typeof option === 'string') {
+    await input.fill(option)
+    await list.getByRole('option', { name: option, exact: true }).click()
+  } else {
+    await list.getByRole('option').nth(option.index - 1).click()
+  }
 }

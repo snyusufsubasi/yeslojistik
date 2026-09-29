@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
@@ -11,6 +12,7 @@ import { isInstrument, paymentMethodLabel } from '../lib/labels'
 import { useAuth } from '../lib/auth'
 import { Button, Field, Modal } from './ui'
 import { FormSelect } from './FormSelect'
+import { CustomerForm } from './CustomerForm'
 import { ControlledChoice } from './Choice'
 import { AmountInput, DateQuick, MoreFields } from './Inputs'
 import { choices } from '../lib/choices'
@@ -59,14 +61,16 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
     onError: (e) => applyServerErrors(e, setError),
   })
   const submit = handleSubmit((v) => save.mutate(v))
+  const [newCustomer, setNewCustomer] = useState<string | null>(null)
 
   return (
     <Modal open onClose={onClose} title={payment ? 'Tahsilat Düzenle' : 'Tahsilat Ekle'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
         <Field className="sm:col-span-2" label="Hangi müşteriden?" required error={errors.customerId?.message}>
-          <FormSelect control={control} name="customerId" onValueChange={() => setValue('invoiceId', null)}
-            options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
+          <FormSelect control={control} name="customerId" onValueChange={() => setValue('invoiceId', null)} placeholder="Müşteri adı yazın veya seçin"
+            options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))}
+            onCreate={(t) => setNewCustomer(t)} createLabel="Yeni müşteri olarak ekle" />
         </Field>
         {openTotal > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-[0.9375rem] text-amber-900 sm:col-span-2">
@@ -113,6 +117,8 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
         </div>
         <button type="submit" className="hidden" />
       </form>
+      {newCustomer !== null && <CustomerForm customer={null} initialTitle={newCustomer} onClose={() => setNewCustomer(null)}
+        onSaved={(c) => { customers.refetch(); setValue('customerId', c.customer.id, { shouldValidate: true }) }} />}
     </Modal>
   )
 }

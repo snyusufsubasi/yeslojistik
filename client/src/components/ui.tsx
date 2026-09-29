@@ -112,14 +112,23 @@ export function Field({ label, error, required, children, className, hint, group
   )
 }
 
+const modalStack: object[] = []
+
 export function Modal({ open, onClose, title, children, footer, size = 'md' }:
   { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    // Üst üste açılan pencerelerde (ör. sefer formundan "yeni müşteri") Esc yalnızca en üsttekini kapatır.
+    const token = {}
+    modalStack.push(token)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && modalStack[modalStack.length - 1] === token && onClose()
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      modalStack.splice(modalStack.indexOf(token), 1)
+      if (modalStack.length === 0) document.body.style.overflow = ''
+    }
   }, [open, onClose])
   if (!open) return null
   const width = { sm: 'sm:max-w-md', md: 'sm:max-w-2xl', lg: 'sm:max-w-4xl', xl: 'sm:max-w-6xl' }[size]

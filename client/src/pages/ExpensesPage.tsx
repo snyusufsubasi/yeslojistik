@@ -13,6 +13,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
+import { SupplierForm } from '../components/SupplierForm'
 import { ChoiceChips, ControlledChoice } from '../components/Choice'
 import { AmountInput, DateQuick, MoreFields } from '../components/Inputs'
 import { choices } from '../lib/choices'
@@ -152,9 +153,10 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const drivers = useLookup('drivers')
   const suppliers = useLookup('suppliers')
   const accounts = useLookup('cash-accounts')
+  const [newSupplier, setNewSupplier] = useState<string | null>(null)
   const toast = useToast()
   const [receipt, setReceipt] = useState<File | null>(null)
-  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setError, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
       ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
@@ -226,7 +228,8 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
             </Field>
             <Field label="Tedarikçi (servis, istasyon)" error={errors.supplierId?.message}>
               <FormSelect control={control} name="supplierId" placeholder="— Seçilmedi —"
-                options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
+                options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))}
+                onCreate={(t) => setNewSupplier(t)} createLabel="Yeni tedarikçi olarak ekle" />
             </Field>
             <Field group label="Ödendi mi?">
               <Controller control={control} name="isOnCredit" render={({ field }) => (
@@ -246,6 +249,8 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
         </div>
         <button type="submit" className="hidden" />
       </form>
+      {newSupplier !== null && <SupplierForm supplier={null} defaultKind="Service" initialTitle={newSupplier} onClose={() => setNewSupplier(null)}
+        onSaved={(x) => { suppliers.refetch(); setValue('supplierId', x.id, { shouldValidate: true }) }} />}
     </Modal>
   )
 }

@@ -21,6 +21,9 @@ import { CityOptions } from './CityOptions'
 import { Badge, Button, Field, Modal, Tabs } from './ui'
 import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
+import { CustomerForm } from './CustomerForm'
+import { SupplierForm } from './SupplierForm'
+import { VehicleForm } from './VehicleForm'
 import { TripAttachments, TripTracking } from './TripExtras'
 import { AuditLogTable } from './AuditLog'
 import { useAuth } from '../lib/auth'
@@ -70,7 +73,10 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
   const suppliers = useLookup('suppliers')
-  const [quickDriver, setQuickDriver] = useState(false)
+  const [quickDriver, setQuickDriver] = useState<string | null>(null)
+  const [newCustomer, setNewCustomer] = useState<string | null>(null)
+  const [newSupplier, setNewSupplier] = useState<string | null>(null)
+  const [newVehicle, setNewVehicle] = useState<string | null>(null)
 
   const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -191,8 +197,9 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit((v) => save.mutate(v))}>
         <div className="space-y-3">
           <Field label="Müşteri" required error={errors.customerId?.message}>
-            <FormSelect control={control} name="customerId" disabled={invoiced}
-              options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
+            <FormSelect control={control} name="customerId" disabled={invoiced} placeholder="Müşteri adı yazın veya seçin"
+              options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))}
+              onCreate={(t) => setNewCustomer(t)} createLabel="Yeni müşteri olarak ekle" />
             <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
             {overLimit && risk.data && (
               <p role="alert" className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-sm text-red-700">
@@ -236,17 +243,17 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
         </div>
         <div className="space-y-3">
           <Field label="Araç" required error={errors.vehicleId?.message}>
-            <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange}
-              options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
+            <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange} placeholder="Plaka yazın veya seçin"
+              options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))}
+              onCreate={(t) => setNewVehicle(t)} createLabel="Yeni araç olarak ekle" />
             <MissingHint show={vehicles.data?.length === 0} to="/araclar" text="Henüz araç yok — önce araç ekleyin →" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Şoför" required error={errors.driverId?.message}>
-              <FormSelect control={control} name="driverId" options={[
+              <FormSelect control={control} name="driverId" placeholder="Şoför ara" onCreate={(t) => setQuickDriver(t)} createLabel="Yeni şoför olarak ekle" options={[
                 ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
                 ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
               ]} />
-              <button type="button" className="mt-1 text-sm font-medium text-brand-700 underline underline-offset-2" onClick={() => setQuickDriver(true)}>+ Hızlı şoför ekle</button>
             </Field>
             <Field label="Dorse Plakası" error={errors.trailerPlate?.message}>
               <input className="input uppercase" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
@@ -276,7 +283,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               <div className="mb-2 text-sm font-medium text-navy-900">Taşeron (kiralık araç)</div>
               <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi.">
                 <FormSelect control={control} name="carrierSupplierId" placeholder={vehicle.data?.supplierTitle ? `Araç sahibi: ${vehicle.data.supplierTitle}` : 'Aracın sahibi'}
-                  options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))} />
+                  options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))}
+                  onCreate={(t) => setNewSupplier(t)} createLabel="Yeni taşeron olarak ekle" />
               </Field>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <Field label="Taşeron Fatura No" error={errors.carrierInvoiceNo?.message}><input className="input" {...register('carrierInvoiceNo')} /></Field>
@@ -309,15 +317,21 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
         <button type="submit" className="hidden" />
       </form>
       </div>
-      {quickDriver && <QuickDriverDialog supplierId={rented ? vehicle.data?.supplierId ?? null : null} onClose={() => setQuickDriver(false)}
+      {quickDriver !== null && <QuickDriverDialog initialName={quickDriver} supplierId={rented ? vehicle.data?.supplierId ?? null : null} onClose={() => setQuickDriver(null)}
         onSaved={(d) => { drivers.refetch(); setValue('driverId', d.id, { shouldValidate: true }) }} />}
+      {newCustomer !== null && <CustomerForm customer={null} initialTitle={newCustomer} onClose={() => setNewCustomer(null)}
+        onSaved={(c) => { customers.refetch(); setValue('customerId', c.customer.id, { shouldValidate: true }) }} />}
+      {newSupplier !== null && <SupplierForm supplier={null} initialTitle={newSupplier} onClose={() => setNewSupplier(null)}
+        onSaved={(s) => { suppliers.refetch(); setValue('carrierSupplierId', s.id, { shouldValidate: true }) }} />}
+      {newVehicle !== null && <VehicleForm vehicle={null} initialPlate={newVehicle} onClose={() => setNewVehicle(null)}
+        onSaved={(v) => { vehicles.refetch(); setValue('vehicleId', v.id, { shouldValidate: true }); if (v.defaultDriverId) setValue('driverId', v.defaultDriverId) }} />}
     </Modal>
   )
 }
 
 /** Sefer formundan çıkmadan şoför ekleme (kiralık araçta taşeronun şoförü olarak). */
-function QuickDriverDialog({ supplierId, onClose, onSaved }: { supplierId: number | null; onClose: () => void; onSaved: (d: Driver) => void }) {
-  const [fullName, setFullName] = useState('')
+function QuickDriverDialog({ supplierId, onClose, onSaved, initialName = '' }: { supplierId: number | null; onClose: () => void; onSaved: (d: Driver) => void; initialName?: string }) {
+  const [fullName, setFullName] = useState(initialName)
   const [phone, setPhone] = useState('')
   const save = useSave(() => post<Driver>('/drivers', { fullName, phone: phone || null, isActive: true, supplierId }), {
     invalidate: ['drivers'], success: 'Şoför eklendi.', onSuccess: (d) => { onSaved(d); onClose() },

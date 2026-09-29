@@ -5,6 +5,7 @@ import { download, get, post } from '../api/client'
 import type { Trip, TripStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
+import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { TripForm } from '../components/TripForm'
 import { useAuth } from '../lib/auth'
@@ -86,7 +87,7 @@ export default function TripsPage() {
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
-          <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
+          <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />

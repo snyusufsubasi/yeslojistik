@@ -5,6 +5,7 @@ import { ArrowLeft, FileText, Plus, Trash2 } from 'lucide-react'
 import { get, post } from '../api/client'
 import type { CompanySettings, Invoice, PagedResult, Trip } from '../api/types'
 import { Badge, Button, Card, Empty, Field, IconButton, PageHeader, Select, Spinner } from '../components/ui'
+import { SearchSelect } from '../components/FormSelect'
 import { addDaysIso, date, tl2, todayIso } from '../lib/format'
 import { useLookup, useSave } from '../lib/hooks'
 import { tripStatusLabel, tripStatusTone, withholdingOptions } from '../lib/labels'
@@ -73,7 +74,7 @@ export default function InvoiceCreatePage() {
         <div className="space-y-4 xl:col-span-2">
           <Card title="Müşteri ve Seferler" icon={<FileText className="size-4" />}>
             <Field label="Müşteri" required className="mb-4 max-w-md">
-              <Select value={customerId} onChange={(v) => { setCustomerId(v); setExtra([]) }} placeholder="Müşteri seçin"
+              <SearchSelect value={customerId === '' ? null : customerId} onChange={(v) => { setCustomerId(v ?? ''); setExtra([]) }} placeholder="Müşteri adı yazın veya seçin"
                 options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
             </Field>
             {customerId === '' ? <Empty>Faturalanacak seferleri görmek için müşteri seçin.</Empty>
