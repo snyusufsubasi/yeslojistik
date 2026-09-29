@@ -324,7 +324,15 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       {newSupplier !== null && <SupplierForm supplier={null} initialTitle={newSupplier} onClose={() => setNewSupplier(null)}
         onSaved={(s) => { suppliers.refetch(); setValue('carrierSupplierId', s.id, { shouldValidate: true }) }} />}
       {newVehicle !== null && <VehicleForm vehicle={null} initialPlate={newVehicle} onClose={() => setNewVehicle(null)}
-        onSaved={(v) => { vehicles.refetch(); setValue('vehicleId', v.id, { shouldValidate: true }); if (v.defaultDriverId) setValue('driverId', v.defaultDriverId) }} />}
+        onSaved={(v) => {
+          // Araç değişince eski taşeron ve dorse bilgisi taşınmasın (onVehicleChange ile aynı temizlik).
+          vehicles.refetch()
+          setValue('carrierSupplierId', null)
+          setValue('trailerPlate', '')
+          setValue('vehicleId', v.id, { shouldValidate: true })
+          const current = getValues('driverId')
+          if (v.defaultDriverId && (current == null || Number.isNaN(current))) setValue('driverId', v.defaultDriverId)
+        }} />}
     </Modal>
   )
 }

@@ -118,7 +118,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
         <button type="submit" className="hidden" />
       </form>
       {newCustomer !== null && <CustomerForm customer={null} initialTitle={newCustomer} onClose={() => setNewCustomer(null)}
-        onSaved={(c) => { customers.refetch(); setValue('customerId', c.customer.id, { shouldValidate: true }) }} />}
+        onSaved={(c) => { customers.refetch(); setValue('invoiceId', null); setValue('customerId', c.customer.id, { shouldValidate: true }) }} />}
     </Modal>
   )
 }

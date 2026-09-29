@@ -97,7 +97,7 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
         <button type="submit" className="hidden" />
       </form>
       {newSupplier !== null && <SupplierForm supplier={null} initialTitle={newSupplier} onClose={() => setNewSupplier(null)}
-        onSaved={(s) => { suppliers.refetch(); setValue('supplierId', s.id, { shouldValidate: true }) }} />}
+        onSaved={(s) => { suppliers.refetch(); setValue('tripId', null); setValue('supplierId', s.id, { shouldValidate: true }) }} />}
     </Modal>
   )
 }
