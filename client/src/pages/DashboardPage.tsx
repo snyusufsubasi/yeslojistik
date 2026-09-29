@@ -53,7 +53,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-navy-900">{greeting()}, {user?.fullName}</h1>
-          <p className="mt-1 text-base text-slate-600">Bugün ne yapmak istiyorsunuz? Aşağıdaki kutulardan birine tıklayın.</p>
+          
         </div>
       </div>
 
@@ -68,13 +68,12 @@ export default function DashboardPage() {
 
       <SetupCard setup={data.setup} />
 
-      <h2 className="-mb-2 text-lg font-bold text-navy-900">Özet</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard color="blue" title="Toplam Sefer" value={data.monthTripCount} sub="Bu ay" icon={<Truck className="size-7" />}
           onClick={() => navigate('/seferler')} />
         <StatCard color="green" title="Teslim Edilen" value={data.monthDeliveredCount} sub="Bu ay" icon={<CheckCircle2 className="size-7" />}
           onClick={() => navigate('/seferler?status=Delivered')} />
-        <StatCard color="orange" title="Bekleyen / Devam Eden" value={data.activeTripCount} sub={`${data.plannedTripCount} planlandı`} icon={<Clock className="size-7" />}
+        <StatCard color="orange" title="Devam Eden" value={data.activeTripCount} sub={`${data.plannedTripCount} planlandı`} icon={<Clock className="size-7" />}
           onClick={() => navigate('/seferler?status=Planned')} />
         <StatCard color="red" title="Tahsilat Bekleyen" value={data.receivableInvoiceCount} sub={`Toplam Tutar: ${tl(data.receivableTotal)}`}
           icon={<CircleDollarSign className="size-7" />} onClick={() => navigate('/faturalar?unpaid=1')} />
@@ -293,14 +292,11 @@ function QuickActions() {
     <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       {actions.map((a) => (
         <Link key={a.to} to={a.to}
-          className="group flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg">
+          className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg">
           <span className={clsx('flex size-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm', a.tone)}>
             <a.icon className="size-6" />
           </span>
-          <span>
-            <span className="block text-lg font-bold leading-tight text-navy-900 group-hover:text-brand-700">{a.label}</span>
-            <span className="mt-0.5 block text-sm text-slate-600">{a.hint}</span>
-          </span>
+          <span className="text-lg font-bold leading-tight text-navy-900 group-hover:text-brand-700">{a.label}</span>
         </Link>
       ))}
     </nav>

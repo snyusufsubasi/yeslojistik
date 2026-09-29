@@ -112,16 +112,13 @@ export function Layout() {
                   {items.map((n) => {
                     const b = n.badge?.(dashboard, alerts) ?? null
                     return (
-                      <NavLink key={n.to} to={n.to} end={n.to === '/'} title={slim ? `${n.label} · ${n.hint}` : undefined}
-                        className={({ isActive }) => clsx('group relative flex items-center gap-3 rounded-xl px-3 py-2 transition',
+                      <NavLink key={n.to} to={n.to} end={n.to === '/'} title={n.hint}
+                        className={({ isActive }) => clsx('group relative flex min-h-11 items-center gap-3 rounded-xl px-3 transition',
                           slim && 'lg:justify-center lg:px-0',
                           isActive ? 'bg-white text-navy-900 shadow-md' : 'text-blue-50 hover:bg-white/10 hover:text-white')}>
                         {({ isActive }) => (<>
                           <n.icon className={clsx('size-5 shrink-0', isActive ? 'text-brand-600' : 'text-sky-200 group-hover:text-white')} />
-                          <span className={clsx('min-w-0 flex-1 leading-tight', slim && 'lg:hidden')}>
-                            <span className={clsx('block text-[1.0625rem]', isActive ? 'font-bold' : 'font-medium')}>{n.label}</span>
-                            <span aria-hidden className={clsx('block truncate text-sm', isActive ? 'text-slate-600' : 'text-blue-100/70')}>{n.hint}</span>
-                          </span>
+                          <span className={clsx('min-w-0 flex-1 truncate text-[1.0625rem]', isActive ? 'font-bold' : 'font-medium', slim && 'lg:hidden')}>{n.label}</span>
                           {b && (
                             <span aria-hidden title={`${b.count} ${b.title}`}
                               className={clsx('flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-sm font-bold', badgeTone[b.tone],
@@ -182,7 +179,7 @@ function NewMenu() {
         className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 text-base font-semibold text-white shadow-sm shadow-brand-600/20 hover:bg-brand-700">
         <Plus className="size-5" /> Yeni
       </button>
-      {open && <QuickActionMenu items={items} onPick={() => setOpen(false)} className="absolute right-0 top-13 w-80" />}
+      {open && <QuickActionMenu items={items} onPick={() => setOpen(false)} className="absolute right-0 top-13 w-64" />}
     </div>
   )
 }
@@ -191,12 +188,9 @@ function QuickActionMenu({ items, onPick, className }: { items: typeof quickActi
   return (
     <div role="menu" className={clsx('z-50 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl', className)}>
       {items.map((a) => (
-        <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-slate-50">
+        <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50" title={a.hint}>
           <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white', a.tone)}><a.icon className="size-5" /></span>
-          <span className="leading-tight">
-            <span className="block text-base font-semibold text-navy-900">{a.label}</span>
-            <span className="block text-sm text-slate-600">{a.hint}</span>
-          </span>
+          <span className="text-base font-semibold text-navy-900">{a.label}</span>
         </Link>
       ))}
     </div>
