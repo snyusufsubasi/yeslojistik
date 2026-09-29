@@ -73,6 +73,8 @@ test('şoför hesabı web panelinde mobil uygulamaya yönlendirilir', async ({ p
 test('şifremi unuttum ve gizlilik sayfaları girişsiz açılır', async ({ page }) => {
   await page.goto('/giris')
   await page.getByRole('link', { name: 'Şifremi unuttum' }).click()
+  // Giriş sayfasında da "E-posta" alanı var: yeni sayfa yüklenmeden doldurulmasın.
+  await expect(page.getByRole('heading', { name: 'Şifremi unuttum' })).toBeVisible()
   await page.getByLabel('E-posta').fill('olmayan@yeslojistik.com')
   await page.getByRole('button', { name: 'Bağlantı Gönder' }).click()
   await expect(page.getByText(/e-posta gönderimi ayarlı değil|sıfırlama bağlantısı gönderildi/)).toBeVisible()
