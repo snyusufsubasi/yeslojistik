@@ -14,7 +14,7 @@ import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { date, daysUntil } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, vehicleOwnershipLabel, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 import { SupplierForm } from '../components/SupplierForm'
 
@@ -45,7 +45,8 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<VehicleStatus | ''>('')
   const [sort, setSort] = useState({ key: 'plate', desc: false })
-  const [editing, setEditing] = useState<Vehicle | 'new' | null>(null)
+  const openNew = useOpenNewFromUrl()
+  const [editing, setEditing] = useState<Vehicle | 'new' | null>(openNew ? 'new' : null)
   const [deleting, setDeleting] = useState<Vehicle | null>(null)
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced, status])

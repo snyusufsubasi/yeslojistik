@@ -433,7 +433,7 @@ test('çek ciro edilir, kasa/banka virmanı ve nakit akışı', async ({ page })
   // Kasa / Banka: demo hesaplar ve virman
   await page.getByRole('link', { name: 'Kasa / Banka', exact: true }).click()
   await expect(page.getByRole('button', { name: /Merkez Kasa/ })).toBeVisible()
-  await page.getByRole('button', { name: 'Virman' }).click()
+  await page.getByRole('button', { name: 'Virman', exact: true }).click()
   const vd = page.getByRole('dialog', { name: /Virman/ })
   await vd.getByLabel(/^Tutar/).fill('1000')
   await vd.getByLabel('Not').fill(`Bankaya yatırıldı ${u}`)
