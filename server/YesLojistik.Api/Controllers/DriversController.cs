@@ -38,7 +38,8 @@ public class DriversController(AppDbContext db) : ControllerBase
         if (q.Active is { } a) query = query.Where(d => d.IsActive == a);
         if (q.SupplierId is { } sup) query = query.Where(d => d.SupplierId == sup);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
-            query = query.Where(d => EF.Functions.ILike(d.FullName, like) || EF.Functions.ILike(d.Phone ?? "", like));
+            query = query.Where(d => EF.Functions.ILike(d.FullName, like) || EF.Functions.ILike(d.Phone ?? "", like)
+                || EF.Functions.ILike(d.Plate ?? "", like) || EF.Functions.ILike(d.NationalId ?? "", like));
         var (items, total, page, size) = await query.ApplySort(q.Sort, q.Desc, SortMap, "fullName", defaultDesc: false)
             .Select(Projection).PageAsync(q, ct);
         // Mobil uygulama hesabı ve konum rızası (KVKK) listede görünsün.

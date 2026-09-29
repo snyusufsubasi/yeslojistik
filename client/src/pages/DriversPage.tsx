@@ -18,6 +18,7 @@ import { DueDate } from './VehiclesPage'
 import { ChoiceCards, ControlledToggle } from '../components/Choice'
 import { DateQuick, MoreFields, Section, SuggestChips } from '../components/Inputs'
 import { companyIcon, vehicleOwnershipIcon } from '../lib/icons'
+import { driverRatingLabel, driverRatingTone, options } from '../lib/labels'
 
 const schema = z.object({
   fullName: req('Ad soyad zorunlu.'),
@@ -29,6 +30,13 @@ const schema = z.object({
   psychotechnicExpiry: optStr,
   isActive: z.boolean(),
   supplierId: z.number().nullable().or(z.nan().transform(() => null)),
+  licenseNo: optStr,
+  birthYear: z.number().int().min(1930, 'Geçerli bir yıl girin.').max(2015, 'Geçerli bir yıl girin.').nullable().or(z.nan().transform(() => null)),
+  address: optStr,
+  isForeign: z.boolean(),
+  plate: optStr,
+  rating: z.string().nullable().optional(),
+  note: optStr,
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<Driver, FormValues>('drivers')
@@ -60,6 +68,8 @@ export default function DriversPage() {
   const columns: Column<Driver>[] = [
     { key: 'name', header: 'Ad Soyad', sortKey: 'fullName', render: (d) => <span className="font-medium">{d.fullName}{d.supplierTitle && <span className="block text-sm font-normal text-slate-500">Taşeron: {d.supplierTitle}</span>}</span> },
     { key: 'phone', header: 'Telefon', render: (d) => d.phone ? <a className="text-brand-600" href={`tel:${d.phone.replace(/\s/g, '')}`} onClick={(e) => e.stopPropagation()}>{d.phone}</a> : '—' },
+    { key: 'plate', header: 'Plaka', render: (d) => d.plate ?? '—' },
+    { key: 'rating', header: 'Değerlendirme', render: (d) => d.rating ? <span title={d.note ?? undefined}><Badge tone={driverRatingTone[d.rating]}>{driverRatingLabel[d.rating]}</Badge></span> : <span className="text-slate-500">—</span> },
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
     { key: 'license', header: 'Ehliyet Bitiş', sortKey: 'licenseExpiry', render: (d) => <DueDate value={d.licenseExpiry} warn={30} /> },
     { key: 'src', header: 'SRC Bitiş', sortKey: 'srcExpiry', render: (d) => <DueDate value={d.srcExpiry} warn={30} /> },
@@ -115,6 +125,8 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
       fullName: driver?.fullName ?? '', phone: driver?.phone ?? '', nationalId: driver?.nationalId ?? '',
       licenseClass: driver?.licenseClass ?? '', licenseExpiry: driver?.licenseExpiry ?? '', srcExpiry: driver?.srcExpiry ?? '',
       psychotechnicExpiry: driver?.psychotechnicExpiry ?? '', isActive: driver?.isActive ?? true, supplierId: driver?.supplierId ?? null,
+      licenseNo: driver?.licenseNo ?? '', birthYear: driver?.birthYear ?? null, address: driver?.address ?? '', isForeign: driver?.isForeign ?? false,
+      plate: driver?.plate ?? '', rating: driver?.rating ?? null, note: driver?.note ?? '',
     },
   })
   const save = useSave((v: FormValues) => driver ? api.update(driver.id, nullify(v)) : api.create(nullify(v)), {
@@ -171,6 +183,23 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
             <Field group label="Durum" hint="Pasif şoförler yeni seferde listelenmez.">
               <ControlledToggle control={control} name="isActive" label="Şoför durumu" labels={['Aktif', 'Pasif']} disabled={!editable} />
             </Field>
+          </div>
+        </MoreFields>
+        <MoreFields title="Değerlendirme, plaka ve diğer bilgiler (isteğe bağlı)" defaultOpen={!!driver?.rating || !!driver?.note}
+          hasError={!!(errors.licenseNo || errors.birthYear || errors.plate || errors.address || errors.note)}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Durum Değerlendirmesi">
+              <select className="input" {...register('rating', { setValueAs: (v) => (v === '' ? null : v) })}>
+                <option value="">Seçilmedi</option>
+                {options(driverRatingLabel).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Plaka" hint="Genelde kullandığı araç (taşeron şoförlerinde)." error={errors.plate?.message}><input className="input uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
+            <Field label="Ehliyet No" error={errors.licenseNo?.message}><input className="input" {...register('licenseNo')} /></Field>
+            <Field label="Doğum Yılı" error={errors.birthYear?.message}><input className="input" type="number" min="1930" max="2015" {...register('birthYear', { valueAsNumber: true })} /></Field>
+            <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" {...register('address')} /></Field>
+            <Field className="sm:col-span-2" label="Not" error={errors.note?.message}><textarea className="input min-h-16" {...register('note')} /></Field>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('isForeign')} /> Yabancı uyruklu</label>
           </div>
         </MoreFields>
         </fieldset>

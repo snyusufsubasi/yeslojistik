@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Columns3, Download, List, Pencil, Plus, Truck } from 'lucide-react'
+import { ClipboardCopy, Columns3, Download, List, Pencil, Plus, Truck } from 'lucide-react'
 import { download, get, post } from '../api/client'
-import type { JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
+import type { Driver, JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
@@ -14,7 +14,9 @@ import clsx from 'clsx'
 import { useAuth } from '../lib/auth'
 import { addDaysIso, date, monthEndIso, monthStartIso, tl, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
-import { options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import { commissionStatusLabel, options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import { emptyTerms } from '../lib/tripTerms'
+import { useToast } from '../components/Toast'
 
 const api = crud<Trip, unknown>('trips')
 
@@ -28,6 +30,10 @@ export default function TripsPage() {
   const [from, setFrom] = useState(params.get('from') ?? '')
   const [to, setTo] = useState(params.get('to') ?? '')
   const [invoiced, setInvoiced] = useState<'yes' | 'no' | 'carrier' | ''>(params.get('carrierInvoice') === 'missing' ? 'carrier' : '')
+  // Eski paneldeki hazır listeler: fiyat girilmeyenler, onay bekleyen teslim evrakları, komisyonu beklenenler.
+  const [preset, setPreset] = useState<Preset | ''>((params.get('list') as Preset) ?? '')
+  const [group, setGroup] = useState('')
+  const toast = useToast()
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(null)
   // Görünüm: liste ya da pano (tercih tarayıcıda hatırlanır).
@@ -40,7 +46,8 @@ export default function TripsPage() {
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
 
-  const [page, setPage] = usePage([debounced, status, customerId, from, to, invoiced])
+  const debouncedGroup = useDebounce(group)
+  const [page, setPage] = usePage([debounced, status, customerId, from, to, invoiced, preset, debouncedGroup])
   useEffect(() => {
         // Başka sayfadan (ör. tedarikçi detayı) belirli bir seferi açmak için ?id=
     const openId = Number(params.get('id'))
@@ -63,7 +70,9 @@ export default function TripsPage() {
     }).catch(() => undefined)
   }, [params, setParams])
 
-  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined, sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined,
+    customerGroup: debouncedGroup || undefined, missingPrice: preset === 'price' || undefined, pendingDeliveryDocument: preset === 'document' || undefined,
+    commissionStatus: preset === 'commission' ? 'Pending' : undefined, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Trip>('trips', query)
   const { page: _p, pageSize: _s, sort: _o, desc: _d, ...filters } = query
   const { data: totals } = useQuery({ queryKey: ['trips', 'totals', filters], queryFn: () => get<TripTotals>('/trips/totals', filters) })
@@ -76,17 +85,35 @@ export default function TripsPage() {
     { label: 'Hepsi', from: '', to: '' },
   ]
 
+  /** Eski paneldeki "kopyala": şoför, plaka ve güzergâh bilgisini panoya alır (mesajla göndermek için). */
+  const copyDriver = async (t: Trip) => {
+    try {
+      const d = await get<Driver>(`/drivers/${t.driverId}`)
+      const text = [
+        d.nationalId && `TC: ${d.nationalId}`, `Plaka: ${t.vehiclePlate}`, d.phone && `Telefon: ${d.phone}`, `Şoför: ${t.driverName}`,
+        `Yükleme yeri: ${route(t.loadingCity, t.loadingAddress)}`, `İndirme yeri: ${route(t.deliveryCity, t.deliveryAddress)}`,
+        t.cargoType && `Taşınan mal: ${t.cargoType}`,
+      ].filter(Boolean).join('
+')
+      await navigator.clipboard.writeText(text)
+      toast.success('Şoför ve sefer bilgisi kopyalandı.')
+    } catch {
+      toast.error('Kopyalanamadı.')
+    }
+  }
+
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Trip>[] = [
-    { key: 'date', header: 'Tarih', sortKey: 'loadingDate', render: (t) => date(t.loadingDate) },
+    { key: 'date', header: 'Tarih / No', sortKey: 'loadingDate', render: (t) => <>{date(t.loadingDate)}<span className="block text-sm text-slate-500">No {t.terms?.externalRef ?? t.id}</span></> },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><span className="whitespace-nowrap">{t.vehiclePlate}</span>{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge><InvoiceInfo t={t} />{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
-    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span></> },
+    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span>
+      {t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500">Kom. {tl(t.terms.commission)} · {commissionStatusLabel[t.terms.commissionStatus]}</span>}</> },
   ]
   if (can('operations')) {
     columns.push({
@@ -97,6 +124,7 @@ export default function TripsPage() {
               title={`Durumu “${tripStatusLabel[s]}” yap`}
               onClick={() => statusMut.mutate({ id: t.id, s })}>{tripStatusAction[s]}</Button>
           ))}
+          <IconButton label="Şoför bilgisini kopyala" onClick={() => copyDriver(t)}><ClipboardCopy className="size-4" /></IconButton>
           <IconButton label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
         </div>
       ),
@@ -150,6 +178,8 @@ export default function TripsPage() {
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
           <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
             options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }, { value: 'carrier' as const, label: 'Taşeron faturası gelmedi' }]} />
+          <Select aria-label="Hazır liste" value={preset} onChange={setPreset} placeholder="Liste: tüm seferler" options={presetOptions} />
+          <input className="input" aria-label="Firma grubu" placeholder="Firma grubu / şantiye" value={group} onChange={(e) => setGroup(e.target.value)} />
         </div>
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
           onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
@@ -157,7 +187,7 @@ export default function TripsPage() {
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
-          empty={debounced || status || customerId || from || to || invoiced
+          empty={debounced || status || customerId || from || to || invoiced || preset || group
             ? 'Bu filtrelere uyan sefer yok. Filtreleri temizlemeyi deneyin.'
             : 'Henüz sefer yok. Sağ üstteki “Yeni Sefer” ile ilk seferi ekleyin.'}
           mobileCard={(t) => (
@@ -187,6 +217,14 @@ export default function TripsPage() {
           description: [sourceRequest.description,
             sourceRequest.cargoQuantity != null && !Number.isInteger(sourceRequest.cargoQuantity) ? `Yük miktarı: ${sourceRequest.cargoQuantity.toLocaleString('tr-TR')}` : null,
           ].filter(Boolean).join('\n'),
+          terms: {
+            ...emptyTerms, commission: sourceRequest.commission ?? 0, driverBonus: sourceRequest.driverBonus ?? 0,
+            extraCharge: sourceRequest.otherExpense ?? 0, customerPays: sourceRequest.customerPays,
+            deliveryDocumentNo: sourceRequest.loadingDocumentNo ?? '', waybillNo: sourceRequest.waybillNo ?? '',
+            invoiceFooterNote: sourceRequest.invoiceFooterNote ?? '', showFooterNote: !!sourceRequest.invoiceFooterNote,
+            loadingLatitude: sourceRequest.loadingLatitude ?? null, loadingLongitude: sourceRequest.loadingLongitude ?? null,
+            deliveryLatitude: sourceRequest.deliveryLatitude ?? null, deliveryLongitude: sourceRequest.deliveryLongitude ?? null,
+          },
         } : undefined}
         onClose={() => { setEditing(null); setCopyOf(null); setSourceRequest(null) }}
         onDelete={(t) => { setEditing(null); setDeleting(t) }}
@@ -197,6 +235,13 @@ export default function TripsPage() {
     </>
   )
 }
+
+type Preset = 'price' | 'document' | 'commission'
+const presetOptions: { value: Preset; label: string }[] = [
+  { value: 'price', label: 'Fiyat girilmeyenler' },
+  { value: 'document', label: 'Onay bekleyen teslim evrakları' },
+  { value: 'commission', label: 'Komisyonu beklenenler' },
+]
 
 /** "İstanbul / Tuzla OSB" — adres zaten ili içeriyorsa tekrar yazılmaz. */
 function route(city: string | null | undefined, address: string) {
@@ -228,6 +273,9 @@ function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals
       {showMoney && <>
         {cell('Satış', tl(totals.sale))}
         {cell('Araç / taşeron maliyeti', tl(totals.vehicleCost))}
+        {totals.commission > 0 && cell('Komisyon', tl(totals.commission))}
+        {totals.extraCharge > 0 && cell('Ek masraf', tl(totals.extraCharge))}
+        {totals.driverBonus > 0 && cell('Şoför primi', tl(totals.driverBonus))}
         {cell('Masraf', tl(totals.expenses))}
         {cell('Kazanç', tl(totals.profit), totals.profit < 0 ? 'text-red-600' : 'text-emerald-700')}
       </>}
