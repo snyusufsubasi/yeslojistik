@@ -23,6 +23,10 @@ export function PaymentScreen({ kind }: { kind: 'customer' | 'supplier' }) {
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState<PaymentMethod>('BankTransfer')
   const [description, setDescription] = useState('')
+  const [instrumentNo, setInstrumentNo] = useState('')
+  const [bank, setBank] = useState('')
+  const [dueDate, setDueDate] = useState<string | null>(null)
+  const instrument = customer && (method === 'Check' || method === 'PromissoryNote')
   const [saving, setSaving] = useState(false)
   const lookup = useQuery({
     queryKey: [customer ? 'customers' : 'suppliers', 'lookup'],
@@ -34,10 +38,12 @@ export function PaymentScreen({ kind }: { kind: 'customer' | 'supplier' }) {
     if (!partyId) return notify('Eksik bilgi', customer ? 'Müşteriyi seçin.' : 'Tedarikçiyi seçin.')
     if (!date) return notify('Eksik bilgi', 'Tarihi GG.AA.YYYY olarak yazın.')
     if (a == null || Number.isNaN(a) || a <= 0) return notify('Eksik bilgi', 'Tutarı girin (ör. 15.000 veya 15000,50).')
+    if (instrument && !dueDate) return notify('Eksik bilgi', 'Çek/senet vadesini GG.AA.YYYY olarak yazın.')
     setSaving(true)
     try {
       const body = customer
-        ? { customerId: partyId, invoiceId: null, date, amount: a, method, description: description.trim() || null }
+        ? { customerId: partyId, invoiceId: null, date, amount: a, method, description: description.trim() || null,
+          ...(instrument ? { instrumentNo: instrumentNo.trim() || null, bank: bank.trim() || null, instrumentDueDate: dueDate } : {}) }
         : { supplierId: partyId, tripId: null, date, amount: a, method, description: description.trim() || null }
       await api.post(customer ? '/payments' : '/supplier-payments', body)
       await qc.invalidateQueries({ queryKey: [customer ? 'customers' : 'suppliers'] })
@@ -62,6 +68,11 @@ export function PaymentScreen({ kind }: { kind: 'customer' | 'supplier' }) {
           {paymentMethods.map((m) => <Chip key={m.value} label={m.label} active={method === m.value} onPress={() => setMethod(m.value)} />)}
         </View>
       </Field>
+      {instrument && <>
+        <Field label={method === 'Check' ? 'Çek no' : 'Senet no'}><Input value={instrumentNo} onChangeText={setInstrumentNo} accessibilityLabel="Çek/senet no" /></Field>
+        {method === 'Check' && <Field label="Banka"><Input value={bank} onChangeText={setBank} accessibilityLabel="Banka" /></Field>}
+        <DateInput label="Vade tarihi" value={dueDate} onChange={setDueDate} />
+      </>}
       <Field label="Açıklama"><Input value={description} onChangeText={setDescription} accessibilityLabel="Açıklama" /></Field>
       <Text style={s.hint}>{customer ? 'Tahsilat, müşterinin en eski açık faturasından başlayarak kapatır.' : 'Ödeme, tedarikçiye olan en eski borçtan başlayarak kapatır.'}</Text>
       <Button title="Kaydet" color={colors.green} onPress={save} loading={saving} />

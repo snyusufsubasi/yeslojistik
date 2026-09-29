@@ -87,12 +87,13 @@ export interface AccountMovement {
   runningBalance: number
 }
 
-export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard'
+export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard' | 'PromissoryNote'
 export const paymentMethods: { value: PaymentMethod; label: string }[] = [
   { value: 'BankTransfer', label: 'Havale/EFT' },
   { value: 'Cash', label: 'Nakit' },
   { value: 'Check', label: 'Çek' },
   { value: 'CreditCard', label: 'Kredi Kartı' },
+  { value: 'PromissoryNote', label: 'Senet' },
 ]
 
 export interface NotificationPref { type: string; label: string; push: boolean }
