@@ -15,7 +15,7 @@ import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { CityOptions } from '../components/CityOptions'
 import { AuditLogTable } from '../components/AuditLog'
-import { date, dateTime, fileSize, tl2 } from '../lib/format'
+import { dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
@@ -202,15 +202,20 @@ function UsersTab() {
   const [deleting, setDeleting] = useState<User | null>(null)
   const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: () => get<User[]>('/users') })
   const del = useSave((id: number) => usersApi.remove(id), { invalidate: ['users'], success: 'Kullanıcı silindi.', onSuccess: () => setDeleting(null) })
+  const unlock = useSave((id: number) => post(`/users/${id}/unlock`), { invalidate: ['users'], success: 'Hesabın kilidi açıldı.' })
+  const signOut = useSave((id: number) => post(`/users/${id}/sign-out`), { invalidate: ['users'], success: 'Kullanıcının tüm oturumları kapatıldı.' })
   const cols: Column<User>[] = [
     { key: 'n', header: 'Ad Soyad', render: (u) => <span className="font-medium">{u.fullName}</span> },
     { key: 'e', header: 'E-posta', render: (u) => u.email },
     { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-[13px] text-slate-500">{u.driverName}</span>}</> },
-    { key: 'a', header: 'Durum', render: (u) => <Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge> },
-    { key: 'c', header: 'Oluşturma', render: (u) => date(u.createdAt) },
+    { key: 'a', header: 'Durum', render: (u) => <><Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge>
+      {u.lockoutUntil && <span className="ml-1"><Badge tone="red">Kilitli</Badge></span>}</> },
+    { key: 'c', header: 'Son giriş', render: (u) => u.lastLoginAt ? dateTime(u.lastLoginAt) : '—' },
     {
       key: 'x', header: '', align: 'right', render: (u) => (
         <div className="flex justify-end gap-1">
+          {u.lockoutUntil && <Button size="sm" variant="secondary" onClick={() => unlock.mutate(u.id)}>Kilidi aç</Button>}
+          {u.id !== me?.id && <Button size="sm" variant="ghost" onClick={() => signOut.mutate(u.id)}>Oturumları kapat</Button>}
           <IconButton label="Düzenle" onClick={() => setEditing(u)}><Pencil className="size-4" /></IconButton>
           <IconButton label="Sil" disabled={u.id === me?.id} onClick={() => setDeleting(u)}><Trash2 className="size-4" /></IconButton>
         </div>

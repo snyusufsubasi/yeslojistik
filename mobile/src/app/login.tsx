@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Button } from '../components/ui'
-import { getServer } from '../lib/api'
+import { getServer, normalizeServer } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { colors } from '../lib/theme'
 
@@ -53,8 +53,14 @@ export default function LoginScreen() {
             )}
             {!!error && <Text style={s.error}>{error}</Text>}
             <Button title="Giriş Yap" onPress={submit} loading={loading} style={{ marginTop: 8 }} />
+            <Pressable onPress={() => Linking.openURL(`${normalizeServer(server)}/sifremi-unuttum`)} style={{ marginTop: 14 }}>
+              <Text style={s.link}>Şifremi unuttum</Text>
+            </Pressable>
             <Pressable onPress={() => setShowServer((v) => !v)} style={{ marginTop: 14 }}>
               <Text style={s.link}>{showServer ? 'Sunucu ayarını gizle' : 'Sunucu ayarı'}</Text>
+            </Pressable>
+            <Pressable onPress={() => Linking.openURL(`${normalizeServer(server)}/gizlilik`)} style={{ marginTop: 14 }}>
+              <Text style={[s.link, { color: colors.muted }]}>Gizlilik ve KVKK</Text>
             </Pressable>
           </View>
         </ScrollView>

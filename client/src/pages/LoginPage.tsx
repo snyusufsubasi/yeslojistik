@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { errorMessage } from '../api/client'
 import { Button } from '../components/ui'
@@ -60,7 +60,8 @@ export default function LoginPage() {
         </label>
         {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         <Button type="submit" className="w-full" loading={loading}>Giriş Yap</Button>
-        <p className="mt-6 text-center text-sm text-slate-600">Şifrenizi unuttuysanız yöneticinizden sıfırlamasını isteyin.</p>
+        <p className="mt-6 text-center text-sm"><Link className="text-brand-600 hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
+        <p className="mt-3 text-center text-[13px] text-slate-500"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
       </form>
     </div>
   )
