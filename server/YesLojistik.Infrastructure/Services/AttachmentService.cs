@@ -16,8 +16,10 @@ public class AttachmentService(AppDbContext db, IFileStorage storage)
             .Select(a => ToDto(a)).ToListAsync(ct);
 
     public async Task<AttachmentDto> UploadAsync(int tripId, Stream content, long length, string fileName, AttachmentKind kind,
-        string? note, CancellationToken ct = default)
+        string? note, CancellationToken ct = default, Guid? clientRequestId = null)
     {
+        if (clientRequestId != null && await db.TripAttachments.AsNoTracking().FirstOrDefaultAsync(a => a.ClientRequestId == clientRequestId, ct) is { } same)
+            return ToDto(same);
         if (!await db.Trips.AnyAsync(t => t.Id == tripId, ct)) throw new NotFoundException("Sefer bulunamadı.");
         if (length <= 0) throw new DomainException("Dosya boş.");
         if (length > MaxSize) throw new DomainException("Dosya en fazla 10 MB olabilir.");
@@ -37,6 +39,7 @@ public class AttachmentService(AppDbContext db, IFileStorage storage)
         {
             TripId = tripId, Kind = kind, ContentType = contentType, Size = buffer.Length, StoragePath = path,
             FileName = safeName.Length > 200 ? safeName[^200..] : safeName, Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            ClientRequestId = clientRequestId,
         };
         db.TripAttachments.Add(attachment);
         await db.SaveChangesAsync(ct);

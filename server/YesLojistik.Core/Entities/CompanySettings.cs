@@ -31,5 +31,8 @@ public class CompanySettings
     public DateTime? SampleDataClearedAt { get; set; }
     /// <summary>Son yedeğin (panelden ya da otomatik) alındığı an.</summary>
     public DateTime? LastBackupAt { get; set; }
+    /// <summary>Şoför "Teslim Edildi" demeden önce en az bir fotoğraf / imza yüklemiş olmalı.</summary>
+    public bool RequireDeliveryPhoto { get; set; }
+    public bool RequireDeliverySignature { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

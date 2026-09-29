@@ -12,4 +12,6 @@ public class TripAttachment : BaseEntity
     /// <summary>Depolama içindeki göreli yol.</summary>
     public string StoragePath { get; set; } = "";
     public string? Note { get; set; }
+    /// <summary>Mobil uygulamanın çevrimdışı kuyruğundaki işlem kimliği (çift yüklemeyi önler).</summary>
+    public Guid? ClientRequestId { get; set; }
 }

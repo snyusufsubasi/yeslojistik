@@ -11,6 +11,9 @@ public class User : BaseEntity
     /// <summary>Şoför rolündeki kullanıcının bağlı olduğu şoför kaydı (mobil uygulama).</summary>
     public int? DriverId { get; set; }
     public Driver? Driver { get; set; }
+    /// <summary>Şoförün konum paylaşımına verdiği açık rızanın zamanı ve metin sürümü (KVKK). Boşsa rıza yok.</summary>
+    public DateTime? LocationConsentAt { get; set; }
+    public string? LocationConsentVersion { get; set; }
 }
 
 public class RefreshToken

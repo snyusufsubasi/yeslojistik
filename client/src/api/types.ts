@@ -143,6 +143,8 @@ export interface Driver {
   isActive: boolean
   supplierId?: number | null
   supplierTitle?: string | null
+  hasAppAccount?: boolean
+  locationConsentAt?: string | null
 }
 
 export interface Trip {
@@ -254,6 +256,8 @@ export interface Expense {
   supplierTitle?: string | null
   isOnCredit?: boolean
   hasReceipt?: boolean
+  paidBy?: 'Company' | 'Driver'
+  approvalStatus?: 'Approved' | 'Pending' | 'Rejected'
 }
 
 export interface Dashboard {
@@ -356,6 +360,8 @@ export interface CompanySettings {
   defaultPaymentTermDays: number
   emailEnabled?: boolean
   dailyDigestEnabled?: boolean
+  requireDeliveryPhoto?: boolean
+  requireDeliverySignature?: boolean
   city?: string | null
   district?: string | null
   mersisNo?: string | null

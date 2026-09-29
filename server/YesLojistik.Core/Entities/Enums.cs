@@ -4,6 +4,11 @@ public enum UserRole { Admin, Operations, Accounting, Driver }
 
 public enum AttachmentKind { Photo, Document, Signature }
 
+/// <summary>Gideri kim ödedi: firma (kasa/banka/kart) ya da şoför kendi cebinden (şoför hesabına alacak yazılır).</summary>
+public enum ExpensePaidBy { Company, Driver }
+
+public enum ApprovalStatus { Approved, Pending, Rejected }
+
 public enum VehicleStatus { Available, OnRoad, Maintenance }
 
 public enum TripStatus { Planned, Loaded, OnRoad, Delivered, Cancelled }

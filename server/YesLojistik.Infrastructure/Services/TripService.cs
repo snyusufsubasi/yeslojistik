@@ -136,7 +136,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
 
     /// <param name="occurredAt">Olayın gerçek zamanı (şoför çevrimdışıyken). Gelecekteki ya da 7 günden eski saatler yok sayılır.</param>
     public async Task<TripDto> ChangeStatusAsync(int id, TripStatus status, TripEventSource source, DateTime? occurredAt, string? note,
-        CancellationToken ct = default)
+        CancellationToken ct = default, string? receivedBy = null)
     {
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id, ct) ?? throw new NotFoundException("Sefer bulunamadı.");
         if (!TripStatusRules.CanTransition(trip.Status, status))
@@ -152,6 +152,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         {
             trip.DeliveryDate ??= Clock.Today;
             trip.DeliveredAt = at;
+            if (!string.IsNullOrWhiteSpace(receivedBy)) trip.ReceivedBy = receivedBy.Trim().Length > 150 ? receivedBy.Trim()[..150] : receivedBy.Trim();
         }
         AddEvent(trip.Id, status, source, at, note);
         await db.SaveChangesAsync(ct);

@@ -59,6 +59,8 @@ export default function DriversPage() {
     { key: 'license', header: 'Ehliyet Bitiş', sortKey: 'licenseExpiry', render: (d) => <DueDate value={d.licenseExpiry} warn={30} /> },
     { key: 'src', header: 'SRC Bitiş', sortKey: 'srcExpiry', render: (d) => <DueDate value={d.srcExpiry} warn={30} /> },
     { key: 'psy', header: 'Psikoteknik', render: (d) => <DueDate value={d.psychotechnicExpiry} warn={30} /> },
+    { key: 'app', header: 'Uygulama', render: (d) => !d.hasAppAccount ? <span className="text-slate-400">—</span>
+      : d.locationConsentAt ? <Badge tone="green">Konum izni var</Badge> : <Badge tone="yellow">Konum izni yok</Badge> },
     { key: 'active', header: 'Durum', sortKey: 'isActive', render: (d) => <Badge tone={d.isActive ? 'green' : 'gray'}>{d.isActive ? 'Aktif' : 'Pasif'}</Badge> },
   ]
   if (can('operations')) columns.push({

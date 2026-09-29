@@ -49,6 +49,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.FullName).HasMaxLength(100);
             e.Property(x => x.Email).HasMaxLength(200);
             e.HasIndex(x => x.Email).IsUnique().HasFilter("is_deleted = false");
+            e.Property(x => x.LocationConsentVersion).HasMaxLength(20);
             e.HasOne(x => x.Driver).WithMany().OnDelete(DeleteBehavior.SetNull);
         });
         b.Entity<AuditLog>(e =>
@@ -158,6 +159,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.StoragePath).HasMaxLength(300);
             e.Property(x => x.Note).HasMaxLength(500);
             e.HasOne(x => x.Trip).WithMany(t => t.Attachments).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.ClientRequestId).IsUnique().HasFilter("client_request_id IS NOT NULL");
         });
         b.Entity<PushToken>(e =>
         {
@@ -201,6 +203,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.ReceiptPath).HasMaxLength(300);
             e.Property(x => x.ReceiptContentType).HasMaxLength(100);
             e.HasIndex(x => x.Date);
+            e.HasIndex(x => x.ClientRequestId).IsUnique().HasFilter("client_request_id IS NOT NULL");
         });
         b.Entity<StoredFile>(e =>
         {

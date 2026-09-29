@@ -70,6 +70,8 @@ const companySchema = z.object({
   defaultWithholdingTenths: z.number().int().min(0).max(10),
   defaultPaymentTermDays: z.number({ error: 'Sayı girin.' }).int().min(0).max(365),
   dailyDigestEnabled: z.boolean(),
+  requireDeliveryPhoto: z.boolean(),
+  requireDeliverySignature: z.boolean(),
   city: optStr,
   district: optStr,
   mersisNo: z.string().trim().regex(/^(\d{16})?$/, 'MERSİS no 16 hane olmalı.'),
@@ -164,6 +166,15 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             </span>
           </label>
           <p className="mt-3 text-sm text-slate-600">Müşterilere sefer durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
+          <h3 className="mt-5 mb-2 text-[15px] font-semibold text-slate-800">Şoför uygulaması: teslim kuralları</h3>
+          <label className="flex items-start gap-3">
+            <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('requireDeliveryPhoto')} />
+            <span className="text-[15px] text-slate-800">Teslimde en az bir fotoğraf zorunlu</span>
+          </label>
+          <label className="mt-2 flex items-start gap-3">
+            <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('requireDeliverySignature')} />
+            <span className="text-[15px] text-slate-800">Teslimde teslim alanın imzası zorunlu</span>
+          </label>
           <div className="mt-4 flex justify-end"><Button type="submit" loading={save.isPending}>Kaydet</Button></div>
         </Card>
       </div>

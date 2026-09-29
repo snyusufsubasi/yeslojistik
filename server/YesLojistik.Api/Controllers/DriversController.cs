@@ -41,7 +41,13 @@ public class DriversController(AppDbContext db) : ControllerBase
             query = query.Where(d => EF.Functions.ILike(d.FullName, like) || EF.Functions.ILike(d.Phone ?? "", like));
         var (items, total, page, size) = await query.ApplySort(q.Sort, q.Desc, SortMap, "fullName", defaultDesc: false)
             .Select(Projection).PageAsync(q, ct);
-        return new PagedResult<DriverDto>(items, total, page, size);
+        // Mobil uygulama hesabı ve konum rızası (KVKK) listede görünsün.
+        var ids = items.Select(d => d.Id).ToList();
+        var accounts = await db.Users.AsNoTracking().Where(u => u.DriverId != null && ids.Contains(u.DriverId.Value) && u.IsActive)
+            .Select(u => new { DriverId = u.DriverId!.Value, u.LocationConsentAt }).ToListAsync(ct);
+        var withApp = items.Select(d => accounts.FirstOrDefault(a => a.DriverId == d.Id) is { } acc
+            ? d with { HasAppAccount = true, LocationConsentAt = acc.LocationConsentAt } : d).ToList();
+        return new PagedResult<DriverDto>(withApp, total, page, size);
     }
 
     [HttpGet("lookup")]
