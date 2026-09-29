@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString).UseSnakeCaseNamingConvention());
         services.AddScoped<BalanceService>();
         services.AddScoped<TripService>();
+        services.AddScoped<JobRequestService>();
         services.AddScoped<InvoiceService>();
         services.AddScoped<DataResetService>();
         services.AddScoped<BackupService>();

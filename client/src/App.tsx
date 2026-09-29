@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 
 const TripsPage = lazy(() => import('./pages/TripsPage'))
+const JobRequestsPage = lazy(() => import('./pages/JobRequestsPage'))
 const VehiclesPage = lazy(() => import('./pages/VehiclesPage'))
 const DriversPage = lazy(() => import('./pages/DriversPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
@@ -71,6 +72,7 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route index element={<DashboardPage />} />
           <Route path="seferler" element={<TripsPage />} />
+          <Route path="is-talepleri" element={<JobRequestsPage />} />
           <Route path="araclar" element={<VehiclesPage />} />
           <Route path="harita" element={<MapPage />} />
           <Route path="soforler" element={<DriversPage />} />

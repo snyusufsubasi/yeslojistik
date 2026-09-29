@@ -8,6 +8,8 @@ public class Trip : BaseEntity
     public Vehicle Vehicle { get; set; } = null!;
     public int DriverId { get; set; }
     public Driver Driver { get; set; } = null!;
+    public int? JobRequestId { get; set; }
+    public JobRequest? JobRequest { get; set; }
 
     public string LoadingAddress { get; set; } = "";
     public string DeliveryAddress { get; set; } = "";

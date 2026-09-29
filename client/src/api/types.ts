@@ -2,6 +2,7 @@ export type UserRole = 'Admin' | 'Operations' | 'Accounting' | 'Driver'
 export type AttachmentKind = 'Photo' | 'Document' | 'Signature'
 export type VehicleStatus = 'Available' | 'OnRoad' | 'Maintenance'
 export type TripStatus = 'Planned' | 'Loaded' | 'OnRoad' | 'Delivered' | 'Cancelled'
+export type JobRequestStatus = 'Pending' | 'Cancelled' | 'Converted'
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Cancelled'
 export type PaymentMethod = 'Cash' | 'BankTransfer' | 'Check' | 'CreditCard' | 'PromissoryNote'
 export type InstrumentStatus = 'Portfolio' | 'InCollection' | 'Collected' | 'Endorsed' | 'Bounced' | 'Returned'
@@ -192,6 +193,36 @@ export interface Trip {
   receivedBy?: string | null
   deliveredAt?: string | null
   vehicleOwnership?: VehicleOwnership
+  jobRequestId?: number | null
+}
+
+export interface JobRequest {
+  id: number
+  customerId: number
+  customerTitle: string
+  date: string
+  loadingAddress: string
+  deliveryAddress: string
+  deliveryWindow?: string | null
+  cargoType?: string | null
+  cargoQuantity?: number | null
+  vehicleType?: string | null
+  salePrice?: number | null
+  carrierPrice?: number | null
+  commission?: number | null
+  driverBonus?: number | null
+  otherExpense?: number | null
+  customerPays: boolean
+  loadingDocumentNo?: string | null
+  waybillNo?: string | null
+  invoiceFooterNote?: string | null
+  description?: string | null
+  loadingLatitude?: number | null
+  loadingLongitude?: number | null
+  deliveryLatitude?: number | null
+  deliveryLongitude?: number | null
+  status: JobRequestStatus
+  tripId?: number | null
 }
 
 export interface TripEvent {

@@ -38,7 +38,8 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             t.VehicleCost, t.SalePrice, r.ExpenseTotal, t.SalePrice - t.VehicleCost - r.ExpenseTotal, t.Status,
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
-            t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership);
+            t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
+            t.JobRequestId);
     }
 
     public IQueryable<Trip> Filter(TripQuery q)
@@ -85,8 +86,23 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     public async Task<TripDto> CreateAsync(TripSaveRequest req, CancellationToken ct = default)
     {
         await ValidateReferencesAsync(req, ct);
+        JobRequest? jobRequest = null;
+        if (req.JobRequestId is { } requestId)
+        {
+            jobRequest = await db.JobRequests.FirstOrDefaultAsync(r => r.Id == requestId, ct)
+                ?? throw new NotFoundException("İş talebi bulunamadı.");
+            if (jobRequest.Status != JobRequestStatus.Pending)
+                throw new DomainException("Bu iş talebi zaten sevk edilmiş veya iptal edilmiş.");
+            if (jobRequest.CustomerId != req.CustomerId)
+                throw new DomainException("Sefer müşterisi iş talebindeki müşteriyle aynı olmalı.");
+        }
         var trip = new Trip();
         Apply(trip, req);
+        if (jobRequest != null)
+        {
+            trip.JobRequestId = jobRequest.Id;
+            jobRequest.Status = JobRequestStatus.Converted;
+        }
         await ApplyVehicleDefaultsAsync(trip, req, ct);
         db.Trips.Add(trip);
         await db.SaveChangesAsync(ct);
@@ -169,6 +185,12 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     {
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id, ct) ?? throw new NotFoundException("Sefer bulunamadı.");
         if (trip.InvoiceId != null) throw new DomainException("Faturalanmış sefer silinemez. Önce faturayı iptal edin.");
+        if (trip.JobRequestId is { } requestId)
+        {
+            var request = await db.JobRequests.FirstOrDefaultAsync(r => r.Id == requestId, ct);
+            if (request != null) request.Status = JobRequestStatus.Pending;
+            trip.JobRequestId = null;
+        }
         trip.IsDeleted = true;
         await db.SaveChangesAsync(ct);
         await SyncVehicleStatusAsync(trip.VehicleId, ct);

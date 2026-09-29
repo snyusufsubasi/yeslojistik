@@ -5,6 +5,7 @@ export interface QuickAction { to: string; label: string; hint: string; icon: ty
 
 /** En sık yapılan işler: ana sayfadaki büyük kutular ve üst çubuktaki "+ Yeni" menüsü aynı listeyi kullanır. */
 export const quickActions: QuickAction[] = [
+  { to: '/is-talepleri?new=1', label: 'İş Talebi', hint: 'Araç ve şoför henüz belli değilse', icon: FileText, tone: 'from-cyan-500 to-cyan-700', perm: 'operations', main: true },
   { to: '/seferler?new=1', label: 'Yeni Sefer', hint: 'Yük ve araç bilgisini gir', icon: Truck, tone: 'from-brand-500 to-brand-700', perm: 'operations', main: true },
   { to: '/tahsilatlar?new=1', label: 'Tahsilat Gir', hint: 'Müşteriden gelen para', icon: Wallet, tone: 'from-emerald-500 to-emerald-700', perm: 'accounting', main: true },
   { to: '/odemeler?new=1', label: 'Taşerona Ödeme', hint: 'Araç sahibine yapılan ödeme', icon: HandCoins, tone: 'from-orange-500 to-orange-600', perm: 'accounting', main: true },
