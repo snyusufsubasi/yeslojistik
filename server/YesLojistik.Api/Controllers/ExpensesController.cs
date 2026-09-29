@@ -28,7 +28,7 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         e.Trip != null ? e.Trip.LoadingAddress + " → " + e.Trip.DeliveryAddress : null, e.Description,
         e.DriverId, e.Driver != null ? e.Driver.FullName : null, e.Liters, e.Odometer,
         e.SupplierId, e.Supplier != null ? e.Supplier.Title : null, e.IsOnCredit, e.ReceiptPath != null,
-        e.PaidBy, e.ApprovalStatus, e.RejectionReason);
+        e.PaidBy, e.ApprovalStatus, e.RejectionReason, e.CashAccountId);
 
     private IQueryable<Expense> Filter(ExpenseQuery q)
     {

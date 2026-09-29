@@ -53,7 +53,7 @@ public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateO
     int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null,
     int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false,
     ExpensePaidBy PaidBy = ExpensePaidBy.Company, ApprovalStatus ApprovalStatus = ApprovalStatus.Approved,
-    string? RejectionReason = null);
+    string? RejectionReason = null, int? CashAccountId = null);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
     string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null, int? SupplierId = null,

@@ -16,8 +16,9 @@ const schema = z.object({
   tripId: z.number().nullable().or(z.nan().transform(() => null)),
   date: req('Tarih zorunlu.'),
   amount: z.number({ error: 'Tutar girin.' }).positive('Tutar sıfırdan büyük olmalı.'),
-  method: z.enum(['Cash', 'BankTransfer', 'Check', 'CreditCard']),
+  method: z.enum(['Cash', 'BankTransfer', 'Check', 'CreditCard', 'PromissoryNote']),
   description: optStr,
+  cashAccountId: z.number().nullable().or(z.nan().transform(() => null)),
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<SupplierPayment, FormValues>('supplier-payments')
@@ -28,11 +29,12 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
   const { register, handleSubmit, control, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: payment
-      ? { ...payment, tripId: payment.tripId ?? null, description: payment.description ?? '' }
-      : { date: todayIso(), method: 'BankTransfer', description: '', tripId: null, ...defaults },
+      ? { ...payment, tripId: payment.tripId ?? null, description: payment.description ?? '', cashAccountId: payment.cashAccountId ?? null }
+      : { date: todayIso(), method: 'BankTransfer', description: '', tripId: null, cashAccountId: null, ...defaults },
   })
   const supplierId = useWatch({ control, name: 'supplierId' })
   const amount = useWatch({ control, name: 'amount' })
+  const accounts = useLookup('cash-accounts')
   const trips = useQuery({
     queryKey: ['trips', 'carrier', supplierId],
     queryFn: () => get<PagedResult<Trip>>('/trips', { carrierSupplierId: supplierId, pageSize: 100, sort: 'loadingDate', desc: true }),
@@ -67,7 +69,13 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
             {Object.entries(paymentMethodLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </Field>
+        {(accounts.data?.length ?? 0) > 0 && (
+          <Field label="Kasa / Banka" hint="İsteğe bağlı: paranın çıktığı hesap.">
+            <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
+          </Field>
+        )}
         <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
+        {payment?.endorsedFromPaymentId && <p className="text-[13px] text-amber-700 sm:col-span-2">Bu ödeme bir çek/senet cirosundan geldi; Çek/Senet sayfasından yönetin.</p>}
         <button type="submit" className="hidden" />
       </form>
     </Modal>

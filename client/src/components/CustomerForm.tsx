@@ -24,6 +24,7 @@ const schema = z.object({
   isEInvoiceUser: z.boolean(),
   eInvoiceAlias: optStr,
   paymentTermDays: z.number().int().min(0, '0-365 gün').max(365, '0-365 gün').nullable().or(z.nan().transform(() => null)),
+  creditLimit: z.number().min(0, 'Negatif olamaz.').nullable().or(z.nan().transform(() => null)),
   isActive: z.boolean(),
 })
 type FormValues = z.infer<typeof schema>
@@ -39,7 +40,7 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
       notifyStatusByEmail: customer?.notifyStatusByEmail ?? false,
       city: customer?.city ?? '', district: customer?.district ?? '', contactName: customer?.contactName ?? '',
       isEInvoiceUser: customer?.isEInvoiceUser ?? false, eInvoiceAlias: customer?.eInvoiceAlias ?? '',
-      paymentTermDays: customer?.paymentTermDays ?? null, isActive: customer?.isActive ?? true,
+      paymentTermDays: customer?.paymentTermDays ?? null, isActive: customer?.isActive ?? true, creditLimit: customer?.creditLimit ?? null,
     },
   })
   const save = useSave((v: FormValues) => customer ? api.update(customer.id, nullify(v)) : api.create(nullify(v)), {
@@ -64,6 +65,9 @@ export function CustomerForm({ customer, onClose, onSaved }: { customer: Custome
         <Field label="Yetkili Kişi" error={errors.contactName?.message}><input className="input" {...register('contactName')} /></Field>
         <Field label="Vade (gün)" error={errors.paymentTermDays?.message} hint="Boşsa firma ayarındaki vade kullanılır.">
           <input className="input" type="number" min="0" max="365" {...register('paymentTermDays', { valueAsNumber: true })} />
+        </Field>
+        <Field label="Risk limiti (TL)" error={errors.creditLimit?.message} hint="Açık bakiye + faturalanmamış seferler bu tutarı aşınca uyarı verilir.">
+          <input className="input text-right" type="number" min="0" step="0.01" inputMode="decimal" {...register('creditLimit', { valueAsNumber: true })} />
         </Field>
         <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 sm:col-span-2">
           <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('isEInvoiceUser')} />

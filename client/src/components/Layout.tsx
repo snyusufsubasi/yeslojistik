@@ -5,8 +5,7 @@ import clsx from 'clsx'
 import {
   Handshake, HandCoins,
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle,
-} from 'lucide-react'
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText } from 'lucide-react'
 import { get } from '../api/client'
 import type { Alert, Health } from '../api/types'
 import { useAuth, type Permission } from '../lib/auth'
@@ -24,6 +23,8 @@ const nav: { to: string; label: string; icon: typeof Home; perm?: Permission }[]
   { to: '/faturalar', label: 'Faturalar', icon: FileText },
   { to: '/tahsilatlar', label: 'Tahsilatlar', icon: Wallet },
   { to: '/odemeler', label: 'Ödemeler', icon: HandCoins },
+  { to: '/cek-senet', label: 'Çek / Senet', icon: ScrollText },
+  { to: '/kasa-banka', label: 'Kasa / Banka', icon: Landmark, perm: 'accounting' },
   { to: '/soforler', label: 'Şoförler', icon: IdCard },
   { to: '/giderler', label: 'Giderler', icon: Receipt },
   { to: '/raporlar', label: 'Raporlar', icon: BarChart3, perm: 'accounting' },

@@ -7,7 +7,8 @@ import type { Invoice, PagedResult, Payment } from '../api/types'
 import { applyServerErrors, idField, nullify, optStr, req } from '../lib/forms'
 import { moneyHint, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
-import { paymentMethodLabel } from '../lib/labels'
+import { isInstrument, paymentMethodLabel } from '../lib/labels'
+import { useAuth } from '../lib/auth'
 import { Button, Field, Modal } from './ui'
 import { FormSelect } from './FormSelect'
 
@@ -16,9 +17,13 @@ const schema = z.object({
   invoiceId: z.number().nullable().or(z.nan().transform(() => null)),
   date: req('Tarih zorunlu.'),
   amount: z.number({ error: 'Tutar girin.' }).positive('Tutar sıfırdan büyük olmalı.'),
-  method: z.enum(['Cash', 'BankTransfer', 'Check', 'CreditCard']),
+  method: z.enum(['Cash', 'BankTransfer', 'Check', 'CreditCard', 'PromissoryNote']),
   description: optStr,
-})
+  cashAccountId: z.number().nullable().or(z.nan().transform(() => null)),
+  instrumentNo: optStr,
+  bank: optStr,
+  instrumentDueDate: optStr,
+}).refine((v) => !isInstrument(v.method) || !!v.instrumentDueDate, { path: ['instrumentDueDate'], message: 'Çek/senet için vade tarihini girin.' })
 type FormValues = z.infer<typeof schema>
 const api = crud<Payment, FormValues>('payments')
 
@@ -27,12 +32,16 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
   const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: payment
-      ? { ...payment, invoiceId: payment.invoiceId ?? null, description: payment.description ?? '' }
-      : { date: todayIso(), method: 'BankTransfer', description: '', invoiceId: null, ...defaults },
+      ? { ...payment, invoiceId: payment.invoiceId ?? null, description: payment.description ?? '', cashAccountId: payment.cashAccountId ?? null,
+        instrumentNo: payment.instrumentNo ?? '', bank: payment.bank ?? '', instrumentDueDate: payment.instrumentDueDate ?? '' }
+      : { date: todayIso(), method: 'BankTransfer', description: '', invoiceId: null, cashAccountId: null, instrumentNo: '', bank: '', instrumentDueDate: '', ...defaults },
   })
   const customerId = useWatch({ control, name: 'customerId' })
   const invoiceId = useWatch({ control, name: 'invoiceId' })
   const amount = useWatch({ control, name: 'amount' })
+  const method = useWatch({ control, name: 'method' })
+  const accounts = useLookup('cash-accounts')
+  const { can } = useAuth()
   const invoices = useQuery({
     queryKey: ['invoices', 'open', customerId],
     queryFn: () => get<PagedResult<Invoice>>('/invoices', { customerId, status: 'Issued', pageSize: 200, sort: 'date', desc: false }),
@@ -73,6 +82,17 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
             {Object.entries(paymentMethodLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </Field>
+        {isInstrument(method) ? <>
+          <Field label={method === 'Check' ? 'Çek no' : 'Senet no'} error={errors.instrumentNo?.message}><input className="input" {...register('instrumentNo')} /></Field>
+          {method === 'Check' && <Field label="Banka" error={errors.bank?.message}><input className="input" placeholder="Ziraat, Garanti..." {...register('bank')} /></Field>}
+          <Field label="Vade tarihi" required error={errors.instrumentDueDate?.message} hint="Portföye girer; Çek/Senet sayfasından tahsil, ciro ya da karşılıksız işaretlenir.">
+            <input className="input" type="date" {...register('instrumentDueDate')} />
+          </Field>
+        </> : can('accounting') && (accounts.data?.length ?? 0) > 0 && (
+          <Field label="Kasa / Banka" hint="İsteğe bağlı: paranın girdiği hesap.">
+            <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
+          </Field>
+        )}
         <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
         {invoiceId && selectable.find((i) => i.id === invoiceId) && (
           <p className="text-[13px] text-slate-500 sm:col-span-2">Faturanın kalan tutarı: {tl(selectable.find((i) => i.id === invoiceId)!.remaining)}</p>

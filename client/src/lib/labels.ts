@@ -1,4 +1,4 @@
-import type { ApprovalStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
+import type { ApprovalStatus, CashAccountKind, InstrumentStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
 
 export const tripStatusLabel: Record<TripStatus, string> = {
   Planned: 'Planlandı',
@@ -34,6 +34,7 @@ export const paymentMethodLabel: Record<PaymentMethod, string> = {
   BankTransfer: 'Havale/EFT',
   Check: 'Çek',
   CreditCard: 'Kredi Kartı',
+  PromissoryNote: 'Senet',
 }
 
 export const expenseCategoryLabel: Record<ExpenseCategory, string> = {
@@ -153,3 +154,30 @@ export const maintenanceTypeLabel: Record<MaintenanceType, string> = {
   Breakdown: 'Arıza',
   Other: 'Diğer',
 }
+
+export const instrumentStatusLabel: Record<InstrumentStatus, string> = {
+  Portfolio: 'Portföyde',
+  InCollection: 'Tahsilde',
+  Collected: 'Tahsil edildi',
+  Endorsed: 'Ciro edildi',
+  Bounced: 'Karşılıksız',
+  Returned: 'İade',
+}
+
+export const instrumentStatusTone: Record<InstrumentStatus, Tone> = {
+  Portfolio: 'blue',
+  InCollection: 'yellow',
+  Collected: 'green',
+  Endorsed: 'purple',
+  Bounced: 'red',
+  Returned: 'gray',
+}
+
+export const cashAccountKindLabel: Record<CashAccountKind, string> = {
+  Cash: 'Kasa',
+  Bank: 'Banka',
+  Pos: 'POS',
+  CreditCard: 'Kredi Kartı',
+}
+
+export const isInstrument = (m?: string | null) => m === 'Check' || m === 'PromissoryNote'

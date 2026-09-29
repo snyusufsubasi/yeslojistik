@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, FileSpreadsheet, FileText, Mail, MapPin, Pencil, Phone, Plus, Trash2, UserCircle2, Wallet } from 'lucide-react'
+import { ArrowLeft, BellRing, FileSpreadsheet, FileText, Mail, MapPin, Pencil, Phone, Plus, Trash2, UserCircle2, Wallet } from 'lucide-react'
 import { errorMessage, get, openPdf, post } from '../api/client'
 import type { AccountMovement, CompanySettings, CustomerSummary, Invoice, Payment, Trip } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
@@ -24,7 +24,7 @@ export default function CustomerDetailPage() {
   const [editing, setEditing] = useState(false)
   const [paying, setPaying] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [statement, setStatement] = useState(false)
+  const [statement, setStatement] = useState<false | 'statement' | 'reminder'>(false)
   const summary = useQuery({ queryKey: ['customers', 'summary', id], queryFn: () => get<CustomerSummary>(`/customers/${id}`) })
   const deleteMut = useSave(() => crud('customers').remove(id), { invalidate: ['customers'], success: 'Müşteri silindi.', onSuccess: () => navigate('/musteriler') })
 
@@ -39,7 +39,8 @@ export default function CustomerDetailPage() {
         actions={<>
           <Button variant="secondary" icon={<ArrowLeft className="size-4" />} onClick={() => navigate('/musteriler')}>Geri</Button>
           <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>Düzenle</Button>
-          <Button variant="secondary" icon={<FileSpreadsheet className="size-4" />} onClick={() => setStatement(true)}>Hesap Ekstresi</Button>
+          <Button variant="secondary" icon={<FileSpreadsheet className="size-4" />} onClick={() => setStatement('statement')}>Hesap Ekstresi</Button>
+          {s.overdueAmount > 0 && <Button variant="secondary" icon={<BellRing className="size-4" />} onClick={() => setStatement('reminder')}>Vade Hatırlatma</Button>}
           {s.tripCount === 0 && s.totalDebit === 0 && s.totalCredit === 0 &&
             <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>}
           {can('accounting') && <Button variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
@@ -83,7 +84,8 @@ export default function CustomerDetailPage() {
       </Card>
 
       {editing && <CustomerForm customer={c} onClose={() => setEditing(false)} />}
-      {statement && <StatementDialog customerId={id} title={c.title} email={c.email} onClose={() => setStatement(false)} />}
+      {statement && <StatementDialog customerId={id} title={c.title} email={c.email} phone={c.phone}
+        reminder={statement === 'reminder' ? { overdue: s.overdueAmount, balance: s.balance } : undefined} onClose={() => setStatement(false)} />}
       {paying && <PaymentForm payment={null} defaults={{ customerId: id }} onClose={() => setPaying(false)} />}
       <ConfirmDialog open={deleting} title="Müşteriyi sil" message={<>{c.title} silinecek. Emin misiniz?</>} confirmText="Sil"
         loading={deleteMut.isPending} onClose={() => setDeleting(false)} onConfirm={() => deleteMut.mutate(undefined)} />
@@ -170,30 +172,40 @@ function firstOfYear() {
   return `${new Date().getFullYear()}-01-01`
 }
 
-function StatementDialog({ customerId, title, email, onClose }: { customerId: number; title: string; email?: string | null; onClose: () => void }) {
+function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
+  { customerId: number; title: string; email?: string | null; phone?: string | null; reminder?: { overdue: number; balance: number }; onClose: () => void }) {
   const { can } = useAuth()
   const toast = useToast()
   const settings = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings') })
   const [from, setFrom] = useState(firstOfYear())
   const [to, setTo] = useState('')
   const [recipient, setRecipient] = useState(email ?? '')
-  const [message, setMessage] = useState('')
+  const reminderText = reminder
+    ? `Sayın ${title} yetkilisi, cari hesabınızda vadesi geçmiş ${tl2(reminder.overdue)} tutarında bakiye bulunmaktadır (toplam bakiye ${tl2(reminder.balance)}). Hesap ekstresi ektedir. Ödemenizi rica eder, mutabakat için dönüşünüzü bekleriz.`
+    : ''
+  const [message, setMessage] = useState(reminderText)
+  const waPhone = phone?.replace(/\D/g, '').replace(/^0/, '90')
+  const whatsapp = reminder && waPhone ? `https://wa.me/${waPhone.startsWith('90') ? waPhone : `90${waPhone}`}?text=${encodeURIComponent(reminderText)}` : null
   const range = { from: from || null, to: to || null }
   const query = new URLSearchParams(Object.entries(range).filter(([, v]) => v) as [string, string][]).toString()
   const send = useSave(() => post<{ sentTo: string }>(`/customers/${customerId}/statement/email`, { ...range, recipient: recipient || null, message: message || null }), {
-    invalidate: [], success: 'Hesap ekstresi e-postayla gönderildi.', onSuccess: onClose,
+    invalidate: [], success: reminder ? 'Vade hatırlatması e-postayla gönderildi.' : 'Hesap ekstresi e-postayla gönderildi.', onSuccess: onClose,
   })
   const canMail = can('accounting') && !!settings.data?.emailEnabled
 
   return (
-    <Modal open onClose={onClose} title={`${title} – Hesap Ekstresi`} size="sm"
+    <Modal open onClose={onClose} title={`${title} – ${reminder ? 'Vade Hatırlatma' : 'Hesap Ekstresi'}`} size="sm"
       footer={<>
         <Button variant="secondary" onClick={onClose}>Kapat</Button>
+        {whatsapp && <a className="btn inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-[15px] font-medium text-emerald-800 hover:bg-emerald-100"
+          href={whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>}
         {canMail && <Button variant="secondary" icon={<Mail className="size-4" />} disabled={!recipient} loading={send.isPending} onClick={() => send.mutate(undefined)}>E-postayla Gönder</Button>}
         <Button icon={<FileText className="size-4" />}
           onClick={() => openPdf(`/customers/${customerId}/statement${query ? `?${query}` : ''}`, 'ekstre.pdf').catch((e) => toast.error(errorMessage(e)))}>PDF Aç</Button>
       </>}>
       <div className="space-y-3">
+        {reminder && <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Vadesi geçmiş {tl2(reminder.overdue)}. E-postayla ekstre ve aşağıdaki mesaj gider; WhatsApp düğmesi aynı mesajı hazırlar.</p>}
+        {!canMail && reminder && <p className="text-sm text-slate-600">E-posta ayarlı değilse yalnızca WhatsApp ve PDF kullanılabilir.</p>}
         <p className="text-[15px] text-slate-700">Seçilen dönemdeki faturalar ve tahsilatlar, devreden bakiye ve güncel bakiyeyle listelenir. Mutabakat için müşteriye gönderebilirsiniz.</p>
         <div className="grid grid-cols-2 gap-3">
           <label className="block"><span className="label">Başlangıç</span>
