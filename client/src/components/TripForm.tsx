@@ -110,7 +110,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     const body = nullify(v)
     return trip ? api.update(trip.id, body) : api.create(body)
   }, {
-    invalidate: ['trips', 'vehicles', 'customers', 'suppliers'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
+    invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
 

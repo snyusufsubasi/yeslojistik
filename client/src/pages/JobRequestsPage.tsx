@@ -52,6 +52,7 @@ export default function JobRequestsPage() {
           <Button size="sm" onClick={() => navigate(`/seferler?requestId=${r.id}`)}>Sevk Et</Button>
           <Button size="sm" variant="secondary" icon={<Pencil className="size-3.5" />} onClick={() => setEditing(r)}>Düzenle</Button>
           <Button size="sm" variant="secondary" icon={<XCircle className="size-3.5" />} onClick={() => setCancelling(r)}>İptal</Button>
+          <Button size="sm" variant="secondary" onClick={() => setDeleting(r)}>Sil</Button>
         </>}
         {r.status === 'Converted' && r.tripId && <Button size="sm" variant="secondary" icon={<Truck className="size-3.5" />} onClick={() => navigate(`/seferler?id=${r.tripId}`)}>Seferi Aç</Button>}
         {r.status === 'Cancelled' && can('operations') && <Button size="sm" variant="secondary" onClick={() => setDeleting(r)}>Sil</Button>}
@@ -71,14 +72,14 @@ export default function JobRequestsPage() {
         <DateFilter label="Bitiş" value={to} onChange={setTo} />
       </div>
       <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(r) => r.id}
-        onRowClick={(r) => setEditing(r)} page={page} pageSize={20} total={data?.total} onPage={setPage}
+        onRowClick={can('operations') ? (r) => { if (r.status === 'Pending') setEditing(r) } : undefined} page={page} pageSize={20} total={data?.total} onPage={setPage}
         empty="Bu filtrelere uyan iş talebi yok. Yeni İş Talebi ile kayıt açabilirsiniz."
-        mobileCard={(r) => <div className="space-y-1"><div className="flex justify-between gap-2"><b>{r.customerTitle}</b><Badge tone={r.status === 'Pending' ? 'orange' : 'green'}>{statusNames[r.status]}</Badge></div><div>{r.loadingAddress} → {r.deliveryAddress}</div><div className="text-sm text-slate-500">{date(r.date)} · {r.cargoType || 'Yük belirtilmedi'}</div></div>} />
+        mobileCard={(r) => <div className="space-y-1"><div className="flex justify-between gap-2"><b>{r.customerTitle}</b><Badge tone={r.status === 'Pending' ? 'orange' : r.status === 'Converted' ? 'green' : 'gray'}>{statusNames[r.status]}</Badge></div><div>{r.loadingAddress} → {r.deliveryAddress}</div><div className="text-sm text-slate-500">{date(r.date)} · {r.cargoType || 'Yük belirtilmedi'}</div></div>} />
     </Card>
     {editing && <RequestForm key={editing === 'new' ? 'new' : editing.id} request={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     <ConfirmDialog open={!!cancelling} title="İş talebini iptal et" message={`${cancelling?.customerTitle} için açılan talep iptal edilecek.`}
       confirmText="İptal Et" loading={cancel.isPending} onClose={() => setCancelling(null)} onConfirm={() => cancelling && cancel.mutate(cancelling.id)} />
-    <ConfirmDialog open={!!deleting} title="İş talebini sil" message={`${deleting?.customerTitle} için iptal edilmiş talep silinecek.`}
+    <ConfirmDialog open={!!deleting} title="İş talebini sil" message={`${deleting?.customerTitle} için açılan talep silinecek.`}
       confirmText="Sil" loading={remove.isPending} onClose={() => setDeleting(null)} onConfirm={() => deleting && remove.mutate(deleting.id)} />
   </>
 }
