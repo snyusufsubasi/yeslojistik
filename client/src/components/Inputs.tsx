@@ -50,6 +50,12 @@ export function AmountInput<F extends FieldValues>({ control, name, placeholder 
   )
 }
 
+function addYears(iso: string, years: number) {
+  const d = new Date(`${iso}T12:00:00`)
+  d.setFullYear(d.getFullYear() + years)
+  return d.toISOString().slice(0, 10)
+}
+
 function addDays(iso: string, days: number) {
   const d = new Date(`${iso}T12:00:00`)
   d.setDate(d.getDate() + days)
@@ -76,7 +82,7 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
   const chips: { label: string; v: string }[] =
     quick === 'today' ? [{ label: 'Bugün', v: todayIso() }, { label: 'Dün', v: addDays(todayIso(), -1) }, { label: 'Yarın', v: addDays(todayIso(), 1) }]
     : quick === 'due' ? dueDays.map((d) => ({ label: `+${d} gün`, v: addDays(base, d) }))
-    : quick === 'expiry' ? [1, 2, 5].map((y) => ({ label: `+${y} yıl`, v: addDays(base, Math.round(365.25 * y)) }))
+    : quick === 'expiry' ? [1, 2, 5].map((y) => ({ label: `+${y} yıl`, v: addYears(base, y) }))
     : []
   return (
     <div className="space-y-2">
