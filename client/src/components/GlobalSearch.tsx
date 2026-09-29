@@ -32,10 +32,10 @@ export function GlobalSearch() {
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Ara (Ctrl+K)"
-        className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm text-slate-500 hover:bg-slate-50 sm:min-w-56">
-        <Search className="size-4" />
-        <span className="hidden sm:inline">Ara…</span>
-        <kbd className="ml-auto hidden rounded border border-slate-200 px-1 text-[11px] text-slate-400 md:inline">Ctrl K</kbd>
+        className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-300 bg-white px-3.5 text-base text-slate-600 shadow-xs hover:border-slate-400 hover:bg-slate-50 sm:min-w-80">
+        <Search className="size-5" />
+        <span className="hidden sm:inline">Ne arıyorsunuz? (plaka, müşteri, fatura…)</span>
+        <kbd className="ml-auto hidden rounded-md border border-slate-200 bg-slate-50 px-1.5 text-sm text-slate-500 lg:inline">Ctrl K</kbd>
       </button>
       {open && <SearchDialog onClose={() => setOpen(false)} />}
     </>
@@ -59,7 +59,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title="Ara" size="md">
       <div className="relative mb-3">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
         <input ref={input} autoFocus className="input pl-9" placeholder="Plaka, müşteri, referans no, fatura no, şoför…" aria-label="Arama"
           value={q} onChange={(e) => { setQ(e.target.value); setActive(0) }}
           onKeyDown={(e) => {
@@ -82,9 +82,9 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
                     <info.icon className="mt-0.5 size-4 shrink-0 text-slate-500" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-slate-800">{r.title}</span>
-                      {r.subtitle && <span className="block truncate text-[13px] text-slate-500">{r.subtitle}</span>}
+                      {r.subtitle && <span className="block truncate text-sm text-slate-500">{r.subtitle}</span>}
                     </span>
-                    <span className="shrink-0 text-[12px] text-slate-400">{info.label}</span>
+                    <span className="shrink-0 text-sm text-slate-500">{info.label}</span>
                   </button>
                 </li>
               )

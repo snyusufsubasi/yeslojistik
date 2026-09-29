@@ -95,7 +95,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
         )}
         <Field label="Açıklama" error={errors.description?.message}><input className="input" {...register('description')} /></Field>
         {invoiceId && selectable.find((i) => i.id === invoiceId) && (
-          <p className="text-[13px] text-slate-500 sm:col-span-2">Faturanın kalan tutarı: {tl(selectable.find((i) => i.id === invoiceId)!.remaining)}</p>
+          <p className="text-sm text-slate-500 sm:col-span-2">Faturanın kalan tutarı: {tl(selectable.find((i) => i.id === invoiceId)!.remaining)}</p>
         )}
         <button type="submit" className="hidden" />
       </form>

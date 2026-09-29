@@ -41,7 +41,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
         <ul className={clsx('divide-y divide-slate-100 sm:hidden', loading && 'opacity-50')}>
           {rows.map((row) => (
             <li key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={clsx('px-4 py-3', onRowClick && 'cursor-pointer active:bg-slate-50')}>
+              className={clsx('px-4 py-3.5', onRowClick && 'cursor-pointer active:bg-brand-50')}>
               {mobileCard(row)}
             </li>
           ))}
@@ -59,7 +59,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
                       <button className="inline-flex items-center gap-1 hover:text-slate-900"
                         onClick={() => onSort(c.sortKey!, active ? !desc : false)}>
                         {c.header}
-                        {active && (desc ? <ArrowDown className="size-3" /> : <ArrowUp className="size-3" />)}
+                        {active && (desc ? <ArrowDown className="size-4" /> : <ArrowUp className="size-4" />)}
                       </button>
                     ) : c.header}
                   </th>
@@ -70,7 +70,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
           <tbody className={clsx(loading && rows && 'opacity-50')}>
             {rows?.map((row) => (
               <tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={clsx(onRowClick && 'cursor-pointer', 'hover:bg-slate-50', rowClassName?.(row))}>
+                className={clsx('even:bg-slate-50/50', onRowClick ? 'cursor-pointer hover:bg-brand-50' : 'hover:bg-slate-50', rowClassName?.(row))}>
                 {columns.map((c) => (
                   <td key={c.key} className={clsx('td', c.align === 'right' && 'whitespace-nowrap text-right tabular-nums', c.align === 'center' && 'text-center', c.className)}>
                     {c.render(row)}
@@ -85,15 +85,15 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
       {!rows && loading && <Spinner />}
       {rows && rows.length === 0 && <Empty>{empty}</Empty>}
       {onPage && total !== undefined && total > pageSize && (
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-slate-600">
-          <span>Toplam {total} kayıt</span>
-          <div className="flex items-center gap-1">
-            <button className="rounded-md border border-slate-200 p-1.5 hover:bg-slate-100 disabled:opacity-30" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
-              <ChevronLeft className="size-5" />
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-base text-slate-700">
+          <span>Toplam <b>{total}</b> kayıt</span>
+          <div className="flex items-center gap-2">
+            <button className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50 disabled:opacity-40" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
+              <ChevronLeft className="size-5" /><span className="hidden sm:inline">Önceki</span>
             </button>
-            <span>Sayfa {page} / {pages}</span>
-            <button className="rounded-md border border-slate-200 p-1.5 hover:bg-slate-100 disabled:opacity-30" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
-              <ChevronRight className="size-5" />
+            <span className="px-1">Sayfa {page} / {pages}</span>
+            <button className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50 disabled:opacity-40" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
+              <span className="hidden sm:inline">Sonraki</span><ChevronRight className="size-5" />
             </button>
           </div>
         </div>
@@ -104,9 +104,9 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
 
 export function SearchBox({ value, onChange, placeholder = 'Ara...' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <div className="relative w-full sm:w-64">
-      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-      <input className="input pl-8" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+    <div className="relative w-full sm:w-72">
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
+      <input className="input pl-10" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
     </div>
   )
 }

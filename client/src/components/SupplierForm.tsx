@@ -79,7 +79,7 @@ export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrie
         <Field className="sm:col-span-2" label="Notlar" error={errors.notes?.message}><textarea className="input min-h-16" {...register('notes')} /></Field>
         <label className="flex items-center gap-3 sm:col-span-2">
           <input type="checkbox" className="size-4 accent-brand-600" {...register('isActive')} />
-          <span className="text-[15px] text-slate-800">Aktif <span className="text-sm text-slate-500">(pasif tedarikçiler seçim listelerinde görünmez)</span></span>
+          <span className="text-base text-slate-800">Aktif <span className="text-sm text-slate-500">(pasif tedarikçiler seçim listelerinde görünmez)</span></span>
         </label>
         <button type="submit" className="hidden" />
       </form>

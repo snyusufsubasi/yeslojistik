@@ -7,7 +7,7 @@ import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 
 const api = crud<SupplierPayment, unknown>('supplier-payments')
@@ -20,7 +20,8 @@ export default function SupplierPaymentsPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
-  const [editing, setEditing] = useState<SupplierPayment | 'new' | null>(null)
+  const openNew = useOpenNewFromUrl()
+  const [editing, setEditing] = useState<SupplierPayment | 'new' | null>(openNew ? 'new' : null)
   const [deleting, setDeleting] = useState<SupplierPayment | null>(null)
   const debounced = useDebounce(search)
   const suppliers = useLookup('suppliers')

@@ -14,7 +14,7 @@ import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeade
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { date, moneyHint, tl2, todayIso } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { approvalStatusLabel, expenseCategoryLabel, options } from '../lib/labels'
 import { useAuth } from '../lib/auth'
 
@@ -48,7 +48,8 @@ export default function ExpensesPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
-  const [editing, setEditing] = useState<Expense | 'new' | null>(null)
+  const openNew = useOpenNewFromUrl()
+  const [editing, setEditing] = useState<Expense | 'new' | null>(openNew ? 'new' : null)
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const debounced = useDebounce(search)
   const vehicles = useLookup('vehicles')
@@ -64,13 +65,13 @@ export default function ExpensesPage() {
     { key: 'cat', header: 'Kategori', sortKey: 'category', render: (e) => <><Badge tone="blue">{expenseCategoryLabel[e.category]}</Badge>
       {e.approvalStatus === 'Pending' && <span className="mt-1 block"><Badge tone="yellow">Onay bekliyor</Badge></span>}
       {e.approvalStatus === 'Rejected' && <span className="mt-1 block" title={e.rejectionReason ?? ''}><Badge tone="red">Reddedildi</Badge></span>}
-      {e.approvalStatus === 'Rejected' && e.rejectionReason && <span className="mt-0.5 block max-w-48 truncate text-[13px] text-red-600">{e.rejectionReason}</span>}
-      {e.paidBy === 'Driver' && <span className="mt-0.5 block text-[13px] text-slate-500">Şoför ödedi</span>}</> },
-    { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-[13px] text-slate-500">{e.driverName}</span>}</> },
+      {e.approvalStatus === 'Rejected' && e.rejectionReason && <span className="mt-0.5 block max-w-48 truncate text-sm text-red-600">{e.rejectionReason}</span>}
+      {e.paidBy === 'Driver' && <span className="mt-0.5 block text-sm text-slate-500">Şoför ödedi</span>}</> },
+    { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-sm text-slate-500">{e.driverName}</span>}</> },
     { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
-    { key: 'desc', header: 'Açıklama', render: (e) => <>{e.description ?? ''}{e.supplierTitle && <span className="block text-[13px] text-slate-500">{e.supplierTitle}{e.isOnCredit && ' · vadeli'}</span>}
-      {e.hasReceipt && <button className="block text-[13px] font-medium text-brand-700 underline" onClick={(ev) => { ev.stopPropagation(); openPdf(`/expenses/${e.id}/receipt`, `fis-${e.id}`).catch(() => undefined) }}>Fişi gör</button>}</> },
-    { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (e) => <><span className="font-medium">{tl2(e.amount)}</span>{e.liters ? <span className="block text-[13px] text-slate-500">{e.liters.toLocaleString('tr-TR')} L{e.odometer ? ` · ${e.odometer.toLocaleString('tr-TR')} km` : ''}</span> : null}</> },
+    { key: 'desc', header: 'Açıklama', render: (e) => <>{e.description ?? ''}{e.supplierTitle && <span className="block text-sm text-slate-500">{e.supplierTitle}{e.isOnCredit && ' · vadeli'}</span>}
+      {e.hasReceipt && <button className="block text-sm font-medium text-brand-700 underline" onClick={(ev) => { ev.stopPropagation(); openPdf(`/expenses/${e.id}/receipt`, `fis-${e.id}`).catch(() => undefined) }}>Fişi gör</button>}</> },
+    { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (e) => <><span className="font-medium">{tl2(e.amount)}</span>{e.liters ? <span className="block text-sm text-slate-500">{e.liters.toLocaleString('tr-TR')} L{e.odometer ? ` · ${e.odometer.toLocaleString('tr-TR')} km` : ''}</span> : null}</> },
     {
       key: 'actions', header: '', align: 'right', render: (e) => (
         <div className="flex justify-end gap-1" onClick={(ev) => ev.stopPropagation()}>
@@ -222,7 +223,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
         </Field>
         <label className="flex items-start gap-2 self-end pb-2 text-sm">
           <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" {...register('isOnCredit')} />
-          <span>Vadeli (henüz ödenmedi) <span className="block text-[13px] text-slate-500">Tutar tedarikçiye borç yazılır.</span></span>
+          <span>Vadeli (henüz ödenmedi) <span className="block text-sm text-slate-500">Tutar tedarikçiye borç yazılır.</span></span>
         </label>
         {(accounts.data?.length ?? 0) > 0 && (
           <Field className="sm:col-span-2" label="Kasa / Banka" hint="İsteğe bağlı: firmanın ödediği giderde paranın çıktığı hesap (vadelide dikkate alınmaz).">

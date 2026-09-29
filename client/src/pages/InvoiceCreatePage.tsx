@@ -144,7 +144,7 @@ export default function InvoiceCreatePage() {
               <Button variant="secondary" className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === true} onClick={() => create.mutate(true)}>Taslak Kaydet</Button>
               <Button className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === false} onClick={() => create.mutate(false)}>Faturayı Kes</Button>
             </div>
-            <p className="text-[13px] text-slate-500">Bu fatura sistem içi kayıttır. Resmi e-Fatura/e-Arşiv mevcut muhasebe programınızdan kesilmeye devam eder.</p>
+            <p className="text-sm text-slate-500">Bu fatura sistem içi kayıttır. Resmi e-Fatura/e-Arşiv mevcut muhasebe programınızdan kesilmeye devam eder.</p>
           </div>
         </Card>
       </div>

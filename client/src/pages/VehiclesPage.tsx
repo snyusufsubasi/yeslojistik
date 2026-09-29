@@ -66,16 +66,16 @@ export default function VehiclesPage() {
     {
       key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-semibold">{v.plate}
         {v.ownership === 'Rented' && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}
-        {(v.supplierTitle || v.trailerPlate) && <span className="block text-[13px] font-normal text-slate-500">{[v.supplierTitle, v.trailerPlate && `Dorse ${v.trailerPlate}`].filter(Boolean).join(' · ')}</span>}</span>,
+        {(v.supplierTitle || v.trailerPlate) && <span className="block text-sm font-normal text-slate-500">{[v.supplierTitle, v.trailerPlate && `Dorse ${v.trailerPlate}`].filter(Boolean).join(' · ')}</span>}</span>,
     },
-    { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-[13px] text-slate-500">{[v.brand, v.model, v.modelYear].filter(Boolean).join(' ')}</span></> },
+    { key: 'type', header: 'Araç Tipi', sortKey: 'type', render: (v) => <>{v.type}<span className="block text-sm text-slate-500">{[v.brand, v.model, v.modelYear].filter(Boolean).join(' ')}</span></> },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
     { key: 'km', header: 'Km', sortKey: 'km', align: 'right', render: (v) => v.km.toLocaleString('tr-TR') },
     { key: 'next', header: 'Sonraki Bakım', sortKey: 'nextMaintenanceDate', render: (v) => <><DueDate value={v.nextMaintenanceDate} warn={15} />
-      {v.nextMaintenanceKm != null && <span className={`block text-[13px] ${v.nextMaintenanceKm - v.km <= 1000 ? 'font-medium text-amber-600' : 'text-slate-500'}`}>{v.nextMaintenanceKm.toLocaleString('tr-TR')} km</span>}
-      <span className="block text-[13px] text-slate-500">Son: {date(v.lastMaintenanceDate)}</span></> },
-    { key: 'docs', header: 'Muayene / Sigorta', render: (v) => <><span className="block"><span className="text-[13px] text-slate-500">M: </span><DueDate value={v.inspectionExpiry} warn={30} /></span><span className="block"><span className="text-[13px] text-slate-500">S: </span><DueDate value={v.insuranceExpiry} warn={30} /></span></> },
+      {v.nextMaintenanceKm != null && <span className={`block text-sm ${v.nextMaintenanceKm - v.km <= 1000 ? 'font-medium text-amber-600' : 'text-slate-500'}`}>{v.nextMaintenanceKm.toLocaleString('tr-TR')} km</span>}
+      <span className="block text-sm text-slate-500">Son: {date(v.lastMaintenanceDate)}</span></> },
+    { key: 'docs', header: 'Muayene / Sigorta', render: (v) => <><span className="block"><span className="text-sm text-slate-500">M: </span><DueDate value={v.inspectionExpiry} warn={30} /></span><span className="block"><span className="text-sm text-slate-500">S: </span><DueDate value={v.insuranceExpiry} warn={30} /></span></> },
   ]
   if (can('operations')) columns.push({
     key: 'actions', header: '', align: 'right', render: (v) => (

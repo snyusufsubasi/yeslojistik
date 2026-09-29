@@ -29,7 +29,7 @@ export default function CustomersPage() {
     { key: 'tax', header: 'VKN/TCKN', render: (c) => c.taxNumber ?? '—' },
     { key: 'contact', header: 'İletişim', render: (c) => c.phone || c.email ? <>
       {c.phone && <span className="block whitespace-nowrap">{c.phone}</span>}
-      {c.email && <span className="block break-all text-[13px] text-slate-500">{c.email}</span>}
+      {c.email && <span className="block break-all text-sm text-slate-500">{c.email}</span>}
     </> : '—' },
     { key: 'address', header: 'Adres', className: 'min-w-40', render: (c) => c.address ?? '—' },
     {
@@ -55,7 +55,7 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate font-semibold text-navy-900">{c.title}</div>
-                <div className="truncate text-[13px] text-slate-500">{[c.phone, c.address].filter(Boolean).join(' · ') || `No ${c.customerNo}`}</div>
+                <div className="truncate text-sm text-slate-500">{[c.phone, c.address].filter(Boolean).join(' · ') || `No ${c.customerNo}`}</div>
               </div>
               <span className={c.balance > 0 ? 'shrink-0 font-semibold text-red-600' : 'shrink-0 text-slate-500'}>{tl(c.balance)}</span>
             </div>

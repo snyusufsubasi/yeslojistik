@@ -105,9 +105,9 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
 function Amount({ label, value, tone, big, sub }: { label: string; value: number; tone: string; big?: boolean; sub?: string }) {
   return (
     <div className="card p-4">
-      <div className="text-[13px] font-medium text-slate-500">{label}</div>
+      <div className="text-sm font-medium text-slate-500">{label}</div>
       <div className={`${big ? 'text-3xl' : 'text-2xl'} font-bold ${tone}`}>{tl2(value)}</div>
-      {sub && <div className="text-[13px] text-slate-500">{sub}</div>}
+      {sub && <div className="text-sm text-slate-500">{sub}</div>}
     </div>
   )
 }
@@ -197,7 +197,7 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
     <Modal open onClose={onClose} title={`${title} – ${reminder ? 'Vade Hatırlatma' : 'Hesap Ekstresi'}`} size="sm"
       footer={<>
         <Button variant="secondary" onClick={onClose}>Kapat</Button>
-        {whatsapp && <a className="btn inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-[15px] font-medium text-emerald-800 hover:bg-emerald-100"
+        {whatsapp && <a className="btn inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-base font-medium text-emerald-800 hover:bg-emerald-100"
           href={whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>}
         {canMail && <Button variant="secondary" icon={<Mail className="size-4" />} disabled={!recipient} loading={send.isPending} onClick={() => send.mutate(undefined)}>E-postayla Gönder</Button>}
         <Button icon={<FileText className="size-4" />}
@@ -206,7 +206,7 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
       <div className="space-y-3">
         {reminder && <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Vadesi geçmiş {tl2(reminder.overdue)}. E-postayla ekstre ve aşağıdaki mesaj gider; WhatsApp düğmesi aynı mesajı hazırlar.</p>}
         {!canMail && reminder && <p className="text-sm text-slate-600">E-posta ayarlı değilse yalnızca WhatsApp ve PDF kullanılabilir.</p>}
-        <p className="text-[15px] text-slate-700">Seçilen dönemdeki faturalar ve tahsilatlar, devreden bakiye ve güncel bakiyeyle listelenir. Mutabakat için müşteriye gönderebilirsiniz.</p>
+        <p className="text-base text-slate-700">Seçilen dönemdeki faturalar ve tahsilatlar, devreden bakiye ve güncel bakiyeyle listelenir. Mutabakat için müşteriye gönderebilirsiniz.</p>
         <div className="grid grid-cols-2 gap-3">
           <label className="block"><span className="label">Başlangıç</span>
             <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>

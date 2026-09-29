@@ -69,7 +69,7 @@ export default function PublicTrackingPage() {
             {data.status !== 'Cancelled' && <ol className="card space-y-4 p-5" aria-label="Sevkiyat aşamaları">
               {steps.map((s, i) => (
                 <li key={s.status} className="flex items-center gap-3">
-                  {i <= current ? <CheckCircle2 className="size-7 shrink-0 text-emerald-600" /> : <Circle className="size-7 shrink-0 text-slate-400" />}
+                  {i <= current ? <CheckCircle2 className="size-7 shrink-0 text-emerald-600" /> : <Circle className="size-7 shrink-0 text-slate-500" />}
                   <span className={clsx('text-base', i === current ? 'font-semibold text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>
                     {s.label}{i === current && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">şu an</span>}
                     {i <= current && eventAt(s.status) && <span className="block text-sm font-normal text-slate-500">{dateTime(eventAt(s.status)!)}</span>}

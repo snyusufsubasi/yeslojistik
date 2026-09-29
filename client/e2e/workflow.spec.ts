@@ -376,7 +376,7 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
   await page.getByRole('row').filter({ hasText: '34 VES 01' }).first().click()
   const vd = page.getByRole('dialog', { name: /Araç: 34 VES 01/ })
   await vd.getByRole('button', { name: 'Belgeler' }).click()
-  await expect(vd.getByText('Kasko')).toBeVisible()
+  await expect(vd.getByRole('cell', { name: 'Kasko', exact: true })).toBeVisible()
   await expect(vd.getByText(/gün kaldı/).first()).toBeVisible()
   await vd.getByRole('button', { name: 'Bakım' }).click()
   await vd.getByRole('button', { name: 'Bakım Ekle' }).click()

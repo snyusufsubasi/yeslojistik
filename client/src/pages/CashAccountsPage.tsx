@@ -44,14 +44,14 @@ export default function CashAccountsPage() {
       {accounts.isLoading ? <Spinner /> : list.length === 0 ? (
         <Card><Empty>Henüz hesap yok. “Hesap Ekle” ile kasa ve banka hesaplarınızı açılış bakiyeleriyle girin.</Empty></Card>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
           <div className="space-y-2">
             {list.map((a) => (
               <button key={a.id} onClick={() => setSelected(a.id)}
                 className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${current?.id === a.id ? 'border-brand-400 bg-brand-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                 <span className="min-w-0">
                   <span className="block truncate font-semibold text-navy-900">{a.name}</span>
-                  <span className="text-[13px] text-slate-500">{cashAccountKindLabel[a.kind]}{!a.isActive && ' · pasif'}</span>
+                  <span className="text-sm text-slate-500">{cashAccountKindLabel[a.kind]}{!a.isActive && ' · pasif'}</span>
                 </span>
                 <span className={`whitespace-nowrap font-semibold ${a.balance < 0 ? 'text-red-600' : 'text-slate-800'}`}>{tl2(a.balance)}</span>
               </button>
@@ -91,7 +91,7 @@ function AccountMovements({ account, onEdit }: { account: CashAccount; onEdit: (
                   <tr key={i}>
                     <td className="td">{date(m.date)}</td>
                     <td className="td"><Badge tone={m.in > 0 ? 'green' : m.kind === 'Virman' ? 'blue' : 'gray'}>{m.kind}</Badge>
-                      <span className="block max-w-72 truncate text-[13px] text-slate-500">{m.link ? <Link className="underline" to={m.link}>{m.description}</Link> : m.description}</span></td>
+                      <span className="block max-w-72 truncate text-sm text-slate-500">{m.link ? <Link className="underline" to={m.link}>{m.description}</Link> : m.description}</span></td>
                     <td className="td text-right text-emerald-700">{m.in ? tl2(m.in) : ''}</td>
                     <td className="td text-right text-red-600">{m.out ? tl2(m.out) : ''}</td>
                     <td className="td text-right font-medium">{tl2(m.balance)}</td>

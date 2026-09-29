@@ -7,7 +7,7 @@ export async function login(page: Page) {
   await page.getByLabel('E-posta').fill(ADMIN.email)
   await page.getByLabel('Şifre', { exact: true }).fill(ADMIN.password)
   await page.getByRole('button', { name: 'Giriş Yap' }).click()
-  await expect(page.getByRole('heading', { name: /Hoş Geldiniz/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)/ })).toBeVisible()
 }
 
 export const unique = () => Date.now().toString().slice(-6)

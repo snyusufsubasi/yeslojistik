@@ -39,9 +39,9 @@ export default function InvoicesPage() {
   const pdf = (i: Invoice) => openPdf(`/invoices/${i.id}/pdf`, `${i.invoiceNo}.pdf`).catch((e) => toast.error(errorMessage(e)))
 
   const columns: Column<Invoice>[] = [
-    { key: 'date', header: 'Tarih / Vade', sortKey: 'date', render: (i) => <>{date(i.date)}<span className="block text-[13px] text-slate-500">Vade: {date(i.dueDate)}</span></> },
+    { key: 'date', header: 'Tarih / Vade', sortKey: 'date', render: (i) => <>{date(i.date)}<span className="block text-sm text-slate-500">Vade: {date(i.dueDate)}</span></> },
     { key: 'no', header: 'Fatura No', sortKey: 'invoiceNo', render: (i) => <><span className="font-medium">{i.invoiceNo}</span>
-      {i.eInvoiceNo && <span className="block text-[13px] text-slate-500">{i.eInvoiceNo} · {eInvoiceStatusLabel[i.eInvoiceStatus ?? 'None']}</span>}</> },
+      {i.eInvoiceNo && <span className="block text-sm text-slate-500">{i.eInvoiceNo} · {eInvoiceStatusLabel[i.eInvoiceStatus ?? 'None']}</span>}</> },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-40', render: (i) => i.customerTitle },
     { key: 'total', header: 'Tutar', sortKey: 'total', align: 'right', render: (i) => tl2(i.total) },
     { key: 'rem', header: 'Kalan', align: 'right', render: (i) => i.remaining > 0 ? <span className="text-red-600">{tl2(i.remaining)}</span> : '—' },
@@ -95,7 +95,7 @@ export default function InvoicesPage() {
                 <span className="text-slate-500">{date(i.date)} · vade {date(i.dueDate)}</span>
                 <span className="font-medium">{tl2(i.total)}</span>
               </div>
-              {i.remaining > 0 && <div className="text-right text-[13px] text-red-600">Kalan {tl2(i.remaining)}</div>}
+              {i.remaining > 0 && <div className="text-right text-sm text-red-600">Kalan {tl2(i.remaining)}</div>}
             </div>
           )}
           footer={data && data.items.length > 0 ? (
@@ -195,9 +195,9 @@ function EInvoicePanel({ inv }: { inv: Invoice }) {
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <KV label="e-Fatura No" value={<span className="font-mono">{inv.eInvoiceNo}</span>} />
-        <KV label="ETTN" value={<span className="break-all font-mono text-[13px]">{inv.ettn}</span>} />
+        <KV label="ETTN" value={<span className="break-all font-mono text-sm">{inv.ettn}</span>} />
       </div>
-      {inv.eInvoiceMessage && <p className="mt-2 text-[13px] text-slate-600">{inv.eInvoiceMessage}</p>}
+      {inv.eInvoiceMessage && <p className="mt-2 text-sm text-slate-600">{inv.eInvoiceMessage}</p>}
       {can('accounting') && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" icon={<Download className="size-4" />}
@@ -217,7 +217,7 @@ function EInvoicePanel({ inv }: { inv: Invoice }) {
 }
 
 function KV({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div><div className="text-[13px] text-slate-500">{label}</div><div className="font-medium">{value}</div></div>
+  return <div><div className="text-sm text-slate-500">{label}</div><div className="font-medium">{value}</div></div>
 }
 
 function Sum({ label, value, bold, tone }: { label: string; value: number; bold?: boolean; tone?: string }) {
@@ -243,7 +243,7 @@ function EmailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => vo
         <label className="block"><span className="label">Ek mesaj (isteğe bağlı)</span>
           <textarea className="input min-h-20" value={message} onChange={(e) => setMessage(e.target.value)} />
         </label>
-        <p className="text-[13px] text-slate-500">Fatura PDF olarak eklenir; tutar, vade ve IBAN bilgisi e-postada yazılır.</p>
+        <p className="text-sm text-slate-500">Fatura PDF olarak eklenir; tutar, vade ve IBAN bilgisi e-postada yazılır.</p>
       </div>
     </Modal>
   )

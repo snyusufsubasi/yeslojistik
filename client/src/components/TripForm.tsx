@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom'
 /** Liste boşsa (ilk kurulum) nereden ekleneceğini gösterir. */
 function MissingHint({ show, to, text }: { show: boolean; to: string; text: string }) {
   if (!show) return null
-  return <Link to={to} className="mt-1 block text-[13px] font-medium text-brand-700 underline underline-offset-2">{text}</Link>
+  return <Link to={to} className="mt-1 block text-sm font-medium text-brand-700 underline underline-offset-2">{text}</Link>
 }
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage, get, openPdf, post } from '../api/client'
@@ -195,7 +195,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
             <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
             {overLimit && risk.data && (
-              <p role="alert" className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-[13px] text-red-700">
+              <p role="alert" className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-sm text-red-700">
                 Risk limiti aşılıyor: açık bakiye {tl(risk.data.openBalance)} + faturalanmamış {tl(risk.data.uninvoicedDelivered)} + bu sefer {tl(Number(price) || 0)} &gt; limit {tl(risk.data.creditLimit!)}. Kayıt yine de yapılabilir.
               </p>
             )}
@@ -246,7 +246,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
                 ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
                 ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
               ]} />
-              <button type="button" className="mt-1 text-[13px] font-medium text-brand-700 underline underline-offset-2" onClick={() => setQuickDriver(true)}>+ Hızlı şoför ekle</button>
+              <button type="button" className="mt-1 text-sm font-medium text-brand-700 underline underline-offset-2" onClick={() => setQuickDriver(true)}>+ Hızlı şoför ekle</button>
             </Field>
             <Field label="Dorse Plakası" error={errors.trailerPlate?.message}>
               <input className="input uppercase" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
@@ -348,7 +348,7 @@ function TripTimeline({ tripId }: { tripId: number }) {
             <Badge tone={tripStatusTone[e.status]}>{tripStatusLabel[e.status]}</Badge>
             <span className="text-sm font-medium text-slate-800">{dateTime(e.occurredAt)}</span>
           </div>
-          <div className="text-[13px] text-slate-500">
+          <div className="text-sm text-slate-500">
             {[e.userName, tripEventSourceLabel[e.source]].filter(Boolean).join(' · ')}{e.note && ` · ${e.note}`}
           </div>
         </li>

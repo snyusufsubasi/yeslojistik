@@ -37,20 +37,20 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-navy-950 via-navy-900 to-navy-700 p-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl sm:p-8">
+      <form onSubmit={submit} className="w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl sm:p-10">
         <Logo dark className="mb-2 justify-center" />
-        <p className="mb-6 text-center text-base text-slate-600">Nakliye Takip Sistemi</p>
+        <p className="mb-8 text-center text-lg text-slate-600">Nakliye Takip Sistemi</p>
         <label className="mb-3 block">
           <span className="label">E-posta</span>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Mail className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
             <input className="input pl-8" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
         </label>
         <label className="mb-4 block">
           <span className="label">Şifre</span>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Lock className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
             <input className="input pl-8 pr-10" type={show ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? 'Şifreyi gizle' : 'Şifreyi göster'} title={show ? 'Şifreyi gizle' : 'Şifreyi göster'}
               className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded text-slate-500 hover:text-slate-800">
@@ -58,10 +58,10 @@ export default function LoginPage() {
             </button>
           </div>
         </label>
-        {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-        <Button type="submit" className="w-full" loading={loading}>Giriş Yap</Button>
-        <p className="mt-6 text-center text-sm"><Link className="text-brand-600 hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
-        <p className="mt-3 text-center text-[13px] text-slate-500"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
+        {error && <div role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-base font-medium text-red-700">{error}</div>}
+        <Button type="submit" className="min-h-13 w-full text-lg" loading={loading}>Giriş Yap</Button>
+        <p className="mt-6 text-center text-base"><Link className="font-semibold text-brand-700 hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
+        <p className="mt-3 text-center text-sm text-slate-500"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
       </form>
     </div>
   )
