@@ -30,11 +30,13 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 const api = crud<CustomerSummary, FormValues>('customers')
 
-export function CustomerForm({ customer, onClose, onSaved }: { customer: Customer | null; onClose: () => void; onSaved?: (c: CustomerSummary) => void }) {
+export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { customer: Customer | null; onClose: () => void; onSaved?: (c: CustomerSummary) => void
+  /** Seçim kutusunda yazılan ad: yeni müşterinin ünvanı olarak gelir. */
+  initialTitle?: string }) {
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: customer?.title ?? '', taxNumber: customer?.taxNumber ?? '', taxOffice: customer?.taxOffice ?? '',
+      title: customer?.title ?? initialTitle ?? '', taxNumber: customer?.taxNumber ?? '', taxOffice: customer?.taxOffice ?? '',
       phone: customer?.phone ?? '', email: customer?.email ?? '', address: customer?.address ?? '', notes: customer?.notes ?? '',
       openingBalance: customer?.openingBalance ?? 0, openingBalanceDate: customer?.openingBalanceDate ?? '',
       notifyStatusByEmail: customer?.notifyStatusByEmail ?? false,

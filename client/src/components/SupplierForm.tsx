@@ -29,12 +29,12 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 const api = crud<Supplier, FormValues>('suppliers')
 
-export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrier' }:
-  { supplier: Supplier | null; onClose: () => void; onSaved?: (s: Supplier) => void; defaultKind?: SupplierKind }) {
+export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrier', initialTitle }:
+  { supplier: Supplier | null; onClose: () => void; onSaved?: (s: Supplier) => void; defaultKind?: SupplierKind; initialTitle?: string }) {
   const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: supplier?.title ?? '', kind: supplier?.kind ?? defaultKind, taxNumber: supplier?.taxNumber ?? '', taxOffice: supplier?.taxOffice ?? '',
+      title: supplier?.title ?? initialTitle ?? '', kind: supplier?.kind ?? defaultKind, taxNumber: supplier?.taxNumber ?? '', taxOffice: supplier?.taxOffice ?? '',
       phone: supplier?.phone ?? '', email: supplier?.email ?? '', address: supplier?.address ?? '', city: supplier?.city ?? '',
       district: supplier?.district ?? '', iban: supplier?.iban ?? '', contactName: supplier?.contactName ?? '',
       paymentTermDays: supplier?.paymentTermDays ?? 30, notes: supplier?.notes ?? '', openingBalance: supplier?.openingBalance ?? 0,

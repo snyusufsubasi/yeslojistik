@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { expectPdfOpens, login, unique } from './helpers'
+import { expectPdfOpens, login, unique, pick } from './helpers'
 
 test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi tahsilat → bakiye', async ({ page }) => {
   const id = unique()
@@ -37,7 +37,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   const vehDialog = page.getByRole('dialog', { name: 'Yeni Araç' })
   await vehDialog.getByLabel(/^Plaka/).fill(plate)
   await vehDialog.getByLabel('Araç Tipi').fill('Kamyon')
-  await vehDialog.locator('select[name=defaultDriverId]').selectOption({ label: `E2E Şoför ${id}` })
+  await pick(vehDialog.locator('input[name=defaultDriverId]'), `E2E Şoför ${id}`)
   await vehDialog.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Araç eklendi.')).toBeVisible()
 
@@ -45,9 +45,9 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await page.getByRole('link', { name: 'Seferler', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Sefer' }).click()
   const tripDialog = page.getByRole('dialog', { name: 'Sefer Oluştur' })
-  await tripDialog.locator('select[name=customerId]').selectOption({ label: customer })
-  await tripDialog.locator('select[name=vehicleId]').selectOption({ label: `${plate} - Kamyon` })
-  await expect(tripDialog.locator('select[name=driverId]')).toHaveValue(/\d+/)
+  await pick(tripDialog.locator('input[name=customerId]'), customer)
+  await pick(tripDialog.locator('input[name=vehicleId]'), `${plate} - Kamyon`)
+  await expect(tripDialog.locator('input[name=driverId]')).not.toHaveValue('')
   await tripDialog.getByLabel('Yükleme Adresi').fill('İstanbul / Sultanbeyli')
   await tripDialog.getByLabel('Teslimat Adresi').fill('İzmir / Balçova')
   await tripDialog.getByLabel('Araç Maliyeti (TL)').fill('18000')
@@ -70,7 +70,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await page.getByRole('link', { name: 'Faturalar' }).click()
   await page.getByRole('button', { name: 'Yeni Fatura' }).click()
   await expect(page.getByRole('heading', { name: 'Yeni Fatura' })).toBeVisible()
-  await page.getByRole('combobox').first().selectOption({ label: customer })
+  await pick(page.getByRole('combobox').first(), customer)
   await expect(page.getByRole('checkbox', { name: /Sefer \d+/ })).toBeChecked()
   // Varsayılan: %20 KDV, 2/10 tevkifat → 25.000 + 5.000 − 1.000 = 29.000
   await expect(page.getByText('29.000,00 TL')).toBeVisible()
@@ -130,7 +130,7 @@ test('var olan seferin formu araç ve şoförü dolu açılır', async ({ page }
   await page.getByRole('row').nth(1).click()
   const dialog = page.getByRole('dialog', { name: 'Sefer Düzenle' })
   for (const name of ['customerId', 'vehicleId', 'driverId']) {
-    await expect(dialog.locator(`select[name=${name}]`)).not.toHaveValue('')
+    await expect(dialog.locator(`input[name=${name}]`)).not.toHaveValue('')
   }
 })
 
@@ -156,7 +156,7 @@ test('sefer kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async ({
   await edit.getByRole('button', { name: 'Kopyala' }).click()
   const copy = page.getByRole('dialog', { name: 'Sefer Oluştur (kopya)' })
   await expect(copy.getByLabel('Yükleme Adresi')).toHaveValue(from)
-  await expect(copy.locator('select[name=customerId]')).not.toHaveValue('')
+  await expect(copy.locator('input[name=customerId]')).not.toHaveValue('')
   await copy.getByRole('button', { name: 'Vazgeç' }).click()
 
   await page.goto('/musteriler')
@@ -180,7 +180,7 @@ test('yakıt gideri litre ve km ile girilir, yakıt raporunda görünür', async
   await expect(dlg.getByText('Avans için şoför seçin.')).toBeVisible()
   await dlg.getByRole('radio', { name: 'Yakıt' }).click()
   await dlg.getByLabel('Litre').fill('100')
-  await dlg.locator('select[name=vehicleId]').selectOption({ index: 1 })
+  await pick(dlg.locator('input[name=vehicleId]'), { index: 1 })
   await dlg.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Gider eklendi.')).toBeVisible()
 
@@ -239,7 +239,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await vd.getByRole('radio', { name: /Kiralık/ }).click()
   await vd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(vd.getByText('Kiralık araç için araç sahibini seçin.')).toBeVisible()
-  await vd.locator('select[name=supplierId]').selectOption({ label: `E2E Nakliyat ${u}` })
+  await pick(vd.locator('input[name=supplierId]'), `E2E Nakliyat ${u}`)
   await vd.getByRole('button', { name: /Marka, dorse/ }).click()
   await vd.getByLabel('Dorse Plakası').fill('41 DRS 41')
   await vd.getByRole('button', { name: 'Kaydet' }).click()
@@ -248,10 +248,12 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await page.getByRole('link', { name: 'Seferler', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Sefer' }).click()
   const td = page.getByRole('dialog', { name: 'Sefer Oluştur' })
-  await td.locator('select[name=customerId]').selectOption({ label: 'Yıldız Mobilya' })
-  await td.locator('select[name=vehicleId]').selectOption({ label: `${plate} - Tır (Kiralık: E2E Nakliyat ${u})` })
+  await pick(td.locator('input[name=customerId]'), 'Yıldız Mobilya')
+  await pick(td.locator('input[name=vehicleId]'), `${plate} - Tır (Kiralık: E2E Nakliyat ${u})`)
   await expect(td.getByText('Taşeron (kiralık araç)')).toBeVisible()
-  await td.getByRole('button', { name: '+ Hızlı şoför ekle' }).click()
+  // Listede olmayan şoför, yazılan adla aynı kutudan eklenir.
+  await td.locator('input[name=driverId]').fill(`Taşeron Şoför ${u}`)
+  await page.getByRole('option', { name: /Yeni şoför olarak ekle/ }).click()
   const qd = page.getByRole('dialog', { name: 'Hızlı şoför ekle' })
   await qd.getByLabel(/^Ad Soyad/).fill(`Taşeron Şoför ${u}`)
   await qd.getByRole('button', { name: 'Ekle' }).click()
@@ -313,7 +315,7 @@ test('e-Fatura açılır, kesilen fatura e-Arşiv numarası alır, XML ve muhase
   // e-Fatura mükellefi olmayan müşteri → e-Arşiv (YEA serisi)
   await page.goto('/faturalar/yeni')
   await expect(page.getByRole('heading', { name: 'Yeni Fatura' })).toBeVisible()
-  await page.getByRole('combobox').first().selectOption({ label: 'ABC İnşaat' })
+  await pick(page.getByRole('combobox').first(), 'ABC İnşaat')
   await page.getByRole('button', { name: 'Satır Ekle' }).click()
   await page.getByLabel('Satır 1 açıklama').fill('Bekleme bedeli')
   await page.getByLabel('Satır 1 tutar').fill('1500')
@@ -409,7 +411,7 @@ test('çek ciro edilir, kasa/banka virmanı ve nakit akışı', async ({ page })
   await page.getByRole('link', { name: 'Tahsilatlar', exact: true }).click()
   await page.getByRole('button', { name: /Tahsilat Ekle/ }).first().click()
   const pd = page.getByRole('dialog', { name: 'Tahsilat Ekle' })
-  await pd.locator('select[name=customerId]').selectOption({ index: 1 })
+  await pick(pd.locator('input[name=customerId]'), { index: 1 })
   await pd.getByLabel(/^Tutar/).fill('3250')
   await pd.getByRole('radio', { name: 'Çek' }).click()
   await pd.getByLabel('Çek no').fill(`E2E${u}`)

@@ -4,7 +4,8 @@ import { download } from '../api/client'
 import type { Payment } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
-import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
+import { Button, Card, ConfirmDialog, IconButton, PageHeader, DateFilter } from '../components/ui'
+import { SearchSelect } from '../components/FormSelect'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -59,7 +60,7 @@ export default function PaymentsPage() {
       <Card title="Tahsilat Listesi" icon={<Wallet className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, fatura no, açıklama..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">
-          <Select aria-label="Müşteri" value={customerId} onChange={setCustomerId} placeholder="Tüm müşteriler"
+          <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
