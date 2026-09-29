@@ -33,10 +33,11 @@ var connectionString = HostingSupport.NormalizeConnectionString(builder.Configur
 if (string.IsNullOrWhiteSpace(builder.Configuration["App:PublicUrl"]) && builder.Configuration["RENDER_EXTERNAL_URL"] is { Length: > 0 } externalUrl)
     builder.Configuration["App:PublicUrl"] = externalUrl;
 builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads",
-    builder.Configuration["Storage:Provider"] ?? "Database");
+    builder.Configuration["Storage:Provider"] ?? "Database", builder.Configuration["EInvoice:Provider"] ?? "FileExport");
 builder.Services.AddSingleton<MaintenanceState>();
 builder.Services.AddHostedService<LocationRetentionService>();
 builder.Services.AddHostedService<DailyDigestWorker>();
+builder.Services.AddHostedService<EInvoiceStatusWorker>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<SmtpOptions>() ?? new SmtpOptions());
 builder.Services.AddSingleton<YesLojistik.Core.Abstractions.IEmailSender, SmtpEmailSender>();
 if (!builder.Configuration.GetValue("Push:Enabled", true))
@@ -152,6 +153,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
+app.UseMigrationRedirect();
 // Tek konteyner kurulumunda (deploy/render.Dockerfile) panel wwwroot'tan sunulur; Docker Compose'da bunu nginx yapar.
 var bundledPanel = Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
 if (bundledPanel) app.UseBundledPanel();
@@ -175,7 +177,7 @@ var commit = app.Configuration["RENDER_GIT_COMMIT"] ?? app.Configuration["APP_CO
 var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
 app.MapGet("/api/health", async (AppDbContext db, MaintenanceState maintenance) =>
     await db.Database.CanConnectAsync()
-        ? Results.Ok(new { status = "ok", version, commit, maintenance = maintenance.IsOn })
+        ? Results.Ok(new { status = "ok", version, commit, maintenance = maintenance.IsOn, redirectTo = app.Configuration["App:RedirectTo"] })
         : Results.StatusCode(503)).AllowAnonymous();
 app.MapControllers();
 if (bundledPanel) app.MapBundledPanel();

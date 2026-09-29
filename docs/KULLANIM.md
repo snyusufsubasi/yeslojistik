@@ -141,3 +141,9 @@ varsayılan KDV/tevkifat ve vade süresi ayarlanır.
 - **Şifremi unuttum:** Giriş ekranındaki bağlantı, e-posta ayarlıysa 30 dakika geçerli, tek kullanımlık bir sıfırlama bağlantısı gönderir. E-posta ayarlı değilse yönetici **Ayarlar → Kullanıcılar**'dan yeni şifre verir.
 - **Hesap kilidi:** Aynı hesaba 5 hatalı giriş denemesinde hesap 15 dakika kilitlenir. Yönetici Kullanıcılar listesindeki **Kilidi aç** ile hemen açabilir; **Oturumları kapat** o kullanıcının tüm cihazlardaki oturumunu sonlandırır.
 - **Gizlilik ve KVKK:** `/gizlilik` (aydınlatma metni) ve `/hesap-silme` sayfaları herkese açıktır; firma bilgileri Ayarlar'dan gelir. Metin bir şablondur: avukat/mali müşavir gözden geçirmeli, VERBİS kaydı gerekip gerekmediği teyit edilmelidir.
+
+## e-Fatura ve muhasebe aktarımı
+
+- **Ayarlar → Firma Bilgileri → e-Fatura / e-Arşiv** açılınca kesilen faturalara ETTN ve GİB numarası verilir, UBL-TR XML üretilir. Müşteri e-Fatura mükellefiyse e-Fatura, değilse e-Arşiv olur.
+- Fatura detayındaki **e-Fatura** panelinden XML indirilir; entegratör sözleşmesi yokken XML portala yüklendikten sonra **Gönderildi olarak işaretle** denir.
+- **Raporlar → Muhasebe Aktarımı**: ayın satış, tahsilat, gider ve taşeron kayıtları tek Excel'de; e-Fatura XML'leri ZIP'te. Ayrıntılar: [E-FATURA.md](E-FATURA.md).

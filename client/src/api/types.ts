@@ -226,6 +226,25 @@ export interface Invoice {
   paymentStatus: string
   notes?: string | null
   lines: InvoiceLine[]
+  scenario?: EInvoiceScenario | null
+  typeCode?: 'Satis' | 'Tevkifat' | null
+  ettn?: string | null
+  eInvoiceNo?: string | null
+  eInvoiceStatus?: EInvoiceStatus
+  eInvoiceMessage?: string | null
+  eInvoiceSentAt?: string | null
+  withholdingCode?: string | null
+}
+
+export type EInvoiceScenario = 'EArsiv' | 'Temel' | 'Ticari'
+export type EInvoiceStatus = 'None' | 'Ready' | 'Sent' | 'Delivered' | 'Accepted' | 'Rejected' | 'Failed' | 'CancelRequested' | 'Cancelled'
+
+export interface EInvoiceInfo {
+  providerName: string
+  canSend: boolean
+  supportsStatus: boolean
+  supportsRecipientCheck: boolean
+  apiKeyConfigured: boolean
 }
 
 export interface Payment {
@@ -364,6 +383,11 @@ export interface CompanySettings {
   dailyDigestEnabled?: boolean
   requireDeliveryPhoto?: boolean
   requireDeliverySignature?: boolean
+  eInvoiceEnabled?: boolean
+  eInvoiceSeriesPrefix?: string
+  eArchiveSeriesPrefix?: string
+  defaultScenario?: EInvoiceScenario
+  senderAlias?: string | null
   city?: string | null
   district?: string | null
   mersisNo?: string | null
@@ -478,6 +502,8 @@ export interface DataStats {
   fileBytes: number
   databaseBytes: number
   lastBackupAt: string | null
+  supplierPaymentTotal?: number
+  expenseTotal?: number
 }
 
 export interface SetupStatus {

@@ -7,7 +7,9 @@ public record InvoiceLineDto(int Id, int? TripId, string Description, decimal Am
 public record InvoiceDto(int Id, string InvoiceNo, int CustomerId, string CustomerTitle, DateOnly Date, DateOnly DueDate,
     decimal Subtotal, decimal VatRate, decimal VatAmount, int WithholdingTenths, decimal WithholdingAmount, decimal Total,
     decimal Paid, decimal Remaining, InvoiceStatus Status, string PaymentStatus, string? Notes,
-    IReadOnlyList<InvoiceLineDto> Lines);
+    IReadOnlyList<InvoiceLineDto> Lines, EInvoiceScenario? Scenario = null, EInvoiceTypeCode? TypeCode = null, Guid? Ettn = null,
+    string? EInvoiceNo = null, EInvoiceStatus EInvoiceStatus = EInvoiceStatus.None, string? EInvoiceMessage = null,
+    DateTime? EInvoiceSentAt = null, string? WithholdingCode = null);
 
 public record InvoiceLineInput(int? TripId, string Description, decimal Amount);
 

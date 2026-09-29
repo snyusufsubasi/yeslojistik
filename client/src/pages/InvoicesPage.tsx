@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet } from 'lucide-react'
 import { download, errorMessage, get, openPdf, post } from '../api/client'
-import type { CompanySettings, Invoice, InvoiceStatus } from '../api/types'
+import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
@@ -40,7 +40,8 @@ export default function InvoicesPage() {
 
   const columns: Column<Invoice>[] = [
     { key: 'date', header: 'Tarih / Vade', sortKey: 'date', render: (i) => <>{date(i.date)}<span className="block text-[13px] text-slate-500">Vade: {date(i.dueDate)}</span></> },
-    { key: 'no', header: 'Fatura No', sortKey: 'invoiceNo', render: (i) => <span className="font-medium">{i.invoiceNo}</span> },
+    { key: 'no', header: 'Fatura No', sortKey: 'invoiceNo', render: (i) => <><span className="font-medium">{i.invoiceNo}</span>
+      {i.eInvoiceNo && <span className="block text-[13px] text-slate-500">{i.eInvoiceNo} · {eInvoiceStatusLabel[i.eInvoiceStatus ?? 'None']}</span>}</> },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-40', render: (i) => i.customerTitle },
     { key: 'total', header: 'Tutar', sortKey: 'total', align: 'right', render: (i) => tl2(i.total) },
     { key: 'rem', header: 'Kalan', align: 'right', render: (i) => i.remaining > 0 ? <span className="text-red-600">{tl2(i.remaining)}</span> : '—' },
@@ -158,6 +159,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
             </>}
           </div>
           {inv.notes && <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">{inv.notes}</p>}
+          {inv.ettn && <EInvoicePanel inv={inv} />}
         </div>
       )}
       {paying && inv && <PaymentForm payment={null} defaults={{ customerId: inv.customerId, invoiceId: inv.id, amount: inv.remaining }} onClose={() => setPaying(false)} />}
@@ -166,6 +168,51 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
         message="Fatura iptal edilecek ve bağlı seferler tekrar faturalanabilir hale gelecek. Fatura numarası korunur. Emin misiniz?"
         onClose={() => setCancelling(false)} onConfirm={() => cancel.mutate(undefined)} />
     </Modal>
+  )
+}
+
+export const eInvoiceStatusLabel: Record<EInvoiceStatus, string> = {
+  None: '—', Ready: 'Gönderilmeye hazır', Sent: 'Gönderildi', Delivered: 'Alıcıya ulaştı', Accepted: 'Kabul edildi',
+  Rejected: 'Reddedildi', Failed: 'Hata', CancelRequested: 'İptal talep edildi', Cancelled: 'İptal edildi',
+}
+const eInvoiceStatusTone: Record<EInvoiceStatus, 'gray' | 'blue' | 'green' | 'red' | 'yellow' | 'teal'> = {
+  None: 'gray', Ready: 'yellow', Sent: 'blue', Delivered: 'teal', Accepted: 'green', Rejected: 'red', Failed: 'red', CancelRequested: 'yellow', Cancelled: 'gray',
+}
+const scenarioLabel = { EArsiv: 'e-Arşiv', Temel: 'e-Fatura (Temel)', Ticari: 'e-Fatura (Ticari)' } as const
+
+/** e-Fatura / e-Arşiv bilgisi ve işlemleri: XML indir, gönder (entegratör varsa) ya da gönderildi olarak işaretle, durum, iptal onayı. */
+function EInvoicePanel({ inv }: { inv: Invoice }) {
+  const { can } = useAuth()
+  const toast = useToast()
+  const info = useQuery({ queryKey: ['einvoice', 'info'], queryFn: () => get<EInvoiceInfo>('/einvoice/info'), enabled: can('accounting'), staleTime: 300_000 })
+  const act = useSave((path: string) => post<Invoice>(`/invoices/${inv.id}/einvoice/${path}`), { invalidate: ['invoices'], success: 'e-Fatura güncellendi.' })
+  const status = inv.eInvoiceStatus ?? 'None'
+  return (
+    <div className="rounded-lg border border-slate-200 p-3 text-sm">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="font-semibold text-navy-900">{inv.scenario ? scenarioLabel[inv.scenario] : 'e-Fatura'}{inv.typeCode === 'Tevkifat' && ' · Tevkifatlı'}</span>
+        <Badge tone={eInvoiceStatusTone[status]}>{eInvoiceStatusLabel[status]}</Badge>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <KV label="e-Fatura No" value={<span className="font-mono">{inv.eInvoiceNo}</span>} />
+        <KV label="ETTN" value={<span className="break-all font-mono text-[13px]">{inv.ettn}</span>} />
+      </div>
+      {inv.eInvoiceMessage && <p className="mt-2 text-[13px] text-slate-600">{inv.eInvoiceMessage}</p>}
+      {can('accounting') && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" icon={<Download className="size-4" />}
+            onClick={() => download(`/invoices/${inv.id}/einvoice/xml`, undefined, `${inv.eInvoiceNo}.xml`).catch((e) => toast.error(errorMessage(e)))}>XML indir</Button>
+          {(status === 'Ready' || status === 'Failed') && info.data?.canSend &&
+            <Button size="sm" loading={act.isPending} onClick={() => act.mutate('send')}>Entegratöre Gönder</Button>}
+          {(status === 'Ready' || status === 'Failed') && info.data && !info.data.canSend &&
+            <Button size="sm" loading={act.isPending} onClick={() => act.mutate('mark-sent')}>Gönderildi olarak işaretle</Button>}
+          {info.data?.supportsStatus && ['Sent', 'Delivered', 'CancelRequested'].includes(status) &&
+            <Button size="sm" variant="secondary" loading={act.isPending} onClick={() => act.mutate('status')}>Durumu yenile</Button>}
+          {status === 'CancelRequested' &&
+            <Button size="sm" variant="secondary" loading={act.isPending} onClick={() => act.mutate('cancel-confirmed')}>İptal tamamlandı</Button>}
+        </div>
+      )}
+    </div>
   )
 }
 

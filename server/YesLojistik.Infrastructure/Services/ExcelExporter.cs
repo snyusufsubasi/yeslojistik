@@ -9,10 +9,18 @@ public static class ExcelExporter
     public const string MoneyFormat = "#,##0.00 \"TL\"";
     public const string DateFormat = "dd.mm.yyyy";
 
-    public static byte[] Export<T>(string sheetName, IEnumerable<T> rows, params ExcelColumn<T>[] columns)
+    public static byte[] Export<T>(string sheetName, IEnumerable<T> rows, params ExcelColumn<T>[] columns) =>
+        new ExcelWorkbookBuilder().AddSheet(sheetName, rows, columns).Build();
+}
+
+/// <summary>Birden fazla sayfalı Excel (ör. aylık muhasebe aktarımı: satışlar, tahsilatlar, giderler...).</summary>
+public sealed class ExcelWorkbookBuilder : IDisposable
+{
+    private readonly XLWorkbook _wb = new();
+
+    public ExcelWorkbookBuilder AddSheet<T>(string sheetName, IEnumerable<T> rows, params ExcelColumn<T>[] columns)
     {
-        using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add(sheetName);
+        var ws = _wb.Worksheets.Add(sheetName);
         for (var c = 0; c < columns.Length; c++)
         {
             var cell = ws.Cell(1, c + 1);
@@ -45,8 +53,15 @@ public static class ExcelExporter
         ws.SheetView.FreezeRows(1);
         ws.Range(1, 1, Math.Max(1, r - 1), columns.Length).SetAutoFilter();
         ws.Columns().AdjustToContents(1, Math.Min(r, 200));
+        return this;
+    }
+
+    public byte[] Build()
+    {
         using var ms = new MemoryStream();
-        wb.SaveAs(ms);
+        _wb.SaveAs(ms);
         return ms.ToArray();
     }
+
+    public void Dispose() => _wb.Dispose();
 }

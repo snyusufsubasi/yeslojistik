@@ -23,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<PushToken> PushTokens => Set<PushToken>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EInvoiceSequence> EInvoiceSequences => Set<EInvoiceSequence>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
@@ -170,6 +171,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasIndex(x => x.Token).IsUnique();
             e.HasOne(x => x.User).WithMany().OnDelete(DeleteBehavior.Cascade);
         });
+        b.Entity<EInvoiceSequence>(e =>
+        {
+            e.Property(x => x.Prefix).HasMaxLength(3);
+            e.HasIndex(x => new { x.Prefix, x.Year }).IsUnique();
+        });
         b.Entity<PasswordResetToken>(e =>
         {
             e.Property(x => x.TokenHash).HasMaxLength(100);
@@ -192,6 +198,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.InvoiceNo).HasMaxLength(20);
             e.Property(x => x.Notes).HasMaxLength(1000);
             e.Property(x => x.ExternalId).HasMaxLength(100);
+            e.Property(x => x.EInvoiceNo).HasMaxLength(16);
+            e.Property(x => x.EInvoiceMessage).HasMaxLength(500);
+            e.Property(x => x.WithholdingCode).HasMaxLength(10);
+            e.Property(x => x.VatExemptionCode).HasMaxLength(10);
+            e.HasIndex(x => x.EInvoiceNo).IsUnique().HasFilter("e_invoice_no IS NOT NULL");
+            e.HasIndex(x => x.Ettn).IsUnique().HasFilter("ettn IS NOT NULL");
             e.Property(x => x.VatRate).HasPrecision(5, 2);
             e.HasIndex(x => x.InvoiceNo).IsUnique();
             e.HasOne(x => x.Customer).WithMany(c => c.Invoices).OnDelete(DeleteBehavior.Restrict);
@@ -242,6 +254,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.TradeRegistryNo).HasMaxLength(30);
             e.Property(x => x.Website).HasMaxLength(200);
             e.Property(x => x.DefaultVatRate).HasPrecision(5, 2);
+            e.Property(x => x.EInvoiceSeriesPrefix).HasMaxLength(3);
+            e.Property(x => x.EArchiveSeriesPrefix).HasMaxLength(3);
+            e.Property(x => x.SenderAlias).HasMaxLength(200);
             e.HasData(new CompanySettings { Id = 1, UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
         });
     }

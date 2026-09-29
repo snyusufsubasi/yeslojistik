@@ -3,14 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BarChart3, Download } from 'lucide-react'
-import { download, get } from '../api/client'
+import { download, errorMessage, get } from '../api/client'
+import { useToast } from '../components/Toast'
 import type { CustomerAgingRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader, Select, Spinner, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
-type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses'
+type Tab = 'monthly' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses' | 'accounting'
 
 // Kategorik palet (sabit sıra): 1 mavi, 2 turuncu.
 const SERIES_1 = '#2a78d6'
@@ -29,7 +30,7 @@ export default function ReportsPage() {
   return (
     <>
       <PageHeader title="Raporlar" subtitle="Ciro, kârlılık, alacak ve gider analizleri"
-        actions={<Button variant="secondary" icon={<Download className="size-4" />}
+        actions={tab !== 'accounting' && <Button variant="secondary" icon={<Download className="size-4" />}
           onClick={() => download(`/reports/${tab}`, { ...params, format: 'xlsx' }, `${tab}.xlsx`)}>Excel'e Aktar</Button>} />
       <Card bodyClassName="p-0">
         <div className="flex flex-wrap items-end justify-between gap-3 px-4 pt-2">
@@ -43,6 +44,7 @@ export default function ReportsPage() {
             { value: 'payables', label: 'Borç Yaşlandırma' },
             { value: 'suppliers', label: 'Tedarikçiler' },
             { value: 'expenses', label: 'Gider Dağılımı' },
+            { value: 'accounting', label: 'Muhasebe Aktarımı' },
           ]} />
           <div className="flex gap-2 pb-2">
             {tab === 'monthly' && <Select aria-label="Yıl" className="w-28" value={year} onChange={(v) => v && setYear(v)} options={years.map((y) => ({ value: y, label: String(y) }))} />}
@@ -61,6 +63,7 @@ export default function ReportsPage() {
         {tab === 'payables' && <Payables />}
         {tab === 'suppliers' && <Suppliers />}
         {tab === 'expenses' && <Expenses from={from} to={to} />}
+        {tab === 'accounting' && <AccountingExport />}
       </Card>
     </>
   )
@@ -308,4 +311,33 @@ function Suppliers() {
     { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-semibold text-orange-600' : 'font-semibold'}>{tl2(r.balance)}</span> },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
+}
+
+/** Muhasebeciye aylık aktarım: satış faturaları, tahsilatlar, giderler, taşeron maliyet/ödemeleri tek Excel'de; e-Fatura XML'leri ZIP. */
+function AccountingExport() {
+  const now = new Date()
+  const [month, setMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+  const [y, m] = month.split('-').map(Number)
+  const from = `${month}-01`
+  const to = `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+  const toast = useToast()
+  const run = (url: string, name: string) => download(url, { from, to }, name).catch((e) => toast.error(errorMessage(e)))
+  const months = Array.from({ length: 18 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    return { value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}` }
+  })
+  return (
+    <div className="space-y-4 p-4">
+      <p className="max-w-2xl text-sm text-slate-600">Seçilen ayın satış faturaları, tahsilatları, giderleri, taşeron maliyetleri ve taşeron ödemeleri tek Excel dosyasında (ayrı sayfalar) iner. e-Fatura açıksa o ayın UBL-TR XML dosyaları da ZIP olarak indirilebilir. Dosyaları muhasebecinize gönderin.</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="block"><span className="label">Ay</span>
+          <select className="input w-48" aria-label="Ay" value={month} onChange={(e) => setMonth(e.target.value)}>
+            {months.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
+        <Button icon={<Download className="size-4" />} onClick={() => run('/exports/accounting', `muhasebe-${month}.xlsx`)}>Muhasebe Excel'i</Button>
+        <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => run('/exports/einvoice-xml', `efatura-xml-${month}.zip`)}>e-Fatura XML (ZIP)</Button>
+      </div>
+    </div>
+  )
 }

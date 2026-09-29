@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using YesLojistik.Api.Auth;
 using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
+using YesLojistik.Core.Entities;
 using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Api.Controllers;
@@ -19,7 +20,8 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         return new CompanySettingsDto(s.CompanyName, s.Slogan, s.TaxNumber, s.TaxOffice, s.Address, s.Phone, s.Email, s.Iban,
             s.LogoDataUrl, s.InvoicePrefix, s.NextInvoiceNumber, s.DefaultVatRate, s.DefaultWithholdingTenths, s.DefaultPaymentTermDays,
             email.IsConfigured, s.DailyDigestEnabled, s.City, s.District, s.MersisNo, s.TradeRegistryNo, s.Website,
-            s.LastBackupAt, s.SampleDataClearedAt, s.RequireDeliveryPhoto, s.RequireDeliverySignature);
+            s.LastBackupAt, s.SampleDataClearedAt, s.RequireDeliveryPhoto, s.RequireDeliverySignature,
+            s.EInvoiceEnabled, s.EInvoiceSeriesPrefix, s.EArchiveSeriesPrefix, s.DefaultScenario, s.SenderAlias);
     }
 
     [Authorize(Policy = Policies.Admin)]
@@ -46,11 +48,18 @@ public class SettingsController(AppDbContext db, YesLojistik.Core.Abstractions.I
         s.DailyDigestEnabled = req.DailyDigestEnabled;
         s.RequireDeliveryPhoto = req.RequireDeliveryPhoto;
         s.RequireDeliverySignature = req.RequireDeliverySignature;
+        s.EInvoiceEnabled = req.EInvoiceEnabled;
+        s.EInvoiceSeriesPrefix = req.EInvoiceSeriesPrefix.Trim().ToUpperInvariant();
+        s.EArchiveSeriesPrefix = req.EArchiveSeriesPrefix.Trim().ToUpperInvariant();
+        s.DefaultScenario = req.DefaultScenario == EInvoiceScenario.EArsiv ? EInvoiceScenario.Temel : req.DefaultScenario;
+        s.SenderAlias = CustomersController.NullIfEmpty(req.SenderAlias);
         s.City = Cities.Normalize(req.City);
         s.District = CustomersController.NullIfEmpty(req.District);
         s.MersisNo = CustomersController.NullIfEmpty(req.MersisNo);
         s.TradeRegistryNo = CustomersController.NullIfEmpty(req.TradeRegistryNo);
         s.Website = CustomersController.NullIfEmpty(req.Website);
+        if (s.EInvoiceEnabled && (string.IsNullOrWhiteSpace(s.TaxNumber) || string.IsNullOrWhiteSpace(s.TaxOffice) || string.IsNullOrWhiteSpace(s.City)))
+            throw new DomainException("e-Fatura için firma VKN, vergi dairesi ve il bilgisi zorunlu.");
         await db.SaveChangesAsync(ct);
         return await Get(ct);
     }
