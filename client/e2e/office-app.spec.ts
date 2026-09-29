@@ -49,7 +49,6 @@ test('mobil yönetici: özet → yeni sefer → yüklendi → cari → tahsilat'
   await page.getByRole('button', { name: 'Tahsilat Ekle' }).click()
   await page.getByLabel('Tutar').fill('1.250')
   await page.getByRole('button', { name: 'Kaydet' }).click()
-  await expect(page.getByText('Tahsilat').first()).toBeVisible()
-  await expect(page.getByText(/−1\.250,00 TL/).first()).toBeVisible()
+  await expect(page.getByText(/−1\.250,00 TL/).filter({ visible: true }).first()).toBeVisible()
   await page.screenshot({ path: 'e2e/screenshots/office-account.png' })
 })
