@@ -17,6 +17,12 @@ import { date, daysUntil } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, vehicleOwnershipLabel, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 import { SupplierForm } from '../components/SupplierForm'
+import { ControlledChoice } from '../components/Choice'
+import { DateQuick, MoreFields } from '../components/Inputs'
+import { choices } from '../lib/choices'
+import { vehicleOwnershipIcon } from '../lib/icons'
+
+const vehicleTypes = ['Tır', 'Kamyon', 'Kamyonet', 'Panelvan', 'Lowbed', 'Frigorifik']
 
 const schema = z.object({
   plate: req('Plaka zorunlu.').regex(/^(0[1-9]|[1-7]\d|8[01])\s*[a-zA-ZçğıöşüÇĞİÖŞÜ]{1,3}\s*\d{2,5}$/, 'Geçerli bir plaka girin (ör. 34 ABC 123).'),
@@ -131,7 +137,7 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
       inspectionExpiry: vehicle.inspectionExpiry ?? '', insuranceExpiry: vehicle.insuranceExpiry ?? '',
       defaultDriverId: vehicle.defaultDriverId ?? null, ownership: vehicle.ownership ?? 'Own', supplierId: vehicle.supplierId ?? null,
       trailerPlate: vehicle.trailerPlate ?? '', nextMaintenanceKm: vehicle.nextMaintenanceKm ?? null,
-    } : { nextMaintenanceKm: null, status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '',
+    } : { nextMaintenanceKm: null, modelYear: null, status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '',
       ownership: 'Own', supplierId: null, trailerPlate: '', defaultDriverId: null },
   })
   const save = useSave((v: FormValues) => vehicle ? api.update(vehicle.id, nullify(v)) : api.create(nullify(v)), {
@@ -140,6 +146,8 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
   })
   const submit = handleSubmit((v) => save.mutate(v))
   const ownership = useWatch({ control, name: 'ownership' })
+  const type = useWatch({ control, name: 'type' })
+  const km = useWatch({ control, name: 'km' })
   const [tab, setTab] = useState<'info' | 'docs' | 'maint'>('info')
 
   return (
@@ -151,39 +159,13 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
         tabs={[{ value: 'info', label: 'Bilgiler' }, { value: 'docs', label: 'Belgeler' }, { value: 'maint', label: 'Bakım' }]} /></div>}
       {vehicle && tab === 'docs' && <DocumentsPanel ownerType="Vehicle" ownerId={vehicle.id} />}
       {vehicle && tab === 'maint' && <MaintenancePanel vehicleId={vehicle.id} currentKm={vehicle.km} />}
-      <form onSubmit={submit} className={tab === 'info' ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
-        <Field label="Plaka" required error={errors.plate?.message}><input className="input uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
-        <Field label="Araç Tipi" required error={errors.type?.message}>
-          <input className="input" list="vehicle-types" placeholder="Kamyon" {...register('type')} />
-          <datalist id="vehicle-types">{['Tır', 'Kamyon', 'Kamyonet', 'Panelvan', 'Lowbed', 'Frigorifik'].map((t) => <option key={t} value={t} />)}</datalist>
+      <form onSubmit={submit} className={tab === 'info' ? 'space-y-5' : 'hidden'}>
+        <Field group label="Araç kimin?" error={errors.ownership?.message}>
+          <ControlledChoice control={control} name="ownership" label="Sahiplik" columns={2}
+            options={choices(vehicleOwnershipLabel, vehicleOwnershipIcon, { Own: 'Şirketin kendi aracı', Rented: 'Maliyeti araç sahibine borç yazılır' })} />
         </Field>
-        <Field label="Marka" error={errors.brand?.message}><input className="input" placeholder="Ford" {...register('brand')} /></Field>
-        <Field label="Model" error={errors.model?.message}><input className="input" placeholder="Cargo" {...register('model')} /></Field>
-        <Field label="Model Yılı" error={errors.modelYear?.message}><input className="input" type="number" {...register('modelYear', { valueAsNumber: true })} /></Field>
-        <Field label="Km" required error={errors.km?.message}><input className="input" type="number" min="0" {...register('km', { valueAsNumber: true })} /></Field>
-        <Field label="Durum" error={errors.status?.message} hint="“Yolda” durumu seferlerden otomatik belirlenir.">
-          <select className="input" {...register('status')}>
-            {Object.entries(vehicleStatusLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message}>
-          <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
-        </Field>
-        <Field label="Son Bakım Tarihi"><input className="input" type="date" {...register('lastMaintenanceDate')} /></Field>
-        <Field label="Sonraki Bakım Tarihi"><input className="input" type="date" {...register('nextMaintenanceDate')} /></Field>
-        <Field label="Sonraki Bakım Km" error={errors.nextMaintenanceKm?.message} hint="1.000 km kala uyarı çıkar. Bakım kaydı girince kendiliğinden güncellenir.">
-          <input className="input" type="number" min="0" inputMode="numeric" {...register('nextMaintenanceKm', { valueAsNumber: true })} />
-        </Field>
-        <Field label="Muayene Bitiş"><input className="input" type="date" {...register('inspectionExpiry')} /></Field>
-        <Field label="Trafik Sigortası Bitiş"><input className="input" type="date" {...register('insuranceExpiry')} /></Field>
-        <Field label="Sahiplik" hint="Kiralık araçta araç maliyeti, araç sahibine (tedarikçi) borç olarak yazılır.">
-          <select className="input" {...register('ownership')}>
-            {Object.entries(vehicleOwnershipLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label="Dorse Plakası" error={errors.trailerPlate?.message}><input className="input uppercase" placeholder="34 DRS 01" {...register('trailerPlate')} /></Field>
         {ownership === 'Rented' && (
-          <Field className="sm:col-span-2" label="Araç Sahibi (tedarikçi)" required error={errors.supplierId?.message}>
+          <Field label="Araç Sahibi (tedarikçi)" required error={errors.supplierId?.message}>
             <div className="flex gap-2">
               <div className="flex-1">
                 <FormSelect control={control} name="supplierId" placeholder="Tedarikçi seçin" options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
@@ -192,6 +174,49 @@ function VehicleForm({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: (
             </div>
           </Field>
         )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Plaka" required error={errors.plate?.message}><input className="input text-lg font-semibold uppercase" placeholder="34 ABC 123" {...register('plate')} /></Field>
+          <Field label="Km" required error={errors.km?.message}><input className="input" type="number" min="0" inputMode="numeric" {...register('km', { valueAsNumber: true })} /></Field>
+        </div>
+        <Field label="Araç Tipi" required error={errors.type?.message}>
+          <input className="input" placeholder="Kamyon" {...register('type')} />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {vehicleTypes.map((t) => (
+              <button key={t} type="button" onClick={() => setValue('type', t, { shouldValidate: true })}
+                className={`min-h-9 rounded-full border px-3 text-sm font-semibold transition ${type === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{t}</button>
+            ))}
+          </div>
+        </Field>
+        <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message}>
+          <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
+        </Field>
+        <Field group label="Durum" error={errors.status?.message} hint="“Yolda” durumu seferlerden kendiliğinden belirlenir.">
+          <ControlledChoice control={control} name="status" label="Durum" variant="chips" options={choices(vehicleStatusLabel)} />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Muayene Bitiş"><DateQuick control={control} name="inspectionExpiry" quick="expiry" /></Field>
+          <Field label="Trafik Sigortası Bitiş"><DateQuick control={control} name="insuranceExpiry" quick="expiry" /></Field>
+        </div>
+        <MoreFields title="Marka, dorse ve bakım (isteğe bağlı)" defaultOpen={!!vehicle}
+          hasError={!!(errors.brand || errors.model || errors.modelYear || errors.trailerPlate || errors.nextMaintenanceKm)}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Marka" error={errors.brand?.message}><input className="input" placeholder="Ford" {...register('brand')} /></Field>
+            <Field label="Model" error={errors.model?.message}><input className="input" placeholder="Cargo" {...register('model')} /></Field>
+            <Field label="Model Yılı" error={errors.modelYear?.message}><input className="input" type="number" inputMode="numeric" {...register('modelYear', { valueAsNumber: true })} /></Field>
+            <Field label="Dorse Plakası" error={errors.trailerPlate?.message}><input className="input uppercase" placeholder="34 DRS 01" {...register('trailerPlate')} /></Field>
+            <Field label="Son Bakım Tarihi"><DateQuick control={control} name="lastMaintenanceDate" quick="none" /></Field>
+            <Field label="Sonraki Bakım Tarihi"><DateQuick control={control} name="nextMaintenanceDate" quick="due" dueDays={[90, 180, 365]} /></Field>
+            <Field className="sm:col-span-2" label="Sonraki Bakım Km" error={errors.nextMaintenanceKm?.message} hint="1.000 km kala uyarı çıkar. Bakım kaydı girince kendiliğinden güncellenir.">
+              <input className="input" type="number" min="0" inputMode="numeric" {...register('nextMaintenanceKm', { valueAsNumber: true })} />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {[10000, 15000, 20000].map((k) => (
+                  <button key={k} type="button" onClick={() => setValue('nextMaintenanceKm', (Number.isFinite(km) ? km : 0) + k, { shouldValidate: true })}
+                    className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
+                ))}
+              </div>
+            </Field>
+          </div>
+        </MoreFields>
         <button type="submit" className="hidden" />
       </form>
     </Modal>
