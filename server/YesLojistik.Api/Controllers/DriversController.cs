@@ -134,5 +134,12 @@ public class DriversController(AppDbContext db) : ControllerBase
         d.SrcExpiry = r.SrcExpiry;
         d.PsychotechnicExpiry = r.PsychotechnicExpiry;
         d.IsActive = r.IsActive;
+        d.LicenseNo = CustomersController.NullIfEmpty(r.LicenseNo);
+        d.BirthYear = r.BirthYear;
+        d.Address = CustomersController.NullIfEmpty(r.Address);
+        d.IsForeign = r.IsForeign;
+        d.Plate = Formatters.NormalizePlate(r.Plate) ?? CustomersController.NullIfEmpty(r.Plate)?.ToUpperInvariant();
+        d.Rating = r.Rating;
+        d.Note = CustomersController.NullIfEmpty(r.Note);
     }
 }

@@ -31,10 +31,14 @@ public record VehicleSaveRequest(string Plate, string Type, string? Brand, strin
 
 public record DriverDto(int Id, string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,
-    string? SupplierTitle = null, bool HasAppAccount = false, DateTime? LocationConsentAt = null);
+    string? SupplierTitle = null, bool HasAppAccount = false, DateTime? LocationConsentAt = null,
+    string? LicenseNo = null, int? BirthYear = null, string? Address = null, bool IsForeign = false, string? Plate = null,
+    DriverRating? Rating = null, string? Note = null);
 
 public record DriverSaveRequest(string FullName, string? Phone, string? NationalId, string? LicenseClass,
-    DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null);
+    DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,
+    string? LicenseNo = null, int? BirthYear = null, string? Address = null, bool IsForeign = false, string? Plate = null,
+    DriverRating? Rating = null, string? Note = null);
 
 public record StatementEmailRequest(DateOnly? From, DateOnly? To, string? Recipient, string? Message);
 

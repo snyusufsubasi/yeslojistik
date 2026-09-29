@@ -31,7 +31,7 @@ public class PayableService(AppDbContext db)
         var ids = supplierIds.Distinct().ToList();
         var openings = await db.Suppliers.Where(s => ids.Contains(s.Id)).Select(s => new { s.Id, s.OpeningBalance }).ToListAsync(ct);
         var trips = (await db.Trips.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
-            .GroupBy(t => t.CarrierSupplierId!.Value).Select(g => new { Id = g.Key, Total = g.Sum(t => t.VehicleCost) }).ToListAsync(ct))
+            .GroupBy(t => t.CarrierSupplierId!.Value).Select(g => new { Id = g.Key, Total = g.Sum(t => t.VehicleCost - (t.CommissionStatus == CommissionStatus.DeductFromInvoice ? t.Commission : 0)) }).ToListAsync(ct))
             .ToDictionary(x => x.Id, x => x.Total);
         var expenses = (await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
             .GroupBy(e => e.SupplierId!.Value).Select(g => new { Id = g.Key, Total = g.Sum(e => e.Amount) }).ToListAsync(ct))
@@ -52,7 +52,7 @@ public class PayableService(AppDbContext db)
         var ids = terms.Select(t => t.Id).ToList();
 
         var trips = await db.Trips.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
-            .Select(t => new { t.Id, SupplierId = t.CarrierSupplierId!.Value, t.LoadingDate, t.DeliveryDate, t.VehicleCost, t.LoadingAddress, t.DeliveryAddress, t.Vehicle.Plate })
+            .Select(t => new { t.Id, SupplierId = t.CarrierSupplierId!.Value, t.LoadingDate, t.DeliveryDate, VehicleCost = t.VehicleCost - (t.CommissionStatus == CommissionStatus.DeductFromInvoice ? t.Commission : 0), t.LoadingAddress, t.DeliveryAddress, t.Vehicle.Plate })
             .ToListAsync(ct);
         var expenses = await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
             .Select(e => new { e.Id, SupplierId = e.SupplierId!.Value, e.Date, e.Amount, e.Category, e.Description }).ToListAsync(ct);

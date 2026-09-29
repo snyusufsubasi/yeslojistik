@@ -152,7 +152,17 @@ export interface Driver {
   supplierTitle?: string | null
   hasAppAccount?: boolean
   locationConsentAt?: string | null
+  licenseNo?: string | null
+  birthYear?: number | null
+  address?: string | null
+  isForeign?: boolean
+  plate?: string | null
+  rating?: DriverRating | null
+  note?: string | null
 }
+
+/** Şoförle çalışma değerlendirmesi (eski paneldeki şoför durumu). */
+export type DriverRating = 'Excellent' | 'Workable' | 'NoCommission' | 'StealsCustomers' | 'BadAttitude' | 'Unreliable' | 'QuitsJobs'
 
 export interface Trip {
   id: number
@@ -196,6 +206,62 @@ export interface Trip {
   jobRequestId?: number | null
   /** Eski sistemden aktarılmış geçmiş sefer: borç/fatura hesaplarına girmez. */
   isLegacy?: boolean
+  terms?: TripTerms | null
+  commissionAccountName?: string | null
+}
+
+export type CommissionStatus = 'Pending' | 'Received' | 'DeductFromInvoice'
+
+/** Seferin ticari koşulları (eski paneldeki fiyat, komisyon, masraf, evrak alanları). Tutarlar KDV hariç. */
+export interface TripTerms {
+  saleVatRate: number
+  saleWithholdingTenths?: number | null
+  costVatRate: number
+  costWithholdingTenths?: number | null
+  commission: number
+  commissionAccountId?: number | null
+  commissionStatus: CommissionStatus
+  commissionInvoiced: boolean
+  commissionVatIncluded: boolean
+  extraCharge: number
+  extraChargeInvoiced: boolean
+  extraChargeVatIncluded: boolean
+  extraChargeTaxNo?: string | null
+  extraChargeTitle?: string | null
+  driverBonus: number
+  customerPays: boolean
+  customerGroup?: string | null
+  deliveryDocumentNo?: string | null
+  deliveryDocumentApproved: boolean
+  waybillNo?: string | null
+  eWaybillNo?: string | null
+  eWaybillDate?: string | null
+  loadingLatitude?: number | null
+  loadingLongitude?: number | null
+  deliveryLatitude?: number | null
+  deliveryLongitude?: number | null
+  distanceKm?: number | null
+  hideCarrierPrice: boolean
+  invoiceFooterNote?: string | null
+  showFooterNote: boolean
+  deliveredBy?: string | null
+  paymentTerms?: string | null
+  externalRef?: string | null
+}
+
+/** Filtredeki seferlerin kazanç tablosu. */
+export interface TripTotals {
+  count: number
+  sale: number
+  cost: number
+  grossMargin: number
+  commissionBank: number
+  commissionCash: number
+  commission: number
+  extraCharge: number
+  driverBonus: number
+  expenses: number
+  profit: number
 }
 
 export interface JobRequest {

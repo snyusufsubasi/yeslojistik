@@ -35,9 +35,9 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var monthTrips = db.Trips.Where(t => t.LoadingDate >= monthStart && t.LoadingDate <= monthEnd && t.Status != TripStatus.Cancelled);
         var monthTripCount = await monthTrips.CountAsync(ct);
         var monthDelivered = await monthTrips.CountAsync(t => t.Status == TripStatus.Delivered, ct);
-        var monthRevenue = await monthTrips.SumAsync(t => (decimal?)t.SalePrice, ct) ?? 0;
+        var monthRevenue = await monthTrips.SumAsync(t => (decimal?)(t.SalePrice + t.Commission), ct) ?? 0;
         var monthExpenses = (await db.Expenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved).SumAsync(e => (decimal?)e.Amount, ct) ?? 0)
-            + (await monthTrips.SumAsync(t => (decimal?)t.VehicleCost, ct) ?? 0);
+            + (await monthTrips.SumAsync(t => (decimal?)(t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)), ct) ?? 0);
 
         var activeCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad, ct);
         var plannedCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned, ct);
@@ -58,7 +58,7 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var trendStart = monthStart.AddMonths(-5);
         var tripTrend = await db.Trips.Where(t => t.LoadingDate >= trendStart && t.LoadingDate <= monthEnd && t.Status != TripStatus.Cancelled)
             .GroupBy(t => new { t.LoadingDate.Year, t.LoadingDate.Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost) })
+            .Select(g => new { g.Key.Year, g.Key.Month, Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)) })
             .ToListAsync(ct);
         var expenseTrend = await db.Expenses.Where(e => e.Date >= trendStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => new { e.Date.Year, e.Date.Month })

@@ -14,6 +14,10 @@ public enum VehicleStatus { Available, OnRoad, Maintenance }
 public enum TripStatus { Planned, Loaded, OnRoad, Delivered, Cancelled }
 
 public enum JobRequestStatus { Pending, Cancelled, Converted }
+/// <summary>Komisyon: bekleniyor, alındı, taşeron faturasından düşülecek.</summary>
+public enum CommissionStatus { Pending, Received, DeductFromInvoice }
+/// <summary>Şoförle çalışma değerlendirmesi (eski paneldeki şoför durumu).</summary>
+public enum DriverRating { Excellent, Workable, NoCommission, StealsCustomers, BadAttitude, Unreliable, QuitsJobs }
 
 public enum InvoiceStatus { Draft, Issued, Cancelled }
 

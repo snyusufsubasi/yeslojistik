@@ -23,24 +23,33 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     };
 
     private record Row(Trip Trip, string CustomerTitle, string Plate, string VehicleType, string DriverName,
-        decimal ExpenseTotal, string? InvoiceNo, string? CarrierTitle, VehicleOwnership Ownership);
+        decimal ExpenseTotal, string? InvoiceNo, string? CarrierTitle, VehicleOwnership Ownership, string? CommissionAccountName);
 
     private static readonly Expression<Func<Trip, Row>> Projection = t => new Row(
         t, t.Customer.Title, t.Vehicle.Plate, t.Vehicle.Type, t.Driver.FullName,
         t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null,
-        t.CarrierSupplier != null ? t.CarrierSupplier.Title : null, t.Vehicle.Ownership);
+        t.CarrierSupplier != null ? t.CarrierSupplier.Title : null, t.Vehicle.Ownership,
+        t.CommissionAccount != null ? t.CommissionAccount.Name : null);
 
     private static TripDto ToDto(Row r)
     {
         var t = r.Trip;
         return new TripDto(t.Id, t.CustomerId, r.CustomerTitle, t.VehicleId, r.Plate, r.VehicleType, t.DriverId,
             r.DriverName, t.LoadingAddress, t.DeliveryAddress, t.LoadingDate, t.DeliveryDate, t.Description,
-            t.VehicleCost, t.SalePrice, r.ExpenseTotal, t.SalePrice - t.VehicleCost - r.ExpenseTotal, t.Status,
+            t.VehicleCost, t.SalePrice, r.ExpenseTotal,
+            Trip.Margin(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced) - r.ExpenseTotal, t.Status,
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
-            t.JobRequestId, t.IsLegacy);
+            t.JobRequestId, t.IsLegacy, TermsOf(t), r.CommissionAccountName);
     }
+
+    private static TripTerms TermsOf(Trip t) => new(t.SaleVatRate, t.SaleWithholdingTenths, t.CostVatRate, t.CostWithholdingTenths,
+        t.Commission, t.CommissionAccountId, t.CommissionStatus, t.CommissionInvoiced, t.CommissionVatIncluded,
+        t.ExtraCharge, t.ExtraChargeInvoiced, t.ExtraChargeVatIncluded, t.ExtraChargeTaxNo, t.ExtraChargeTitle,
+        t.DriverBonus, t.CustomerPays, t.CustomerGroup, t.DeliveryDocumentNo, t.DeliveryDocumentApproved, t.WaybillNo,
+        t.EWaybillNo, t.EWaybillDate, t.LoadingLatitude, t.LoadingLongitude, t.DeliveryLatitude, t.DeliveryLongitude,
+        t.DistanceKm, t.HideCarrierPrice, t.InvoiceFooterNote, t.ShowFooterNote, t.DeliveredBy, t.PaymentTerms, t.ExternalRef);
 
     public IQueryable<Trip> Filter(TripQuery q)
     {
@@ -55,12 +64,43 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (q.CarrierSupplierId is { } cs) query = query.Where(t => t.CarrierSupplierId == cs);
         if (q.MissingCarrierInvoice == true)
             query = query.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null);
+        if (q.MissingPrice == true)
+            query = query.Where(t => t.Status != TripStatus.Cancelled && (t.SalePrice == 0 || t.VehicleCost == 0));
+        if (q.PendingDeliveryDocument == true)
+            query = query.Where(t => t.Status == TripStatus.Delivered && !t.DeliveryDocumentApproved);
+        if (q.CommissionStatus is { } cst) query = query.Where(t => t.Commission > 0 && t.CommissionStatus == cst);
+        if (!string.IsNullOrWhiteSpace(q.CustomerGroup)) query = query.Where(t => t.CustomerGroup == q.CustomerGroup.Trim());
+        if (q.CarrierInvoiced is { } ci)
+            query = ci ? query.Where(t => t.CarrierInvoiceNo != null) : query.Where(t => t.CarrierSupplierId != null && t.CarrierInvoiceNo == null);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(t => EF.Functions.ILike(t.Customer.Title, like) || EF.Functions.ILike(t.Vehicle.Plate, like)
                 || EF.Functions.ILike(t.Driver.FullName, like) || EF.Functions.ILike(t.LoadingAddress, like)
                 || EF.Functions.ILike(t.DeliveryAddress, like) || EF.Functions.ILike(t.CustomerReference ?? "", like)
-                || EF.Functions.ILike(t.LoadingCity ?? "", like) || EF.Functions.ILike(t.DeliveryCity ?? "", like));
+                || EF.Functions.ILike(t.LoadingCity ?? "", like) || EF.Functions.ILike(t.DeliveryCity ?? "", like)
+                || EF.Functions.ILike(t.ExternalRef ?? "", like) || EF.Functions.ILike(t.WaybillNo ?? "", like)
+                || EF.Functions.ILike(t.DeliveryDocumentNo ?? "", like) || EF.Functions.ILike(t.CargoType ?? "", like)
+                || EF.Functions.ILike(t.CarrierSupplier != null ? t.CarrierSupplier.Title : "", like));
         return query;
+    }
+
+    /// <summary>Filtredeki seferlerin kazanç tablosu. İptal edilen seferler sayılmaz.</summary>
+    public async Task<TripTotalsDto> TotalsAsync(TripQuery q, CancellationToken ct = default)
+    {
+        var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled).Select(t => new
+        {
+            t.SalePrice, t.VehicleCost, t.Commission, CommissionToBank = t.CommissionAccount != null && t.CommissionAccount.Kind != CashAccountKind.Cash,
+            t.ExtraCharge, t.ExtraChargeInvoiced, t.DriverBonus,
+            Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
+        }).ToListAsync(ct);
+        var sale = rows.Sum(r => r.SalePrice);
+        var cost = rows.Sum(r => r.VehicleCost);
+        var bank = rows.Where(r => r.CommissionToBank).Sum(r => r.Commission);
+        var cash = rows.Where(r => !r.CommissionToBank).Sum(r => r.Commission);
+        var extra = rows.Where(r => !r.ExtraChargeInvoiced).Sum(r => r.ExtraCharge);
+        var bonus = rows.Sum(r => r.DriverBonus);
+        var expenses = rows.Sum(r => r.Expenses);
+        return new TripTotalsDto(rows.Count, sale, cost, sale - cost, bank, cash, bank + cash, extra, bonus, expenses,
+            sale - cost + bank + cash - extra - bonus - expenses);
     }
 
     /// <param name="export">Excel için: sayfa boyutu sınırı <see cref="QueryExtensions.ExportLimit"/> olur.</param>
@@ -290,6 +330,8 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         var driverActive = await db.Drivers.Where(d => d.Id == req.DriverId).Select(d => (bool?)d.IsActive).FirstOrDefaultAsync(ct);
         if (driverActive == null) throw new DomainException("Şoför bulunamadı.");
         if (driverActive == false) throw new DomainException("Pasif durumdaki şoföre sefer atanamaz.");
+        if (req.Terms is { Commission: > 0, CommissionAccountId: { } acc } && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct))
+            throw new DomainException("Komisyon hesabı bulunamadı.");
     }
 
     public async Task<List<TripEventDto>> EventsAsync(int id, CancellationToken ct = default)
@@ -355,5 +397,44 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         t.Description = r.Description?.Trim();
         t.VehicleCost = Money.Round(r.VehicleCost);
         t.SalePrice = Money.Round(r.SalePrice);
+        ApplyTerms(t, r.Terms ?? new TripTerms());
+    }
+
+    private static void ApplyTerms(Trip t, TripTerms x)
+    {
+        t.SaleVatRate = x.SaleVatRate;
+        t.SaleWithholdingTenths = x.SaleWithholdingTenths;
+        t.CostVatRate = x.CostVatRate;
+        t.CostWithholdingTenths = x.CostWithholdingTenths;
+        t.Commission = Money.Round(x.Commission);
+        t.CommissionAccountId = x.Commission > 0 ? x.CommissionAccountId : null;
+        t.CommissionStatus = x.CommissionStatus;
+        t.CommissionInvoiced = x.CommissionInvoiced;
+        t.CommissionVatIncluded = x.CommissionVatIncluded;
+        t.ExtraCharge = Money.Round(x.ExtraCharge);
+        t.ExtraChargeInvoiced = x.ExtraChargeInvoiced;
+        t.ExtraChargeVatIncluded = x.ExtraChargeVatIncluded;
+        t.ExtraChargeTaxNo = Clean(x.ExtraChargeTaxNo);
+        t.ExtraChargeTitle = Clean(x.ExtraChargeTitle);
+        t.DriverBonus = Money.Round(x.DriverBonus);
+        t.CustomerPays = x.CustomerPays;
+        t.CustomerGroup = Clean(x.CustomerGroup);
+        t.DeliveryDocumentNo = Clean(x.DeliveryDocumentNo);
+        t.DeliveryDocumentApproved = x.DeliveryDocumentApproved;
+        t.WaybillNo = Clean(x.WaybillNo);
+        t.EWaybillNo = Clean(x.EWaybillNo);
+        t.EWaybillDate = t.EWaybillNo == null ? null : x.EWaybillDate;
+        t.LoadingLatitude = x.LoadingLatitude;
+        t.LoadingLongitude = x.LoadingLongitude;
+        t.DeliveryLatitude = x.DeliveryLatitude;
+        t.DeliveryLongitude = x.DeliveryLongitude;
+        t.DistanceKm = x.DistanceKm;
+        t.HideCarrierPrice = x.HideCarrierPrice;
+        t.InvoiceFooterNote = Clean(x.InvoiceFooterNote);
+        t.ShowFooterNote = x.ShowFooterNote && t.InvoiceFooterNote != null;
+        t.DeliveredBy = Clean(x.DeliveredBy);
+        t.PaymentTerms = Clean(x.PaymentTerms);
+        // Aktarım numarası yalnızca ilk kayıtta yazılır; formdan gelen boş değer silmez.
+        t.ExternalRef ??= Clean(x.ExternalRef);
     }
 }

@@ -1,4 +1,4 @@
-import type { ApprovalStatus, CashAccountKind, InstrumentStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
+import type { ApprovalStatus, CashAccountKind, CommissionStatus, DriverRating, InstrumentStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
 
 export const tripStatusLabel: Record<TripStatus, string> = {
   Planned: 'Planlandı',
@@ -181,3 +181,37 @@ export const cashAccountKindLabel: Record<CashAccountKind, string> = {
 }
 
 export const isInstrument = (m?: string | null) => m === 'Check' || m === 'PromissoryNote'
+
+export const commissionStatusLabel: Record<CommissionStatus, string> = {
+  Pending: 'Bekleniyor',
+  Received: 'Alındı',
+  DeductFromInvoice: 'Faturadan düş',
+}
+
+export const commissionStatusTone: Record<CommissionStatus, Tone> = {
+  Pending: 'yellow',
+  Received: 'green',
+  DeductFromInvoice: 'blue',
+}
+
+export const driverRatingLabel: Record<DriverRating, string> = {
+  Excellent: 'Mükemmel',
+  Workable: 'Çalışılır',
+  NoCommission: 'Komisyon çıkarmıyor',
+  StealsCustomers: 'Müşteri çalıyor',
+  BadAttitude: 'Ters davranıyor',
+  Unreliable: 'Güvenilmez',
+  QuitsJobs: 'İşi yarıda bırakıyor',
+}
+
+export const driverRatingTone: Record<DriverRating, Tone> = {
+  Excellent: 'green',
+  Workable: 'blue',
+  NoCommission: 'yellow',
+  StealsCustomers: 'red',
+  BadAttitude: 'red',
+  Unreliable: 'red',
+  QuitsJobs: 'red',
+}
+
+export const vatRates = [0, 1, 8, 10, 18, 20]

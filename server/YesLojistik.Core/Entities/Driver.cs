@@ -13,4 +13,13 @@ public class Driver : BaseEntity
     /// <summary>Boşsa firmanın kendi şoförü; doluysa bu taşeronun şoförü (belge uyarılarına girmez).</summary>
     public int? SupplierId { get; set; }
     public Supplier? Supplier { get; set; }
+
+    public string? LicenseNo { get; set; }
+    public int? BirthYear { get; set; }
+    public string? Address { get; set; }
+    public bool IsForeign { get; set; }
+    /// <summary>Şoförün genelde kullandığı plaka (taşeron şoförlerinde araç kaydı olmayabilir).</summary>
+    public string? Plate { get; set; }
+    public DriverRating? Rating { get; set; }
+    public string? Note { get; set; }
 }

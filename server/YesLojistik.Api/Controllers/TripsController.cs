@@ -33,10 +33,23 @@ public class TripsController(TripService trips) : ControllerBase
             new("Durum", t => TripStatusRules.Label(t.Status)),
             new("Satış", t => t.SalePrice, ExcelExporter.MoneyFormat),
             new("Araç Maliyeti", t => t.VehicleCost, ExcelExporter.MoneyFormat),
+            new("Taşeron", t => t.CarrierSupplierTitle),
+            new("Komisyon", t => t.Terms?.Commission ?? 0, ExcelExporter.MoneyFormat),
+            new("Masraf", t => t.Terms?.ExtraCharge ?? 0, ExcelExporter.MoneyFormat),
+            new("Prim", t => t.Terms?.DriverBonus ?? 0, ExcelExporter.MoneyFormat),
             new("Giderler", t => t.ExpenseTotal, ExcelExporter.MoneyFormat),
             new("Kâr", t => t.Profit, ExcelExporter.MoneyFormat),
-            new("Fatura", t => t.InvoiceNo)), "seferler");
+            new("Fatura", t => t.InvoiceNo),
+            new("Taşeron Fatura", t => t.CarrierInvoiceNo),
+            new("Teslim Evrak No", t => t.Terms?.DeliveryDocumentNo),
+            new("İrsaliye No", t => t.Terms?.WaybillNo),
+            new("Grup", t => t.Terms?.CustomerGroup),
+            new("Eski No", t => t.Terms?.ExternalRef)), "seferler");
     }
+
+    /// <summary>Filtredeki seferlerin kazanç tablosu: satış, maliyet, komisyon, masraf, prim ve net kazanç.</summary>
+    [HttpGet("totals")]
+    public Task<TripTotalsDto> Totals([FromQuery] TripQuery q, CancellationToken ct) => trips.TotalsAsync(q, ct);
 
     /// <summary>Yeni sefer formu önerileri: son sefer, kayıtlı adresler, sık yük cinsleri ve güzergâh fiyatı.</summary>
     [HttpGet("hints")]

@@ -159,6 +159,12 @@ public class DriverSaveRequestValidator : AbstractValidator<DriverSaveRequest>
         RuleFor(x => x.NationalId).Must(v => TaxNumberValidator.IsValidTckn(v!)).WithMessage("Geçersiz TC kimlik numarası.")
             .When(x => !string.IsNullOrWhiteSpace(x.NationalId));
         RuleFor(x => x.LicenseClass).MaximumLength(20);
+        RuleFor(x => x.LicenseNo).MaximumLength(30);
+        RuleFor(x => x.Address).MaximumLength(300);
+        RuleFor(x => x.Plate).MaximumLength(20);
+        RuleFor(x => x.Note).MaximumLength(500);
+        RuleFor(x => x.BirthYear).InclusiveBetween(1930, 2015).WithMessage("Geçerli bir doğum yılı girin.").When(x => x.BirthYear.HasValue);
+        RuleFor(x => x.Rating).IsInEnum().When(x => x.Rating.HasValue);
     }
 }
 
@@ -215,6 +221,40 @@ public class TripSaveRequestValidator : AbstractValidator<TripSaveRequest>
         RuleFor(x => x.LoadingContact).MaximumLength(150);
         RuleFor(x => x.DeliveryContact).MaximumLength(150);
         RuleFor(x => x.CarrierInvoiceNo).MaximumLength(50);
+        RuleFor(x => x.Terms!).SetValidator(new TripTermsValidator()).When(x => x.Terms != null);
+    }
+}
+
+public class TripTermsValidator : AbstractValidator<TripTerms>
+{
+    private static readonly decimal[] VatRates = [0, 1, 8, 10, 18, 20];
+
+    public TripTermsValidator()
+    {
+        RuleFor(x => x.SaleVatRate).Must(v => VatRates.Contains(v)).WithMessage("KDV oranı 0, 1, 8, 10, 18 veya 20 olmalı.");
+        RuleFor(x => x.CostVatRate).Must(v => VatRates.Contains(v)).WithMessage("KDV oranı 0, 1, 8, 10, 18 veya 20 olmalı.");
+        RuleFor(x => x.SaleWithholdingTenths).InclusiveBetween(0, 10).WithMessage("Tevkifat 0-10/10 arasında olmalı.").When(x => x.SaleWithholdingTenths.HasValue);
+        RuleFor(x => x.CostWithholdingTenths).InclusiveBetween(0, 10).WithMessage("Tevkifat 0-10/10 arasında olmalı.").When(x => x.CostWithholdingTenths.HasValue);
+        RuleFor(x => x.Commission).Amount();
+        RuleFor(x => x.ExtraCharge).Amount();
+        RuleFor(x => x.DriverBonus).Amount();
+        RuleFor(x => x.CommissionStatus).IsInEnum();
+        RuleFor(x => x.ExtraChargeTaxNo).Must(v => TaxNumberValidator.IsValid(v!)).WithMessage("Geçersiz VKN/TCKN.")
+            .When(x => !string.IsNullOrWhiteSpace(x.ExtraChargeTaxNo));
+        RuleFor(x => x.ExtraChargeTitle).MaximumLength(200);
+        RuleFor(x => x.CustomerGroup).MaximumLength(50);
+        RuleFor(x => x.DeliveryDocumentNo).MaximumLength(50);
+        RuleFor(x => x.WaybillNo).MaximumLength(50);
+        RuleFor(x => x.EWaybillNo).MaximumLength(50);
+        RuleFor(x => x.InvoiceFooterNote).MaximumLength(500);
+        RuleFor(x => x.DeliveredBy).MaximumLength(100);
+        RuleFor(x => x.PaymentTerms).MaximumLength(100);
+        RuleFor(x => x.ExternalRef).MaximumLength(40);
+        RuleFor(x => x.DistanceKm).InclusiveBetween(0, 20_000).WithMessage("Mesafe 0-20.000 km arasında olmalı.").When(x => x.DistanceKm.HasValue);
+        RuleFor(x => x.LoadingLatitude).InclusiveBetween(-90, 90).When(x => x.LoadingLatitude.HasValue);
+        RuleFor(x => x.DeliveryLatitude).InclusiveBetween(-90, 90).When(x => x.DeliveryLatitude.HasValue);
+        RuleFor(x => x.LoadingLongitude).InclusiveBetween(-180, 180).When(x => x.LoadingLongitude.HasValue);
+        RuleFor(x => x.DeliveryLongitude).InclusiveBetween(-180, 180).When(x => x.DeliveryLongitude.HasValue);
     }
 }
 

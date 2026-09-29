@@ -128,6 +128,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.NationalId).HasMaxLength(11);
             e.Property(x => x.LicenseClass).HasMaxLength(20);
             e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.LicenseNo).HasMaxLength(30);
+            e.Property(x => x.Address).HasMaxLength(300);
+            e.Property(x => x.Plate).HasMaxLength(20);
+            e.Property(x => x.Note).HasMaxLength(500);
         });
         b.Entity<Trip>(e =>
         {
@@ -157,6 +161,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasIndex(x => x.CustomerReference);
             e.HasOne(x => x.JobRequest).WithOne(x => x.Trip).HasForeignKey<Trip>(x => x.JobRequestId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.JobRequestId).IsUnique();
+            e.HasOne(x => x.CommissionAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.SaleVatRate).HasPrecision(5, 2);
+            e.Property(x => x.CostVatRate).HasPrecision(5, 2);
+            e.Property(x => x.ExtraChargeTaxNo).HasMaxLength(11);
+            e.Property(x => x.ExtraChargeTitle).HasMaxLength(200);
+            e.Property(x => x.CustomerGroup).HasMaxLength(50);
+            e.Property(x => x.DeliveryDocumentNo).HasMaxLength(50);
+            e.Property(x => x.WaybillNo).HasMaxLength(50);
+            e.Property(x => x.EWaybillNo).HasMaxLength(50);
+            e.Property(x => x.InvoiceFooterNote).HasMaxLength(500);
+            e.Property(x => x.DeliveredBy).HasMaxLength(100);
+            e.Property(x => x.PaymentTerms).HasMaxLength(100);
+            e.Property(x => x.ExternalRef).HasMaxLength(40);
+            e.HasIndex(x => x.ExternalRef);
+            e.HasIndex(x => x.CustomerGroup);
         });
         b.Entity<JobRequest>(e =>
         {

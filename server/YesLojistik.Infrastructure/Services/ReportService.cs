@@ -15,7 +15,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
 
         var trips = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
             .GroupBy(t => t.LoadingDate.Month)
-            .Select(g => new { Month = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost),
+            .Select(g => new { Month = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
                 CarrierCost = g.Where(t => t.CarrierSupplierId != null).Sum(t => t.VehicleCost) })
             .ToListAsync(ct);
         var invoiced = await db.Invoices.Where(i => i.Date >= from && i.Date <= to && i.Status == InvoiceStatus.Issued)
@@ -47,7 +47,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .Select(t => new
             {
                 t.Id, t.LoadingDate, Customer = t.Customer.Title, t.Vehicle.Plate, t.LoadingAddress, t.DeliveryAddress, t.Status,
-                t.SalePrice, t.VehicleCost, Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
+                SalePrice = t.SalePrice + t.Commission, VehicleCost = t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge), Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
             }).ToListAsync(ct);
         return rows.Select(r => new TripProfitRow(r.Id, r.LoadingDate, r.Customer, r.Plate, $"{r.LoadingAddress} → {r.DeliveryAddress}",
             TripStatusRules.Label(r.Status), r.SalePrice, r.VehicleCost, r.Expenses, r.SalePrice - r.VehicleCost - r.Expenses)).ToList();
@@ -58,7 +58,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
         var vehicles = await db.Vehicles.AsNoTracking().OrderBy(v => v.Plate).Select(v => new { v.Id, v.Plate, v.Type }).ToListAsync(ct);
         var trips = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
             .GroupBy(t => t.VehicleId)
-            .Select(g => new { VehicleId = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost) })
+            .Select(g => new { VehicleId = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)) })
             .ToListAsync(ct);
         var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.VehicleId != null && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => e.VehicleId!.Value).Select(g => new { VehicleId = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
@@ -79,7 +79,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .Select(g => new
             {
                 g.Key.DriverId, g.Key.FullName, Count = g.Count(), Delivered = g.Count(t => t.Status == TripStatus.Delivered),
-                Revenue = g.Sum(t => t.SalePrice), Cost = g.Sum(t => t.VehicleCost),
+                Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
                 Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
             }).ToListAsync(ct);
         var paid = await db.Expenses
@@ -155,7 +155,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .GroupBy(t => new { t.CustomerId, t.Customer.Title })
             .Select(g => new
             {
-                g.Key.CustomerId, g.Key.Title, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), VehicleCost = g.Sum(t => t.VehicleCost),
+                g.Key.CustomerId, g.Key.Title, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), VehicleCost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
                 Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
             }).ToListAsync(ct);
         var open = (await balances.BalancesByCustomerAsync(rows.Select(r => r.CustomerId), ct));
@@ -178,7 +178,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
             .GroupBy(t => new { t.LoadingCity, t.DeliveryCity })
             .Select(g => new
             {
-                g.Key.LoadingCity, g.Key.DeliveryCity, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice), VehicleCost = g.Sum(t => t.VehicleCost),
+                g.Key.LoadingCity, g.Key.DeliveryCity, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), VehicleCost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
                 Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
             }).ToListAsync(ct);
         return rows.Select(r =>

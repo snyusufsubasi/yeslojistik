@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { AlertTriangle, Copy, FileText, History, MapPin, Sparkles, Trash2 } from 'lucide-react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
@@ -28,6 +28,8 @@ import { TripAttachments, TripTracking } from './TripExtras'
 import { AuditLogTable } from './AuditLog'
 import { useAuth } from '../lib/auth'
 import { AmountInput, DateQuick, MoreFields, Section } from './Inputs'
+import { CommissionFields, DocumentFields, MarginSummary, VatFields } from './TripTermsFields'
+import { emptyTerms, termsSchema, termsToApi, termsToForm, type TermsForm } from '../lib/tripTerms'
 import { vehicleOwnershipIcon } from '../lib/icons'
 
 const cargoUnits = ['palet', 'koli', 'adet', 'ton', 'kg', 'm³']
@@ -68,6 +70,7 @@ const schema = z.object({
   carrierInvoiceNo: optStr,
   carrierInvoiceDate: optStr,
   jobRequestId: z.number().nullable().optional(),
+  terms: termsSchema,
 }).refine((v) => !v.deliveryDate || v.deliveryDate >= v.loadingDate, {
   path: ['deliveryDate'], message: 'Teslim tarihi yükleme tarihinden önce olamaz.',
 })
@@ -107,6 +110,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       deliveryContact: trip.deliveryContact ?? '', carrierSupplierId: trip.carrierSupplierId ?? null,
       carrierInvoiceNo: trip.carrierInvoiceNo ?? '', carrierInvoiceDate: trip.carrierInvoiceDate ?? '',
       jobRequestId: trip.jobRequestId ?? null,
+      terms: termsToForm(trip.terms),
     } : copyOf ? {
       customerId: copyOf.customerId, vehicleId: copyOf.vehicleId, driverId: copyOf.driverId,
       loadingAddress: copyOf.loadingAddress, deliveryAddress: copyOf.deliveryAddress,
@@ -118,11 +122,13 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       deliveryContact: copyOf.deliveryContact ?? '', carrierSupplierId: copyOf.carrierSupplierId ?? null,
       carrierInvoiceNo: '', carrierInvoiceDate: '',
       jobRequestId: null,
-    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, ...defaults },
+      terms: termsToForm(copyOf.terms, false),
+    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, terms: { ...emptyTerms }, ...defaults },
   })
 
   const save = useSave((v: FormValues) => {
-    const body = nullify(v)
+    const { terms, ...rest } = v
+    const body = { ...nullify(rest), terms: termsToApi(terms) } as unknown as FormValues
     return trip ? api.update(trip.id, body) : api.create(body)
   }, {
     invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
@@ -134,7 +140,10 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
 
   const cost = useWatch({ control, name: 'vehicleCost' })
   const price = useWatch({ control, name: 'salePrice' })
-  const profit = (Number(price) || 0) - (Number(cost) || 0) - (trip?.expenseTotal ?? 0)
+  const terms = useWatch({ control, name: 'terms' })
+  // Koşul alanları ortak bileşende; kontrol yalnızca "terms" alanını gören tipe daraltılır.
+  const termsControl = control as unknown as Control<TermsForm>
+  const termsRegister = register as unknown as UseFormRegister<TermsForm>
   const invoiced = !!trip?.invoiceId
   const customerId = useWatch({ control, name: 'customerId' })
   const risk = useQuery({
@@ -390,9 +399,11 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           <div className="grid gap-4 md:grid-cols-2">
             <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message}>
               <AmountInput control={control} name="vehicleCost" />
+              <VatFields control={termsControl} register={termsRegister} prefix="cost" net={Number(cost) || 0} />
             </Field>
             <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message}>
               <AmountInput control={control} name="salePrice" disabled={invoiced} />
+              <VatFields control={termsControl} register={termsRegister} prefix="sale" disabled={invoiced} net={Number(price) || 0} />
             </Field>
           </div>
           {route && !invoiced && (
@@ -406,21 +417,19 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               <Button type="button" size="sm" variant="secondary" onClick={() => { setValue('salePrice', route.lastSalePrice, opts); setValue('vehicleCost', route.lastVehicleCost, opts) }}>Son fiyatları kullan</Button>
             </div>
           )}
-          <div className="space-y-1.5 rounded-xl bg-slate-50 px-4 py-3">
-            <div className="flex justify-between gap-2"><span className="text-slate-600">Satış fiyatı</span><span className="tabular-nums">{tl(Number(price) || 0)}</span></div>
-            <div className="flex justify-between gap-2"><span className="text-slate-600">− {rented ? 'Taşerona ödenecek' : 'Araç maliyeti'}</span><span className="tabular-nums">{tl(Number(cost) || 0)}</span></div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3">
             {trip && trip.expenseTotal > 0 && (
-              <div className="flex justify-between gap-2">
-                <span className="text-slate-600">− Sefere bağlı giderler</span>
+              <div className="flex justify-between gap-2 text-sm">
+                <span className="text-slate-600">Sefere bağlı giderler</span>
                 <Link className="tabular-nums text-brand-700 underline underline-offset-2" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
               </div>
             )}
-            <div className="flex justify-between gap-2 border-t border-slate-200 pt-1.5 text-lg font-medium">
-              <span>Tahmini Kâr</span>
-              <span className={profit < 0 ? 'text-red-700' : 'text-emerald-700'}>{tl(profit)}</span>
-            </div>
+            <MarginSummary sale={Number(price) || 0} cost={Number(cost) || 0} terms={terms} expenses={trip?.expenseTotal ?? 0} />
           </div>
+          <CommissionFields control={termsControl} register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
         </Section>
+
+        <DocumentFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
 
         <MoreFields title="Yetkililer ve not (isteğe bağlı)" hasError={!!(errors.loadingContact || errors.deliveryContact || errors.description)}
           defaultOpen={!!trip || !!(copyOf?.loadingContact || copyOf?.deliveryContact || copyOf?.description)}>
