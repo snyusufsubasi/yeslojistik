@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { login } from './helpers'
 
-const pages = ['/', '/seferler', '/araclar', '/harita', '/musteriler', '/cari/musteriler', '/cari/tedarikciler', '/faturalar', '/tahsilatlar', '/giderler', '/raporlar', '/ayarlar', '/yardim']
+const pages = ['/', '/seferler', '/araclar', '/harita', '/musteriler', '/cari/musteriler', '/cari/tedarikciler', '/personel', '/sabit-odemeler', '/faturalar', '/tahsilatlar', '/giderler', '/raporlar', '/ayarlar', '/yardim']
 
 test('mobil genişlikte yatay kaydırma yok ve menü çalışıyor', async ({ page }) => {
   await login(page)

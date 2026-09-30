@@ -5,7 +5,7 @@ import clsx from 'clsx'
 import {
   Handshake, HandCoins, PanelLeftClose, PanelLeftOpen, Plus,
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList } from 'lucide-react'
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat } from 'lucide-react'
 import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Dashboard, Health } from '../api/types'
@@ -51,6 +51,8 @@ const navGroups: { title?: string; items: NavItem[] }[] = [
     { to: '/tedarikciler', label: 'Tedarikçiler', hint: 'Araç sahipleri, servisler', icon: Handshake },
     { to: '/soforler', label: 'Şoförler', hint: 'Belgeler ve şoför hesabı', icon: IdCard,
       badge: (_, a) => badge(alertsAt(a, '/soforler'), 'orange', 'belge uyarısı') },
+    { to: '/personel', label: 'Personeller', hint: 'Maaş, avans, prim', icon: UserRound, perm: 'accounting' },
+    { to: '/sabit-odemeler', label: 'Sabit Ödemeler', hint: 'Kira, taksit, aylık ödemeler', icon: Repeat, perm: 'accounting' },
   ] },
   { title: 'Öz Mal', items: [
     { to: '/araclar', label: 'Araçlar', hint: 'Belgeler, bakım, kiralıklar', icon: Building2,

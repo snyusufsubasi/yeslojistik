@@ -37,6 +37,8 @@ public enum ExpenseCategory { Fuel, Maintenance, Toll, DriverAllowance, Tire, In
 /// <summary>Şoför hesabı hareketi: şoföre ödeme (bakiyesini artırır) ya da şoförden geri alınan para.</summary>
 public enum SettlementDirection { PaidToDriver, ReceivedFromDriver }
 
+public enum StaffTransactionKind { Advance, Bonus, SalaryPayment }
+
 public enum DocumentOwnerType { Vehicle, Driver, Company }
 
 public enum DocumentType

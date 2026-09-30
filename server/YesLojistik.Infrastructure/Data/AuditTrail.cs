@@ -92,6 +92,9 @@ internal static class AuditTrail
         DriverSettlement ds => $"{EnumLabel(ds.Direction)} {ds.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({ds.Date:dd.MM.yyyy})",
         FleetDocument fd => $"{EnumLabel(fd.Type)}{(fd.No != null ? " " + fd.No : "")}",
         CashAccount ca => ca.Name,
+        Staff st => st.FullName,
+        StaffTransaction stt => $"{EnumLabel(stt.Kind)} {stt.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({stt.Date:dd.MM.yyyy})",
+        RecurringPayment rp => rp.Title,
         CashTransfer ct => $"Virman {ct.Amount.ToString("N2", CultureInfo.GetCultureInfo("tr-TR"))} TL ({ct.Date:dd.MM.yyyy})",
         MaintenanceRecord mr => $"{EnumLabel(mr.Type)} bakım ({mr.Date:dd.MM.yyyy})",
         User u => u.Email,
@@ -104,6 +107,7 @@ internal static class AuditTrail
     {
         ["VehicleStatus.Available"] = "Müsait", ["VehicleStatus.OnRoad"] = "Yolda", ["VehicleStatus.Maintenance"] = "Bakımda",
         ["InvoiceStatus.Draft"] = "Taslak", ["InvoiceStatus.Issued"] = "Kesildi", ["InvoiceStatus.Cancelled"] = "İptal",
+        ["StaffTransactionKind.Advance"] = "Avans", ["StaffTransactionKind.Bonus"] = "Prim", ["StaffTransactionKind.SalaryPayment"] = "Maaş ödemesi",
         ["PaymentMethod.Cash"] = "Nakit", ["PaymentMethod.BankTransfer"] = "Havale/EFT", ["PaymentMethod.Check"] = "Çek",
         ["PaymentMethod.CreditCard"] = "Kredi kartı", ["PaymentMethod.PromissoryNote"] = "Senet",
         ["InstrumentStatus.Portfolio"] = "Portföyde", ["InstrumentStatus.InCollection"] = "Tahsilde", ["InstrumentStatus.Collected"] = "Tahsil edildi",

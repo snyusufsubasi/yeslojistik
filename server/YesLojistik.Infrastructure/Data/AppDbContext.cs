@@ -31,6 +31,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<TripEvent> TripEvents => Set<TripEvent>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<DriverSettlement> DriverSettlements => Set<DriverSettlement>();
+    public DbSet<Staff> Staff => Set<Staff>();
+    public DbSet<StaffTransaction> StaffTransactions => Set<StaffTransaction>();
+    public DbSet<RecurringPayment> RecurringPayments => Set<RecurringPayment>();
     public DbSet<FleetDocument> Documents => Set<FleetDocument>();
     public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
     public DbSet<CashAccount> CashAccounts => Set<CashAccount>();
@@ -273,6 +276,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.RejectionReason).HasMaxLength(300);
             e.Property(x => x.ReviewedBy).HasMaxLength(100);
             e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.RecurringPayment).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => x.Date);
             e.HasIndex(x => x.ClientRequestId).IsUnique().HasFilter("client_request_id IS NOT NULL");
         });
@@ -289,6 +293,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasOne(x => x.Trip).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.Date);
+        });
+        b.Entity<Staff>(e =>
+        {
+            e.ToTable("staff");
+            e.Property(x => x.FullName).HasMaxLength(150);
+            e.Property(x => x.NationalId).HasMaxLength(11);
+            e.Property(x => x.Phone).HasMaxLength(30);
+            e.Property(x => x.Notes).HasMaxLength(500);
+        });
+        b.Entity<StaffTransaction>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasOne(x => x.Staff).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.StaffId, x.Date });
+        });
+        b.Entity<RecurringPayment>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(150);
+            e.Property(x => x.Detail).HasMaxLength(500);
+            e.HasOne(x => x.CashAccount).WithMany().OnDelete(DeleteBehavior.Restrict);
         });
         b.Entity<DriverSettlement>(e =>
         {

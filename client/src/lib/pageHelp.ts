@@ -6,6 +6,16 @@ export const pageHelp: Record<string, string[]> = {
     'Teslim edilen seferler "Faturalar" sayfasında fatura kesilmeyi bekler.',
     '"Bugün / Gelecek / Geçmiş / Bu ay" ile dönemi seçin; listenin üstündeki kazanç tablosu o döneme göre hesaplanır.',
   ],
+  personel: [
+    'Ofis ve depo personelini aylık maaşıyla ekleyin; şoförler Şoförler sayfasında durur.',
+    'Personele tıklayıp avans, prim ya da maaş ödemesi girin; hesap seçerseniz kasa/banka bakiyesinden düşer.',
+    'Kalan = maaş + prim − avans − ödenen. Üstteki “Ay” ile geçmiş ayları görün.',
+  ],
+  'sabit-odemeler': [
+    'Kira, sigorta taksiti, muhasebe ücreti gibi her ay tekrarlanan ödemeleri bir kez ekleyin.',
+    'Ödeyince satırdaki “Ödendi”ye basın; gider olarak yazılır ve seçilen hesaptan düşer.',
+    'Ödeme günü geçip ödenmeyenler kırmızı “Gecikti” olarak görünür.',
+  ],
   cari: [
     'Bütün hesaplar tek tabloda, en büyük bakiye en üstte. Satıra tıklayınca o hesabın hareketleri açılır.',
     '"Ekstre" düğmesi hesap ekstresini PDF olarak açar; müşteriye göndermek için indirin.',

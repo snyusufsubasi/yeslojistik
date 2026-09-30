@@ -40,6 +40,7 @@ COLS = {
     'supplier-payments': ['Tarih', 'Tedarikçi', 'Tutar', 'Yöntem', 'Açıklama'],
     'expenses': ['Tarih', 'Kategori', 'Tutar', 'Plaka', 'Şoför', 'Tedarikçi', 'Vadeli', 'Litre', 'Km', 'Açıklama'],
     'cash-accounts': ['Hesap Adı', 'Tür', 'IBAN', 'Devir Bakiyesi', 'Devir Tarihi'],
+    'staff': ['Ad Soyad', 'TC Kimlik No', 'Telefon', 'İşe Başlangıç', 'Maaş', 'Not'],
 }
 
 
@@ -121,6 +122,8 @@ if (EXP / 'mazotlar.xlsx').exists():
     _f = list(openpyxl.load_workbook(EXP / 'mazotlar.xlsx', read_only=True).worksheets[0].iter_rows(values_only=True))
     fuel_src = [dict(zip(_f[0], r)) for r in _f[1:] if r and r[0]]
 banks_src = html_table(EXP / 'bankalar.html', min_cols=5) if (EXP / 'bankalar.html').exists() else []
+staff_src = [r for r in html_table(EXP / 'personeller.html', min_cols=8) if str(r.get('Sıra No', '')).strip().isdigit()] \
+    if (EXP / 'personeller.html').exists() else []
 
 ws = openpyxl.load_workbook(EXP / 'sevkiyatlar.xlsx', read_only=True).worksheets[0]
 raw = list(ws.iter_rows(values_only=True)); IX = {h: i for i, h in enumerate(raw[0])}
@@ -357,6 +360,12 @@ cash_accounts = [{'Hesap Adı': clean(b.get('Hesap İsmi')), 'Tür': 'Banka', 'D
                  for b in banks_src if clean(b.get('Hesap İsmi'))]
 if cash_accounts: note(f"Banka hesapları: {len(cash_accounts)} hesap, eski paneldeki güncel bakiyeyle açılır (toplam {sum(c['Devir Bakiyesi'] for c in cash_accounts):,.2f} TL).")
 
+# ---------- personel ----------
+staff = [{'Ad Soyad': clean(p.get('İsim / Soyisim')), 'TC Kimlik No': clean(p.get('Tc')), 'Telefon': clean(p.get('Telefon')),
+          'İşe Başlangıç': tr_date(p.get('Başlangıç Tarih')), 'Maaş': float(money(p.get('Maaş'))), 'Not': clean(p.get('Not'))}
+         for p in staff_src if clean(p.get('İsim / Soyisim'))]
+if staff: note(f'Personel: {len(staff)} kişi aylık maaşıyla.')
+
 write('1-tedarikciler.xlsx', 'suppliers', list(suppliers.values()))
 write('2-musteriler.xlsx', 'customers', list(customers.values()))
 write('3-soforler.xlsx', 'drivers', list(drivers.values()))
@@ -366,5 +375,6 @@ if cust_payments: write('6-devir-tahsilatlari.xlsx', 'payments', cust_payments)
 if sup_payments: write('7-devir-odemeleri.xlsx', 'supplier-payments', sup_payments)
 if expenses: write('8-giderler.xlsx', 'expenses', expenses)
 if cash_accounts: write('9-banka-hesaplari.xlsx', 'cash-accounts', cash_accounts)
+if staff: write('10-personeller.xlsx', 'staff', staff)
 (OUT / 'rapor.txt').write_text('\n'.join(report) + '\n', encoding='utf-8')
 print('\n'.join(report))

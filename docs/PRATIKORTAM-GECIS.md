@@ -39,7 +39,7 @@
 > 6. Canlıya yükle:
 >    1. Ayarlar → Veriler → tam yedek al.
 >    2. Demo verileri temizle.
->    3. `aktar/` dosyalarını sırayla ilgili sayfalardaki "Excel'den Aktar" ile yükle: 1 tedarikçi → 2 müşteri → 3 şoför → 4 araç → 5 sefer → 6/7 devir tahsilat/ödeme → 8 giderler (mazot dahil; taşeron ödemeleri ve mahsuplaşmalar cari devrinde olduğu için alınmaz) → 9 banka hesapları (güncel bakiyeyle). Ya da hepsini tek komutla: `PANEL_EMAIL=… PANEL_PASSWORD=… python3 tools/legacy/prova.py <klasör> --api https://yeslojistik.onrender.com --apply`.
+>    3. `aktar/` dosyalarını sırayla ilgili sayfalardaki "Excel'den Aktar" ile yükle: 1 tedarikçi → 2 müşteri → 3 şoför → 4 araç → 5 sefer → 6/7 devir tahsilat/ödeme → 8 giderler (mazot dahil; taşeron ödemeleri ve mahsuplaşmalar cari devrinde olduğu için alınmaz) → 9 banka hesapları (güncel bakiyeyle) → 10 personeller. Ya da hepsini tek komutla: `PANEL_EMAIL=… PANEL_PASSWORD=… python3 tools/legacy/prova.py <klasör> --api https://yeslojistik.onrender.com --apply`.
 >    4. Tam yedek al.
 >
 >    Alternatif: `prova.py --api <canlı adres>` (PANEL_EMAIL/PANEL_PASSWORD ile).

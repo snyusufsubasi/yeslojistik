@@ -36,4 +36,7 @@ public class Expense : BaseEntity
     /// <summary>Firma ödediyse paranın çıktığı kasa/banka hesabı (isteğe bağlı).</summary>
     public int? CashAccountId { get; set; }
     public CashAccount? CashAccount { get; set; }
+    /// <summary>Sabit ödemeden oluştuysa o kayıt (o ay ödendi mi sorusunun cevabı).</summary>
+    public int? RecurringPaymentId { get; set; }
+    public RecurringPayment? RecurringPayment { get; set; }
 }

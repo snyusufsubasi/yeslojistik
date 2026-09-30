@@ -59,6 +59,7 @@ public class CashAccountsController(AppDbContext db, CashService cash) : Control
         var a = await db.CashAccounts.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Hesap bulunamadı.");
         var used = await db.Payments.AnyAsync(p => p.CashAccountId == id, ct) || await db.SupplierPayments.AnyAsync(p => p.CashAccountId == id, ct)
             || await db.Expenses.AnyAsync(e => e.CashAccountId == id, ct) || await db.DriverSettlements.AnyAsync(s => s.CashAccountId == id, ct)
+            || await db.StaffTransactions.AnyAsync(s => s.CashAccountId == id, ct)
             || await db.CashTransfers.AnyAsync(t => t.FromAccountId == id || t.ToAccountId == id, ct);
         if (used) throw new DomainException("Hareketi olan hesap silinemez; pasife alabilirsiniz.");
         a.IsDeleted = true;

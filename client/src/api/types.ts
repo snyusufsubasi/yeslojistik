@@ -782,3 +782,14 @@ export interface SupplierCariRow {
   tripCount: number; missingInvoiceCount: number
 }
 export interface TripTotals { count: number; sale: number; vehicleCost: number; expenses: number; profit: number; uninvoicedCount: number; uninvoicedTotal: number }
+
+export type StaffTransactionKind = 'Advance' | 'Bonus' | 'SalaryPayment'
+export interface Staff {
+  id: number; fullName: string; nationalId: string | null; phone: string | null; startDate: string | null; monthlySalary: number
+  notes: string | null; isActive: boolean; salary: number; advances: number; bonuses: number; paid: number; remaining: number
+}
+export interface StaffTransaction { id: number; staffId: number; date: string; kind: StaffTransactionKind; amount: number; note: string | null; cashAccountId: number | null; cashAccountName: string | null }
+export interface RecurringPayment {
+  id: number; title: string; detail: string | null; amount: number; dueDay: number; category: ExpenseCategory
+  cashAccountId: number | null; cashAccountName: string | null; isActive: boolean; dueDate: string; paidDate: string | null; paidAmount: number | null; lastPaidDate: string | null
+}

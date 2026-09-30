@@ -23,7 +23,8 @@ def say(s): print(s); log.append(s)
 
 ORDER = [('1-tedarikciler.xlsx', 'suppliers'), ('2-musteriler.xlsx', 'customers'), ('3-soforler.xlsx', 'drivers'),
          ('4-araclar.xlsx', 'vehicles'), ('5-seferler.xlsx', 'trips'), ('6-devir-tahsilatlari.xlsx', 'payments'),
-         ('7-devir-odemeleri.xlsx', 'supplier-payments'), ('8-giderler.xlsx', 'expenses'), ('9-banka-hesaplari.xlsx', 'cash-accounts')]
+         ('7-devir-odemeleri.xlsx', 'supplier-payments'), ('8-giderler.xlsx', 'expenses'), ('9-banka-hesaplari.xlsx', 'cash-accounts'),
+         ('10-personeller.xlsx', 'staff')]
 # Panel hata mesajındaki ipucu → boşaltılacak sütun
 DROPPABLE = [('VKN', 'VKN/TCKN'), ('telefon', 'Telefon'), ('e-posta', 'E-posta'), ('IBAN', 'IBAN'), ('il seçin', 'İl'), ('TC kimlik', 'TC Kimlik No')]
 
