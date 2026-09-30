@@ -29,6 +29,7 @@ const navGroups: { title?: string; items: NavItem[] }[] = [
     { to: '/harita', label: 'Araç Takip Haritası', hint: 'Araçlar şu an nerede', icon: MapIcon },
   ] },
   { title: 'Sefer İşleri', items: [
+    { to: '/is-talepleri', label: 'İş Talepleri', hint: 'Araç atanmadan gelen işler', icon: FileText },
     { to: '/seferler', label: 'Seferler', hint: 'Yük aç, durum güncelle', icon: Truck,
       badge: (d) => badge(d?.activeTripCount ?? 0, 'blue', 'bekleyen ve yoldaki sefer') },
     { to: '/araclar', label: 'Araçlar', hint: 'Özmal ve kiralık araçlar', icon: Building2,

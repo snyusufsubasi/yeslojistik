@@ -13,6 +13,8 @@ public enum VehicleStatus { Available, OnRoad, Maintenance }
 
 public enum TripStatus { Planned, Loaded, OnRoad, Delivered, Cancelled }
 
+public enum JobRequestStatus { Pending, Cancelled, Converted }
+
 public enum InvoiceStatus { Draft, Issued, Cancelled }
 
 /// <summary>e-Arşiv: e-Fatura mükellefi olmayan alıcı. Temel/Ticari: e-Fatura mükellefi (ticaride alıcı kabul/ret verir).</summary>
