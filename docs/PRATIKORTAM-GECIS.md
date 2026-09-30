@@ -2,47 +2,36 @@
 
 > Bu belgeye veri, şifre veya kişisel bilgi yazılmaz.
 >
-> **Durum (30 Eylül):** Adım 0 bitti (PR #18, #19). Ağ izni verildi; `PRATIK_USER`/`PRATIK_PASS` yeni oturumda okunacak.
-> Hazır olanlar: salt okuma robotu `tools/legacy/crawl.mjs` (güvenlik testi `tools/legacy/crawl.test.mjs`, CI'da çalışır) ve
-> iş talebi, fatura, tahsilat, taşeron ödemesi, gider Excel aktarımları.
+> **Durum (30 Eylül gece) — kalan tek iş: veriyi canlıya yüklemek.**
+> - Kod bitti ve canlıda (main `e4784f8`, PR #21 ve #22). Panel eski panele benzer düzende: Sevkiyat / Cari / Listeler / Öz Mal / Banka & Çek menüsü,
+>   Müşteriler Cari ve Tedarikçiler Cari tabloları, Sevkiyatlar'da kazanç şeridi ve Bugün/Gelecek/Geçmiş/Bu ay hapları, Personeller ve Sabit Ödemeler.
+> - Aktarım araçları hazır ve boş veritabanında prova edildi (her müşteri ve taşeron bakiyesi eski panelle kişi kişi tuttu, ikinci yükleme çift yazmaz):
+>   `tools/legacy/extract.mjs` → `transform.py` → `prova.py`. Dosyalar 1–10: tedarikçi, müşteri, şoför, araç (öz araç bilgileriyle), sefer,
+>   devir tahsilat/ödeme, gider (mazot dahil), banka hesabı, personel.
+> - Bulut ortamının ağ izni `pratikortam.com` ve `yeslojistik.onrender.com` için açık. Ortamda `PRATIK_USER`/`PRATIK_PASS` var;
+>   canlıya yüklemek için ayrıca `PANEL_EMAIL`/`PANEL_PASSWORD` (panel yönetici hesabı) gerekir, yeni oturumda okunur.
 >
-> **Giriş yalnızca e-posta ve şifreyle** yapılır (SMS adımı atlanır; hesap SMS'i sunucu tarafında zorunlu tutuyorsa robot açık bir hata verir).
-> **Ağ Node ile yapılır** (ortamın egress proxy CA'sına Node güvenir); Chromium TLS'e güvenmediği için tarayıcı yalnız
-> HTML'i AĞSIZ ayrıştırmada kullanılır (setContent + route abort). Çalıştırma:
-> `node tools/legacy/crawl.mjs --out <scratchpad>/pratik --max 400`.
-> Çıktı (`site-map.json`, sayfa HTML'leri, `islemler/*` okuma uçlarının cevapları) repo dışında kalır; `--out` repo içi yol olursa reddedilir.
+> **Giriş yalnızca e-posta ve şifreyle** yapılır (SMS adımı atlanır). **Ağ Node ile yapılır** (ortamın egress proxy CA'sına Node güvenir);
+> tarayıcı yalnız HTML'i ağsız ayrıştırmada kullanılır. Çıktılar repo dışında (scratchpad) kalır; `--out` repo içi yol olursa reddedilir.
 >
-> **30 Eylül taraması (yapı, veri değil):** Giriş e-posta/şifreyle çalıştı, 12 örnek sayfa okundu, 182 tehlikeli adres atlandı, hiçbir şey değişmedi. Eşleşme:
-> - `firma_liste.php` (≈102 firma) → **Müşteriler** (Firma, VKN/TCKN, VD, E-Posta, Telefon, İl/İlçe, Yetkili)
-> - `tedarikci_liste.php` (≈42) → **Tedarikçiler** (Ünvan, VKN/TCKN, VD, IBAN, E-Posta, Telefon, İl/İlçe, Yetkili)
-> - `sofor_liste.php` (≈42) → **Şoförler** (Durum, Not, Fatura Başlığı, Şoför, Plaka, Telefon, Ehliyet, TC, GSM)
-> - `gecmis_new.php` → **Seferler** (Firma, Şoför, Araç, Ürün, Yükleme/İndirme Noktası, Fiyat, Komisyon, Masraf, Fatura); filtreleri iş talebi/sefer alanlarımızla birebir örtüşüyor
-> - `alck_mstr.php` / `alck_tdrkc.php` → **cari bakiyeler** (kesilen/alınan/iptal fatura, faturasız sevkiyat, alınan/verilen ödeme, bakiye)
-> - `tedarikci_odemeleri.php` → **taşeron ödemeleri**; `oz_arac/…` → **özmal araçlar**
+> ## Canlıya yükleme: adım adım (yeni oturumda)
+> `pip install --user openpyxl` gerekir. Tüm çıktılar scratchpad'e yazılır, repoya girmez.
+> 0. **Kayıt dondurma:** Kuzen pratikortam'a kayıt girmeyi bırakır ve yükleme + mutabakat bitene kadar girmez.
+>    Aktarım tek seferlik bir anlık görüntüdür; indirmeden sonra eski panelde yapılan değişiklik yeni panele geçmez.
+> 1. Güncel veriyi indir: `node tools/legacy/extract.mjs --out <scratchpad>/pratik`
+>    (taşeron carisi dahil; `crawl.mjs` taraması artık gerekmez).
+> 2. Dönüştür: `python3 tools/legacy/transform.py <scratchpad>/pratik` → `aktar/1-…10-*.xlsx` ve `rapor.txt` (mutabakat).
+>    Faturası beklenen bir sefer dönüştürülemezse araç durur.
+> 3. İstersen önce yerelde boş veritabanında prova: `python3 tools/legacy/prova.py <scratchpad>/pratik --api http://localhost:5090 --apply`.
+> 4. Canlı: `POST /api/auth/token` ile giriş; `GET /api/admin/backup?files=true` ile tam yedeği scratchpad'e indir.
+> 5. `GET /api/dashboard` → `setup.sampleData` true ise (demo veri) `POST /api/settings/reset-data {"confirm":"SİL"}` (paneldeki "Demo verilerini temizle").
+>    Demo olmayan kayıt varsa **dur, kullanıcıya sor**.
+> 6. Yükle: `PANEL_EMAIL=… PANEL_PASSWORD=… python3 tools/legacy/prova.py <scratchpad>/pratik --api https://yeslojistik.onrender.com --apply`
+>    Her dosya önce deneme (dryRun) sonra gerçek yüklenir; sonuç "KİŞİ KİŞİ MUTABAKAT: hepsi tuttu" olmalı.
+> 7. Tekrar tam yedek al; kullanıcıya pratikortam ve panel şifrelerini ortamdan silmesini hatırlat.
 >
-> **30 Eylül — veri hazır ve prova edildi.** Eski panelin kendi Excel dışa aktarımları indirildi:
-> 154 firma, 129 tedarikçi, 134 şoför, 205 sefer (5 Ağu–29 Eyl), müşteri ve taşeron carileri.
-> Boş bir veritabanına prova aktarımı yapıldı. Her müşteri ve her taşeron bakiyesi eski panelle **kişi kişi birebir tuttu**.
->
-> ## Geçiş günü: adım adım
-> Komutlar bulut oturumunda çalışır. `PRATIK_USER`/`PRATIK_PASS` ortamda olmalı; `pip install openpyxl` gerekir.
-> 1. Kuzen o gün pratikortam'a kayıt girmeyi bırakır.
-> 2. `node tools/legacy/extract.mjs --out <scratchpad>/pratik-full`
->    Güncel dışa aktarımları indirir.
-> 3. `node tools/legacy/crawl.mjs --out <scratchpad>/pratik-full --max 60`
->    Taşeron cari sayfası için gerekli.
-> 4. `python3 tools/legacy/transform.py <scratchpad>/pratik-full`
->    `aktar/1-…7-*.xlsx` dosyalarını ve `rapor.txt` mutabakatını üretir.
-> 5. Yerel provayı boş bir veritabanında yap:
->    `python3 tools/legacy/prova.py <scratchpad>/pratik-full --api http://localhost:5090 --apply`
->    Sonuç "KİŞİ KİŞİ MUTABAKAT: hepsi tuttu" olmalı. Panelin reddettiği alanları (geçersiz telefon, VKN vb.) boşaltır ve dosyaları günceller.
-> 6. Canlıya yükle:
->    1. Ayarlar → Veriler → tam yedek al.
->    2. Demo verileri temizle.
->    3. `aktar/` dosyalarını sırayla ilgili sayfalardaki "Excel'den Aktar" ile yükle: 1 tedarikçi → 2 müşteri → 3 şoför → 4 araç → 5 sefer → 6/7 devir tahsilat/ödeme → 8 giderler (mazot dahil; taşeron ödemeleri ve mahsuplaşmalar cari devrinde olduğu için alınmaz) → 9 banka hesapları (güncel bakiyeyle) → 10 personeller. Ya da hepsini tek komutla: `PANEL_EMAIL=… PANEL_PASSWORD=… python3 tools/legacy/prova.py <klasör> --api https://yeslojistik.onrender.com --apply`.
->    4. Tam yedek al.
->
->    Alternatif: `prova.py --api <canlı adres>` (PANEL_EMAIL/PANEL_PASSWORD ile).
+> Elle yükleme de olur: dosyaları sırayla ilgili sayfalardaki "Excel'den Aktar" ile (9: Kasa / Banka, 10: Personeller sayfasından).
+> Giderlerde taşeron ödemeleri ve mahsuplaşmalar alınmaz; bunlar cari devrinde zaten var.
 >
 > **Bakiye kuralı.** Aynı kural `transform.py` başındaki açıklamada da yazılı.
 > - **Müşteri devri:** kesilen fatura − alınan ödeme.
