@@ -11,6 +11,7 @@ const JobRequestsPage = lazy(() => import('./pages/JobRequestsPage'))
 const VehiclesPage = lazy(() => import('./pages/VehiclesPage'))
 const DriversPage = lazy(() => import('./pages/DriversPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
+const CariPage = lazy(() => import('./pages/CariPage'))
 const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'))
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'))
 const SupplierPaymentsPage = lazy(() => import('./pages/SupplierPaymentsPage'))
@@ -78,6 +79,8 @@ export default function App() {
           <Route path="soforler" element={<DriversPage />} />
           <Route path="musteriler" element={<CustomersPage />} />
           <Route path="musteriler/:id" element={<CustomerDetailPage />} />
+          <Route path="cari/musteriler" element={<Guard perm="accounting"><CariPage key="c" kind="customers" /></Guard>} />
+          <Route path="cari/tedarikciler" element={<Guard perm="accounting"><CariPage key="s" kind="suppliers" /></Guard>} />
           <Route path="tedarikciler" element={<SuppliersPage />} />
           <Route path="tedarikciler/:id" element={<SupplierDetailPage />} />
           <Route path="faturalar" element={<InvoicesPage />} />

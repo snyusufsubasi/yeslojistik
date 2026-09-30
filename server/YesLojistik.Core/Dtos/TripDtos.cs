@@ -50,3 +50,6 @@ public record TripRouteHint(int Count, decimal AvgSalePrice, decimal AvgVehicleC
 /// <summary>Yeni sefer formu için öneriler: son sefer, kayıtlı adresler, sık yük cinsleri, güzergâh fiyatı.</summary>
 public record TripHintsDto(TripDto? LastTrip, IReadOnlyList<TripAddressHint> LoadingAddresses, IReadOnlyList<TripAddressHint> DeliveryAddresses,
     IReadOnlyList<string> CargoTypes, TripRouteHint? Route);
+
+/// <summary>Sefer listesindeki süzgece uyan seferlerin toplamı (eski paneldeki "Kazanç Tablosu"). İptal edilen seferler sayılmaz.</summary>
+public record TripTotalsDto(int Count, decimal Sale, decimal VehicleCost, decimal Expenses, decimal Profit, int UninvoicedCount, decimal UninvoicedTotal);

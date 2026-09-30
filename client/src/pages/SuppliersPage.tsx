@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
 import { Plus, Truck } from 'lucide-react'
 import type { Supplier, SupplierKind } from '../api/types'
 import { ImportButton } from '../components/ImportDialog'
@@ -12,6 +13,7 @@ import { supplierKindLabel } from '../lib/labels'
 
 export default function SuppliersPage() {
   const navigate = useNavigate()
+  const { can } = useAuth()
   const [search, setSearch] = useState('')
   const [kind, setKind] = useState<SupplierKind | ''>('')
   const [sort, setSort] = useState({ key: 'title', desc: false })
@@ -39,6 +41,7 @@ export default function SuppliersPage() {
     <>
       <PageHeader title="Tedarikçiler" subtitle="Taşeron araç sahipleri, servisler ve akaryakıt istasyonları · firmanın borçlu olduğu taraflar"
         actions={<>
+          {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/tedarikciler')}>Cari Tablosu</Button>}
           <ImportButton entity="suppliers" />
           <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Tedarikçi</Button>
         </>} />

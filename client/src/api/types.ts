@@ -769,3 +769,16 @@ export interface TripHints {
   cargoTypes: string[]
   route?: TripRouteHint | null
 }
+
+/** Cari tablosu satırları (/api/cari/customers, /api/cari/suppliers). */
+export interface CustomerCariRow {
+  id: number; customerNo: string; title: string; taxNumber: string | null; phone: string | null
+  opening: number; invoiced: number; collected: number; balance: number; overdue: number
+  uninvoicedTripCount: number; uninvoicedTrips: number
+}
+export interface SupplierCariRow {
+  id: number; supplierNo: string; title: string; taxNumber: string | null; phone: string | null
+  opening: number; tripCost: number; creditExpenses: number; paid: number; balance: number; overdue: number
+  tripCount: number; missingInvoiceCount: number
+}
+export interface TripTotals { count: number; sale: number; vehicleCost: number; expenses: number; profit: number; uninvoicedCount: number; uninvoicedTotal: number }

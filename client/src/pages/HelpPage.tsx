@@ -38,7 +38,7 @@ export default function HelpPage() {
       <div className="space-y-3">
         <Section icon={<Truck className="size-5" />} title="Günlük iş akışı" open>
           <Steps items={[
-            <>Sefer açın: <L to="/seferler?new=1">Seferler → Yeni Sefer</L>. Müşteri, araç, il ve adresler, yük bilgisi ve fiyatları girin; tahmini kâr hemen görünür. Müşterinin sipariş numarasını “Müşteri Referans No”ya yazarsanız faturaya da basılır.</>,
+            <>Sefer açın: <L to="/seferler?new=1">Sevkiyatlar → Yeni Sefer</L>. Müşteri, araç, il ve adresler, yük bilgisi ve fiyatları girin; tahmini kâr hemen görünür. Müşterinin sipariş numarasını “Müşteri Referans No”ya yazarsanız faturaya da basılır.</>,
             <>Sefer ilerledikçe listedeki düğmeyle durumu güncelleyin (ya da şoför mobil uygulamadan günceller).</>,
             <>Masrafları <L to="/giderler">Giderler</L> sayfasından girin; sefere bağlarsanız o seferin kârından düşülür.</>,
             <>Sefer bitince <L to="/faturalar/yeni">Faturalar → Yeni Fatura</L> ile müşteriyi seçin, teslim edilen seferler kendiliğinden işaretlenir.</>,

@@ -10,7 +10,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   const receivableBefore = await page.getByRole('button', { name: /Tahsilat Bekleyen/ }).innerText()
 
   // Müşteri
-  await page.getByRole('link', { name: 'Müşteriler / Cari', exact: true }).click()
+  await page.getByRole('link', { name: 'Müşteriler', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Müşteri' }).click()
   const custDialog = page.getByRole('dialog', { name: 'Yeni Müşteri' })
   await custDialog.getByLabel('Ünvan').fill(customer)
@@ -42,7 +42,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await expect(page.getByText('Araç eklendi.')).toBeVisible()
 
   // Sefer
-  await page.getByRole('link', { name: 'Seferler', exact: true }).click()
+  await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Sefer' }).click()
   const tripDialog = page.getByRole('dialog', { name: 'Sefer Oluştur' })
   await pick(tripDialog.locator('input[name=customerId]'), customer)
@@ -93,7 +93,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await invDialog.getByRole('button', { name: 'Kapat' }).click()
 
   // Cari kartı
-  await page.getByRole('link', { name: 'Müşteriler / Cari', exact: true }).click()
+  await page.getByRole('link', { name: 'Müşteriler', exact: true }).click()
   await page.getByPlaceholder('Ünvan, VKN, telefon...').fill(customer)
   await page.getByRole('row', { name: new RegExp(customer) }).click()
   await expect(page.getByText('29.000,00 TL').first()).toBeVisible()
@@ -140,7 +140,7 @@ test('yardım sayfası ve kontrol listesi bağlantıları', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Yardım' })).toBeVisible()
   await page.getByText('Sık sorulanlar').click()
   await expect(page.getByText('Şifremi unuttum.')).toBeVisible()
-  await page.getByRole('link', { name: 'Seferler → Yeni Sefer' }).click()
+  await page.getByRole('link', { name: 'Sevkiyatlar → Yeni Sefer' }).click()
   await expect(page.getByRole('dialog', { name: 'Sefer Oluştur' })).toBeVisible()
 })
 
@@ -246,7 +246,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await vd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Araç eklendi.')).toBeVisible()
 
-  await page.getByRole('link', { name: 'Seferler', exact: true }).click()
+  await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Sefer' }).click()
   const td = page.getByRole('dialog', { name: 'Sefer Oluştur' })
   await pick(td.locator('input[name=customerId]'), 'Yıldız Mobilya')
@@ -299,7 +299,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await expect(page.getByText('Ödeme kaydedildi.')).toBeVisible()
   await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('9.000,00')
   await expectPdfOpens(page, () => page.getByRole('button', { name: 'Hesap Ekstresi' }).click(), /\/api\/suppliers\/\d+\/statement$/)
-  await page.getByRole('link', { name: 'Ödemeler', exact: true }).click()
+  await page.getByRole('link', { name: 'Tedarikçi Ödemeleri', exact: true }).click()
   await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) }).first()).toContainText('6.000')
 
   await page.goto('/ayarlar?tab=data')

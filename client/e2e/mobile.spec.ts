@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { login } from './helpers'
 
-const pages = ['/', '/seferler', '/araclar', '/harita', '/musteriler', '/faturalar', '/tahsilatlar', '/giderler', '/raporlar', '/ayarlar', '/yardim']
+const pages = ['/', '/seferler', '/araclar', '/harita', '/musteriler', '/cari/musteriler', '/cari/tedarikciler', '/faturalar', '/tahsilatlar', '/giderler', '/raporlar', '/ayarlar', '/yardim']
 
 test('mobil genişlikte yatay kaydırma yok ve menü çalışıyor', async ({ page }) => {
   await login(page)
@@ -15,6 +15,6 @@ test('mobil genişlikte yatay kaydırma yok ve menü çalışıyor', async ({ pa
     await page.screenshot({ path: `e2e/screenshots/mobile${path === '/' ? '-home' : path.replace('/', '-')}.png`, fullPage: true })
   }
   await page.getByRole('button', { name: 'Menüyü aç' }).click()
-  await page.getByRole('link', { name: 'Seferler', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Seferler' })).toBeVisible()
+  await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Sevkiyatlar' })).toBeVisible()
 })

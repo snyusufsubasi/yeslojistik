@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
 import { Plus, Users } from 'lucide-react'
 import type { Customer } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
@@ -11,6 +12,7 @@ import { useDebounce, usePaged, usePage, useOpenNewFromUrl } from '../lib/hooks'
 
 export default function CustomersPage() {
   const navigate = useNavigate()
+  const { can } = useAuth()
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState({ key: 'title', desc: false })
   const [creating, setCreating] = useState(false)
@@ -37,8 +39,9 @@ export default function CustomersPage() {
 
   return (
     <>
-      <PageHeader title="Müşteriler / Cari" subtitle="Müşteri kartları ve cari bakiyeler"
+      <PageHeader title="Müşteriler" subtitle="Müşteri kartları. Bütün bakiyeleri tek tabloda görmek için “Cari Tablosu”."
         actions={<>
+          {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/musteriler')}>Cari Tablosu</Button>}
           <ImportButton entity="customers" />
           <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>
         </>} />
