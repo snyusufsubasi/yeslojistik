@@ -14,19 +14,40 @@ function runCrawler(out, base, env = {}) {
     { timeout: 120000, env: { ...process.env, ...env } }, (err, stdout, stderr) => (err ? rej(new Error(stderr || err.message)) : res(stdout))))
 }
 
+// Girişli sahte panel: çerezsiz anasayfa girişe yönlenir; giris_yap.php POST'u çerez kurar.
+// Sayfalarda tehlikeli linkler, form gönderimi, img ile silme ucu ve betik içi (güvenli/tehlikeli) okuma uçları var.
 const pages = {
-  '/zz_revize/anasayfa.php': `<h1>Ana Sayfa</h1>
+  'giris.php': `<input id="kullanici_adi"><input id="sifre" type="password">`,
+  'anasayfa.php': `<h1>Ana Sayfa</h1>
     <a href="musteriler.php">Müşteriler</a> <a href="musteri_ekle.php">Yeni Müşteri</a> <a href="cikis.php">Çıkış</a>
     <img src="islemler/sayac_sil.php">
     <form id="f" method="post" action="islemler/kaydet.php"><input name="x" value="1"></form>
-    <script>document.getElementById('f').submit(); fetch('islemler/liste.php?tur=musteri'); fetch('islemler/guncelle.php', { method: 'POST' })</script>`,
-  '/zz_revize/musteriler.php': `<table><thead><tr><th>Ünvan</th><th>Bakiye</th><th></th></tr></thead>
+    <script>
+      $.ajax({ url: 'islemler/liste.php?tur=musteri' });
+      fetch('islemler/guncelle.php', { method: 'POST' });
+    </script>`,
+  'musteriler.php': `<table><thead><tr><th>Ünvan</th><th>Bakiye</th><th></th></tr></thead>
     <tbody><tr><td>ABC</td><td>100</td><td><a href="musteri_duzenle.php?id=1">Düzenle</a> <a href="musteri_sil.php?id=1">Sil</a>
       <a href="musteri_duzenle.php?id=1&durum=pasif">Pasif yap</a></td></tr></tbody></table>
     <a href="musteriler.php?sayfa=2">2</a>`,
-  '/zz_revize/musteri_ekle.php': `<form method="post"><label for="u">Ünvan</label><input id="u" name="unvan" required>
+  'musteri_ekle.php': `<form method="post"><label for="u">Ünvan</label><input id="u" name="unvan" required>
     <select name="il"><option>İstanbul</option><option>Ankara</option></select><button>Kaydet</button></form>`,
-  '/zz_revize/musteri_duzenle.php': '<form><input name="unvan" value="ABC"></form>',
+  'musteri_duzenle.php': '<form><input name="unvan" value="ABC"></form>',
+  'islemler/liste.php': '[{"unvan":"ABC","bakiye":100}]',
+}
+
+function panelServer(hits) {
+  return createServer((req, res) => {
+    hits.push(`${req.method} ${req.url}`)
+    const path = req.url.split('?')[0].replace('/zz_revize/', '')
+    const authed = (req.headers.cookie || '').includes('auth=1')
+    if (path === 'islemler/giris_yap.php' && req.method === 'POST') {
+      res.writeHead(200, { 'content-type': 'text/plain', 'set-cookie': 'auth=1; Path=/' }); return res.end('1')
+    }
+    if (path === 'anasayfa.php' && !authed) { res.writeHead(302, { location: 'giris.php' }); return res.end() }
+    if (pages[path] != null) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(pages[path]) }
+    res.writeHead(404); res.end('yok')
+  })
 }
 
 test('URL kuralları: silme, iptal, çıkış ve değer taşıyan güncelleme yasak', () => {
@@ -40,25 +61,27 @@ test('URL kuralları: silme, iptal, çıkış ve değer taşıyan güncelleme ya
   assert.ok(!isSafeUrl('islemler/sayac_sil.php', b, true), 'arka plan silme yasak')
 })
 
-test('robot sahte panelde hiçbir silme/kaydetme isteği göndermez', async () => {
+test('e-posta/şifre ile giriş (SMS yok) ve tek yazma isteği giriştir; silme/kaydetme gönderilmez', async () => {
   const hits = []
-  const server = createServer((req, res) => {
-    hits.push(`${req.method} ${req.url}`)
-    const path = req.url.split('?')[0]
-    res.writeHead(pages[path] ? 200 : 404, { 'content-type': 'text/html; charset=utf-8' })
-    res.end(pages[path] ?? 'yok')
-  })
+  const server = panelServer(hits)
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   const out = mkdtempSync(join(tmpdir(), 'crawl-'))
   const base = `http://127.0.0.1:${server.address().port}/zz_revize/`
   try {
-    await runCrawler(out, base)
+    await runCrawler(out, base, { PRATIK_USER: 'a@b.com', PRATIK_PASS: 'sifre' })
   } finally {
     server.close()
   }
-  const bad = hits.filter((h) => !h.startsWith('GET ') || /sil|kaydet|guncelle|cikis|durum=pasif/.test(h))
-  assert.deepEqual(bad, [], `yasak istekler sunucuya ulaştı: ${bad.join(', ')}`)
-  assert.ok(hits.includes('GET /zz_revize/islemler/liste.php?tur=musteri'), 'liste okuması yapılmalı')
+  // Tek yazma isteği: giriş POST'u. Başka hiçbir yazma isteği yok.
+  const writes = hits.filter((h) => !h.startsWith('GET '))
+  assert.deepEqual(writes, ['POST /zz_revize/islemler/giris_yap.php'], `beklenmeyen yazma isteği: ${writes.join(', ')}`)
+  // SMS ucu hiç çağrılmadı; hiçbir tehlikeli adres sunucuya ulaşmadı.
+  assert.ok(!hits.some((h) => h.includes('tlfn_st.php')), 'SMS ucu çağrılmamalı')
+  const bad = hits.filter((h) => /sil|iptal|kaydet|guncelle|cikis|durum=pasif/.test(h))
+  assert.deepEqual(bad, [], `tehlikeli adres sunucuya ulaştı: ${bad.join(', ')}`)
+  // Listeyi dolduran güvenli okuma ucu çekildi.
+  assert.ok(hits.some((h) => h.startsWith('GET /zz_revize/islemler/liste.php')), 'liste okuma ucu çekilmeli')
+
   const map = JSON.parse(readFileSync(join(out, 'site-map.json'), 'utf8'))
   const visited = map.pages.map((p) => new URL(p.url).pathname)
   for (const p of ['anasayfa.php', 'musteriler.php', 'musteri_ekle.php', 'musteri_duzenle.php']) assert.ok(visited.includes(`/zz_revize/${p}`), p)
@@ -67,46 +90,9 @@ test('robot sahte panelde hiçbir silme/kaydetme isteği göndermez', async () =
   assert.deepEqual(form.fields[1].options, ['İstanbul', 'Ankara'])
   const table = map.pages.find((p) => p.url.endsWith('musteriler.php')).tables[0]
   assert.deepEqual(table.headers, ['Ünvan', 'Bakiye', ''])
-  assert.ok(map.blocked.length >= 2, 'engellenen istekler kaydedilmeli')
-})
-
-test('e-posta/şifre ile giriş (SMS yok) ve giriş sayfası betiği tehlikeli GET gönderemez', async () => {
-  const hits = []
-  const authed = (req) => (req.headers.cookie || '').includes('auth=1')
-  const server = createServer((req, res) => {
-    hits.push(`${req.method} ${req.url}`)
-    const path = req.url.split('?')[0]
-    if (path === '/zz_revize/anasayfa.php' && !authed(req)) { res.writeHead(302, { location: 'giris.php' }); return res.end() }
-    if (path === '/zz_revize/anasayfa.php') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end('<h1>Ana Sayfa</h1><a href="musteriler.php">Müşteriler</a>') }
-    if (path === '/zz_revize/musteriler.php') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end('<table><thead><tr><th>Ünvan</th></tr></thead><tbody><tr><td>ABC</td></tr></tbody></table>') }
-    if (path === '/zz_revize/islemler/giris_yap.php') { res.writeHead(200, { 'content-type': 'text/plain', 'set-cookie': 'auth=1; Path=/' }); return res.end('1') }
-    if (path === '/zz_revize/giris.php') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      // Giriş sayfasının kendi betiği kimlik doğrulamadan ÖNCE tehlikeli GET denemeleri yapar; hiçbiri sunucuya ulaşmamalı.
-      return res.end(`<input id="kullanici_adi"><input id="sifre" type="password">
-        <script>
-          fetch('musteri_sil.php?id=1'); new Image().src = 'islemler/kayit_sil.php'; fetch('iptal.php?id=2');
-          window.giris = function () { fetch('islemler/giris_yap.php', { method: 'POST' }).then(function () { location.href = 'anasayfa.php' }) }
-        </script>`)
-    }
-    res.writeHead(404); res.end('yok')
-  })
-  await new Promise((r) => server.listen(0, '127.0.0.1', r))
-  const out = mkdtempSync(join(tmpdir(), 'crawl-login-'))
-  const base = `http://127.0.0.1:${server.address().port}/zz_revize/`
-  try {
-    await runCrawler(out, base, { PRATIK_USER: 'a@b.com', PRATIK_PASS: 'sifre' })
-  } finally {
-    server.close()
-  }
-  // Giriş yapıldı: korumalı sayfa gezildi.
-  const map = JSON.parse(readFileSync(join(out, 'site-map.json'), 'utf8'))
-  assert.ok(map.pages.some((p) => p.url.endsWith('musteriler.php')), 'giriş sonrası müşteriler sayfası gezilmeli')
-  // SMS ucu hiç çağrılmadı; tehlikeli GET'lerin hiçbiri (giriş sırasında bile) sunucuya ulaşmadı.
-  assert.ok(!hits.some((h) => h.includes('tlfn_st.php')), 'SMS ucu çağrılmamalı')
-  const bad = hits.filter((h) => /sil|iptal/.test(h))
-  assert.deepEqual(bad, [], `giriş sayfası betiğinin tehlikeli GET'i sunucuya ulaştı: ${bad.join(', ')}`)
-  assert.ok(hits.includes('POST /zz_revize/islemler/giris_yap.php'), 'asıl giriş POST edilmeli')
+  // Ana sayfadan liste ucu çekilip dosyaya yazıldı; tehlikeli uç (guncelle) engellendi olarak kaydedildi.
+  assert.ok(map.pages.find((p) => p.url.endsWith('anasayfa.php')).dataFiles.length >= 1, 'okuma ucu dosyası olmalı')
+  assert.ok(map.blocked.some((b) => /guncelle/.test(b)), 'tehlikeli uç engellenmiş olarak kaydedilmeli')
 })
 
 test('--out repo içindeyse reddedilir', () => {

@@ -4,11 +4,14 @@
 //   node tools/legacy/crawl.mjs --out <repo dışı klasör> [--max 400] [--base https://pratikortam.com/zz_revize/]
 // Giriş yalnızca e-posta ve şifreyle yapılır (SMS adımı atlanır). Hesap SMS'i zorunlu tutuyorsa robot açık bir hata verir.
 //
+// Ağ ve ayrıştırma ayrımı:
+//  - Bütün ağ istekleri Node ile yapılır (ortamın egress proxy'sine ait CA'ya Node zaten güvenir).
+//  - HTML, tarayıcıya AĞSIZ yüklenir (setContent + route abort); tarayıcı hiçbir isteği kendi başına gönderemez.
+//
 // Güvenlik kuralları (kodda zorunlu):
-//  - Giriş isteği dışında hiçbir POST/PUT/PATCH/DELETE gönderilmez (page.route ile engellenir).
-//  - Adresinde sil/delete/kaldır/iptal/güncelle/kaydet/ekle/onay/çıkış geçen linklere GET bile yapılmaz.
-//  - Bu filtre giriş sırasında da açıktır: giriş sayfasının kendi betiği bile tehlikeli bir GET gönderemez.
-//  - Düğmelere tıklanmaz; yalnız linkler izlenir. Saniyede en fazla 1 sayfa açılır.
+//  - Tek yazma isteği giriştir (islemler/giris_yap.php POST). Başka hiçbir POST/PUT/PATCH/DELETE gönderilmez.
+//  - Adresinde sil/kaldır/iptal/güncelle/kaydet/ekle/onay/çıkış geçen linklere GET bile yapılmaz.
+//  - Yalnız linkler ve listeleri dolduran okuma uçları izlenir; saniyede en fazla 1 sayfa.
 //  - Şifre hiçbir yere yazılmaz; çıktılar repo dışındaki --out klasörüne gider (repo içi yol reddedilir).
 import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
@@ -34,22 +37,22 @@ const OUT = args.out
 const MAX = Number(args.max ?? 400)
 const PER_TEMPLATE = Number(args.samples ?? 3)
 const LOGIN_PATHS = ['giris.php', 'cikis.php', 'islemler/tlfn_st.php', 'islemler/giris_yap.php']
-// Giriş sırasında serbest bırakılanlar: yalnız asıl kimlik doğrulama POST'u ve giriş sayfasına gezinme. SMS ucu (tlfn_st.php) yok.
-const LOGIN_POSTS = ['islemler/giris_yap.php']
-const LOGIN_NAV = ['giris.php']
+/** Tek yazma ucu: asıl kimlik doğrulama. SMS ucu (tlfn_st.php) kullanılmaz. */
+const LOGIN_POST = 'islemler/giris_yap.php'
 
-/** Kesinlikle değiştiren işlemler: robot bunlara hiç gitmez. */
-export const DANGEROUS = /(sil|delete|remove|kaldir|kaldır|iptal|cancel|onay|approve|cikis|çıkış|logout|reset|temizle|gonder|gönder|send|mail|sms|odendi|ödendi|aktar|kapat)/i
-/** Form sayfaları (ekle/düzenle): yalnız parametresiz ya da tek bir kimlik parametresiyle açılır; değer taşıyan istek güncelleme olabilir. */
-const FORM_PAGE = /(ekle|add|duzenle|düzenle|edit|guncelle|güncelle|update|kaydet|save|insert)/i
+/** Kesinlikle değiştiren işlemler (GET ile bile çağrılmaz): silme, iptal, çıkış ve yazma/kaydetme uçları. */
+export const DANGEROUS = /(sil|delete|remove|kaldir|kaldır|iptal|cancel|onay|approve|cikis|çıkış|logout|reset|temizle|gonder|gönder|send|mail|sms|odendi|ödendi|aktar|kapat|guncelle|güncelle|update|kaydet|save|insert)/i
+/** Yalnız form GÖSTEREN sayfalar (ekle/düzenle ekranı): parametresiz ya da tek kimlik parametresiyle açılır; asıl kaydetme ucu DANGEROUS'ta. */
+const FORM_PAGE = /(ekle|add|duzenle|düzenle|edit)/i
 const ID_KEYS = /^(id|no|kod|[a-z_]*_?id)$/i
 
 /**
- * Robotun gezinebileceği sayfa mı? `background` true ise sayfanın kendi arka plan (XHR, resim) GET isteği için bakılır:
- * listeleri dolduran islemler/*.php okumalarına izin verilir, ama aynı yasaklı kelimeler orada da geçerlidir.
+ * Robotun okuyabileceği adres mi? `background` true ise sayfanın listelerini dolduran okuma uçları (islemler/*.php)
+ * için bakılır; yasaklı kelimeler orada da geçerlidir.
  */
 export function isSafeUrl(url, base = BASE, background = false) {
-  const u = new URL(url, base)
+  let u
+  try { u = new URL(url, base) } catch { return false }
   if (u.origin !== base.origin || !u.pathname.startsWith(base.pathname)) return false
   if (!/\.php$|\/$/.test(u.pathname)) return false
   const rel = u.pathname.slice(base.pathname.length)
@@ -69,59 +72,68 @@ export const templateOf = (url) => { const u = new URL(url); return u.pathname +
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-/** Engellenen gezinme 204 ile yanıtlanır: tarayıcı bulunduğu sayfada kalır (hata sayfasına düşmez); diğer istekler iptal edilir. */
-const block = (route) => route.request().isNavigationRequest() ? route.fulfill({ status: 204, body: '' }) : route.abort('blockedbyclient')
-
-export async function guard(context, base, state) {
-  await context.route('**/*', (route) => {
-    const req = route.request()
-    const url = new URL(req.url())
-    const rel = url.pathname.slice(base.pathname.length)
-    if (req.method() !== 'GET') {
-      if (state.loggingIn && url.origin === base.origin && LOGIN_POSTS.includes(rel)) return route.continue()
-      state.blocked.push(`${req.method()} ${url.pathname}`)
-      return block(route)
+/** Basit çerez kavanozu: Set-Cookie'leri toplar, Cookie başlığı üretir. */
+class Jar {
+  constructor() { this.c = new Map() }
+  update(headers) {
+    for (const sc of headers.getSetCookie?.() ?? []) {
+      const pair = sc.split(';')[0]; const i = pair.indexOf('=')
+      if (i > 0) this.c.set(pair.slice(0, i).trim(), pair.slice(i + 1).trim())
     }
-    // Aynı sitedeki her .php GET'i (gezinme, XHR, resim) güvenlik listesinden geçmeli; css/js/resim dosyaları serbest.
-    // Giriş sırasında da açık: yalnız giriş sayfasına gezinmeye izin verilir, sayfa betiklerinin başka her GET'i yine denetlenir.
-    const php = url.origin === base.origin && /\.php$/.test(url.pathname)
-    if (!php) return route.continue()
-    const rel2 = url.pathname.slice(base.pathname.length)
-    if (state.loggingIn && req.isNavigationRequest() && LOGIN_NAV.includes(rel2)) return route.continue()
-    if (!isSafeUrl(url.href, base, !req.isNavigationRequest())) {
-      state.blocked.push(`GET ${url.pathname}${url.search}`)
-      return block(route)
-    }
-    return route.continue()
-  })
+  }
+  header() { return [...this.c].map(([k, v]) => `${k}=${v}`).join('; ') }
 }
 
-async function login(page, state) {
+/**
+ * Tek ağ noktası. GET'ler yönlendirmeyi kendimiz izleriz; giriş dışında hiçbir yazma isteğine izin verilmez.
+ * `login` yalnız giriş akışında true olur (giris.php GET'i ve giris_yap.php POST'u için).
+ */
+async function req(url, { method = 'GET', body, jar, login = false } = {}) {
+  const u = new URL(url, BASE)
+  const rel = u.pathname.slice(BASE.pathname.length)
+  if (method !== 'GET' && !(login && u.origin === BASE.origin && rel === LOGIN_POST)) {
+    throw new Error(`Yasak istek engellendi: ${method} ${u.pathname}`)
+  }
+  const headers = { Cookie: jar.header(), 'User-Agent': 'Mozilla/5.0 (compatible; yes-migration-readonly)' }
+  if (body) { headers['Content-Type'] = 'application/x-www-form-urlencoded'; headers['X-Requested-With'] = 'XMLHttpRequest' }
+  const res = await fetch(u.href, { method, headers, body, redirect: 'manual' })
+  jar.update(res.headers)
+  return res
+}
+
+async function loginFetch(jar) {
   const user = process.env.PRATIK_USER, pass = process.env.PRATIK_PASS
   if (!user || !pass) throw new Error('PRATIK_USER ve PRATIK_PASS ortam değişkenleri yok. Ortam ayarlarına ekleyip yeni oturum açın.')
-  state.loggingIn = true
-  await page.goto(new URL('giris.php', BASE).href)
-  await page.fill('#kullanici_adi', user)
-  await page.fill('#sifre', pass)
-  // SMS adımını (glck_st → tlfn_st.php) atla; doğrudan asıl kimlik doğrulamayı çağır (giris → giris_yap.php).
-  await page.evaluate(() => window.giris())
-  try {
-    await page.waitForURL(/anasayfa\.php/, { timeout: 30000 })
-  } catch {
-    throw new Error('E-posta/şifre ile giriş yapılamadı. Bilgiler hatalı olabilir ya da hesap SMS doğrulamasını zorunlu tutuyor olabilir.')
+  await req(new URL('giris.php', BASE).href, { jar, login: true }) // PHPSESSID çerezini al
+  const body = new URLSearchParams({ kullanici_adi: user, sifre: pass }).toString()
+  const res = await req(new URL('islemler/giris_yap.php', BASE).href, { method: 'POST', body, jar, login: true })
+  const txt = (await res.text()).trim()
+  if (txt === '-1') throw new Error('E-posta veya şifre hatalı.')
+  // Doğrula: anasayfa giriş sayfasına yönlendiriyorsa oturum açılmamıştır (ör. SMS zorunlu).
+  const home = await req(new URL('anasayfa.php', BASE).href, { jar, login: true })
+  const loc = home.headers.get('location') ?? ''
+  if (home.status >= 300 && home.status < 400 && /giris|cikis/.test(loc)) {
+    throw new Error('Giriş doğrulanamadı. Bilgiler hatalı olabilir ya da hesap SMS doğrulamasını zorunlu tutuyor olabilir.')
   }
-  state.loggingIn = false
   console.log('Giriş yapıldı (e-posta ve şifre).')
 }
 
-/** Sayfanın yapısını çıkarır: menü linkleri, tablolar (başlık + satır sayısı), formlar (alanlar, seçenekler), düğmeler. */
+/** HTML'i tarayıcıya ağsız yükler: göreli linkler gerçek adrese çözülsün diye <base> eklenir. */
+async function parse(page, url, html) {
+  const doc = /<head[^>]*>/i.test(html)
+    ? html.replace(/<head([^>]*)>/i, `<head$1><base href="${url}">`)
+    : `<!doctype html><html><head><base href="${url}"></head><body>${html}</body></html>`
+  await page.setContent(doc, { waitUntil: 'domcontentloaded' })
+  return describe(page)
+}
+
+/** Sayfanın yapısını çıkarır: menü linkleri, tablolar (başlık + satır sayısı), formlar (alanlar, seçenekler), okuma uçları. */
 async function describe(page) {
   return page.evaluate(() => {
     const text = (el) => (el?.innerText ?? el?.textContent ?? '').replace(/\s+/g, ' ').trim()
     const labelFor = (el) => {
       if (el.id) { const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`); if (l) return text(l) }
       const wrap = el.closest('label'); if (wrap) return text(wrap)
-      // Hemen önceki metin (başka bir alana rastlamadan); yoksa yer tutucu ya da alan adı.
       let p = el.previousElementSibling
       while (p && !text(p) && !p.matches('input,select,textarea')) p = p.previousElementSibling
       const prev = p && !p.matches('input,select,textarea') ? text(p) : ''
@@ -146,7 +158,9 @@ async function describe(page) {
         })),
         buttons: [...f.querySelectorAll('button, input[type=submit], a.btn')].map((b) => text(b) || b.value || b.title).filter(Boolean),
       })).filter((f) => f.fields.length),
-      scripts: [...document.querySelectorAll('script:not([src])')].flatMap((s) => [...s.textContent.matchAll(/url\s*:\s*["']([^"']+)["']/g)].map((m) => m[1])),
+      // Listeleri dolduran okuma uçları: satır içi betiklerdeki .php string sabitleri (jQuery ajax, fetch, load…).
+      endpoints: [...new Set([...document.querySelectorAll('script:not([src])')]
+        .flatMap((s) => [...s.textContent.matchAll(/["']([^"']*\.php(?:\?[^"']*)?)["']/g)].map((m) => m[1])))].slice(0, 40),
     }
   })
 }
@@ -155,21 +169,18 @@ async function main() {
   if (!OUT) throw new Error('--out <klasör> zorunlu (repo dışında olmalı)')
   assertOutsideRepo(OUT)
   mkdirSync(join(OUT, 'pages'), { recursive: true })
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined) })
-  const statePath = join(OUT, 'session.json')
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState: existsSync(statePath) ? statePath : undefined })
-  const state = { loggingIn: false, blocked: [] }
-  await guard(context, BASE, state)
-  const page = await context.newPage()
-  page.on('dialog', (d) => d.dismiss()) // onay kutularına her zaman "Hayır"
 
-  // Oturum açık mı? Yönlendirme olmadan ana sayfa geldiyse evet (sayfanın kendi betikleri sonradan URL'yi değiştirebilir).
-  const home = await page.goto(new URL('anasayfa.php', BASE).href, { waitUntil: 'commit' }).catch(() => null)
-  if (!home?.ok() || !/anasayfa\.php/.test(home.url())) await login(page, state)
-  await context.storageState({ path: statePath })
+  const jar = new Jar()
+  await loginFetch(jar)
+
+  // Tarayıcı yalnız ayrıştırma için; hiçbir ağ isteği yapamaz.
+  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined) })
+  const context = await browser.newContext()
+  await context.route('**/*', (route) => route.abort())
+  const page = await context.newPage()
 
   const queue = [new URL('anasayfa.php', BASE).href]
-  const seen = new Set(), perTemplate = new Map(), map = []
+  const seen = new Set(), perTemplate = new Map(), map = [], blocked = [], fetchedEndpoints = new Set()
   while (queue.length && map.length < MAX) {
     const url = queue.shift()
     if (seen.has(url) || !isSafeUrl(url)) continue
@@ -178,23 +189,45 @@ async function main() {
     if ((perTemplate.get(tpl) ?? 0) >= PER_TEMPLATE) continue
     perTemplate.set(tpl, (perTemplate.get(tpl) ?? 0) + 1)
     await sleep(1000)
-    const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch((e) => ({ error: e.message }))
-    if (/giris\.php|cikis\.php/.test(page.url())) { console.log('Oturum düştü, duruldu.'); break }
+
+    const res = await req(url, { jar }).catch((e) => ({ error: e.message }))
+    if (res.error) { blocked.push(`GET ${url} (${res.error})`); continue }
+    if (res.status >= 300 && res.status < 400 && /giris|cikis/.test(res.headers.get('location') ?? '')) {
+      console.log('Oturum düştü, duruldu.'); break
+    }
+    const html = await res.text()
     const n = String(map.length + 1).padStart(4, '0')
-    // Sayfanın kendi betiği engellenen bir gönderim başlattıysa goto "kesildi" der; sayfa yine de yerindedir.
-    const here = new URL(page.url()).pathname === new URL(url).pathname
-    const info = res?.error && !here ? { error: res.error } : await describe(page).catch((e) => ({ error: e.message }))
-    writeFileSync(join(OUT, 'pages', `${n}.html`), await page.content().catch(() => ''))
-    await page.screenshot({ path: join(OUT, 'pages', `${n}.png`), fullPage: true }).catch(() => undefined)
-    map.push({ n, url, template: tpl, ...info })
-    console.log(`${n} ${new URL(url).pathname}${new URL(url).search.slice(0, 60)}  tablolar:${info.tables?.length ?? 0} formlar:${info.forms?.length ?? 0}`)
+    const info = await parse(page, url, html).catch((e) => ({ error: e.message }))
+    writeFileSync(join(OUT, 'pages', `${n}.html`), html)
+
+    // Listeleri dolduran okuma uçlarından güvenli olanları da bir kez çek (satır verisi orada).
+    const dataFiles = []
+    for (const ep of info.endpoints ?? []) {
+      let epUrl
+      try { epUrl = new URL(ep, url).href } catch { continue }
+      if (!isSafeUrl(epUrl, BASE, true)) { if (new URL(epUrl).origin === BASE.origin) blocked.push(`ENDPOINT ${epUrl}`); continue }
+      if (fetchedEndpoints.has(epUrl)) continue
+      fetchedEndpoints.add(epUrl)
+      await sleep(300)
+      const epRes = await req(epUrl, { jar }).catch(() => null)
+      if (epRes && epRes.ok) {
+        const name = `${n}-veri-${dataFiles.length + 1}.txt`
+        writeFileSync(join(OUT, 'pages', name), `# ${epUrl}\n\n` + (await epRes.text()))
+        dataFiles.push({ url: epUrl, file: name })
+      }
+    }
+
+    map.push({ n, url, template: tpl, dataFiles, ...info })
+    console.log(`${n} ${new URL(url).pathname}${new URL(url).search.slice(0, 60)}  tablo:${info.tables?.length ?? 0} form:${info.forms?.length ?? 0} uç:${dataFiles.length}`)
     for (const l of info.links ?? []) {
-      const clean = l.href.split('#')[0]
-      if (clean && isSafeUrl(clean) && !seen.has(clean)) queue.push(clean)
+      const clean = (l.href || '').split('#')[0]
+      if (!clean) continue
+      if (isSafeUrl(clean)) { if (!seen.has(clean)) queue.push(clean) }
+      else if (new URL(clean, url).origin === BASE.origin) blocked.push(`LINK ${clean}`)
     }
   }
-  writeFileSync(join(OUT, 'site-map.json'), JSON.stringify({ base: BASE.href, crawledAt: new Date().toISOString(), pages: map, blocked: state.blocked }, null, 2))
-  console.log(`Bitti: ${map.length} sayfa, ${state.blocked.length} istek engellendi. Çıktı: ${OUT}/site-map.json`)
+  writeFileSync(join(OUT, 'site-map.json'), JSON.stringify({ base: BASE.href, crawledAt: new Date().toISOString(), pages: map, blocked }, null, 2))
+  console.log(`Bitti: ${map.length} sayfa, ${blocked.length} güvenli olmayan adres atlandı. Çıktı: ${OUT}/site-map.json`)
   await browser.close()
 }
 

@@ -6,10 +6,21 @@
 > Hazır olanlar: salt okuma robotu `tools/legacy/crawl.mjs` (güvenlik testi `tools/legacy/crawl.test.mjs`, CI'da çalışır) ve
 > iş talebi, fatura, tahsilat, taşeron ödemesi, gider Excel aktarımları.
 >
-> **Giriş yalnızca e-posta ve şifreyle** yapılır (SMS adımı `glck_st` yerine doğrudan `giris` çağrılarak atlanır).
-> Hesap SMS'i sunucu tarafında zorunlu tutuyorsa robot açık bir hata verir. Çalıştırma:
+> **Giriş yalnızca e-posta ve şifreyle** yapılır (SMS adımı atlanır; hesap SMS'i sunucu tarafında zorunlu tutuyorsa robot açık bir hata verir).
+> **Ağ Node ile yapılır** (ortamın egress proxy CA'sına Node güvenir); Chromium TLS'e güvenmediği için tarayıcı yalnız
+> HTML'i AĞSIZ ayrıştırmada kullanılır (setContent + route abort). Çalıştırma:
 > `node tools/legacy/crawl.mjs --out <scratchpad>/pratik --max 400`.
-> Çıktı (`site-map.json`, sayfa HTML'leri ve ekran görüntüleri) repo dışında kalır; `--out` repo içi bir yol olursa robot reddeder.
+> Çıktı (`site-map.json`, sayfa HTML'leri, `islemler/*` okuma uçlarının cevapları) repo dışında kalır; `--out` repo içi yol olursa reddedilir.
+>
+> **30 Eylül taraması (yapı, veri değil):** Giriş e-posta/şifreyle çalıştı, 12 örnek sayfa okundu, 182 tehlikeli adres atlandı, hiçbir şey değişmedi. Eşleşme:
+> - `firma_liste.php` (≈102 firma) → **Müşteriler** (Firma, VKN/TCKN, VD, E-Posta, Telefon, İl/İlçe, Yetkili)
+> - `tedarikci_liste.php` (≈42) → **Tedarikçiler** (Ünvan, VKN/TCKN, VD, IBAN, E-Posta, Telefon, İl/İlçe, Yetkili)
+> - `sofor_liste.php` (≈42) → **Şoförler** (Durum, Not, Fatura Başlığı, Şoför, Plaka, Telefon, Ehliyet, TC, GSM)
+> - `gecmis_new.php` → **Seferler** (Firma, Şoför, Araç, Ürün, Yükleme/İndirme Noktası, Fiyat, Komisyon, Masraf, Fatura); filtreleri iş talebi/sefer alanlarımızla birebir örtüşüyor
+> - `alck_mstr.php` / `alck_tdrkc.php` → **cari bakiyeler** (kesilen/alınan/iptal fatura, faturasız sevkiyat, alınan/verilen ödeme, bakiye)
+> - `tedarikci_odemeleri.php` → **taşeron ödemeleri**; `oz_arac/…` → **özmal araçlar**
+>
+> **Sıradaki:** tam tarama (`--max 400`) + `extract`/`transform` ile bu listeleri Excel aktarım şablonlarına dökmek.
 
 ## Bağlam
 Müşteri bugün pratikortam.com'daki (eski PHP paneli) sistemi kullanıyor ve içindeki verileri dışarı alamıyor. Bizim panelin görünüşünü beğendi; ekleme, düzenleme ve silme işlerinde oradaki yeteneklerin hepsini istiyor.
