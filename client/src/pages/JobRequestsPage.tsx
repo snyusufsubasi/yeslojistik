@@ -8,6 +8,7 @@ import { SearchSelect } from '../components/FormSelect'
 import { CustomerForm } from '../components/CustomerForm'
 import { MoreFields } from '../components/Inputs'
 import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, Modal, PageHeader, Select } from '../components/ui'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl, todayIso } from '../lib/format'
 import { useDebounce, useLookup, useOpenNewFromUrl, usePage, usePaged, useSave } from '../lib/hooks'
@@ -65,7 +66,10 @@ export default function JobRequestsPage() {
 
   return <>
     <PageHeader title="İş Talepleri" subtitle="Araç ve şoför belirlenmeden önce gelen işler"
-      actions={can('operations') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni İş Talebi</Button>} />
+      actions={can('operations') && <>
+        <ImportButton entity="job-requests" />
+        <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni İş Talebi</Button>
+      </>} />
     <Card title="İş Talebi Listesi" icon={<ClipboardList className="size-4" />} bodyClassName="p-0"
       actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, yükleme, teslimat..." />}>
       <div className="grid gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">

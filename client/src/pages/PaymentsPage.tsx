@@ -6,6 +6,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -55,6 +56,7 @@ export default function PaymentsPage() {
       <PageHeader title="Tahsilatlar" subtitle="Müşterilerden alınan ödemeler"
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/payments/export', query, 'tahsilatlar.xlsx')}>Excel</Button>
+          {can('accounting') && <ImportButton entity="payments" />}
           {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Tahsilat Ekle</Button>}
         </>} />
       <Card title="Tahsilat Listesi" icon={<Wallet className="size-4" />} bodyClassName="p-0"
