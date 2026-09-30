@@ -21,6 +21,7 @@ import { expenseCategoryIcon } from '../lib/icons'
 import { date, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { approvalStatusLabel, expenseCategoryLabel, options } from '../lib/labels'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 
 const schema = z.object({
@@ -97,6 +98,7 @@ export default function ExpensesPage() {
       <PageHeader title="Giderler" subtitle="Yakıt, bakım, otoyol ve diğer masraflar"
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/expenses/export', query, 'giderler.xlsx')}>Excel</Button>
+          <ImportButton entity="expenses" />
           <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Gider Ekle</Button>
         </>} />
       {tripId && (

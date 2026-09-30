@@ -14,7 +14,7 @@ public record ImportRowError(int Row, string Message);
 public record ImportResult(int TotalRows, int Created, int Skipped, IReadOnlyList<ImportRowError> Errors, IReadOnlyList<string> Warnings, bool DryRun);
 
 /// <summary>
-/// Excel'den toplu tedarikçi/müşteri/şoför/araç/sefer aktarımı. Önce <c>dryRun</c> ile kontrol edilir; hata yoksa kaydedilir.
+/// Excel'den toplu tedarikçi/müşteri/şoför/araç/sefer/iş talebi/fatura/tahsilat/ödeme/gider aktarımı. Önce <c>dryRun</c> ile kontrol edilir; hata yoksa kaydedilir.
 /// Hatalı satır varsa hiçbir satır kaydedilmez (yarım aktarım olmasın). Önerilen sıra: tedarikçiler → müşteriler → şoförler → araçlar → seferler.
 /// </summary>
 public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> customerValidator,
@@ -34,6 +34,13 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             "Sahiplik", "Araç Sahibi", "Dorse Plakası"],
         ["trips"] = ["Yükleme Tarihi", "Müşteri", "Plaka", "Şoför", "Yükleme İli", "Yükleme Adresi", "Teslim İli", "Teslim Adresi", "Teslim Tarihi",
             "Yük Cinsi", "Müşteri Ref No", "Araç Maliyeti", "Satış Fiyatı", "Durum", "Açıklama"],
+        ["job-requests"] = ["Tarih", "Müşteri", "Yükleme Yeri", "İndirme Yeri", "Teslim Süresi", "Yük Cinsi", "Yük Miktarı", "Araç Cinsi",
+            "Müşteri Fiyatı", "Sevkiyat Fiyatı", "Komisyon", "Şoför Primi", "Masraf", "Ödeme Müşteride", "Yükleme Evrak No", "İrsaliye No",
+            "Fatura Altı Not", "Açıklama", "Durum"],
+        ["invoices"] = ["Fatura No", "Tarih", "Vade", "Müşteri", "Matrah", "KDV Oranı", "Tevkifat", "Toplam", "Açıklama", "Durum"],
+        ["payments"] = ["Tarih", "Müşteri", "Tutar", "Yöntem", "Fatura No", "Çek/Senet No", "Banka", "Çek Vadesi", "Açıklama"],
+        ["supplier-payments"] = ["Tarih", "Tedarikçi", "Tutar", "Yöntem", "Açıklama"],
+        ["expenses"] = ["Tarih", "Kategori", "Tutar", "Plaka", "Şoför", "Tedarikçi", "Vadeli", "Litre", "Km", "Açıklama"],
     };
 
     /// <summary>Başlıkta bulunması zorunlu sütunlar.</summary>
@@ -44,6 +51,11 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["drivers"] = ["Ad Soyad"],
         ["vehicles"] = ["Plaka", "Araç Tipi"],
         ["trips"] = ["Yükleme Tarihi", "Müşteri", "Plaka", "Şoför", "Yükleme Adresi", "Teslim Adresi"],
+        ["job-requests"] = ["Tarih", "Müşteri", "Yükleme Yeri", "İndirme Yeri"],
+        ["invoices"] = ["Fatura No", "Tarih", "Müşteri", "Matrah"],
+        ["payments"] = ["Tarih", "Müşteri", "Tutar"],
+        ["supplier-payments"] = ["Tarih", "Tedarikçi", "Tutar"],
+        ["expenses"] = ["Tarih", "Kategori", "Tutar"],
     };
 
     private static readonly Dictionary<string, object[]> Examples = new()
@@ -57,6 +69,13 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             new DateTime(2027, 1, 15), "Özmal", "", "34 DRS 01"],
         ["trips"] = [new DateTime(2026, 9, 1), "Yıldız Mobilya", "34 VES 01", "Mehmet Yılmaz", "İstanbul", "Tuzla OSB", "Ankara", "Sincan OSB",
             new DateTime(2026, 9, 2), "Mobilya, 20 palet", "4500123", 18000m, 25000m, "Teslim Edildi", ""],
+        ["job-requests"] = [new DateTime(2026, 9, 1), "Yıldız Mobilya", "Tuzla OSB", "Sincan OSB", "2 gün", "Mobilya", 20m, "Tır", 25000m, 18000m,
+            500m, 750m, 0m, "Hayır", "YE-1234", "IRS-5678", "", "", "Bekliyor"],
+        ["invoices"] = ["A2026000123", new DateTime(2026, 9, 5), new DateTime(2026, 10, 5), "Yıldız Mobilya", 25000m, 20m, "2/10", 29000m,
+            "Eylül taşımaları", "Kesildi"],
+        ["payments"] = [new DateTime(2026, 9, 20), "Yıldız Mobilya", 15000m, "Havale/EFT", "A2026000123", "", "", "", "Eylül tahsilatı"],
+        ["supplier-payments"] = [new DateTime(2026, 9, 21), "Demir Nakliyat", 12000m, "Havale/EFT", "Eylül seferleri"],
+        ["expenses"] = [new DateTime(2026, 9, 3), "Yakıt", 4250m, "34 VES 01", "Mehmet Yılmaz", "", "Hayır", 110m, 421500, "Opet Tuzla"],
     };
 
     private static readonly Dictionary<string, string> Notes = new()
@@ -68,6 +87,17 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["trips"] = "Zorunlu: Yükleme Tarihi, Müşteri, Plaka, Şoför, Yükleme Adresi, Teslim Adresi. Müşteri, plaka ve şoför sistemde kayıtlı olmalı " +
             "(önce onları aktarın). Durum: Planlandı, Yüklendi, Yolda, Teslim Edildi, İptal (boşsa teslim tarihi varsa Teslim Edildi). " +
             "Aynı tarih, müşteri, plaka, teslim adresi ve satış fiyatına sahip sefer zaten varsa satır atlanır.",
+        ["job-requests"] = "Zorunlu: Tarih, Müşteri, Yükleme Yeri, İndirme Yeri. Durum: Bekliyor veya İptal (sevk edilmiş talepler sefer olarak aktarılır). " +
+            "Aynı tarih, müşteri, yükleme ve indirme yerine sahip talep zaten varsa atlanır.",
+        ["invoices"] = "Eski sistemde kesilmiş faturalar içindir; e-Fatura gönderilmez. Zorunlu: Fatura No, Tarih, Müşteri, Matrah (KDV hariç). " +
+            "KDV Oranı boşsa 20. Tevkifat: yok, 2/10 gibi. Toplam yazılırsa hesaplanan toplamla karşılaştırılır. Durum: Kesildi veya İptal. " +
+            "Aynı numaralı fatura zaten varsa atlanır.",
+        ["payments"] = "Zorunlu: Tarih, Müşteri, Tutar. Yöntem: Nakit, Havale/EFT, Kredi Kartı, Çek, Senet (boşsa Havale/EFT). " +
+            "Fatura No yazılırsa tahsilat o faturaya bağlanır (önce faturaları aktarın). Aynı tarih, müşteri, tutar ve açıklama zaten varsa atlanır.",
+        ["supplier-payments"] = "Zorunlu: Tarih, Tedarikçi, Tutar. Yöntem: Nakit, Havale/EFT, Kredi Kartı, Çek, Senet. " +
+            "Aynı tarih, tedarikçi, tutar ve açıklama zaten varsa atlanır.",
+        ["expenses"] = "Zorunlu: Tarih, Kategori, Tutar. Kategori: Yakıt, Bakım, Otoyol, Harcırah, Avans, Lastik, Sigorta, Vergi, Diğer. " +
+            "Vadeli: Evet ise tutar tedarikçiye borç yazılır (Tedarikçi zorunlu). Aynı tarih, kategori, tutar, plaka ve açıklama zaten varsa atlanır.",
     };
 
     public static byte[] Template(string entity)
@@ -99,7 +129,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         info.Cell(1, 1).Value = "“Veri” sayfasının 2. satırı örnektir; silip kendi kayıtlarınızı yazın. Başlık satırını değiştirmeyin.";
         info.Cell(2, 1).Value = "Tarihler gg.aa.yyyy biçiminde olmalı. " + Notes[entity];
         info.Cell(3, 1).Value = "Sistemde zaten kayıtlı olanlar (aynı plaka / aynı ünvan veya VKN / aynı ad soyad) atlanır.";
-        info.Cell(4, 1).Value = "Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler.";
+        info.Cell(4, 1).Value = "Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler ve İş Talepleri → " +
+            "6 Faturalar → 7 Tahsilatlar → 8 Taşeron Ödemeleri → 9 Giderler.";
         info.Column(1).Width = 120;
         using var ms = new MemoryStream();
         wb.SaveAs(ms);
@@ -131,6 +162,11 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             case "customers": await CustomersAsync(rows, ctx, ct); break;
             case "vehicles": await VehiclesAsync(rows, ctx, ct); break;
             case "trips": await TripsAsync(rows, ctx, ct); break;
+            case "job-requests": await JobRequestsAsync(rows, ctx, ct); break;
+            case "invoices": await InvoicesAsync(rows, ctx, ct); break;
+            case "payments": await PaymentsAsync(rows, ctx, ct); break;
+            case "supplier-payments": await SupplierPaymentsAsync(rows, ctx, ct); break;
+            case "expenses": await ExpensesAsync(rows, ctx, ct); break;
             default: await DriversAsync(rows, ctx, ct); break;
         }
 
@@ -390,6 +426,265 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             };
             trip.Events.Add(new TripEvent { Status = status, Source = TripEventSource.Import, OccurredAt = now, RecordedAt = now, Note = "Excel aktarımı" });
             db.Trips.Add(trip);
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task<Dictionary<string, int>> CustomerIdsAsync(CancellationToken ct)
+    {
+        var map = new Dictionary<string, int>();
+        foreach (var c in await db.Customers.Select(c => new { c.Id, c.Title, c.TaxNumber }).ToListAsync(ct))
+        {
+            map.TryAdd(Key(c.Title), c.Id);
+            if (c.TaxNumber != null) map.TryAdd(c.TaxNumber, c.Id);
+        }
+        return map;
+    }
+
+    /// <summary>Müşteriyi ünvanla ya da VKN/TCKN ile bulur.</summary>
+    private static int? FindCustomer(Dictionary<string, int> map, string? name, int row, Ctx ctx) =>
+        name != null && map.TryGetValue(name.Trim(), out var id) ? id : Lookup(map, name, "Müşteri", row, ctx);
+
+    private static decimal Positive(decimal? amount, string col) =>
+        amount is > 0 ? amount.Value : throw new FormatException($"“{col}” sıfırdan büyük olmalı.");
+
+    private static PaymentMethod Method(string? s) => s == null ? PaymentMethod.BankTransfer : Key(s) switch
+    {
+        "NAKİT" or "NAKIT" or "KASA" => PaymentMethod.Cash,
+        "HAVALE" or "EFT" or "HAVALE/EFT" or "BANKA" => PaymentMethod.BankTransfer,
+        "KREDİ KARTI" or "KREDI KARTI" or "KART" or "POS" => PaymentMethod.CreditCard,
+        "ÇEK" or "CEK" => PaymentMethod.Check,
+        "SENET" => PaymentMethod.PromissoryNote,
+        _ => throw new FormatException($"“Yöntem” Nakit, Havale/EFT, Kredi Kartı, Çek veya Senet olmalı: {s}"),
+    };
+
+    private static DateOnly Need(DateOnly? d, string col) => d ?? throw new FormatException($"“{col}” zorunlu.");
+
+    /// <summary>Eski paneldeki iş talepleri (henüz sevk edilmemiş ya da iptal edilmiş olanlar).</summary>
+    private async Task JobRequestsAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var customers = await CustomerIdsAsync(ct);
+        var existing = (await db.JobRequests.Select(j => new { j.Date, j.CustomerId, j.LoadingAddress, j.DeliveryAddress }).ToListAsync(ct))
+            .Select(j => (j.Date, j.CustomerId, Key(j.LoadingAddress), Key(j.DeliveryAddress))).ToHashSet();
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var before = ctx.Errors.Count;
+            var customerId = FindCustomer(customers, r.Str(row, "Müşteri"), n, ctx);
+            if (r.Str(row, "Müşteri") == null) ctx.Errors.Add(new ImportRowError(n, "Müşteri zorunlu."));
+            var loading = r.Str(row, "Yükleme Yeri");
+            var delivery = r.Str(row, "İndirme Yeri");
+            if (loading == null || delivery == null) ctx.Errors.Add(new ImportRowError(n, "Yükleme ve indirme yeri zorunlu."));
+            if (ctx.Errors.Count > before) return Task.CompletedTask;
+            var date = Need(r.Date(row, "Tarih"), "Tarih");
+            var status = r.Str(row, "Durum") is { } st ? Key(st) switch
+            {
+                "BEKLİYOR" or "BEKLIYOR" or "AÇIK" or "ACIK" => JobRequestStatus.Pending,
+                "İPTAL" or "IPTAL" => JobRequestStatus.Cancelled,
+                _ => throw new FormatException($"“Durum” Bekliyor veya İptal olmalı: {st}"),
+            } : JobRequestStatus.Pending;
+            if (!existing.Add((date, customerId!.Value, Key(loading!), Key(delivery!))))
+            {
+                ctx.Skip(n, $"{Formatters.Date(date)} {loading} → {delivery} talebi");
+                return Task.CompletedTask;
+            }
+            db.JobRequests.Add(new JobRequest
+            {
+                CustomerId = customerId.Value, Date = date, LoadingAddress = loading!.Trim(), DeliveryAddress = delivery!.Trim(),
+                DeliveryWindow = r.Str(row, "Teslim Süresi"), CargoType = r.Str(row, "Yük Cinsi"), CargoQuantity = r.Dec(row, "Yük Miktarı"),
+                VehicleType = r.Str(row, "Araç Cinsi"), SalePrice = r.Dec(row, "Müşteri Fiyatı"), CarrierPrice = r.Dec(row, "Sevkiyat Fiyatı"),
+                Commission = r.Dec(row, "Komisyon"), DriverBonus = r.Dec(row, "Şoför Primi"), OtherExpense = r.Dec(row, "Masraf"),
+                CustomerPays = YesNo(r.Str(row, "Ödeme Müşteride")) ?? false, LoadingDocumentNo = r.Str(row, "Yükleme Evrak No"),
+                WaybillNo = r.Str(row, "İrsaliye No"), InvoiceFooterNote = r.Str(row, "Fatura Altı Not"), Description = r.Str(row, "Açıklama"),
+                Status = status,
+            });
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    /// <summary>
+    /// Eski sistemde kesilmiş faturalar: numarası korunur, tek satır olarak yazılır, e-Fatura gönderilmez ve
+    /// firmanın fatura numarası sayacı değişmez. Toplam verilmişse hesaplanan toplamla birebir tutmalı.
+    /// </summary>
+    private async Task InvoicesAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var customers = await CustomerIdsAsync(ct);
+        var numbers = (await db.Invoices.IgnoreQueryFilters().Select(i => i.InvoiceNo).ToListAsync(ct)).Select(Key).ToHashSet();
+        var terms = await db.Customers.Where(c => c.PaymentTermDays != null).ToDictionaryAsync(c => c.Id, c => c.PaymentTermDays!.Value, ct);
+        var defaultTerm = await db.CompanySettings.Select(c => c.DefaultPaymentTermDays).FirstOrDefaultAsync(ct);
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var before = ctx.Errors.Count;
+            var no = r.Str(row, "Fatura No");
+            if (no == null) ctx.Errors.Add(new ImportRowError(n, "Fatura No zorunlu."));
+            else if (no.Length > 20) ctx.Errors.Add(new ImportRowError(n, $"Fatura No en fazla 20 karakter olabilir: {no}"));
+            var customerId = FindCustomer(customers, r.Str(row, "Müşteri"), n, ctx);
+            if (r.Str(row, "Müşteri") == null) ctx.Errors.Add(new ImportRowError(n, "Müşteri zorunlu."));
+            if (ctx.Errors.Count > before) return Task.CompletedTask;
+            var date = Need(r.Date(row, "Tarih"), "Tarih");
+            var subtotal = Positive(r.Dec(row, "Matrah"), "Matrah");
+            var vatRate = r.Dec(row, "KDV Oranı") ?? 20;
+            var tenths = r.Str(row, "Tevkifat") is { } w && Key(w) is not ("YOK" or "0" or "-")
+                ? int.TryParse(w.Split('/')[0].Trim(), out var t) && t is >= 0 and <= 10 ? t
+                    : throw new FormatException($"“Tevkifat” 2/10 gibi yazılmalı: {w}")
+                : 0;
+            InvoiceTotals totals;
+            try { totals = InvoiceCalculator.Calculate([subtotal], vatRate, tenths); }
+            catch (DomainException ex) { throw new FormatException(ex.Message); }
+            if (r.Dec(row, "Toplam") is { } given && Math.Abs(given - totals.Total) > 0.01m)
+                throw new FormatException($"Toplam tutmuyor: dosyada {given:N2}, hesaplanan {totals.Total:N2} (matrah + KDV − tevkifat).");
+            var status = r.Str(row, "Durum") is { } st ? Key(st) switch
+            {
+                "KESİLDİ" or "KESILDI" or "AKTİF" or "AKTIF" => InvoiceStatus.Issued,
+                "İPTAL" or "IPTAL" => InvoiceStatus.Cancelled,
+                _ => throw new FormatException($"“Durum” Kesildi veya İptal olmalı: {st}"),
+            } : InvoiceStatus.Issued;
+            if (!numbers.Add(Key(no!)))
+            {
+                ctx.Skip(n, $"{no} numaralı fatura");
+                return Task.CompletedTask;
+            }
+            var term = terms.TryGetValue(customerId!.Value, out var d) ? d : defaultTerm;
+            var description = r.Str(row, "Açıklama") ?? "Eski sistemden aktarılan fatura";
+            db.Invoices.Add(new Invoice
+            {
+                InvoiceNo = no!.Trim(), CustomerId = customerId.Value, Date = date, DueDate = r.Date(row, "Vade") ?? date.AddDays(term),
+                Subtotal = totals.Subtotal, VatRate = vatRate, VatAmount = totals.VatAmount, WithholdingTenths = tenths,
+                WithholdingAmount = totals.WithholdingAmount, Total = totals.Total, Status = status, Notes = "Eski sistemden aktarıldı.",
+                Lines = [new InvoiceLine { Description = description, Amount = totals.Subtotal }],
+            });
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task PaymentsAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var customers = await CustomerIdsAsync(ct);
+        var invoices = (await db.Invoices.Select(i => new { i.Id, i.InvoiceNo, i.CustomerId }).ToListAsync(ct))
+            .GroupBy(i => Key(i.InvoiceNo)).ToDictionary(g => g.Key, g => g.First());
+        var existing = (await db.Payments.Select(p => new { p.Date, p.CustomerId, p.Amount, p.Description }).ToListAsync(ct))
+            .Select(p => (p.Date, p.CustomerId, p.Amount, Key(p.Description ?? ""))).ToHashSet();
+        var today = Clock.Today;
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var before = ctx.Errors.Count;
+            var customerId = FindCustomer(customers, r.Str(row, "Müşteri"), n, ctx);
+            if (r.Str(row, "Müşteri") == null) ctx.Errors.Add(new ImportRowError(n, "Müşteri zorunlu."));
+            int? invoiceId = null;
+            if (r.Str(row, "Fatura No") is { } no)
+            {
+                if (!invoices.TryGetValue(Key(no), out var inv)) ctx.Errors.Add(new ImportRowError(n, $"Fatura bulunamadı: “{no}”. Önce faturaları aktarın."));
+                else if (customerId != null && inv.CustomerId != customerId) ctx.Errors.Add(new ImportRowError(n, $"{no} numaralı fatura başka bir müşterinin."));
+                else invoiceId = inv.Id;
+            }
+            if (ctx.Errors.Count > before) return Task.CompletedTask;
+            var date = Need(r.Date(row, "Tarih"), "Tarih");
+            var amount = Positive(r.Dec(row, "Tutar"), "Tutar");
+            var method = Method(r.Str(row, "Yöntem"));
+            var description = r.Str(row, "Açıklama");
+            if (!existing.Add((date, customerId!.Value, amount, Key(description ?? ""))))
+            {
+                ctx.Skip(n, $"{Formatters.Date(date)} {amount:N2} TL tahsilat");
+                return Task.CompletedTask;
+            }
+            var instrument = method is PaymentMethod.Check or PaymentMethod.PromissoryNote;
+            var due = instrument ? r.Date(row, "Çek Vadesi") : null;
+            db.Payments.Add(new Payment
+            {
+                CustomerId = customerId.Value, InvoiceId = invoiceId, Date = date, Amount = amount, Method = method, Description = description,
+                InstrumentNo = instrument ? r.Str(row, "Çek/Senet No") : null, Bank = instrument ? r.Str(row, "Banka") : null, InstrumentDueDate = due,
+                // Vadesi geçmiş eski çek/senet tahsil edilmiş sayılır; vadesi gelmemiş olan portföye girer.
+                InstrumentStatus = instrument ? (due != null && due >= today ? InstrumentStatus.Portfolio : InstrumentStatus.Collected) : null,
+            });
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task SupplierPaymentsAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var suppliers = await SupplierIdsAsync(ct);
+        var existing = (await db.SupplierPayments.Select(p => new { p.Date, p.SupplierId, p.Amount, p.Description }).ToListAsync(ct))
+            .Select(p => (p.Date, p.SupplierId, p.Amount, Key(p.Description ?? ""))).ToHashSet();
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var before = ctx.Errors.Count;
+            if (r.Str(row, "Tedarikçi") == null) ctx.Errors.Add(new ImportRowError(n, "Tedarikçi zorunlu."));
+            var supplierId = Lookup(suppliers, r.Str(row, "Tedarikçi"), "Tedarikçi", n, ctx);
+            if (ctx.Errors.Count > before) return Task.CompletedTask;
+            var date = Need(r.Date(row, "Tarih"), "Tarih");
+            var amount = Positive(r.Dec(row, "Tutar"), "Tutar");
+            var method = Method(r.Str(row, "Yöntem"));
+            var description = r.Str(row, "Açıklama");
+            if (!existing.Add((date, supplierId!.Value, amount, Key(description ?? ""))))
+            {
+                ctx.Skip(n, $"{Formatters.Date(date)} {amount:N2} TL ödeme");
+                return Task.CompletedTask;
+            }
+            db.SupplierPayments.Add(new SupplierPayment { SupplierId = supplierId.Value, Date = date, Amount = amount, Method = method, Description = description });
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    private static ExpenseCategory Category(string s) => Key(s) switch
+    {
+        "YAKIT" or "AKARYAKIT" or "MAZOT" => ExpenseCategory.Fuel,
+        "BAKIM" or "BAKIM/ONARIM" or "ONARIM" or "TAMİR" or "TAMIR" => ExpenseCategory.Maintenance,
+        "OTOYOL" or "KÖPRÜ" or "KOPRU" or "OTOYOL/KÖPRÜ" or "HGS" or "OGS" => ExpenseCategory.Toll,
+        "HARCIRAH" or "ŞOFÖR HARCIRAHI" or "SOFOR HARCIRAHI" => ExpenseCategory.DriverAllowance,
+        "AVANS" or "ŞOFÖR AVANSI" or "SOFOR AVANSI" => ExpenseCategory.DriverAdvance,
+        "LASTİK" or "LASTIK" => ExpenseCategory.Tire,
+        "SİGORTA" or "SIGORTA" or "KASKO" or "SİGORTA/KASKO" => ExpenseCategory.Insurance,
+        "VERGİ" or "VERGI" or "HARÇ" or "HARC" or "VERGİ/HARÇ" => ExpenseCategory.Tax,
+        "DİĞER" or "DIGER" => ExpenseCategory.Other,
+        _ => throw new FormatException($"“Kategori” tanınmadı: {s}. Yakıt, Bakım, Otoyol, Harcırah, Avans, Lastik, Sigorta, Vergi veya Diğer yazın."),
+    };
+
+    private async Task ExpensesAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var vehicles = await db.Vehicles.ToDictionaryAsync(v => v.Plate, v => v.Id, ct);
+        var drivers = (await db.Drivers.Select(d => new { d.Id, d.FullName }).ToListAsync(ct)).GroupBy(d => Key(d.FullName)).ToDictionary(g => g.Key, g => g.First().Id);
+        var suppliers = await SupplierIdsAsync(ct);
+        var existing = (await db.Expenses.Select(e => new { e.Date, e.Category, e.Amount, e.VehicleId, e.Description }).ToListAsync(ct))
+            .Select(e => (e.Date, e.Category, e.Amount, e.VehicleId, Key(e.Description ?? ""))).ToHashSet();
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var before = ctx.Errors.Count;
+            int? vehicleId = null;
+            if (r.Str(row, "Plaka") is { } plateText)
+            {
+                if (Formatters.NormalizePlate(plateText) is { } plate && vehicles.TryGetValue(plate, out var vid)) vehicleId = vid;
+                else ctx.Errors.Add(new ImportRowError(n, $"Araç bulunamadı: “{plateText}”. Önce araçları aktarın."));
+            }
+            var driverId = Lookup(drivers, r.Str(row, "Şoför"), "Şoför", n, ctx);
+            var supplierId = Lookup(suppliers, r.Str(row, "Tedarikçi"), "Tedarikçi", n, ctx);
+            var onCredit = YesNo(r.Str(row, "Vadeli")) ?? false;
+            if (onCredit && r.Str(row, "Tedarikçi") == null) ctx.Errors.Add(new ImportRowError(n, "Vadeli giderde Tedarikçi zorunlu."));
+            if (r.Str(row, "Kategori") == null) ctx.Errors.Add(new ImportRowError(n, "Kategori zorunlu."));
+            if (ctx.Errors.Count > before) return Task.CompletedTask;
+            var date = Need(r.Date(row, "Tarih"), "Tarih");
+            var category = Category(r.Str(row, "Kategori")!);
+            var amount = Positive(r.Dec(row, "Tutar"), "Tutar");
+            var description = r.Str(row, "Açıklama");
+            if (!existing.Add((date, category, amount, vehicleId, Key(description ?? ""))))
+            {
+                ctx.Skip(n, $"{Formatters.Date(date)} {amount:N2} TL gider");
+                return Task.CompletedTask;
+            }
+            db.Expenses.Add(new Expense
+            {
+                Date = date, Category = category, Amount = amount, VehicleId = vehicleId, DriverId = driverId, SupplierId = supplierId,
+                IsOnCredit = onCredit, Liters = category == ExpenseCategory.Fuel ? r.Dec(row, "Litre") : null, Odometer = r.Int(row, "Km"),
+                Description = description,
+            });
             ctx.Created++;
             return Task.CompletedTask;
         });

@@ -5,7 +5,8 @@ import { api, download, errorMessage } from '../api/client'
 import { useToast } from './Toast'
 import { Button, Modal } from './ui'
 
-type Entity = 'customers' | 'vehicles' | 'drivers' | 'suppliers' | 'trips'
+export type ImportEntity = 'customers' | 'vehicles' | 'drivers' | 'suppliers' | 'trips' | 'job-requests' | 'invoices' | 'payments' | 'supplier-payments' | 'expenses'
+type Entity = ImportEntity
 interface ImportResult {
   totalRows: number
   created: number
@@ -15,7 +16,10 @@ interface ImportResult {
   dryRun: boolean
 }
 
-const titles: Record<Entity, string> = { customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', suppliers: 'Tedarikçi', trips: 'Sefer' }
+const titles: Record<Entity, string> = {
+  customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', suppliers: 'Tedarikçi', trips: 'Sefer',
+  'job-requests': 'İş Talebi', invoices: 'Fatura', payments: 'Tahsilat', 'supplier-payments': 'Ödeme', expenses: 'Gider',
+}
 
 const hints: Partial<Record<Entity, string>> = {
   customers: '“Devir Bakiyesi” sütununa müşterinin eski sistemden devreden borcunu yazabilirsiniz.',
@@ -23,6 +27,11 @@ const hints: Partial<Record<Entity, string>> = {
   vehicles: 'Kiralık araçlarda “Araç Sahibi” sütununa tedarikçi ünvanını yazın (önce tedarikçileri aktarın).',
   drivers: 'Taşeronun şoförüyse “Tedarikçi” sütununa tedarikçi ünvanını yazın; kendi şoförünüzse boş bırakın.',
   trips: 'Geçmiş seferler içindir. Müşteri, plaka ve şoför sistemde kayıtlı olmalı. Aynı sefer iki kez aktarılmaz.',
+  'job-requests': 'Henüz sevk edilmemiş (ya da iptal edilmiş) talepler içindir. Müşteriler önce aktarılmış olmalı.',
+  invoices: 'Eski sistemde kesilmiş faturalar içindir; numarası korunur, e-Fatura gönderilmez. “Toplam” yazarsanız hesaplananla karşılaştırılır.',
+  payments: 'Müşterilerden alınan eski tahsilatlar. “Fatura No” yazarsanız o faturaya bağlanır (önce faturaları aktarın).',
+  'supplier-payments': 'Taşeronlara ve diğer tedarikçilere yapılmış eski ödemeler. Tedarikçiler önce aktarılmış olmalı.',
+  expenses: 'Eski giderler. “Vadeli: Evet” olanlar tedarikçiye borç yazılır. Plaka ve şoför sistemde kayıtlı olmalı.',
 }
 
 export function ImportButton({ entity }: { entity: Entity }) {
@@ -53,6 +62,9 @@ function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void
       if (!dryRun && !r.dryRun) {
         toast.success(`${r.created} kayıt aktarıldı.`)
         qc.invalidateQueries({ queryKey: [entity] })
+        // Fatura, tahsilat ve ödemeler cari bakiyeleri değiştirir.
+        qc.invalidateQueries({ queryKey: ['customers'] })
+        qc.invalidateQueries({ queryKey: ['suppliers'] })
         qc.invalidateQueries({ queryKey: ['dashboard'] })
       }
     },

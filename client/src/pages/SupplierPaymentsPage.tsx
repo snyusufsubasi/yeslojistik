@@ -5,6 +5,7 @@ import type { SupplierPayment } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -55,6 +56,7 @@ export default function SupplierPaymentsPage() {
       <PageHeader title="Ödemeler" subtitle="Taşeronlara, servislere ve istasyonlara yapılan ödemeler"
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/supplier-payments/export', query, 'odemeler.xlsx')}>Excel</Button>
+          {can('accounting') && <ImportButton entity="supplier-payments" />}
           {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Ödeme Yap</Button>}
         </>} />
       <Card title="Ödeme Listesi" icon={<HandCoins className="size-4" />} bodyClassName="p-0"

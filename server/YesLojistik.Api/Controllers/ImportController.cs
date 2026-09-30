@@ -13,6 +13,16 @@ public class ImportController(ImportService imports) : ControllerBase
     private static readonly Dictionary<string, string> Names = new()
     {
         ["suppliers"] = "tedarikci", ["customers"] = "musteri", ["drivers"] = "sofor", ["vehicles"] = "arac", ["trips"] = "sefer",
+        ["job-requests"] = "is-talebi", ["invoices"] = "fatura", ["payments"] = "tahsilat", ["supplier-payments"] = "tedarikci-odeme",
+        ["expenses"] = "gider",
+    };
+
+    /// <summary>Para kayıtları muhasebe, operasyon kayıtları operasyon yetkisi ister; müşteri ve tedarikçi kartları tüm ofise açık.</summary>
+    private bool Allowed(string entity) => entity switch
+    {
+        "customers" or "suppliers" or "expenses" => true,
+        "invoices" or "payments" or "supplier-payments" => Policies.AccountingRoles.Any(User.IsInRole),
+        _ => Policies.OperationsRoles.Any(User.IsInRole),
     };
 
     [HttpGet("{entity}/template")]
@@ -27,8 +37,7 @@ public class ImportController(ImportService imports) : ControllerBase
     public async Task<ActionResult<ImportResult>> Import(string entity, IFormFile file, [FromQuery] bool dryRun = true, CancellationToken ct = default)
     {
         if (!Names.ContainsKey(entity)) throw new NotFoundException("Bilinmeyen aktarım türü.");
-        // Araç, şoför ve sefer aktarımı operasyon yetkisi ister; müşteri ve tedarikçi aktarımı tüm ofis kullanıcılarına açık.
-        if (entity is not ("customers" or "suppliers") && !Policies.OperationsRoles.Any(User.IsInRole)) return Forbid();
+        if (!Allowed(entity)) return Forbid();
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms, ct);

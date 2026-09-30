@@ -1,6 +1,14 @@
 # pratikortam.com'dan geçiş planı
 
-> Bu belgeye veri, şifre veya kişisel bilgi yazılmaz. Durum: Adım 0 sürüyor; Adım 1 kullanıcının ortam ayarını bekliyor.
+> Bu belgeye veri, şifre veya kişisel bilgi yazılmaz.
+>
+> **Durum (30 Eylül):** Adım 0 bitti (PR #18, #19). Ağ izni verildi; `PRATIK_USER`/`PRATIK_PASS` yeni oturumda okunacak.
+> Hazır olanlar: salt okuma robotu `tools/legacy/crawl.mjs` (güvenlik testi `tools/legacy/crawl.test.mjs`, CI'da çalışır) ve
+> iş talebi, fatura, tahsilat, taşeron ödemesi, gider Excel aktarımları.
+>
+> **Giriş SMS doğrulamalı:** robot giriş yapınca telefona 6 haneli kod gelir; kullanıcı kodu sohbete yazar, ajan
+> `<out>/sms.txt` dosyasına yazar. Çalıştırma: `node tools/legacy/crawl.mjs --out <scratchpad>/pratik --max 400`.
+> Çıktı (`site-map.json`, sayfa HTML'leri ve ekran görüntüleri) repo dışında kalır.
 
 ## Bağlam
 Müşteri bugün pratikortam.com'daki (eski PHP paneli) sistemi kullanıyor ve içindeki verileri dışarı alamıyor. Bizim panelin görünüşünü beğendi; ekleme, düzenleme ve silme işlerinde oradaki yeteneklerin hepsini istiyor.

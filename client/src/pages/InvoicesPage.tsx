@@ -9,6 +9,7 @@ import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
+import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
@@ -65,6 +66,7 @@ export default function InvoicesPage() {
       <PageHeader title="Faturalar" subtitle="Kesilen faturalar ve tahsilat durumu"
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/invoices/export', query, 'faturalar.xlsx')}>Excel</Button>
+          {can('accounting') && <ImportButton entity="invoices" />}
           {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
         </>} />
       <Card title="Fatura Listesi" icon={<FileText className="size-4" />} bodyClassName="p-0"
