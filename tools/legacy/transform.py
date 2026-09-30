@@ -206,12 +206,15 @@ for d in drivers.values(): d.pop('_plate', None)
 if bad_plates: note(f'{len(bad_plates)} plaka biçimi tanınamadı; bu plakalı seferler alınmadı (rapora bakın).')
 
 # ---------- seferler ----------
-trips, skipped = [], 0
+trips, skipped, lost_active = [], 0, []
 active_carrier_cost = collections.defaultdict(D)  # yeni sistemin aktif seferler için yeniden yazacağı taşeron borcu
 for t in trips_src:
     cust, plate, drv = key(t['Firma Ünvanı']), t.get('_plate'), key(t['Şöför İsim'])
     if not (cust and plate and drv):
-        skipped += 1; continue
+        skipped += 1
+        # Faturası beklenen sefer alınmazsa alacağı hiçbir yerde kalmaz (devirden de düşülüyor): durmak gerekir.
+        if str(t['Kesilen Fatura'] or '').strip() == 'Bekleniyor': lost_active.append(t.get('Sevkiyat No') or t['Tarih'])
+        continue
     legacy = str(t['Kesilen Fatura'] or '').strip() != 'Bekleniyor'
     cost = money(t['Şöför Fiyat'])
     owner = vehicles.get(plate, {}).get('Araç Sahibi')
@@ -229,6 +232,9 @@ for t in trips_src:
                   'Yük Cinsi': clean(t['Ürün']), 'Araç Maliyeti': float(cost), 'Satış Fiyatı': float(money(t['Müşteri Fiyat'])),
                   'Durum': 'Teslim Edildi', 'Açıklama': ' · '.join(x for x in extras if x)[:1000], 'Eski Kayıt': 'Evet' if legacy else 'Hayır'})
 if skipped: note(f'{skipped} sefer satırı müşteri/plaka/şoför boş olduğu için alınmadı.')
+if lost_active:
+    sys.exit(f"DUR: faturası beklenen {len(lost_active)} sefer dönüştürülemedi (müşteri/plaka/şoför eksik): "
+             f"{', '.join(map(str, lost_active))}. Bunlar alınmazsa alacakları kaybolur; eski panelde düzeltip yeniden çekin.")
 note(f"Seferler: {sum(t['Eski Kayıt'] == 'Evet' for t in trips)} eski kayıt (faturalanmış), "
      f"{sum(t['Eski Kayıt'] == 'Hayır' for t in trips)} aktif (faturası bekleniyor, yeni sistemde kesilecek).")
 

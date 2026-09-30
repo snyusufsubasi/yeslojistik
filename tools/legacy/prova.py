@@ -112,10 +112,12 @@ if APPLY:
         if r and isinstance(r[0], str) and re.match(r'\d{4}-\d\d-\d\d$', r[0]) and str(r[ix['Kesilen Fatura']]).strip() == 'Bekleniyor':
             waiting[key(r[ix['Firma Ünvanı']])] += money(r[ix['Müşteri Meblağ']])
     firms = {clean(f.get('VKN/TCKN')): key(f.get('Firma')) for f in ht(SRC / 'exports' / 'firmalar.html')}
-    panel_c = {c['taxNumber']: c for c in listing('/api/customers') if c.get('taxNumber')}
+    all_c = listing('/api/customers')
+    panel_c = {c['taxNumber']: c for c in all_c if c.get('taxNumber')}
+    panel_ct = {key(c['title']): c for c in all_c}  # VKN'si boş ya da boşaltılmış müşteriler ünvanla eşlenir
     miss = 0
     for c in ht(SRC / 'exports' / 'musteri-cari.html', numbered=True):
-        v = clean(c.get('Müşteri VKN')); p = panel_c.get(v)
+        v = clean(c.get('Müşteri VKN')); p = panel_c.get(v) or panel_ct.get(firms.get(v, key(c.get('Firma'))))
         want = money(c.get('Bakiye')) - waiting[firms.get(v, key(c.get('Firma')))]
         if not p or abs(Dm(str(p['balance'])) - want) > Dm('0.05'):
             miss += 1; say(f"  UYUŞMAZ müşteri {v}: panel {p and p['balance']} ≠ beklenen {want}")
