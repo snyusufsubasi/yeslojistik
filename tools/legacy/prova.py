@@ -23,7 +23,7 @@ def say(s): print(s); log.append(s)
 
 ORDER = [('1-tedarikciler.xlsx', 'suppliers'), ('2-musteriler.xlsx', 'customers'), ('3-soforler.xlsx', 'drivers'),
          ('4-araclar.xlsx', 'vehicles'), ('5-seferler.xlsx', 'trips'), ('6-devir-tahsilatlari.xlsx', 'payments'),
-         ('7-devir-odemeleri.xlsx', 'supplier-payments')]
+         ('7-devir-odemeleri.xlsx', 'supplier-payments'), ('8-giderler.xlsx', 'expenses'), ('9-banka-hesaplari.xlsx', 'cash-accounts')]
 # Panel hata mesajındaki ipucu → boşaltılacak sütun
 DROPPABLE = [('VKN', 'VKN/TCKN'), ('telefon', 'Telefon'), ('e-posta', 'E-posta'), ('IBAN', 'IBAN'), ('il seçin', 'İl'), ('TC kimlik', 'TC Kimlik No')]
 
@@ -121,10 +121,13 @@ if APPLY:
         want = money(c.get('Bakiye')) - waiting[firms.get(v, key(c.get('Firma')))]
         if not p or abs(Dm(str(p['balance'])) - want) > Dm('0.05'):
             miss += 1; say(f"  UYUŞMAZ müşteri {v}: panel {p and p['balance']} ≠ beklenen {want}")
-    site = json.loads((SRC / 'site-map.json').read_text()); pg = next(x for x in site['pages'] if x['url'].endswith('alck_tdrkc.php'))
+    sup_file = SRC / 'exports' / 'tedarikci-cari.html'
+    if not sup_file.exists():  # eski çekimler: taşeron carisi yalnız taramada vardı
+        site = json.loads((SRC / 'site-map.json').read_text()); pg = next(x for x in site['pages'] if x['url'].endswith('alck_tdrkc.php'))
+        sup_file = SRC / 'pages' / f"{pg['n']}.html"
     panel_s = {key(x['title']): x for x in listing('/api/suppliers')}
     panel_sv = {x['taxNumber']: x for x in panel_s.values() if x.get('taxNumber')}
-    for c in ht(SRC / 'pages' / f"{pg['n']}.html", min_cols=11, numbered=True):
+    for c in ht(sup_file, min_cols=11, numbered=True):
         p = panel_sv.get(clean(c.get('Tedarikçi VKN'))) or panel_s.get(key(c.get('Tedarikçi Ünvanı')))
         if not p or abs(Dm(str(p['balance'])) - money(c.get('Bakiye'))) > Dm('0.05'):
             miss += 1; say(f"  UYUŞMAZ taşeron {c.get('Tedarikçi Ünvanı')}: panel {p and p['balance']} ≠ eski {c.get('Bakiye')}")

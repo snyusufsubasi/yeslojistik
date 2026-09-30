@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { ArrowLeftRight, Landmark, Pencil, Plus, Trash2 } from 'lucide-react'
 import { del, get, post, put } from '../api/client'
 import type { CashAccount, CashMovement, CashTransfer } from '../api/types'
+import { ImportButton } from '../components/ImportDialog'
 import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, PageHeader, Spinner } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { date, tl2, todayIso } from '../lib/format'
@@ -41,6 +42,7 @@ export default function CashAccountsPage() {
     <>
       <PageHeader title="Kasa / Banka" subtitle={<>Hesap bakiyeleri. Toplam nakit ve banka: <b>{tl2(total)}</b></>}
         actions={<>
+          <ImportButton entity="cash-accounts" />
           <Button variant="secondary" icon={<ArrowLeftRight className="size-4" />} disabled={list.length < 2} onClick={() => setTransfer(true)}>Virman</Button>
           <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Hesap Ekle</Button>
         </>} />

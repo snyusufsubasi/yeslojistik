@@ -38,6 +38,8 @@ COLS = {
               'Yük Cinsi', 'Müşteri Ref No', 'Araç Maliyeti', 'Satış Fiyatı', 'Durum', 'Açıklama', 'Eski Kayıt'],
     'payments': ['Tarih', 'Müşteri', 'Tutar', 'Yöntem', 'Fatura No', 'Çek/Senet No', 'Banka', 'Çek Vadesi', 'Açıklama'],
     'supplier-payments': ['Tarih', 'Tedarikçi', 'Tutar', 'Yöntem', 'Açıklama'],
+    'expenses': ['Tarih', 'Kategori', 'Tutar', 'Plaka', 'Şoför', 'Tedarikçi', 'Vadeli', 'Litre', 'Km', 'Açıklama'],
+    'cash-accounts': ['Hesap Adı', 'Tür', 'IBAN', 'Devir Bakiyesi', 'Devir Tarihi'],
 }
 
 
@@ -106,9 +108,19 @@ firms = html_table(EXP / 'firmalar.html')
 suppliers_src = html_table(EXP / 'tedarikciler.html')
 drivers_src = html_table(EXP / 'soforler.html')
 cust_cari = html_table(EXP / 'musteri-cari.html', numbered=True)
-site = json.loads((SRC / 'site-map.json').read_text())
-sup_page = next(p for p in site['pages'] if p['url'].endswith('alck_tdrkc.php'))
-sup_cari = html_table(SRC / 'pages' / f"{sup_page['n']}.html", min_cols=11, numbered=True)
+if (EXP / 'tedarikci-cari.html').exists():
+    sup_cari = html_table(EXP / 'tedarikci-cari.html', min_cols=11, numbered=True)
+else:  # eski çekimler: taşeron carisi yalnız taramada vardı
+    site = json.loads((SRC / 'site-map.json').read_text())
+    sup_page = next(p for p in site['pages'] if p['url'].endswith('alck_tdrkc.php'))
+    sup_cari = html_table(SRC / 'pages' / f"{sup_page['n']}.html", min_cols=11, numbered=True)
+own_src = html_table(EXP / 'araclar.html', min_cols=5) if (EXP / 'araclar.html').exists() else []
+expenses_src = html_table(EXP / 'giderler.html', min_cols=5) if (EXP / 'giderler.html').exists() else []
+fuel_src = []
+if (EXP / 'mazotlar.xlsx').exists():
+    _f = list(openpyxl.load_workbook(EXP / 'mazotlar.xlsx', read_only=True).worksheets[0].iter_rows(values_only=True))
+    fuel_src = [dict(zip(_f[0], r)) for r in _f[1:] if r and r[0]]
+banks_src = html_table(EXP / 'bankalar.html', min_cols=5) if (EXP / 'bankalar.html').exists() else []
 
 ws = openpyxl.load_workbook(EXP / 'sevkiyatlar.xlsx', read_only=True).worksheets[0]
 raw = list(ws.iter_rows(values_only=True)); IX = {h: i for i, h in enumerate(raw[0])}
@@ -202,6 +214,24 @@ for p in sorted(set(plate_type) | set(plate_owner) | driver_plates):
     if p in own_plates or not plate_owner[p]: row['Sahiplik'] = 'Özmal'
     else: row.update({'Sahiplik': 'Kiralık', 'Araç Sahibi': suppliers[plate_owner[p].most_common(1)[0][0]]['Ünvan']})
     vehicles[p] = row
+
+def tr_date(v):
+    """'14.04.2027' ya da 'HDI | 14.04.2027' → tarih."""
+    m = re.search(r'(\d{2})\.(\d{2})\.(\d{4})', str(v or ''))
+    return dt.date(int(m.group(3)), int(m.group(2)), int(m.group(1))) if m else None
+
+# Öz araçlar: eski paneldeki "Araçlar" listesi (marka, sigorta, muayene). Bu plakalar her zaman özmaldır.
+for a in own_src:
+    p, _ = split_plate(a.get('Plaka'))
+    if not p: continue
+    row = vehicles.setdefault(p, {'Plaka': p, 'Araç Tipi': 'Kamyon'})
+    mm = clean(a.get('Marka Model')) or ''
+    year = re.search(r'\b(19|20)\d{2}\b', mm)
+    row.update({'Sahiplik': 'Özmal', 'Araç Sahibi': None, 'Marka': clean(re.sub(r'\b(19|20)\d{2}\b', '', mm)),
+                'Model Yılı': int(year.group(0)) if year else None,
+                'Muayene Bitiş': tr_date(a.get('Muay. / Tarih')), 'Sigorta Bitiş': tr_date(a.get('Sigorta / Tarih'))})
+    if clean(a.get('Tip')): row['Araç Tipi'] = clean(a.get('Tip')).title()
+if own_src: note(f'Öz araçlar: {len(own_src)} araç marka, sigorta ve muayene tarihleriyle eklendi.')
 for d in drivers.values(): d.pop('_plate', None)
 if bad_plates: note(f'{len(bad_plates)} plaka biçimi tanınamadı; bu plakalı seferler alınmadı (rapora bakın).')
 
@@ -280,6 +310,53 @@ sup_total = sum(money(c.get('Bakiye')) for c in sup_cari)
 new_total = sum(D(str(r.get('Devir Borcu') or 0)) for r in suppliers.values()) - sum(D(str(p['Tutar'])) for p in sup_payments) + sum(active_carrier_cost.values())
 note(f'  Taşeron eski bakiye toplamı {sup_total:,.2f} TL; yeni sistem (devir − fazla ödeme + aktif sefer maliyeti) {new_total:,.2f} TL.')
 
+# ---------- giderler ve mazot ----------
+# Eski "Giderler" listesi bir kasa çıkış defteri: taşeron ödemeleri ("Fatura No …", "VKN …"), NAKLİYESPOTARAÇLAR ve
+# mahsuplaşmalar cari devirlerinde zaten var; gider olarak alınırsa iki kez sayılır. Onlar atlanır, gerçek giderler alınır.
+PAYMENT_CATS = {'NAKLİYESPOTARAÇLAR', 'MAHSUPLAŞMA'}
+def expense_category(cat, text):
+    t = key(f'{cat} {text}')
+    if 'HGS' in t or 'GEMİ' in t or 'FERİBOT' in t or 'OTOYOL' in t or 'KÖPRÜ' in t: return 'Otoyol'
+    if 'YAKIT' in t or 'MAZOT' in t: return 'Yakıt'
+    if 'HARÇLIK' in t: return 'Harcırah'
+    if 'TAMİR' in t or 'BAKIM' in t or 'SERVİS' in t: return 'Bakım'
+    if 'LASTİK' in t: return 'Lastik'
+    if 'SİGORTA' in t or 'KASKO' in t: return 'Sigorta'
+    if 'VERGİ' in t or 'SSK' in t or 'SGK' in t or 'MTV' in t: return 'Vergi'
+    return 'Diğer'
+expenses, skipped_exp = [], collections.Counter()
+for e in expenses_src:
+    cat, what, note_ = key(e.get('Kategori')), clean(e.get('Gider')), clean(e.get('Not')) or ''
+    amount = money(e.get('Tutar'))
+    if (cat in PAYMENT_CATS or note_.startswith(('Fatura No', 'VKN')) or (not cat and (not what or key(what) == 'KISMI ÖDEME'))) or amount <= 0:
+        skipped_exp[cat or 'kategorisiz ödeme'] += amount; continue
+    plate, _ = split_plate(cat)
+    if plate: vehicles.setdefault(plate, {'Plaka': plate, 'Araç Tipi': 'Kamyon', 'Sahiplik': 'Özmal'})
+    expenses.append({'Tarih': tr_date(e.get('Tarih')), 'Kategori': expense_category('' if plate else cat, what or ''),
+                     'Tutar': float(amount), 'Plaka': plate,
+                     'Açıklama': ' · '.join(x for x in [None if plate else clean(e.get('Kategori')), what, note_ or None] if x)[:500] or None})
+for f in fuel_src:
+    plate, _ = split_plate(f.get('Plaka'))
+    if not plate: continue
+    vehicles.setdefault(plate, {'Plaka': plate, 'Araç Tipi': 'Kamyon', 'Sahiplik': 'Özmal'})
+    expenses.append({'Tarih': tr_date(f.get('Tarih')), 'Kategori': 'Yakıt', 'Tutar': float(money(f.get('Tutar'))), 'Plaka': plate,
+                     'Litre': float(money(f.get('Litre'))) or None, 'Km': int(f['Yeni KM']) if f.get('Yeni KM') else None,
+                     'Açıklama': ' · '.join(x for x in ['Mazot', clean(f.get('Petrol'))] if x)})
+# Eski panelde aynı gün aynı tutarda iki ayrı gider olabilir; aktarım bunları tekrar sayıp atlamasın diye sıra eklenir.
+seen = collections.Counter()
+for e in expenses:
+    k = (e['Tarih'], e['Kategori'], e['Tutar'], e.get('Plaka'), e.get('Açıklama'))
+    seen[k] += 1
+    if seen[k] > 1: e['Açıklama'] = f"{e.get('Açıklama') or ''} ({seen[k]}. kayıt)".strip()
+if expenses_src or fuel_src:
+    note(f'Giderler: {len(expenses)} kayıt (mazot {len(fuel_src)}). Cari devrinde zaten olan ödemeler gider sayılmadı: '
+         + ', '.join(f'{k} {v:,.2f} TL' for k, v in skipped_exp.most_common()))
+
+# ---------- banka hesapları ----------
+cash_accounts = [{'Hesap Adı': clean(b.get('Hesap İsmi')), 'Tür': 'Banka', 'Devir Bakiyesi': float(money(b.get('Güncel Bakiye'))), 'Devir Tarihi': TODAY}
+                 for b in banks_src if clean(b.get('Hesap İsmi'))]
+if cash_accounts: note(f"Banka hesapları: {len(cash_accounts)} hesap, eski paneldeki güncel bakiyeyle açılır (toplam {sum(c['Devir Bakiyesi'] for c in cash_accounts):,.2f} TL).")
+
 write('1-tedarikciler.xlsx', 'suppliers', list(suppliers.values()))
 write('2-musteriler.xlsx', 'customers', list(customers.values()))
 write('3-soforler.xlsx', 'drivers', list(drivers.values()))
@@ -287,5 +364,7 @@ write('4-araclar.xlsx', 'vehicles', list(vehicles.values()))
 write('5-seferler.xlsx', 'trips', trips)
 if cust_payments: write('6-devir-tahsilatlari.xlsx', 'payments', cust_payments)
 if sup_payments: write('7-devir-odemeleri.xlsx', 'supplier-payments', sup_payments)
+if expenses: write('8-giderler.xlsx', 'expenses', expenses)
+if cash_accounts: write('9-banka-hesaplari.xlsx', 'cash-accounts', cash_accounts)
 (OUT / 'rapor.txt').write_text('\n'.join(report) + '\n', encoding='utf-8')
 print('\n'.join(report))

@@ -14,14 +14,14 @@ public class ImportController(ImportService imports) : ControllerBase
     {
         ["suppliers"] = "tedarikci", ["customers"] = "musteri", ["drivers"] = "sofor", ["vehicles"] = "arac", ["trips"] = "sefer",
         ["job-requests"] = "is-talebi", ["invoices"] = "fatura", ["payments"] = "tahsilat", ["supplier-payments"] = "tedarikci-odeme",
-        ["expenses"] = "gider",
+        ["expenses"] = "gider", ["cash-accounts"] = "banka-hesabi",
     };
 
     /// <summary>Para kayıtları muhasebe, operasyon kayıtları operasyon yetkisi ister; müşteri ve tedarikçi kartları tüm ofise açık.</summary>
     private bool Allowed(string entity) => entity switch
     {
         "customers" or "suppliers" or "expenses" => true,
-        "invoices" or "payments" or "supplier-payments" => Policies.AccountingRoles.Any(User.IsInRole),
+        "invoices" or "payments" or "supplier-payments" or "cash-accounts" => Policies.AccountingRoles.Any(User.IsInRole),
         _ => Policies.OperationsRoles.Any(User.IsInRole),
     };
 

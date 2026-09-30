@@ -202,4 +202,27 @@ public class LegacyImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
         // Aynı dosya tekrar yüklenince hiçbiri çiftlenmez.
         (await Import(c, "trips", file)).Skipped.Should().Be(3);
     }
+
+    [Fact]
+    public async Task Bank_accounts_import_with_signed_opening_balances_once()
+    {
+        var c = await factory.LoginAsync();
+        var u = Guid.NewGuid().ToString("N")[..6];
+        var file = Workbook(ImportService.Columns["cash-accounts"],
+            [$"Akbank {u}", "Banka", null, 5012704.83m, new DateTime(2026, 9, 30)],
+            [$"Denizbank {u}", null, null, -1415455.48m, new DateTime(2026, 9, 30)],
+            [$"Hatalı {u}", "Cüzdan", null, 0m, null]);
+        var bad = await Import(c, "cash-accounts", file, dryRun: true);
+        bad.Errors.Should().ContainSingle(e => e.Row == 4);
+
+        file = Workbook(ImportService.Columns["cash-accounts"],
+            [$"Akbank {u}", "Banka", null, 5012704.83m, new DateTime(2026, 9, 30)],
+            [$"Denizbank {u}", null, null, -1415455.48m, new DateTime(2026, 9, 30)]);
+        (await Import(c, "cash-accounts", file)).Created.Should().Be(2);
+        (await Import(c, "cash-accounts", file)).Skipped.Should().Be(2);
+
+        var accounts = await (await c.GetAsync("/api/cash-accounts")).ReadAsync<List<CashAccountDto>>();
+        accounts.Single(a => a.Name == $"Denizbank {u}").Balance.Should().Be(-1415455.48m);
+        accounts.Single(a => a.Name == $"Akbank {u}").Kind.Should().Be(YesLojistik.Core.Entities.CashAccountKind.Bank);
+    }
 }
