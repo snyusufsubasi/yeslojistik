@@ -9,10 +9,14 @@ import type { DocumentOwnerType, DocumentType, DriverLedger, FleetDocument, Main
 import { useToast } from './Toast'
 import { Badge, Button, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner } from './ui'
 import { FormSelect } from './FormSelect'
+import { ControlledChoice, ControlledToggle } from './Choice'
+import { AmountInput, DateQuick, SuggestChips } from './Inputs'
+import { choices } from '../lib/choices'
+import { maintenanceTypeIcon, paymentMethodIcon, settlementDirectionIcon } from '../lib/icons'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { compressImage } from '../lib/image'
-import { date, moneyHint, tl2, todayIso } from '../lib/format'
+import { date, tl2, todayIso } from '../lib/format'
 import { useLookup, useSave } from '../lib/hooks'
 import {
   companyDocumentTypes, documentTypeLabel, driverDocumentTypes, maintenanceTypeLabel, paymentMethodLabel, settlementDirectionLabel, vehicleDocumentTypes,
@@ -88,7 +92,7 @@ function DocumentForm({ doc, ownerType, ownerId, onClose }: { doc: FleetDocument
   const toast = useToast()
   const [file, setFile] = useState<File | null>(null)
   const types = ownerType === 'Vehicle' ? vehicleDocumentTypes : ownerType === 'Driver' ? driverDocumentTypes : companyDocumentTypes
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<DocValues>({
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<DocValues>({
     resolver: zodResolver(docSchema),
     defaultValues: doc
       ? { type: doc.type, no: doc.no ?? '', issueDate: doc.issueDate ?? '', expiryDate: doc.expiryDate ?? '', note: doc.note ?? '' }
@@ -104,22 +108,22 @@ function DocumentForm({ doc, ownerType, ownerId, onClose }: { doc: FleetDocument
     }
     return saved
   }, { invalidate: ['documents', 'vehicles', 'drivers'], success: doc ? 'Belge güncellendi.' : 'Belge eklendi.', onSuccess: onClose, onError: (e) => applyServerErrors(e, setError) })
+  const issueDate = useWatch({ control, name: 'issueDate' })
   const submit = handleSubmit((v) => save.mutate(v))
   return (
     <Modal open onClose={onClose} title={doc ? 'Belge Düzenle' : 'Belge Ekle'} size="sm"
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3">
-        <Field label="Belge türü" required>
-          <select className="input" {...register('type')}>
-            {(Object.keys(documentTypeLabel) as DocumentType[]).filter((t) => types.includes(t) || t === doc?.type)
-              .map((t) => <option key={t} value={t}>{documentTypeLabel[t]}</option>)}
-          </select>
+      <form onSubmit={submit} className="grid gap-4">
+        <Field group label="Hangi belge?" required>
+          <ControlledChoice control={control} name="type" label="Belge türü" variant="chips"
+            options={(Object.keys(documentTypeLabel) as DocumentType[]).filter((t) => types.includes(t) || t === doc?.type)
+              .map((t) => ({ value: t, label: documentTypeLabel[t] }))} />
         </Field>
         <Field label="Belge / poliçe no" error={errors.no?.message}><input className="input" {...register('no')} /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Veriliş tarihi" error={errors.issueDate?.message}><input className="input" type="date" {...register('issueDate')} /></Field>
-          <Field label="Bitiş tarihi" error={errors.expiryDate?.message}><input className="input" type="date" {...register('expiryDate')} /></Field>
-        </div>
+        <Field label="Veriliş tarihi" error={errors.issueDate?.message}><DateQuick control={control} name="issueDate" /></Field>
+        <Field label="Bitiş tarihi" error={errors.expiryDate?.message} hint="Veriliş tarihinden itibaren (boşsa bugünden).">
+          <DateQuick control={control} name="expiryDate" quick="expiry" from={issueDate || undefined} years={[1, 2, 5, 10]} />
+        </Field>
         <Field label="Not" error={errors.note?.message}><input className="input" {...register('note')} /></Field>
         <Field label="Taranmış belge" hint={doc?.hasFile ? 'Dosya var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
           <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -193,41 +197,45 @@ export function MaintenancePanel({ vehicleId, currentKm }: { vehicleId: number; 
 
 function MaintenanceForm({ vehicleId, currentKm, record, onClose }: { vehicleId: number; currentKm: number; record: MaintenanceRecord | null; onClose: () => void }) {
   const suppliers = useLookup('suppliers')
-  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<MaintValues>({
+  const { register, handleSubmit, control, setError, setValue, formState: { errors } } = useForm<MaintValues>({
     resolver: zodResolver(maintSchema),
     defaultValues: record
       ? { date: record.date, km: record.km ?? null, type: record.type, description: record.description ?? '', cost: record.cost, supplierId: record.supplierId ?? null,
         nextDueKm: record.nextDueKm ?? null, nextDueDate: record.nextDueDate ?? '', isOnCredit: false }
       : { date: todayIso(), km: currentKm || null, type: 'Periodic', description: '', cost: 0, supplierId: null, nextDueKm: null, nextDueDate: '', isOnCredit: false },
   })
-  const cost = useWatch({ control, name: 'cost' })
+  const km = useWatch({ control, name: 'km' })
+  const maintDate = useWatch({ control, name: 'date' })
   const save = useSave((v: MaintValues) => record ? put(`/vehicles/${vehicleId}/maintenance/${record.id}`, nullify(v)) : post(`/vehicles/${vehicleId}/maintenance`, nullify(v)),
     { invalidate: ['maintenance', 'expenses', 'vehicles', 'suppliers'], success: 'Bakım kaydedildi.', onSuccess: onClose, onError: (e) => applyServerErrors(e, setError) })
   const submit = handleSubmit((v) => save.mutate(v))
   return (
     <Modal open onClose={onClose} title={record ? 'Bakım Düzenle' : 'Bakım Ekle'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-        <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
-        <Field label="Tür" required>
-          <select className="input" {...register('type')}>{Object.entries(maintenanceTypeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-        </Field>
-        <Field label="Araç kilometresi" error={errors.km?.message}><input className="input text-right" type="number" min="0" inputMode="numeric" {...register('km', { valueAsNumber: true })} /></Field>
-        <Field label="Tutar (TL)" error={errors.cost?.message} hint={moneyHint(cost)}>
-          <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('cost', { valueAsNumber: true })} />
+      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field group className="sm:col-span-2" label="Ne yapıldı?" required>
+          <ControlledChoice control={control} name="type" label="Bakım türü" columns={3} options={choices(maintenanceTypeLabel, maintenanceTypeIcon)} />
         </Field>
         <Field className="sm:col-span-2" label="Yapılan işlem" error={errors.description?.message}><input className="input" placeholder="Yağ, filtre, balata..." {...register('description')} /></Field>
+        <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
+        <Field label="Araç kilometresi" error={errors.km?.message}><input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('km', { valueAsNumber: true })} /></Field>
+        <Field label="Tutar (TL)" error={errors.cost?.message}><AmountInput control={control} name="cost" /></Field>
         <Field label="Servis (tedarikçi)" error={errors.supplierId?.message}>
           <FormSelect control={control} name="supplierId" placeholder="— Seçilmedi —" options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
         </Field>
-        <label className="flex items-start gap-2 self-end pb-2 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" {...register('isOnCredit')} />
-          <span>Vadeli (servise borç yaz)</span>
-        </label>
-        <Field label="Sonraki bakım km" error={errors.nextDueKm?.message} hint="Araç bu kilometreye 1.000 km kala uyarı çıkar.">
-          <input className="input text-right" type="number" min="0" inputMode="numeric" {...register('nextDueKm', { valueAsNumber: true })} />
+        <Field group className="sm:col-span-2" label="Ödendi mi?">
+          <ControlledToggle control={control} name="isOnCredit" label="Ödeme durumu" labels={['Vadeli (servise borç yaz)', 'Ödendi']} />
         </Field>
-        <Field label="Sonraki bakım tarihi" error={errors.nextDueDate?.message}><input className="input" type="date" {...register('nextDueDate')} /></Field>
+        <Field label="Sonraki bakım km" error={errors.nextDueKm?.message} hint="Araç bu kilometreye 1.000 km kala uyarı çıkar.">
+          <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('nextDueKm', { valueAsNumber: true })} />
+          {km != null && !Number.isNaN(km) && (
+            <SuggestChips values={[10000, 15000, 20000].map((d) => `+${d.toLocaleString('tr-TR')} km`)}
+              onPick={(v) => setValue('nextDueKm', km + Number(v.replace(/\D/g, '')), { shouldValidate: true })} />
+          )}
+        </Field>
+        <Field label="Sonraki bakım tarihi" error={errors.nextDueDate?.message}>
+          <DateQuick control={control} name="nextDueDate" quick="due" from={maintDate} dueDays={[90, 180, 365]} />
+        </Field>
         <button type="submit" className="hidden" />
       </form>
     </Modal>
@@ -311,24 +319,22 @@ function SettlementForm({ driverId, onClose }: { driverId: number; onClose: () =
     resolver: zodResolver(settleSchema),
     defaultValues: { direction: 'ReceivedFromDriver', date: todayIso(), method: 'Cash', note: '' },
   })
-  const amount = useWatch({ control, name: 'amount' })
   const save = useSave((v: SettleValues) => post('/driver-settlements', { ...nullify(v), driverId }),
     { invalidate: ['driver-ledger'], success: 'Kaydedildi.', onSuccess: onClose, onError: (e) => applyServerErrors(e, setError) })
   const submit = handleSubmit((v) => save.mutate(v))
   return (
     <Modal open onClose={onClose} title="Şoför Hesabı: Ödeme / İade" size="sm"
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-      <form onSubmit={submit} className="grid gap-3">
-        <Field label="İşlem" hint="Avans için Giderler → “Şoför Avansı” kullanın; burası mahsuplaşma içindir.">
-          <select className="input" {...register('direction')}>{Object.entries(settlementDirectionLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <form onSubmit={submit} className="grid gap-4">
+        <Field group label="Ne oldu?" hint="Avans için Giderler → “Şoför Avansı” kullanın; burası mahsuplaşma içindir.">
+          <ControlledChoice control={control} name="direction" label="İşlem" columns={2} options={choices(settlementDirectionLabel, settlementDirectionIcon)} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Tarih" required error={errors.date?.message}><input className="input" type="date" {...register('date')} /></Field>
-          <Field label="Yöntem"><select className="input" {...register('method')}>{Object.entries(paymentMethodLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-        </div>
-        <Field label="Tutar (TL)" required error={errors.amount?.message} hint={moneyHint(amount)}>
-          <input className="input text-right" type="number" step="0.01" min="0" inputMode="decimal" {...register('amount', { valueAsNumber: true })} />
+        <Field label="Tutar (TL)" required error={errors.amount?.message}><AmountInput control={control} name="amount" /></Field>
+        <Field group label="Nasıl?">
+          <ControlledChoice control={control} name="method" label="Ödeme yöntemi" variant="chips"
+            options={choices(paymentMethodLabel, paymentMethodIcon).filter((o) => o.value !== 'PromissoryNote')} />
         </Field>
+        <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
         <Field label="Not" error={errors.note?.message}><input className="input" {...register('note')} /></Field>
         <button type="submit" className="hidden" />
       </form>

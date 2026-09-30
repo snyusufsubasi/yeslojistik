@@ -226,6 +226,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   const sd = page.getByRole('dialog', { name: 'Yeni Tedarikçi' })
   await sd.getByLabel(/^Ünvan/).fill(`E2E Nakliyat ${u}`)
   await sd.getByLabel('IBAN').fill('TR33 0006 1005 1978 6457 8413 26')
+  await sd.getByRole('button', { name: /Vergi, adres/ }).click()
   await pick(sd.locator('input[name="city"]'), 'Kocaeli')
   await sd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByRole('heading', { name: `E2E Nakliyat ${u}` })).toBeVisible()

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import {
-  Banknote, Building, Building2, CalendarClock, CarFront, CircleDollarSign, CircleHelp, Cog, CreditCard, Disc3, Droplet, FileCheck2,
-  FileText, Fuel, Gauge, HandCoins, Handshake, Landmark, MoveRight, Receipt, ScrollText, ShieldCheck, Signpost, Stamp, Truck,
+  Banknote, Building, Building2, CalendarClock, CarFront, CircleCheck, CircleDollarSign, CircleHelp, Cog, CreditCard, Disc3, Droplet, FileCheck2,
+  FileText, Fuel, Gauge, HandCoins, Handshake, Landmark, MoveRight, Receipt, Route, ScrollText, ShieldCheck, Signpost, Stamp, Truck,
   UserRound, Wallet, Wrench, Zap,
 } from 'lucide-react'
-import type { CashAccountKind, ExpenseCategory, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, VehicleOwnership } from '../api/types'
+import type { CashAccountKind, ExpenseCategory, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, VehicleOwnership, VehicleStatus } from '../api/types'
 
 /** Şık usulü seçim kartlarının ikonları: her seçenek her ekranda aynı ikonla görünür. */
 export const expenseCategoryIcon: Record<ExpenseCategory, ReactNode> = {
@@ -31,3 +31,8 @@ export const settlementDirectionIcon: Record<SettlementDirection, ReactNode> = {
 export const documentIcon = <FileCheck2 />
 export const companyIcon = <Building />
 export const carIcon = <CarFront />
+
+export const vehicleStatusIcon: Record<VehicleStatus, ReactNode> = { Available: <CircleCheck />, OnRoad: <Route />, Maintenance: <Wrench /> }
+
+/** e-Fatura mükellefi / e-Arşiv müşteri. */
+export const eInvoiceIcons: [ReactNode, ReactNode] = [<FileCheck2 key="e" />, <FileText key="a" />]
