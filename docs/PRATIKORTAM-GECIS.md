@@ -16,6 +16,8 @@
 >
 > ## Canlıya yükleme: adım adım (yeni oturumda)
 > `pip install --user openpyxl` gerekir. Tüm çıktılar scratchpad'e yazılır, repoya girmez.
+> 0. **Kayıt dondurma:** Kuzen pratikortam'a kayıt girmeyi bırakır ve yükleme + mutabakat bitene kadar girmez.
+>    Aktarım tek seferlik bir anlık görüntüdür; indirmeden sonra eski panelde yapılan değişiklik yeni panele geçmez.
 > 1. Güncel veriyi indir: `node tools/legacy/extract.mjs --out <scratchpad>/pratik`
 >    (taşeron carisi dahil; `crawl.mjs` taraması artık gerekmez).
 > 2. Dönüştür: `python3 tools/legacy/transform.py <scratchpad>/pratik` → `aktar/1-…10-*.xlsx` ve `rapor.txt` (mutabakat).
