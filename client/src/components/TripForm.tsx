@@ -66,6 +66,7 @@ const schema = z.object({
   carrierSupplierId: z.number().nullable().or(z.nan().transform(() => null)),
   carrierInvoiceNo: optStr,
   carrierInvoiceDate: optStr,
+  jobRequestId: z.number().nullable().optional(),
 }).refine((v) => !v.deliveryDate || v.deliveryDate >= v.loadingDate, {
   path: ['deliveryDate'], message: 'Teslim tarihi yükleme tarihinden önce olamaz.',
 })
@@ -104,6 +105,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       loadingCity: trip.loadingCity ?? '', deliveryCity: trip.deliveryCity ?? '', loadingContact: trip.loadingContact ?? '',
       deliveryContact: trip.deliveryContact ?? '', carrierSupplierId: trip.carrierSupplierId ?? null,
       carrierInvoiceNo: trip.carrierInvoiceNo ?? '', carrierInvoiceDate: trip.carrierInvoiceDate ?? '',
+      jobRequestId: trip.jobRequestId ?? null,
     } : copyOf ? {
       customerId: copyOf.customerId, vehicleId: copyOf.vehicleId, driverId: copyOf.driverId,
       loadingAddress: copyOf.loadingAddress, deliveryAddress: copyOf.deliveryAddress,
@@ -114,14 +116,15 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       loadingCity: copyOf.loadingCity ?? '', deliveryCity: copyOf.deliveryCity ?? '', loadingContact: copyOf.loadingContact ?? '',
       deliveryContact: copyOf.deliveryContact ?? '', carrierSupplierId: copyOf.carrierSupplierId ?? null,
       carrierInvoiceNo: '', carrierInvoiceDate: '',
-    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, ...defaults },
+      jobRequestId: null,
+    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, ...defaults },
   })
 
   const save = useSave((v: FormValues) => {
     const body = nullify(v)
     return trip ? api.update(trip.id, body) : api.create(body)
   }, {
-    invalidate: ['trips', 'vehicles', 'customers', 'suppliers'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
+    invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
 

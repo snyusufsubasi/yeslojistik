@@ -35,6 +35,7 @@ internal static class AuditTrail
         ["LoadingCity"] = "Yükleme ili", ["DeliveryCity"] = "Teslim ili", ["LoadingContact"] = "Yüklemede yetkili", ["DeliveryContact"] = "Teslimde yetkili",
         ["CarrierSupplierId"] = "Taşeron", ["CarrierInvoiceNo"] = "Taşeron fatura no", ["CarrierInvoiceDate"] = "Taşeron fatura tarihi",
         ["ReceivedBy"] = "Teslim alan", ["IsOnCredit"] = "Vadeli", ["TripId"] = "Sefer", ["DeliveredAt"] = "Teslim anı", ["IsEInvoiceUser"] = "e-Fatura mükellefi", ["EInvoiceAlias"] = "PK etiketi",
+        ["DeliveryWindow"] = "Teslim süresi", ["VehicleType"] = "Araç cinsi", ["CarrierPrice"] = "Sevkiyat fiyatı", ["Commission"] = "Komisyon", ["DriverBonus"] = "Şoför primi", ["OtherExpense"] = "Masraf", ["CustomerPays"] = "Ödeme müşteride", ["LoadingDocumentNo"] = "Yükleme evrak no", ["WaybillNo"] = "İrsaliye no", ["InvoiceFooterNote"] = "Fatura altı not", ["JobRequestId"] = "İş talebi",
         ["Scenario"] = "e-Fatura senaryosu", ["TypeCode"] = "Fatura tipi", ["Ettn"] = "ETTN", ["EInvoiceNo"] = "e-Fatura no", ["EInvoiceStatus"] = "e-Fatura durumu",
         ["EInvoiceMessage"] = "e-Fatura mesajı", ["EInvoiceSentAt"] = "e-Fatura gönderim", ["WithholdingCode"] = "Tevkifat kodu", ["EInvoiceEnabled"] = "e-Fatura açık",
         ["EInvoiceSeriesPrefix"] = "e-Fatura seri", ["EArchiveSeriesPrefix"] = "e-Arşiv seri", ["DefaultScenario"] = "Varsayılan senaryo", ["SenderAlias"] = "GB etiketi",

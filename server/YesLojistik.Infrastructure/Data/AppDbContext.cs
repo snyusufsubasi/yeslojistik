@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<JobRequest> JobRequests => Set<JobRequest>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
     public DbSet<Payment> Payments => Set<Payment>();
@@ -151,6 +152,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.ReceivedBy).HasMaxLength(100);
             e.HasOne(x => x.CarrierSupplier).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.CustomerReference);
+            e.HasOne(x => x.JobRequest).WithOne(x => x.Trip).HasForeignKey<Trip>(x => x.JobRequestId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.JobRequestId).IsUnique();
+        });
+        b.Entity<JobRequest>(e =>
+        {
+            e.HasOne(x => x.Customer).WithMany().OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.LoadingAddress).HasMaxLength(300);
+            e.Property(x => x.DeliveryAddress).HasMaxLength(300);
+            e.Property(x => x.DeliveryWindow).HasMaxLength(100);
+            e.Property(x => x.CargoType).HasMaxLength(100);
+            e.Property(x => x.VehicleType).HasMaxLength(100);
+            e.Property(x => x.LoadingDocumentNo).HasMaxLength(50);
+            e.Property(x => x.WaybillNo).HasMaxLength(50);
+            e.Property(x => x.InvoiceFooterNote).HasMaxLength(500);
+            e.Property(x => x.Description).HasMaxLength(1000);
+            e.Property(x => x.CargoQuantity).HasPrecision(12, 2);
+            e.Property(x => x.LoadingLatitude).HasPrecision(9, 6);
+            e.Property(x => x.LoadingLongitude).HasPrecision(9, 6);
+            e.Property(x => x.DeliveryLatitude).HasPrecision(9, 6);
+            e.Property(x => x.DeliveryLongitude).HasPrecision(9, 6);
+            e.HasIndex(x => x.Date);
+            e.HasIndex(x => x.Status);
         });
         b.Entity<TripEvent>(e =>
         {

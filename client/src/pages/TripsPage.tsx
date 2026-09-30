@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Columns3, Download, List, Pencil, Plus, Truck } from 'lucide-react'
 import { download, get, post } from '../api/client'
-import type { Trip, TripStatus } from '../api/types'
+import type { JobRequest, Trip, TripStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
@@ -34,6 +34,7 @@ export default function TripsPage() {
   const setView = (v: 'list' | 'board') => { setViewState(v); try { localStorage.setItem('yes.tripView', v) } catch { /* gizli pencere */ } }
   useOpenNewFromUrl(() => setEditing('new'))
   const [copyOf, setCopyOf] = useState<Trip | null>(null)
+  const [sourceRequest, setSourceRequest] = useState<JobRequest | null>(null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
@@ -48,13 +49,25 @@ export default function TripsPage() {
       get<Trip>(`/trips/${openId}`).then(setEditing).catch(() => undefined)
     }
   }, [params, setParams])
+  useEffect(() => {
+    const requestId = Number(params.get('requestId'))
+    if (!requestId) return
+    const next = new URLSearchParams(params)
+    next.delete('requestId')
+    setParams(next, { replace: true })
+    get<JobRequest>(`/job-requests/${requestId}`).then((request) => {
+      if (request.status !== 'Pending') return
+      setSourceRequest(request)
+      setEditing('new')
+    }).catch(() => undefined)
+  }, [params, setParams])
 
   const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Trip>('trips', query)
 
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
-  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
+  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'loadingDate', render: (t) => date(t.loadingDate) },
@@ -138,8 +151,16 @@ export default function TripsPage() {
           )} />
       </Card>}
 
-      {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
-        onClose={() => { setEditing(null); setCopyOf(null) }}
+      {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? sourceRequest?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
+        defaults={sourceRequest ? {
+          jobRequestId: sourceRequest.id, customerId: sourceRequest.customerId,
+          loadingAddress: sourceRequest.loadingAddress, deliveryAddress: sourceRequest.deliveryAddress,
+          loadingDate: sourceRequest.date, cargoType: sourceRequest.cargoType ?? '',
+          cargoQuantity: sourceRequest.cargoQuantity != null && Number.isInteger(sourceRequest.cargoQuantity) ? sourceRequest.cargoQuantity : null,
+          salePrice: sourceRequest.salePrice ?? 0, vehicleCost: sourceRequest.carrierPrice ?? 0,
+          description: sourceRequest.description ?? '',
+        } : undefined}
+        onClose={() => { setEditing(null); setCopyOf(null); setSourceRequest(null) }}
         onDelete={(t) => { setEditing(null); setDeleting(t) }}
         onCopy={(t) => { setCopyOf(t); setEditing('new') }} />}
       <ConfirmDialog open={!!deleting} title="Seferi sil" loading={deleteMut.isPending}

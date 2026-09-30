@@ -162,6 +162,34 @@ public class DriverSaveRequestValidator : AbstractValidator<DriverSaveRequest>
     }
 }
 
+public class JobRequestSaveRequestValidator : AbstractValidator<JobRequestSaveRequest>
+{
+    public JobRequestSaveRequestValidator()
+    {
+        RuleFor(x => x.CustomerId).GreaterThan(0).WithMessage("Müşteri seçin.");
+        RuleFor(x => x.Date).NotEmpty().WithMessage("Tarih zorunlu.");
+        RuleFor(x => x.LoadingAddress).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.DeliveryAddress).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.DeliveryWindow).MaximumLength(100);
+        RuleFor(x => x.CargoType).MaximumLength(100);
+        RuleFor(x => x.VehicleType).MaximumLength(100);
+        RuleFor(x => x.CargoQuantity).InclusiveBetween(0, 1_000_000).When(x => x.CargoQuantity.HasValue);
+        RuleFor(x => x.LoadingDocumentNo).MaximumLength(50);
+        RuleFor(x => x.WaybillNo).MaximumLength(50);
+        RuleFor(x => x.InvoiceFooterNote).MaximumLength(500);
+        RuleFor(x => x.Description).MaximumLength(1000);
+        RuleFor(x => x.SalePrice).InclusiveBetween(0, 1_000_000_000).When(x => x.SalePrice.HasValue);
+        RuleFor(x => x.CarrierPrice).InclusiveBetween(0, 1_000_000_000).When(x => x.CarrierPrice.HasValue);
+        RuleFor(x => x.Commission).InclusiveBetween(0, 1_000_000_000).When(x => x.Commission.HasValue);
+        RuleFor(x => x.DriverBonus).InclusiveBetween(0, 1_000_000_000).When(x => x.DriverBonus.HasValue);
+        RuleFor(x => x.OtherExpense).InclusiveBetween(0, 1_000_000_000).When(x => x.OtherExpense.HasValue);
+        RuleFor(x => x.LoadingLatitude).InclusiveBetween(-90, 90).When(x => x.LoadingLatitude.HasValue);
+        RuleFor(x => x.DeliveryLatitude).InclusiveBetween(-90, 90).When(x => x.DeliveryLatitude.HasValue);
+        RuleFor(x => x.LoadingLongitude).InclusiveBetween(-180, 180).When(x => x.LoadingLongitude.HasValue);
+        RuleFor(x => x.DeliveryLongitude).InclusiveBetween(-180, 180).When(x => x.DeliveryLongitude.HasValue);
+    }
+}
+
 public class TripSaveRequestValidator : AbstractValidator<TripSaveRequest>
 {
     public TripSaveRequestValidator()

@@ -17,7 +17,7 @@ public class DataResetService(AppDbContext db, IFileStorage storage, ILogger<Dat
     private static readonly string[] Tables =
     [
         "vehicle_locations", "trip_events", "trip_attachments", "payments", "supplier_payments", "invoice_lines", "maintenance_records",
-        "driver_settlements", "documents", "expenses", "cash_transfers", "trips", "invoices",
+        "driver_settlements", "documents", "expenses", "cash_transfers", "trips", "job_requests", "invoices",
         "vehicles", "drivers", "customers", "suppliers", "cash_accounts",
     ];
 
