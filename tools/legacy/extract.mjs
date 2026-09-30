@@ -22,6 +22,12 @@ export const SOURCES = {
   'musteri-cari': 'alck_mstr.php?export=excel&page=1',
   'sevkiyatlar': `excel/g_ex.php?b_t=${FROM}&s_t=${TO}`,
   'sevkiyat-ozet': `excel/sevkiyat_ozet_ex.php?b_t=${FROM}&s_t=${TO}`,
+  'tedarikci-cari': 'alck_tdrkc.php',
+  'araclar': 'oz_arac/araclar.php?page=1&y=&msg=&export=excel',
+  'giderler': 'oz_arac/gdr.php?export=excel&ktgr=&b_t=&s_t=',
+  'mazotlar': `excel/genel_ex.php?mazot=1&p=0&bt=${FROM}&st=${TO}`,
+  'bankalar': 'bankalar.php',
+  'personeller': 'oz_arac/prsnl.php',
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))

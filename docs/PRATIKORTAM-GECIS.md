@@ -39,7 +39,7 @@
 > 6. Canlıya yükle:
 >    1. Ayarlar → Veriler → tam yedek al.
 >    2. Demo verileri temizle.
->    3. `aktar/` dosyalarını sırayla ilgili sayfalardaki "Excel'den Aktar" ile yükle: 1 tedarikçi → 2 müşteri → 3 şoför → 4 araç → 5 sefer → 6/7 devir tahsilat/ödeme.
+>    3. `aktar/` dosyalarını sırayla ilgili sayfalardaki "Excel'den Aktar" ile yükle: 1 tedarikçi → 2 müşteri → 3 şoför → 4 araç → 5 sefer → 6/7 devir tahsilat/ödeme → 8 giderler (mazot dahil; taşeron ödemeleri ve mahsuplaşmalar cari devrinde olduğu için alınmaz) → 9 banka hesapları (güncel bakiyeyle) → 10 personeller. Ya da hepsini tek komutla: `PANEL_EMAIL=… PANEL_PASSWORD=… python3 tools/legacy/prova.py <klasör> --api https://yeslojistik.onrender.com --apply`.
 >    4. Tam yedek al.
 >
 >    Alternatif: `prova.py --api <canlı adres>` (PANEL_EMAIL/PANEL_PASSWORD ile).
@@ -125,6 +125,16 @@ Bu arada GitHub'da iki dal bekliyor:
 
 | Eski ekran / işlem | Bizdeki karşılığı | Eksik | Bizde nasıl daha kolay olacak |
 |---|---|---|---|
+| Menü: Sevkiyat · Raporlar · Listeler · Öz Mal · Banka & Çek · Yönetici | Aynı gruplar: Sevkiyat, Cari, Listeler, Öz Mal, Banka & Çek, Rapor ve Yönetim | — | Her maddenin altında ne işe yaradığı yazar; bekleyen işler menüde sayaçla görünür |
+| Sevkiyatlar (`gecmis_new.php`) | Sevkiyatlar (`/seferler`) | Evrak onay adımları, komisyon/prim sütunları | Bugün / Gelecek / Geçmiş / Bu ay hapları; listenin üstünde kazanç tablosu; fatura durumu satırda; tek tıkla durum ilerletme; pano görünümü |
+| Kazanç Tablosu | Sevkiyatlar'daki kazanç şeridi | — | Süzgeçle birlikte değişir; "Faturası kesilecek"e tıklayınca liste süzülür |
+| Müşteriler Cari (`alck_mstr.php`) | Müşteriler Cari (`/cari/musteriler`) | İptal fatura sütunu | Az ve anlaşılır sütun; vadesi geçen satırda kırmızı; tek tıkla ekstre PDF; "Bakiyesi olanlar / Vadesi geçenler / Hepsi" |
+| Tedarikçiler Cari (`alck_tdrkc.php`) | Tedarikçiler Cari (`/cari/tedarikciler`) | — | Faturası gelmeyen seferler sayıyla; ekstre ve ödeme tek tıkla |
+| Tedarikçi Ödemeleri | Tedarikçi Ödemeleri (`/odemeler`) | — | Ödeme seferle ya da eski borçla kendiliğinden eşleşir |
+| Müşteri / Tedarikçi / Şoför Listesi | Listeler → Müşteriler, Tedarikçiler, Şoförler | Firma grupları, e-Fatura şablonu | Kartta tüm hareketler ve belgeler |
+| Öz Mal: Araçlar, Mazotlar, Giderler, Araç Masrafları | Öz Mal → Araçlar, Giderler | Sabit ödemeler, personel maaş/avans | Mazot ve masraf tek gider formunda (kategori kartlarıyla); belge ve bakım uyarıları |
+| Bankalar, Çekler | Banka & Çek → Kasa / Banka, Çek / Senet | — | Virman, ciro ve vadesi yaklaşan çek uyarısı |
+| Ana sayfa: iş talepleri (Bugün / Gelecek / Geçmiş) | İş Talepleri + Ana Sayfa'daki bugünün işleri | Kartlı/tablo seçimi | Talep tek tıkla sefere çevrilir |
 
 **Bilinen başlangıç maddeleri** (JobRequest alanlarından):
 - Teslim zaman aralığı, araç tipi.

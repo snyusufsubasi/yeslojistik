@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Columns3, Download, List, Pencil, Plus, Truck } from 'lucide-react'
 import { download, get, post } from '../api/client'
-import type { JobRequest, Trip, TripStatus } from '../api/types'
+import type { JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
@@ -11,7 +12,7 @@ import { TripForm } from '../components/TripForm'
 import { TripBoard } from '../components/TripBoard'
 import clsx from 'clsx'
 import { useAuth } from '../lib/auth'
-import { date, tl } from '../lib/format'
+import { addDaysIso, date, monthEndIso, monthStartIso, tl, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 
@@ -64,6 +65,16 @@ export default function TripsPage() {
 
   const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Trip>('trips', query)
+  const { page: _p, pageSize: _s, sort: _o, desc: _d, ...filters } = query
+  const { data: totals } = useQuery({ queryKey: ['trips', 'totals', filters], queryFn: () => get<TripTotals>('/trips/totals', filters) })
+  const today = todayIso()
+  const periods = [
+    { label: 'Bugün', from: today, to: today },
+    { label: 'Gelecek', from: addDaysIso(today, 1), to: '' },
+    { label: 'Geçmiş', from: '', to: addDaysIso(today, -1) },
+    { label: 'Bu ay', from: monthStartIso(), to: monthEndIso() },
+    { label: 'Hepsi', from: '', to: '' },
+  ]
 
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
@@ -74,7 +85,7 @@ export default function TripsPage() {
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><span className="whitespace-nowrap">{t.vehiclePlate}</span>{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{t.invoiceNo && <span className="mt-0.5 block text-sm text-slate-500">Fatura: {t.invoiceNo}</span>}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge><InvoiceInfo t={t} />{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
     { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span></> },
   ]
   if (can('operations')) {
@@ -94,7 +105,7 @@ export default function TripsPage() {
 
   return (
     <>
-      <PageHeader title="Seferler" subtitle="Tüm seferlerin takibi, durum güncelleme ve kârlılık"
+      <PageHeader title="Sevkiyatlar" subtitle="Seferlerin takibi, durum güncelleme, fatura ve kazanç"
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/trips/export', query, 'seferler.xlsx')}>Excel</Button>
           {can('operations') && <ImportButton entity="trips" />}
@@ -119,6 +130,18 @@ export default function TripsPage() {
       </>}
       {view === 'list' && <Card bodyClassName="p-0" title="Sefer Listesi" icon={<Truck className="size-4" />}
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
+        <div role="radiogroup" aria-label="Dönem" className="flex flex-wrap gap-2 border-b border-slate-100 px-6 pt-4 pb-3">
+          {periods.map((p) => {
+            const on = from === p.from && to === p.to
+            return (
+              <button key={p.label} role="radio" aria-checked={on} onClick={() => { setFrom(p.from); setTo(p.to) }}
+                className={clsx('min-h-9 rounded-full border px-4 text-[0.9375rem] font-medium transition',
+                  on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}>
+                {p.label}
+              </button>
+            )
+          })}
+        </div>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
           <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
@@ -128,6 +151,8 @@ export default function TripsPage() {
           <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
             options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }, { value: 'carrier' as const, label: 'Taşeron faturası gelmedi' }]} />
         </div>
+        {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
+          onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(t) => t.id}
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
@@ -176,4 +201,42 @@ export default function TripsPage() {
 /** "İstanbul / Tuzla OSB" — adres zaten ili içeriyorsa tekrar yazılmaz. */
 function route(city: string | null | undefined, address: string) {
   return city && !address.toLocaleLowerCase('tr').includes(city.toLocaleLowerCase('tr')) ? `${city} / ${address}` : address
+}
+
+/** Eski paneldeki "Fatura Bilgisi": yalnızca işe yarayan satırlar (kesilen fatura ya da bekleyen iş) durumun altında. */
+function InvoiceInfo({ t }: { t: Trip }) {
+  const open = t.status === 'Delivered' && !t.isLegacy
+  return <>
+    {t.invoiceNo ? <span className="mt-0.5 block text-sm text-slate-500">Fatura: {t.invoiceNo}</span>
+      : open && <span className="mt-0.5 block text-sm font-medium text-violet-700">Fatura kesilecek</span>}
+    {t.carrierSupplierId && (t.carrierInvoiceNo ? <span className="block text-sm text-slate-500">Taşeron fat.: {t.carrierInvoiceNo}</span>
+      : open && <span className="block text-sm font-medium text-amber-700">Taşeron faturası gelmedi</span>)}
+  </>
+}
+
+/** Eski paneldeki "Kazanç Tablosu": süzgece uyan seferlerin toplamı, listenin hemen üstünde. */
+function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals; showMoney: boolean; onUninvoiced: () => void }) {
+  const cell = (label: string, value: string, tone?: string) => (
+    <div className="min-w-0">
+      <div className="text-sm text-slate-500">{label}</div>
+      <div className={clsx('truncate text-lg font-semibold tabular-nums', tone ?? 'text-slate-900')}>{value}</div>
+    </div>
+  )
+  return (
+    <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-slate-100 bg-slate-50/70 px-6 py-4 sm:grid-cols-3 xl:grid-cols-6" aria-label="Kazanç tablosu">
+      {cell('Sefer', `${totals.count}`)}
+      {showMoney && <>
+        {cell('Satış', tl(totals.sale))}
+        {cell('Araç / taşeron maliyeti', tl(totals.vehicleCost))}
+        {cell('Masraf', tl(totals.expenses))}
+        {cell('Kazanç', tl(totals.profit), totals.profit < 0 ? 'text-red-600' : 'text-emerald-700')}
+      </>}
+      {totals.uninvoicedCount > 0
+        ? <button onClick={onUninvoiced} className="min-w-0 rounded-lg text-left hover:bg-violet-50">
+            <div className="text-sm text-violet-700">Faturası kesilecek</div>
+            <div className="truncate text-lg font-semibold tabular-nums text-violet-800">{totals.uninvoicedCount} · {tl(totals.uninvoicedTotal)}</div>
+          </button>
+        : cell('Faturası kesilecek', 'Yok', 'text-slate-400')}
+    </div>
+  )
 }

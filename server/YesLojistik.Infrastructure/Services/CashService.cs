@@ -38,6 +38,11 @@ public class CashService(AppDbContext db, BalanceService balances, PayableServic
         moves.AddRange(settlements.Select(s => s.Direction == SettlementDirection.PaidToDriver
             ? new Move(s.CashAccountId!.Value, s.Date, "Şoföre ödeme", s.Driver, 0, s.Amount, "/soforler")
             : new Move(s.CashAccountId!.Value, s.Date, "Şoförden alınan", s.Driver, s.Amount, 0, "/soforler")));
+        var staff = await db.StaffTransactions.AsNoTracking()
+            .Where(t => t.CashAccountId != null && t.Kind != StaffTransactionKind.Bonus && (accountId == null || t.CashAccountId == accountId))
+            .Select(t => new { t.CashAccountId, t.Date, t.Amount, t.Kind, Name = t.Staff.FullName }).ToListAsync(ct);
+        moves.AddRange(staff.Select(t => new Move(t.CashAccountId!.Value, t.Date, t.Kind == StaffTransactionKind.Advance ? "Personel avansı" : "Maaş ödemesi",
+            t.Name, 0, t.Amount, "/personel")));
         var transfers = await db.CashTransfers.AsNoTracking().Where(t => accountId == null || t.FromAccountId == accountId || t.ToAccountId == accountId)
             .Select(t => new { t.FromAccountId, t.ToAccountId, t.Date, t.Amount, t.Note, From = t.FromAccount.Name, To = t.ToAccount.Name }).ToListAsync(ct);
         foreach (var t in transfers)

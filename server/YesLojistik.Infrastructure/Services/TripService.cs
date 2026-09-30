@@ -73,6 +73,25 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return new PagedResult<TripDto>(rows.Select(ToDto).ToList(), total, page, size);
     }
 
+    public async Task<TripTotalsDto> TotalsAsync(TripQuery q, CancellationToken ct = default)
+    {
+        var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled)
+            .Select(t => new
+            {
+                t.SalePrice, t.VehicleCost, Uninvoiced = t.InvoiceId == null && !t.IsLegacy && t.Status == TripStatus.Delivered,
+                Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
+            })
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Count = g.Count(), Sale = g.Sum(x => x.SalePrice), Cost = g.Sum(x => x.VehicleCost), Exp = g.Sum(x => x.Expenses),
+                UnCount = g.Count(x => x.Uninvoiced), UnTotal = g.Where(x => x.Uninvoiced).Sum(x => x.SalePrice),
+            })
+            .FirstOrDefaultAsync(ct);
+        return rows == null ? new TripTotalsDto(0, 0, 0, 0, 0, 0, 0)
+            : new TripTotalsDto(rows.Count, rows.Sale, rows.Cost, rows.Exp, rows.Sale - rows.Cost - rows.Exp, rows.UnCount, rows.UnTotal);
+    }
+
     public async Task<List<TripDto>> QueryAsync(IQueryable<Trip> query, CancellationToken ct = default) =>
         (await query.Select(Projection).ToListAsync(ct)).Select(ToDto).ToList();
 

@@ -15,6 +15,9 @@ public class TripsController(TripService trips) : ControllerBase
     [HttpGet]
     public Task<PagedResult<TripDto>> List([FromQuery] TripQuery q, CancellationToken ct) => trips.ListAsync(q, ct);
 
+    [HttpGet("totals")]
+    public Task<TripTotalsDto> Totals([FromQuery] TripQuery q, CancellationToken ct) => trips.TotalsAsync(q, ct);
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] TripQuery q, CancellationToken ct)
     {

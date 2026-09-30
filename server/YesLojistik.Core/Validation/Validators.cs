@@ -394,3 +394,45 @@ public class InstrumentStatusRequestValidator : AbstractValidator<InstrumentStat
         RuleFor(x => x.SupplierId).NotNull().When(x => x.Status == InstrumentStatus.Endorsed).WithMessage("Ciro için tedarikçiyi seçin.");
     }
 }
+
+public class StaffSaveRequestValidator : AbstractValidator<StaffSaveRequest>
+{
+    public StaffSaveRequestValidator()
+    {
+        RuleFor(x => x.FullName).NotEmpty().WithMessage("Ad soyad zorunlu.").MaximumLength(150);
+        RuleFor(x => x.NationalId).Must(v => TaxNumberValidator.IsValidTckn(v!)).When(x => !string.IsNullOrWhiteSpace(x.NationalId)).WithMessage("Geçersiz TC kimlik numarası.");
+        RuleFor(x => x.Phone).ValidPhone();
+        RuleFor(x => x.MonthlySalary).Amount().GreaterThanOrEqualTo(0).WithMessage("Maaş eksi olamaz.");
+        RuleFor(x => x.Notes).MaximumLength(500);
+    }
+}
+
+public class StaffTransactionSaveRequestValidator : AbstractValidator<StaffTransactionSaveRequest>
+{
+    public StaffTransactionSaveRequestValidator()
+    {
+        RuleFor(x => x.Kind).IsInEnum();
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+        RuleFor(x => x.Note).MaximumLength(500);
+    }
+}
+
+public class RecurringPaymentSaveRequestValidator : AbstractValidator<RecurringPaymentSaveRequest>
+{
+    public RecurringPaymentSaveRequestValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().WithMessage("Başlık zorunlu.").MaximumLength(150);
+        RuleFor(x => x.Detail).MaximumLength(500);
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+        RuleFor(x => x.DueDay).InclusiveBetween(1, 28).WithMessage("Ödeme günü 1 ile 28 arasında olmalı.");
+        RuleFor(x => x.Category).IsInEnum();
+    }
+}
+
+public class RecurringPayRequestValidator : AbstractValidator<RecurringPayRequest>
+{
+    public RecurringPayRequestValidator()
+    {
+        RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
+    }
+}

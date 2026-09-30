@@ -5,7 +5,7 @@ import clsx from 'clsx'
 import {
   Handshake, HandCoins, PanelLeftClose, PanelLeftOpen, Plus,
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type } from 'lucide-react'
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat } from 'lucide-react'
 import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Dashboard, Health } from '../api/types'
@@ -22,42 +22,51 @@ type NavItem = { to: string; label: string; hint: string; icon: typeof Home; per
 const alertsAt = (alerts: Alert[], path: string) => alerts.filter((a) => a.link.startsWith(path)).length
 const badge = (count: number, tone: Badge['tone'], title: string): Badge | null => (count > 0 ? { count, tone, title } : null)
 
-/** Menü, bir nakliye ofisinin gününe göre gruplu: önce bugün, sonra sefer işleri, müşteri ve tahsilat, taşeron ve giderler, kasa ve rapor. */
+/**
+ * Menü, eski paneldeki (pratikortam) gruplamayı izler ki alışkanlık bozulmasın: Sevkiyat, Cari, Listeler, Öz Mal, Banka & Çek.
+ * Ama daha sade: her maddenin altında ne işe yaradığı yazar, bekleyen işler sayaçla görünür.
+ */
 const navGroups: { title?: string; items: NavItem[] }[] = [
-  { title: 'Bugün', items: [
-    { to: '/', label: 'Ana Sayfa', hint: 'Özet ve yapılacaklar', icon: Home },
+  { items: [
+    { to: '/', label: 'Ana Sayfa', hint: 'Bugünün işleri ve özet', icon: Home },
     { to: '/harita', label: 'Araç Takip Haritası', hint: 'Araçlar şu an nerede', icon: MapIcon },
   ] },
-  { title: 'Sefer İşleri', items: [
-    { to: '/is-talepleri', label: 'İş Talepleri', hint: 'Araç atanmadan gelen işler', icon: FileText },
-    { to: '/seferler', label: 'Seferler', hint: 'Yük aç, durum güncelle', icon: Truck,
+  { title: 'Sevkiyat', items: [
+    { to: '/is-talepleri', label: 'İş Talepleri', hint: 'Araç atanmadan gelen işler', icon: ClipboardList },
+    { to: '/seferler', label: 'Sevkiyatlar', hint: 'Sefer aç, durum güncelle, kazanç', icon: Truck,
       badge: (d) => badge(d?.activeTripCount ?? 0, 'blue', 'bekleyen ve yoldaki sefer') },
-    { to: '/araclar', label: 'Araçlar', hint: 'Özmal ve kiralık araçlar', icon: Building2,
-      badge: (_, a) => badge(alertsAt(a, '/araclar'), 'orange', 'belge veya bakım uyarısı') },
-    { to: '/soforler', label: 'Şoförler', hint: 'Belgeler ve şoför hesabı', icon: IdCard,
-      badge: (_, a) => badge(alertsAt(a, '/soforler'), 'orange', 'belge uyarısı') },
   ] },
-  { title: 'Müşteri ve Tahsilat', items: [
-    { to: '/musteriler', label: 'Müşteriler / Cari', hint: 'Cari hesap ve ekstre', icon: Users,
+  { title: 'Cari', items: [
+    { to: '/cari/musteriler', label: 'Müşteriler Cari', hint: 'Kimden ne kadar alacağız', icon: Scale, perm: 'accounting',
       badge: (_, a) => badge(alertsAt(a, '/musteriler'), 'red', 'vadesi geçen alacak') },
+    { to: '/cari/tedarikciler', label: 'Tedarikçiler Cari', hint: 'Kime ne kadar borcumuz var', icon: Scale, perm: 'accounting',
+      badge: (_, a) => badge(alertsAt(a, '/tedarikciler'), 'red', 'taşeron uyarısı') },
     { to: '/faturalar', label: 'Faturalar', hint: 'Kes, gönder, takip et', icon: FileText,
       badge: (d) => badge(d?.uninvoicedTripCount ?? 0, 'violet', 'faturası kesilmemiş teslim sefer') },
     { to: '/tahsilatlar', label: 'Tahsilatlar', hint: 'Müşteriden gelen paralar', icon: Wallet },
+    { to: '/odemeler', label: 'Tedarikçi Ödemeleri', hint: 'Taşerona ödenenler', icon: HandCoins },
+  ] },
+  { title: 'Listeler', items: [
+    { to: '/musteriler', label: 'Müşteriler', hint: 'Firma kartları', icon: Users },
+    { to: '/tedarikciler', label: 'Tedarikçiler', hint: 'Araç sahipleri, servisler', icon: Handshake },
+    { to: '/soforler', label: 'Şoförler', hint: 'Belgeler ve şoför hesabı', icon: IdCard,
+      badge: (_, a) => badge(alertsAt(a, '/soforler'), 'orange', 'belge uyarısı') },
+    { to: '/personel', label: 'Personeller', hint: 'Maaş, avans, prim', icon: UserRound, perm: 'accounting' },
+    { to: '/sabit-odemeler', label: 'Sabit Ödemeler', hint: 'Kira, taksit, aylık ödemeler', icon: Repeat, perm: 'accounting' },
+  ] },
+  { title: 'Öz Mal', items: [
+    { to: '/araclar', label: 'Araçlar', hint: 'Belgeler, bakım, kiralıklar', icon: Building2,
+      badge: (_, a) => badge(alertsAt(a, '/araclar'), 'orange', 'belge veya bakım uyarısı') },
+    { to: '/giderler', label: 'Giderler', hint: 'Mazot, masraf, bakım', icon: Receipt,
+      badge: (d) => badge(d?.pendingExpenseCount ?? 0, 'orange', 'onay bekleyen masraf') },
+  ] },
+  { title: 'Banka & Çek', items: [
+    { to: '/kasa-banka', label: 'Kasa / Banka', hint: 'Hesap bakiyeleri, virman', icon: Landmark, perm: 'accounting' },
     { to: '/cek-senet', label: 'Çek / Senet', hint: 'Portföy ve vadeler', icon: ScrollText,
       badge: (_, a) => badge(alertsAt(a, '/cek-senet'), 'orange', 'vadesi yaklaşan çek/senet') },
   ] },
-  { title: 'Taşeron ve Giderler', items: [
-    { to: '/tedarikciler', label: 'Tedarikçiler', hint: 'Araç sahipleri, servisler', icon: Handshake,
-      badge: (_, a) => badge(alertsAt(a, '/tedarikciler'), 'red', 'taşeron uyarısı') },
-    { to: '/odemeler', label: 'Ödemeler', hint: 'Taşerona ödenenler', icon: HandCoins },
-    { to: '/giderler', label: 'Giderler', hint: 'Yakıt, bakım, otoyol', icon: Receipt,
-      badge: (d) => badge(d?.pendingExpenseCount ?? 0, 'orange', 'onay bekleyen masraf') },
-  ] },
-  { title: 'Kasa ve Rapor', items: [
-    { to: '/kasa-banka', label: 'Kasa / Banka', hint: 'Hesap bakiyeleri', icon: Landmark, perm: 'accounting' },
-    { to: '/raporlar', label: 'Raporlar', hint: 'Kâr, alacak, borç', icon: BarChart3, perm: 'accounting' },
-  ] },
-  { title: 'Sistem', items: [
+  { title: 'Rapor ve Yönetim', items: [
+    { to: '/raporlar', label: 'Raporlar', hint: 'Kâr, analiz, ekstre', icon: BarChart3, perm: 'accounting' },
     { to: '/ayarlar', label: 'Ayarlar', hint: 'Firma, kullanıcılar, yedek', icon: Settings,
       badge: (_, a) => badge(alertsAt(a, '/ayarlar'), 'orange', 'firma belgesi uyarısı') },
     { to: '/yardim', label: 'Yardım', hint: 'Nasıl yapılır?', icon: HelpCircle },
@@ -218,14 +227,14 @@ function BottomBar({ onMenu }: { onMenu: () => void }) {
       {open && <QuickActionMenu items={items} onPick={() => setOpen(false)} className="fixed inset-x-3 bottom-24 z-50 max-h-[70vh] overflow-y-auto lg:hidden" />}
       <nav aria-label="Alt kısayollar" className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden">
         {link('/', 'Ana Sayfa', Home, true)}
-        {link('/seferler', 'Seferler', Truck)}
+        {link('/seferler', 'Sevkiyat', Truck)}
         <div className="flex flex-1 items-center justify-center">
           <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
             className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-md ring-4 ring-white">
             {open ? <X className="size-7" /> : <Plus className="size-8" />}
           </button>
         </div>
-        {link('/musteriler', 'Cariler', Users)}
+        {link(can('accounting') ? '/cari/musteriler' : '/musteriler', 'Cariler', Users)}
         <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium text-slate-600">
           <Menu className="size-6" />Menü
         </button>

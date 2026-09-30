@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<DataResetService>();
         services.AddScoped<BackupService>();
         services.AddScoped<PayableService>();
+        services.AddScoped<CariService>();
         services.AddScoped<WaybillPdfGenerator>();
         services.AddScoped<CustomerNotifier>();
         services.AddScoped<ExpenseService>();

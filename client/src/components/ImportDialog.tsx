@@ -5,7 +5,7 @@ import { api, download, errorMessage } from '../api/client'
 import { useToast } from './Toast'
 import { Button, Modal } from './ui'
 
-export type ImportEntity = 'customers' | 'vehicles' | 'drivers' | 'suppliers' | 'trips' | 'job-requests' | 'invoices' | 'payments' | 'supplier-payments' | 'expenses'
+export type ImportEntity = 'customers' | 'vehicles' | 'drivers' | 'suppliers' | 'trips' | 'job-requests' | 'invoices' | 'payments' | 'supplier-payments' | 'expenses' | 'cash-accounts' | 'staff'
 type Entity = ImportEntity
 interface ImportResult {
   totalRows: number
@@ -18,7 +18,7 @@ interface ImportResult {
 
 const titles: Record<Entity, string> = {
   customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', suppliers: 'Tedarikçi', trips: 'Sefer',
-  'job-requests': 'İş Talebi', invoices: 'Fatura', payments: 'Tahsilat', 'supplier-payments': 'Ödeme', expenses: 'Gider',
+  'job-requests': 'İş Talebi', invoices: 'Fatura', payments: 'Tahsilat', 'supplier-payments': 'Ödeme', expenses: 'Gider', 'cash-accounts': 'Banka / Kasa Hesabı', staff: 'Personel',
 }
 
 const hints: Partial<Record<Entity, string>> = {
@@ -31,6 +31,8 @@ const hints: Partial<Record<Entity, string>> = {
   invoices: 'Eski sistemde kesilmiş faturalar içindir; numarası korunur, e-Fatura gönderilmez. “Toplam” yazarsanız hesaplananla karşılaştırılır.',
   payments: 'Müşterilerden alınan eski tahsilatlar. “Fatura No” yazarsanız o faturaya bağlanır (önce faturaları aktarın).',
   'supplier-payments': 'Taşeronlara ve diğer tedarikçilere yapılmış eski ödemeler. Tedarikçiler önce aktarılmış olmalı.',
+  'cash-accounts': 'Kasa ve banka hesapları, eski sistemdeki güncel bakiyeleriyle (“Devir Bakiyesi”). Aynı adlı hesap iki kez açılmaz.',
+  staff: 'Ofis ve depo personeli, aylık maaşıyla. Şoförler buraya değil Şoförler sayfasına aktarılır.',
   expenses: 'Eski giderler. “Vadeli: Evet” olanlar tedarikçiye borç yazılır. Plaka ve şoför sistemde kayıtlı olmalı.',
 }
 

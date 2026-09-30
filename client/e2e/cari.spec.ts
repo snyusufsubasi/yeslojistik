@@ -1,0 +1,61 @@
+import { expect, test } from '@playwright/test'
+import { expectPdfOpens, login } from './helpers'
+
+test('cari tabloları ve sevkiyat kazanç tablosu (eski panele benzeyen düzen)', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'masaüstü menüsü')
+  await login(page)
+
+  await page.getByRole('link', { name: 'Müşteriler Cari', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Müşteriler Cari' })).toBeVisible()
+  await page.getByRole('radio', { name: 'Hepsi' }).click()
+  const firstRow = page.locator('tbody tr').first()
+  await expect(firstRow).toBeVisible()
+  await expectPdfOpens(page, () => firstRow.getByRole('button', { name: 'Ekstre' }).click(), /\/api\/customers\/\d+\/statement/)
+  await firstRow.click()
+  await expect(page).toHaveURL(/\/musteriler\/\d+$/)
+
+  await page.getByRole('link', { name: 'Tedarikçiler Cari', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Tedarikçiler Cari' })).toBeVisible()
+  await page.getByRole('radio', { name: 'Hepsi' }).click()
+  await expect(page.locator('tbody tr').first()).toBeVisible()
+
+  await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
+  await page.getByRole('radio', { name: 'Hepsi' }).click()
+  const strip = page.getByLabel('Kazanç tablosu')
+  await expect(strip).toContainText('Kazanç')
+  await expect(strip).toContainText('Satış')
+  await page.getByRole('radio', { name: 'Bugün' }).click()
+  await expect(page.getByRole('radio', { name: 'Bugün' })).toHaveAttribute('aria-checked', 'true')
+})
+
+test('personeller ve sabit ödemeler', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'masaüstü menüsü')
+  await login(page)
+  const u = Date.now().toString().slice(-6)
+
+  await page.getByRole('link', { name: 'Personeller', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Personeller' })).toBeVisible()
+  await page.getByRole('button', { name: 'Personel Ekle' }).click()
+  await page.getByLabel('Ad soyad').fill(`Arif Test ${u}`)
+  await page.getByLabel('Aylık maaş').fill('50000')
+  await page.getByRole('button', { name: 'Kaydet' }).click()
+  const row = page.locator('tbody tr', { hasText: `Arif Test ${u}` })
+  await expect(row).toContainText('50.000 TL')
+  await row.click()
+  await page.getByRole('radio', { name: /Avans/ }).click()
+  await page.getByLabel('Tutar').fill('5000')
+  await page.getByRole('button', { name: 'Kaydet' }).click()
+  await expect(page.getByRole('dialog').getByText('Avans', { exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(row).toContainText('45.000 TL')
+
+  await page.getByRole('link', { name: 'Sabit Ödemeler', exact: true }).click()
+  await page.getByRole('button', { name: 'Sabit Ödeme Ekle' }).click()
+  await page.getByLabel('Başlık').fill(`Ofis kirası ${u}`)
+  await page.getByLabel('Aylık tutar').fill('25000')
+  await page.getByRole('button', { name: 'Kaydet' }).click()
+  const r = page.locator('tbody tr', { hasText: `Ofis kirası ${u}` })
+  await r.getByRole('button', { name: 'Ödendi' }).click()
+  await page.getByRole('button', { name: 'Ödendi olarak kaydet' }).click()
+  await expect(r).toContainText('Ödendi ·')
+})

@@ -41,6 +41,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["payments"] = ["Tarih", "Müşteri", "Tutar", "Yöntem", "Fatura No", "Çek/Senet No", "Banka", "Çek Vadesi", "Açıklama"],
         ["supplier-payments"] = ["Tarih", "Tedarikçi", "Tutar", "Yöntem", "Açıklama"],
         ["expenses"] = ["Tarih", "Kategori", "Tutar", "Plaka", "Şoför", "Tedarikçi", "Vadeli", "Litre", "Km", "Açıklama"],
+        ["cash-accounts"] = ["Hesap Adı", "Tür", "IBAN", "Devir Bakiyesi", "Devir Tarihi"],
+        ["staff"] = ["Ad Soyad", "TC Kimlik No", "Telefon", "İşe Başlangıç", "Maaş", "Not"],
     };
 
     /// <summary>Başlıkta bulunması zorunlu sütunlar.</summary>
@@ -56,6 +58,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["payments"] = ["Tarih", "Müşteri", "Tutar"],
         ["supplier-payments"] = ["Tarih", "Tedarikçi", "Tutar"],
         ["expenses"] = ["Tarih", "Kategori", "Tutar"],
+        ["cash-accounts"] = ["Hesap Adı"],
+        ["staff"] = ["Ad Soyad"],
     };
 
     private static readonly Dictionary<string, object[]> Examples = new()
@@ -76,6 +80,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["payments"] = [new DateTime(2026, 9, 20), "Yıldız Mobilya", 15000m, "Havale/EFT", "A2026000123", "", "", "", "Eylül tahsilatı"],
         ["supplier-payments"] = [new DateTime(2026, 9, 21), "Demir Nakliyat", 12000m, "Havale/EFT", "Eylül seferleri"],
         ["expenses"] = [new DateTime(2026, 9, 3), "Yakıt", 4250m, "34 VES 01", "Mehmet Yılmaz", "", "Hayır", 110m, 421500, "Opet Tuzla"],
+        ["cash-accounts"] = ["Akbank Kurumsal", "Banka", "TR33 0006 1005 1978 6457 8413 26", 150000m, new DateTime(2026, 9, 30)],
+        ["staff"] = ["Ali Veli", "", "0532 111 22 33", new DateTime(2026, 9, 1), 30000m, "Depo"],
     };
 
     private static readonly Dictionary<string, string> Notes = new()
@@ -100,6 +106,9 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             "Aynı tarih, tedarikçi, tutar ve açıklama zaten varsa atlanır.",
         ["expenses"] = "Zorunlu: Tarih, Kategori, Tutar. Kategori: Yakıt, Bakım, Otoyol, Harcırah, Avans, Lastik, Sigorta, Vergi, Diğer. " +
             "Vadeli: Evet ise tutar tedarikçiye borç yazılır (Tedarikçi zorunlu). Aynı tarih, kategori, tutar, plaka ve açıklama zaten varsa atlanır.",
+        ["cash-accounts"] = "Zorunlu: Hesap Adı. Tür: Kasa, Banka, POS, Kredi Kartı (boşsa Banka). Devir Bakiyesi: hesabın o tarihteki bakiyesi " +
+            "(eksi olabilir, ör. kullanılan kredili hesap). Aynı adlı hesap zaten varsa atlanır.",
+        ["staff"] = "Zorunlu: Ad Soyad. Maaş: aylık net maaş. Şoförler buraya değil Şoförler listesine girilir. Aynı adlı personel zaten varsa atlanır.",
     };
 
     public static byte[] Template(string entity)
@@ -169,6 +178,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             case "payments": await PaymentsAsync(rows, ctx, ct); break;
             case "supplier-payments": await SupplierPaymentsAsync(rows, ctx, ct); break;
             case "expenses": await ExpensesAsync(rows, ctx, ct); break;
+            case "cash-accounts": await CashAccountsAsync(rows, ctx, ct); break;
+            case "staff": await StaffAsync(rows, ctx, ct); break;
             default: await DriversAsync(rows, ctx, ct); break;
         }
 
@@ -643,6 +654,65 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
                 return Task.CompletedTask;
             }
             db.SupplierPayments.Add(new SupplierPayment { SupplierId = supplierId.Value, Date = date, Amount = amount, Method = method, Description = description });
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task CashAccountsAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var existing = (await db.CashAccounts.Select(a => a.Name).ToListAsync(ct)).Select(Key).ToHashSet();
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var name = r.Str(row, "Hesap Adı");
+            if (name == null) { ctx.Errors.Add(new ImportRowError(n, "Hesap Adı zorunlu.")); return Task.CompletedTask; }
+            var kind = r.Str(row, "Tür") is { } k ? Key(k) switch
+            {
+                "KASA" or "NAKİT" => CashAccountKind.Cash,
+                "BANKA" => CashAccountKind.Bank,
+                "POS" => CashAccountKind.Pos,
+                "KREDİ KARTI" or "KREDI KARTI" => CashAccountKind.CreditCard,
+                _ => (CashAccountKind?)null,
+            } : CashAccountKind.Bank;
+            if (kind == null) { ctx.Errors.Add(new ImportRowError(n, "Tür: Kasa, Banka, POS veya Kredi Kartı olmalı.")); return Task.CompletedTask; }
+            var iban = r.Str(row, "IBAN");
+            if (iban != null && !IbanValidator.IsValid(iban)) { ctx.Errors.Add(new ImportRowError(n, "IBAN geçersiz (TR ile başlayan 26 karakter).")); return Task.CompletedTask; }
+            if (!existing.Add(Key(name)))
+            {
+                ctx.Skip(n, $"“{name}” hesabı");
+                return Task.CompletedTask;
+            }
+            db.CashAccounts.Add(new CashAccount
+            {
+                Name = name.Trim(), Kind = kind.Value, Iban = IbanValidator.Normalize(iban),
+                OpeningBalance = r.Dec(row, "Devir Bakiyesi") ?? 0, OpeningBalanceDate = r.Date(row, "Devir Tarihi"),
+            });
+            ctx.Created++;
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task StaffAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
+    {
+        var existing = (await db.Staff.Select(x => x.FullName).ToListAsync(ct)).Select(Key).ToHashSet();
+        var r = ctx.R;
+        await EachAsync(rows, ctx, (row, n) =>
+        {
+            var name = r.Str(row, "Ad Soyad");
+            if (name == null) { ctx.Errors.Add(new ImportRowError(n, "Ad Soyad zorunlu.")); return Task.CompletedTask; }
+            var tc = r.Str(row, "TC Kimlik No");
+            if (tc != null && !TaxNumberValidator.IsValidTckn(tc)) { ctx.Errors.Add(new ImportRowError(n, "Geçersiz TC kimlik numarası.")); return Task.CompletedTask; }
+            var phone = r.Str(row, "Telefon");
+            if (phone != null && Formatters.NormalizePhone(phone) == null) { ctx.Errors.Add(new ImportRowError(n, "Geçerli bir telefon numarası girin (ör. 0532 123 45 67).")); return Task.CompletedTask; }
+            var salary = r.Dec(row, "Maaş") ?? 0;
+            if (salary < 0) { ctx.Errors.Add(new ImportRowError(n, "Maaş eksi olamaz.")); return Task.CompletedTask; }
+            if (!existing.Add(Key(name))) { ctx.Skip(n, $"“{name}”"); return Task.CompletedTask; }
+            db.Staff.Add(new Staff
+            {
+                FullName = name.Trim(), NationalId = tc, Phone = Formatters.NormalizePhone(phone), StartDate = r.Date(row, "İşe Başlangıç"),
+                MonthlySalary = Money.Round(salary), Notes = r.Str(row, "Not"),
+            });
             ctx.Created++;
             return Task.CompletedTask;
         });
