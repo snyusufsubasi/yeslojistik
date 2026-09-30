@@ -10,6 +10,11 @@ public class Trip : BaseEntity
     public Driver Driver { get; set; } = null!;
     public int? JobRequestId { get; set; }
     public JobRequest? JobRequest { get; set; }
+    /// <summary>
+    /// Eski sistemden aktarılan geçmiş sefer: listede ve raporlarda görünür ama taşeron borcu, "kesilecek fatura" ve risk
+    /// hesaplarına girmez (bu tutarlar açılış/devir bakiyesinin içindedir).
+    /// </summary>
+    public bool IsLegacy { get; set; }
 
     public string LoadingAddress { get; set; } = "";
     public string DeliveryAddress { get; set; } = "";

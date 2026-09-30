@@ -20,7 +20,41 @@
 > - `alck_mstr.php` / `alck_tdrkc.php` → **cari bakiyeler** (kesilen/alınan/iptal fatura, faturasız sevkiyat, alınan/verilen ödeme, bakiye)
 > - `tedarikci_odemeleri.php` → **taşeron ödemeleri**; `oz_arac/…` → **özmal araçlar**
 >
-> **Sıradaki:** tam tarama (`--max 400`) + `extract`/`transform` ile bu listeleri Excel aktarım şablonlarına dökmek.
+> **30 Eylül — veri hazır ve prova edildi.** Eski panelin kendi Excel dışa aktarımları indirildi:
+> 154 firma, 129 tedarikçi, 134 şoför, 205 sefer (5 Ağu–29 Eyl), müşteri ve taşeron carileri.
+> Boş bir veritabanına prova aktarımı yapıldı. Her müşteri ve her taşeron bakiyesi eski panelle **kişi kişi birebir tuttu**.
+>
+> ## Geçiş günü: adım adım
+> Komutlar bulut oturumunda çalışır. `PRATIK_USER`/`PRATIK_PASS` ortamda olmalı; `pip install openpyxl` gerekir.
+> 1. Kuzen o gün pratikortam'a kayıt girmeyi bırakır.
+> 2. `node tools/legacy/extract.mjs --out <scratchpad>/pratik-full`
+>    Güncel dışa aktarımları indirir.
+> 3. `node tools/legacy/crawl.mjs --out <scratchpad>/pratik-full --max 60`
+>    Taşeron cari sayfası için gerekli.
+> 4. `python3 tools/legacy/transform.py <scratchpad>/pratik-full`
+>    `aktar/1-…7-*.xlsx` dosyalarını ve `rapor.txt` mutabakatını üretir.
+> 5. Yerel provayı boş bir veritabanında yap:
+>    `python3 tools/legacy/prova.py <scratchpad>/pratik-full --api http://localhost:5090 --apply`
+>    Sonuç "KİŞİ KİŞİ MUTABAKAT: hepsi tuttu" olmalı. Panelin reddettiği alanları (geçersiz telefon, VKN vb.) boşaltır ve dosyaları günceller.
+> 6. Canlıya yükle:
+>    1. Ayarlar → Veriler → tam yedek al.
+>    2. Demo verileri temizle.
+>    3. `aktar/` dosyalarını sırayla ilgili sayfalardaki "Excel'den Aktar" ile yükle: 1 tedarikçi → 2 müşteri → 3 şoför → 4 araç → 5 sefer → 6/7 devir tahsilat/ödeme.
+>    4. Tam yedek al.
+>
+>    Alternatif: `prova.py --api <canlı adres>` (PANEL_EMAIL/PANEL_PASSWORD ile).
+>
+> **Bakiye kuralı.** Aynı kural `transform.py` başındaki açıklamada da yazılı.
+> - **Müşteri devri:** kesilen fatura − alınan ödeme.
+> - **Faturalanmış seferler:** "Eski kayıt" olarak aktarılır. Geçmişte ve raporlarda görünür, bakiye ve "kesilecek fatura" hesabına girmez.
+> - **"Bekleniyor" seferler (106 adet):** Aktif gelir ve yeni sistemde faturalanır.
+> - **Taşeron devri:** eski bakiye − aktif seferlerin maliyeti. Yeni sistem aktif seferlerin maliyetini borç olarak yeniden yazar, toplam yine eski bakiyeye eşit olur.
+> - **Eksi çıkan devir:** Cutover tarihli bir ödeme/tahsilat kaydı olarak girer.
+>
+> **Veri notları:**
+> - Eski panel çekici ve dorseyi tek alanda tutuyor (`34ABC123-34DEF456`). Aktarımda araç ve dorse plakası olarak ayrılır.
+> - Aynı gün aynı araçla aynı güzergâha yapılan seferler, açıklamadaki sevkiyat numarasıyla ayrışır.
+> - Cari sayfalarının son satırı "Toplam" satırıdır, toplanmaz.
 
 ## Bağlam
 Müşteri bugün pratikortam.com'daki (eski PHP paneli) sistemi kullanıyor ve içindeki verileri dışarı alamıyor. Bizim panelin görünüşünü beğendi; ekleme, düzenleme ve silme işlerinde oradaki yeteneklerin hepsini istiyor.

@@ -64,6 +64,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         if (trips.Count != tripIds.Count) throw new DomainException("Seçilen seferlerden bazıları bulunamadı.");
         if (trips.Any(t => t.CustomerId != req.CustomerId)) throw new DomainException("Seçilen seferler faturadaki müşteriye ait değil.");
         if (trips.Any(t => t.InvoiceId != null)) throw new DomainException("Seçilen seferlerden bazıları zaten faturalanmış.");
+        if (trips.Any(t => t.IsLegacy)) throw new DomainException("Eski sistemden aktarılan seferler yeniden faturalanamaz (tutarları devir bakiyesinde).");
         if (trips.Any(t => t.Status == TripStatus.Cancelled)) throw new DomainException("İptal edilmiş sefer faturalanamaz.");
 
         static string Fit(string s) => s.Length <= 300 ? s : s[..297] + "...";

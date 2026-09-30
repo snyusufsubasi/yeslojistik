@@ -75,7 +75,7 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var payable = await payables.DashboardAsync(ct);
         var pending = await db.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Pending)
             .GroupBy(_ => 1).Select(g => new { Count = g.Count(), Total = g.Sum(e => e.Amount) }).FirstOrDefaultAsync(ct);
-        var uninvoiced = await db.Trips.Where(t => t.Status == TripStatus.Delivered && t.InvoiceId == null)
+        var uninvoiced = await db.Trips.Where(t => !t.IsLegacy && t.Status == TripStatus.Delivered && t.InvoiceId == null)
             .GroupBy(_ => 1).Select(g => new { Count = g.Count(), Total = g.Sum(t => t.SalePrice) }).FirstOrDefaultAsync(ct);
         return new DashboardDto(monthTripCount, monthDelivered, activeCount, open.Count, open.Sum(b => b.Remaining),
             vehicles.Count, vehicles.Count(v => v.Status == VehicleStatus.OnRoad), plannedCount, monthRevenue, monthExpenses,

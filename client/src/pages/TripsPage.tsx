@@ -74,7 +74,7 @@ export default function TripsPage() {
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><span className="whitespace-nowrap">{t.vehiclePlate}</span>{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{t.invoiceNo && <span className="mt-0.5 block text-sm text-slate-500">Fatura: {t.invoiceNo}</span>}</> },
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{t.invoiceNo && <span className="mt-0.5 block text-sm text-slate-500">Fatura: {t.invoiceNo}</span>}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
     { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span></> },
   ]
   if (can('operations')) {
