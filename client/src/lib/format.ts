@@ -31,6 +31,12 @@ export function monthStartIso() {
   return todayIso().slice(0, 8) + '01'
 }
 
+export function monthEndIso() {
+  const d = new Date()
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`
+}
+
 export function yearStartIso() {
   return todayIso().slice(0, 5) + '01-01'
 }

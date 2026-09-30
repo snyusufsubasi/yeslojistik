@@ -12,7 +12,7 @@ import { TripForm } from '../components/TripForm'
 import { TripBoard } from '../components/TripBoard'
 import clsx from 'clsx'
 import { useAuth } from '../lib/auth'
-import { addDaysIso, date, monthStartIso, tl, todayIso } from '../lib/format'
+import { addDaysIso, date, monthEndIso, monthStartIso, tl, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 
@@ -72,7 +72,7 @@ export default function TripsPage() {
     { label: 'Bugün', from: today, to: today },
     { label: 'Gelecek', from: addDaysIso(today, 1), to: '' },
     { label: 'Geçmiş', from: '', to: addDaysIso(today, -1) },
-    { label: 'Bu ay', from: monthStartIso(), to: '' },
+    { label: 'Bu ay', from: monthStartIso(), to: monthEndIso() },
     { label: 'Hepsi', from: '', to: '' },
   ]
 
@@ -152,7 +152,7 @@ export default function TripsPage() {
             options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }, { value: 'carrier' as const, label: 'Taşeron faturası gelmedi' }]} />
         </div>
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
-          onUninvoiced={() => setInvoiced('no')} />}
+          onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(t) => t.id}
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
