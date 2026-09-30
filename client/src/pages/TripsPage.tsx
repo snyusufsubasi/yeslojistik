@@ -158,7 +158,10 @@ export default function TripsPage() {
           loadingDate: sourceRequest.date, cargoType: sourceRequest.cargoType ?? '',
           cargoQuantity: sourceRequest.cargoQuantity != null && Number.isInteger(sourceRequest.cargoQuantity) ? sourceRequest.cargoQuantity : null,
           salePrice: sourceRequest.salePrice ?? 0, vehicleCost: sourceRequest.carrierPrice ?? 0,
-          description: sourceRequest.description ?? '',
+          // Kesirli miktar (ör. 2,5) seferde tam sayı alanına sığmaz; kaybolmasın diye açıklamaya yazılır.
+          description: [sourceRequest.description,
+            sourceRequest.cargoQuantity != null && !Number.isInteger(sourceRequest.cargoQuantity) ? `Yük miktarı: ${sourceRequest.cargoQuantity.toLocaleString('tr-TR')}` : null,
+          ].filter(Boolean).join('\n'),
         } : undefined}
         onClose={() => { setEditing(null); setCopyOf(null); setSourceRequest(null) }}
         onDelete={(t) => { setEditing(null); setDeleting(t) }}

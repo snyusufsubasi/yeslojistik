@@ -226,6 +226,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   const sd = page.getByRole('dialog', { name: 'Yeni Tedarikçi' })
   await sd.getByLabel(/^Ünvan/).fill(`E2E Nakliyat ${u}`)
   await sd.getByLabel('IBAN').fill('TR33 0006 1005 1978 6457 8413 26')
+  await sd.getByRole('button', { name: /Vergi, adres/ }).click()
   await pick(sd.locator('input[name="city"]'), 'Kocaeli')
   await sd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByRole('heading', { name: `E2E Nakliyat ${u}` })).toBeVisible()
@@ -504,4 +505,9 @@ test('iş talebi açılır, sefere çevrilir ve listede "Sevk edildi" görünür
   await page.goto('/is-talepleri')
   await page.getByRole('combobox', { name: 'Durum' }).selectOption({ label: 'Sevk edildi' })
   await expect(page.getByRole('row', { name: new RegExp(`Tuzla Depo ${id}`) }).getByText('Sevk edildi')).toBeVisible()
+  // Sevk edilen talep salt okunur açılır; bilgiler kaybolmaz.
+  await page.getByRole('row', { name: new RegExp(`Tuzla Depo ${id}`) }).getByRole('button', { name: 'Görüntüle' }).click()
+  const view = page.getByRole('dialog', { name: /İş Talebi · Sevk edildi/ })
+  await expect(view.getByLabel('Yükleme Yeri')).toHaveValue(`Tuzla Depo ${id}`)
+  await expect(view.getByLabel('Yükleme Yeri')).toBeDisabled()
 })

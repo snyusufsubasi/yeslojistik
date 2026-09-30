@@ -35,10 +35,11 @@ export function amountWords(amount: number): string {
   return text
 }
 
-/** "1.250,50", "1250,5" ya da "1250.5" → 1250.5. Boşsa NaN. */
+/** "1.250,50", "1250,5", "1250.5" → 1250.5; "25.000" → 25000 (noktalar üçerli gruplarsa binlik ayracıdır). Boşsa NaN. */
 export function parseAmount(text: string): number {
   const t = text.replace(/\s|₺|TL/gi, '')
   if (!t) return NaN
-  const normalized = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t
+  const normalized = t.includes(',') ? t.replace(/\./g, '').replace(',', '.')
+    : /^-?\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '') : t
   return Number(normalized)
 }

@@ -27,7 +27,8 @@ import { VehicleForm } from './VehicleForm'
 import { TripAttachments, TripTracking } from './TripExtras'
 import { AuditLogTable } from './AuditLog'
 import { useAuth } from '../lib/auth'
-import { AmountInput, DateQuick } from './Inputs'
+import { AmountInput, DateQuick, MoreFields, Section } from './Inputs'
+import { vehicleOwnershipIcon } from '../lib/icons'
 
 const cargoUnits = ['palet', 'koli', 'adet', 'ton', 'kg', 'm³']
 const defaultCargoTypes = ['Genel kargo', 'Mobilya', 'Tekstil', 'Gıda', 'İnşaat malzemesi', 'Otomotiv parçası']
@@ -155,6 +156,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const deliveryCity = useWatch({ control, name: 'deliveryCity' })
   const loadingAddress = useWatch({ control, name: 'loadingAddress' })
   const deliveryAddress = useWatch({ control, name: 'deliveryAddress' })
+  const loadingDate = useWatch({ control, name: 'loadingDate' })
   const cargoType = useWatch({ control, name: 'cargoType' })
   const cargoUnit = useWatch({ control, name: 'cargoUnit' })
   const validCustomer = !!customerId && !Number.isNaN(customerId)
@@ -255,161 +257,176 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           Bu sefer {trip?.invoiceNo} numaralı faturaya bağlı. Müşteri ve satış fiyatı değiştirilemez.
         </p>
       )}
-      <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit((v) => save.mutate(v))}>
-        <div className="space-y-3">
-          <Field label="Müşteri" required error={errors.customerId?.message}>
-            <FormSelect control={control} name="customerId" disabled={invoiced} placeholder="Müşteri adı yazın veya seçin"
-              options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))}
-              onCreate={(t) => setNewCustomer(t)} createLabel="Yeni müşteri olarak ekle" />
-            <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
+      <form className="space-y-6" onSubmit={handleSubmit((v) => save.mutate(v))}>
+        <Section n={1} title="Müşteri ve güzergâh">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Müşteri" required error={errors.customerId?.message}>
+              <FormSelect control={control} name="customerId" disabled={invoiced} placeholder="Müşteri adı yazın veya seçin"
+                options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))}
+                onCreate={(t) => setNewCustomer(t)} createLabel="Yeni müşteri olarak ekle" />
+              <MissingHint show={customers.data?.length === 0} to="/musteriler?new=1" text="Henüz müşteri yok — önce müşteri ekleyin →" />
+            </Field>
+            <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
+              <input className="input" placeholder="4500123" {...register('customerReference')} />
+            </Field>
             {overLimit && risk.data && (
-              <p role="alert" className="mt-1 rounded-md bg-red-50 px-2 py-1.5 text-sm text-red-700">
+              <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-red-800 md:col-span-2">
                 Risk limiti aşılıyor: açık bakiye {tl(risk.data.openBalance)} + faturalanmamış {tl(risk.data.uninvoicedDelivered)} + bu sefer {tl(Number(price) || 0)} &gt; limit {tl(risk.data.creditLimit!)}. Kayıt yine de yapılabilir.
               </p>
             )}
-          </Field>
-          {last && (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3">
-              <History className="size-5 shrink-0 text-brand-600" />
-              <div className="min-w-0 flex-1 text-sm text-slate-700">
-                <div className="font-medium text-slate-900">Son sefer · {date(last.loadingDate)}</div>
-                <div className="truncate">{[last.loadingCity || last.loadingAddress, last.deliveryCity || last.deliveryAddress].join(' → ')}{last.cargoType && ` · ${last.cargoType}`} · {tl(last.salePrice)}</div>
+            {last && (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 md:col-span-2">
+                <History className="size-5 shrink-0 text-brand-600" />
+                <div className="min-w-0 flex-1 text-sm text-slate-700">
+                  <div className="font-medium text-slate-900">Son sefer · {date(last.loadingDate)}</div>
+                  <div className="truncate">{[last.loadingCity || last.loadingAddress, last.deliveryCity || last.deliveryAddress].join(' → ')}{last.cargoType && ` · ${last.cargoType}`} · {tl(last.salePrice)}</div>
+                </div>
+                <Button type="button" size="sm" icon={<Sparkles className="size-4" />} onClick={() => fillFromLast(last)}>Aynısını doldur</Button>
               </div>
-              <Button type="button" size="sm" icon={<Sparkles className="size-4" />} onClick={() => fillFromLast(last)}>Aynısını doldur</Button>
+            )}
+            <div className="space-y-2">
+              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+                <Field label="Yükleme İli" error={errors.loadingCity?.message}><CitySelect control={control} name="loadingCity" placeholder="İl" /></Field>
+                <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
+                  <input className="input" placeholder="Tuzla OSB" {...register('loadingAddress')} />
+                </Field>
+              </div>
+              <AddressChips items={hints.data?.loadingAddresses} current={loadingAddress} onPick={(a) => pickAddress('loading', a)} />
             </div>
-          )}
-          <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
-            <input className="input" placeholder="4500123" {...register('customerReference')} />
-          </Field>
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-            <Field label="Yükleme İli" error={errors.loadingCity?.message}><CitySelect control={control} name="loadingCity" placeholder="İl" /></Field>
-            <Field label="Yükleme Adresi" required error={errors.loadingAddress?.message}>
-              <input className="input" placeholder="Tuzla OSB" {...register('loadingAddress')} />
-            </Field>
-          </div>
-          <AddressChips items={hints.data?.loadingAddresses} current={loadingAddress} onPick={(a) => pickAddress('loading', a)} />
-          <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-            <Field label="Teslim İli" error={errors.deliveryCity?.message}><CitySelect control={control} name="deliveryCity" placeholder="İl" /></Field>
-            <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
-              <input className="input" placeholder="Balçova" {...register('deliveryAddress')} />
-            </Field>
-          </div>
-          <AddressChips items={hints.data?.deliveryAddresses} current={deliveryAddress} onPick={(a) => pickAddress('delivery', a)} />
-          <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
-          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+                <Field label="Teslim İli" error={errors.deliveryCity?.message}><CitySelect control={control} name="deliveryCity" placeholder="İl" /></Field>
+                <Field label="Teslimat Adresi" required error={errors.deliveryAddress?.message}>
+                  <input className="input" placeholder="Balçova" {...register('deliveryAddress')} />
+                </Field>
+              </div>
+              <AddressChips items={hints.data?.deliveryAddresses} current={deliveryAddress} onPick={(a) => pickAddress('delivery', a)} />
+            </div>
             <Field label="Yükleme Tarihi" required error={errors.loadingDate?.message}>
               <DateQuick control={control} name="loadingDate" />
             </Field>
-            <Field label="Teslim Tarihi" error={errors.deliveryDate?.message}>
-              <input className="input" type="date" {...register('deliveryDate')} />
+            <Field label="Teslim Tarihi" error={errors.deliveryDate?.message} hint="Yükleme gününden kaç gün sonra?">
+              <DateQuick control={control} name="deliveryDate" quick="due" from={loadingDate} dueDays={[1, 2, 3]} />
             </Field>
-          </div>
-          {trip?.receivedBy && (
-            <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              Teslim alan: <b>{trip.receivedBy}</b>{trip.deliveredAt && ` · ${dateTime(trip.deliveredAt)}`}
-            </p>
-          )}
-          <Field label="Açıklama" error={errors.description?.message}>
-            <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
-          </Field>
-        </div>
-        <div className="space-y-3">
-          <Field label="Araç" required error={errors.vehicleId?.message}>
-            <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange} placeholder="Plaka yazın veya seçin"
-              options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))}
-              onCreate={(t) => setNewVehicle(t)} createLabel="Yeni araç olarak ekle" />
-            <MissingHint show={vehicles.data?.length === 0} to="/araclar" text="Henüz araç yok — önce araç ekleyin →" />
-            {busy && (
-              <p role="alert" className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                {busy === 'OnRoad' ? 'Bu araç şu an başka bir seferde (yolda). Yine de planlayabilirsiniz; önceki sefer bitince yola çıkar.' : 'Bu araç şu an bakımda görünüyor.'}
+            {trip?.receivedBy && (
+              <p className="rounded-xl bg-emerald-50 px-4 py-3 text-emerald-800 md:col-span-2">
+                Teslim alan: <b>{trip.receivedBy}</b>{trip.deliveredAt && ` · ${dateTime(trip.deliveredAt)}`}
               </p>
             )}
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Şoför" required error={errors.driverId?.message}>
+          </div>
+        </Section>
+
+        <Section n={2} title="Araç ve şoför">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Araç" required error={errors.vehicleId?.message}>
+              <FormSelect control={control} name="vehicleId" onValueChange={onVehicleChange} placeholder="Plaka yazın veya seçin"
+                options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))}
+                onCreate={(t) => setNewVehicle(t)} createLabel="Yeni araç olarak ekle" />
+              <MissingHint show={vehicles.data?.length === 0} to="/araclar?new=1" text="Henüz araç yok — önce araç ekleyin →" />
+              {busy && (
+                <p role="alert" className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                  {busy === 'OnRoad' ? 'Bu araç şu an başka bir seferde (yolda). Yine de planlayabilirsiniz; önceki sefer bitince yola çıkar.' : 'Bu araç şu an bakımda görünüyor.'}
+                </p>
+              )}
+            </Field>
+            <Field label="Şoför" required error={errors.driverId?.message} hint="Araç seçince aracın varsayılan şoförü gelir.">
               <FormSelect control={control} name="driverId" placeholder="Şoför ara" onCreate={(t) => setQuickDriver(t)} createLabel="Yeni şoför olarak ekle" options={[
                 ...(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label })),
                 ...(trip && drivers.data && !drivers.data.some((d) => d.id === trip.driverId) ? [{ value: trip.driverId, label: `${trip.driverName} (pasif)` }] : []),
               ]} />
             </Field>
-            <Field label="Dorse Plakası" error={errors.trailerPlate?.message}>
+            <Field label="Dorse Plakası" error={errors.trailerPlate?.message} hint={vehicle.data?.trailerPlate ? 'Boş bırakılırsa aracın dorsesi yazılır.' : undefined}>
               <input className="input uppercase" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
             </Field>
           </div>
-          <div className="rounded-lg border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-medium text-navy-900">Yük Bilgisi</div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field className="col-span-2" label="Yük Cinsi" error={errors.cargoType?.message}>
-                <input className="input" placeholder="Mobilya" {...register('cargoType')} />
-              </Field>
-              <div className="col-span-2 -mt-1 flex flex-wrap gap-1.5">
-                {[...new Set([...(hints.data?.cargoTypes ?? []), ...defaultCargoTypes])].slice(0, 6).map((t) => (
-                  <Chip key={t} active={cargoType === t} onClick={() => setValue('cargoType', t, opts)}>{t}</Chip>
-                ))}
-              </div>
-              <Field label="Miktar" error={errors.cargoQuantity?.message}>
-                <div className="flex gap-2">
-                  <input className="input min-w-0" type="number" min="0" {...register('cargoQuantity', { valueAsNumber: true })} />
-                  <input className="input w-24" placeholder="palet" {...register('cargoUnit')} />
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {cargoUnits.map((u) => <Chip key={u} active={cargoUnit === u} onClick={() => setValue('cargoUnit', u, opts)}>{u}</Chip>)}
-                </div>
-              </Field>
-              <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
-                <input className="input" type="number" min="0" step="1" {...register('cargoWeightKg', { valueAsNumber: true })} />
-              </Field>
-            </div>
-          </div>
           {(rented || trip?.carrierSupplierId) && (
-            <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-3">
-              <div className="mb-2 text-sm font-medium text-navy-900">Taşeron (kiralık araç)</div>
+            <div className="space-y-4 rounded-xl border-2 border-violet-200 bg-violet-50/40 p-4">
+              <div className="flex items-center gap-2 font-medium text-navy-900 [&_svg]:size-5">{vehicleOwnershipIcon.Rented} Taşeron (kiralık araç)</div>
               <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi.">
                 <FormSelect control={control} name="carrierSupplierId" placeholder={vehicle.data?.supplierTitle ? `Araç sahibi: ${vehicle.data.supplierTitle}` : 'Aracın sahibi'}
                   options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))}
                   onCreate={(t) => setNewSupplier(t)} createLabel="Yeni taşeron olarak ekle" />
               </Field>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Taşeron Fatura No" error={errors.carrierInvoiceNo?.message}><input className="input" {...register('carrierInvoiceNo')} /></Field>
-                <Field label="Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><input className="input" type="date" {...register('carrierInvoiceDate')} /></Field>
+                <Field label="Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><DateQuick control={control} name="carrierInvoiceDate" /></Field>
               </div>
             </div>
           )}
-          <div className="rounded-lg border border-slate-200 p-3">
-            <div className="mb-2 text-sm font-medium text-navy-900">Nakliye Fiyatları</div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message}>
-                <AmountInput control={control} name="vehicleCost" />
-              </Field>
-              <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message}>
-                <AmountInput control={control} name="salePrice" disabled={invoiced} />
-              </Field>
+        </Section>
+
+        <Section n={3} title="Yük" hint="İsteğe bağlı; sevk belgesine yazılır.">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field className="md:col-span-3" label="Yük Cinsi" error={errors.cargoType?.message}>
+              <input className="input" placeholder="Mobilya" {...register('cargoType')} />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {[...new Set([...(hints.data?.cargoTypes ?? []), ...defaultCargoTypes])].slice(0, 6).map((t) => (
+                  <Chip key={t} active={cargoType === t} onClick={() => setValue('cargoType', t, opts)}>{t}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="Miktar" error={errors.cargoQuantity?.message}>
+              <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('cargoQuantity', { valueAsNumber: true })} />
+            </Field>
+            <Field label="Birim" error={errors.cargoUnit?.message}>
+              <input className="input" placeholder="palet" {...register('cargoUnit')} />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {cargoUnits.map((u) => <Chip key={u} active={cargoUnit === u} onClick={() => setValue('cargoUnit', u, opts)}>{u}</Chip>)}
+              </div>
+            </Field>
+            <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
+              <input className="input tabular-nums" type="number" min="0" step="1" inputMode="numeric" {...register('cargoWeightKg', { valueAsNumber: true })} />
+            </Field>
+          </div>
+        </Section>
+
+        <Section n={4} title="Fiyat">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message}>
+              <AmountInput control={control} name="vehicleCost" />
+            </Field>
+            <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message}>
+              <AmountInput control={control} name="salePrice" disabled={invoiced} />
+            </Field>
+          </div>
+          {route && !invoiced && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <MapPin className="size-4 shrink-0 text-slate-500" />
+              <span className="min-w-0 flex-1">
+                <b className="font-medium text-slate-900">{loadingCity} → {deliveryCity}</b>: son 1 yılda {route.count} sefer.
+                Ortalama satış <b className="font-medium">{tl(route.avgSalePrice)}</b>, araç maliyeti <b className="font-medium">{tl(route.avgVehicleCost)}</b>.
+                <span className="block text-slate-500">Son sefer ({date(route.lastDate)}): {tl(route.lastSalePrice)} / {tl(route.lastVehicleCost)}</span>
+              </span>
+              <Button type="button" size="sm" variant="secondary" onClick={() => { setValue('salePrice', route.lastSalePrice, opts); setValue('vehicleCost', route.lastVehicleCost, opts) }}>Son fiyatları kullan</Button>
             </div>
-            {route && !invoiced && (
-              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
-                <MapPin className="size-4 shrink-0 text-slate-500" />
-                <span className="min-w-0 flex-1">
-                  <b className="font-medium text-slate-900">{loadingCity} → {deliveryCity}</b>: son 1 yılda {route.count} sefer.
-                  Ortalama satış <b className="font-medium">{tl(route.avgSalePrice)}</b>, araç maliyeti <b className="font-medium">{tl(route.avgVehicleCost)}</b>.
-                  <span className="block text-slate-500">Son sefer ({date(route.lastDate)}): {tl(route.lastSalePrice)} / {tl(route.lastVehicleCost)}</span>
-                </span>
-                <Button type="button" size="sm" variant="secondary" onClick={() => { setValue('salePrice', route.lastSalePrice, opts); setValue('vehicleCost', route.lastVehicleCost, opts) }}>Son fiyatları kullan</Button>
-              </div>
-            )}
+          )}
+          <div className="space-y-1.5 rounded-xl bg-slate-50 px-4 py-3">
+            <div className="flex justify-between gap-2"><span className="text-slate-600">Satış fiyatı</span><span className="tabular-nums">{tl(Number(price) || 0)}</span></div>
+            <div className="flex justify-between gap-2"><span className="text-slate-600">− {rented ? 'Taşerona ödenecek' : 'Araç maliyeti'}</span><span className="tabular-nums">{tl(Number(cost) || 0)}</span></div>
             {trip && trip.expenseTotal > 0 && (
-              <div className="mt-2 flex justify-between text-sm text-slate-600">
-                <span>Sefere bağlı giderler</span>
-                <Link className="text-brand-600 hover:underline" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-600">− Sefere bağlı giderler</span>
+                <Link className="tabular-nums text-brand-700 underline underline-offset-2" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
               </div>
             )}
-            <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-sm font-medium">
+            <div className="flex justify-between gap-2 border-t border-slate-200 pt-1.5 text-lg font-medium">
               <span>Tahmini Kâr</span>
-              <span className={profit < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(profit)}</span>
+              <span className={profit < 0 ? 'text-red-700' : 'text-emerald-700'}>{tl(profit)}</span>
             </div>
           </div>
-        </div>
+        </Section>
+
+        <MoreFields title="Yetkililer ve not (isteğe bağlı)" hasError={!!(errors.loadingContact || errors.deliveryContact || errors.description)}
+          defaultOpen={!!trip || !!(copyOf?.loadingContact || copyOf?.deliveryContact || copyOf?.description)}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
+            <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
+            <Field className="md:col-span-2" label="Açıklama" error={errors.description?.message}>
+              <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
+            </Field>
+          </div>
+        </MoreFields>
         <button type="submit" className="hidden" />
       </form>
       </div>
