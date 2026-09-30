@@ -56,6 +56,7 @@ export default function JobRequestsPage() {
           <Button size="sm" variant="secondary" icon={<XCircle className="size-3.5" />} onClick={() => setCancelling(r)}>İptal</Button>
           <Button size="sm" variant="secondary" onClick={() => setDeleting(r)}>Sil</Button>
         </>}
+        {r.status !== 'Pending' && <Button size="sm" variant="secondary" onClick={() => setEditing(r)}>Görüntüle</Button>}
         {r.status === 'Converted' && r.tripId && <Button size="sm" variant="secondary" icon={<Truck className="size-3.5" />} onClick={() => navigate(`/seferler?id=${r.tripId}`)}>Seferi Aç</Button>}
         {r.status === 'Cancelled' && can('operations') && <Button size="sm" variant="secondary" onClick={() => setDeleting(r)}>Sil</Button>}
       </div>
@@ -74,11 +75,12 @@ export default function JobRequestsPage() {
         <DateFilter label="Bitiş" value={to} onChange={setTo} />
       </div>
       <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(r) => r.id}
-        onRowClick={can('operations') ? (r) => { if (r.status === 'Pending') setEditing(r) } : undefined} page={page} pageSize={20} total={data?.total} onPage={setPage}
+        onRowClick={(r) => setEditing(r)} page={page} pageSize={20} total={data?.total} onPage={setPage}
         empty="Bu filtrelere uyan iş talebi yok. Yeni İş Talebi ile kayıt açabilirsiniz."
         mobileCard={(r) => <div className="space-y-1"><div className="flex justify-between gap-2"><b>{r.customerTitle}</b><Badge tone={r.status === 'Pending' ? 'orange' : r.status === 'Converted' ? 'green' : 'gray'}>{statusNames[r.status]}</Badge></div><div>{r.loadingAddress} → {r.deliveryAddress}</div><div className="text-sm text-slate-500">{date(r.date)} · {r.cargoType || 'Yük belirtilmedi'}</div></div>} />
     </Card>
-    {editing && <RequestForm key={editing === 'new' ? 'new' : editing.id} request={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+    {editing && <RequestForm key={editing === 'new' ? 'new' : editing.id} request={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
+      readOnly={editing !== 'new' && (editing.status !== 'Pending' || !can('operations'))} />}
     <ConfirmDialog open={!!cancelling} title="İş talebini iptal et" message={`${cancelling?.customerTitle} için açılan talep iptal edilecek.`}
       confirmText="İptal Et" loading={cancel.isPending} onClose={() => setCancelling(null)} onConfirm={() => cancelling && cancel.mutate(cancelling.id)} />
     <ConfirmDialog open={!!deleting} title="İş talebini sil" message={`${deleting?.customerTitle} için açılan talep silinecek.`}
@@ -86,7 +88,8 @@ export default function JobRequestsPage() {
   </>
 }
 
-function RequestForm({ request, onClose }: { request: JobRequest | null; onClose: () => void }) {
+/** Sevk edilmiş, iptal edilmiş ya da yetkisiz kullanıcının açtığı talep salt okunur gösterilir; evrak, prim ve konum bilgileri kaybolmaz. */
+function RequestForm({ request, onClose, readOnly }: { request: JobRequest | null; onClose: () => void; readOnly?: boolean }) {
   const customers = useLookup('customers')
   const [values, setValues] = useState<SaveValues>(() => ({
     customerId: request?.customerId ?? 0,
@@ -126,9 +129,10 @@ function RequestForm({ request, onClose }: { request: JobRequest | null; onClose
     <Field label={label}><input className="input" type="number" step="0.000001" value={values[key] == null ? '' : String(values[key])}
       onChange={(e) => set(key, (e.target.value === '' ? null : Number(e.target.value)) as never)} /></Field>
 
-  return <Modal open onClose={onClose} title={request ? 'İş Talebi Düzenle' : 'Yeni İş Talebi'} size="lg"
-    footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
-    <div className="space-y-6">
+  return <Modal open onClose={onClose} title={readOnly ? `İş Talebi · ${statusNames[request!.status]}` : request ? 'İş Talebi Düzenle' : 'Yeni İş Talebi'} size="lg"
+    footer={readOnly ? <Button variant="secondary" onClick={onClose}>Kapat</Button>
+      : <><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
+    <fieldset disabled={readOnly} className="min-w-0 space-y-6">
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <section className="space-y-3"><h3 className="font-semibold text-navy-900">Müşteri Bilgileri</h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -148,7 +152,7 @@ function RequestForm({ request, onClose }: { request: JobRequest | null; onClose
           <Field label="Yükleme Yeri" required><input className="input" value={values.loadingAddress} onChange={(e) => set('loadingAddress', e.target.value)} /></Field>
           <Field label="İndirme Yeri" required><input className="input" value={values.deliveryAddress} onChange={(e) => set('deliveryAddress', e.target.value)} /></Field>
         </div>
-        <MoreFields title="Harita konumu (isteğe bağlı)">
+        <MoreFields title="Harita konumu (isteğe bağlı)" defaultOpen={values.loadingLatitude != null || values.deliveryLatitude != null}>
           <div className="grid gap-3 sm:grid-cols-2">
             {coordField('Yükleme Enlem', 'loadingLatitude')}{coordField('Yükleme Boylam', 'loadingLongitude')}
             {coordField('İndirme Enlem', 'deliveryLatitude')}{coordField('İndirme Boylam', 'deliveryLongitude')}
@@ -171,7 +175,7 @@ function RequestForm({ request, onClose }: { request: JobRequest | null; onClose
           {numberField('Masraf (TL)', 'otherExpense')}
         </div>
       </section>
-    </div>
+    </fieldset>
     {newCustomer != null && <CustomerForm customer={null} initialTitle={newCustomer} onClose={() => setNewCustomer(null)}
       onSaved={(c) => { customers.refetch(); set('customerId', c.customer.id) }} />}
   </Modal>

@@ -505,4 +505,9 @@ test('iş talebi açılır, sefere çevrilir ve listede "Sevk edildi" görünür
   await page.goto('/is-talepleri')
   await page.getByRole('combobox', { name: 'Durum' }).selectOption({ label: 'Sevk edildi' })
   await expect(page.getByRole('row', { name: new RegExp(`Tuzla Depo ${id}`) }).getByText('Sevk edildi')).toBeVisible()
+  // Sevk edilen talep salt okunur açılır; bilgiler kaybolmaz.
+  await page.getByRole('row', { name: new RegExp(`Tuzla Depo ${id}`) }).getByRole('button', { name: 'Görüntüle' }).click()
+  const view = page.getByRole('dialog', { name: /İş Talebi · Sevk edildi/ })
+  await expect(view.getByLabel('Yükleme Yeri')).toHaveValue(`Tuzla Depo ${id}`)
+  await expect(view.getByLabel('Yükleme Yeri')).toBeDisabled()
 })
