@@ -5,6 +5,8 @@ import { del, post, put } from '../api/client'
 import type { JobRequest, JobRequestStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SearchSelect } from '../components/FormSelect'
+import { CustomerForm } from '../components/CustomerForm'
+import { MoreFields } from '../components/Inputs'
 import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, Modal, PageHeader, Select } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { date, tl, todayIso } from '../lib/format'
@@ -101,6 +103,7 @@ function RequestForm({ request, onClose }: { request: JobRequest | null; onClose
     deliveryLatitude: request?.deliveryLatitude ?? null, deliveryLongitude: request?.deliveryLongitude ?? null,
   }))
   const [error, setError] = useState('')
+  const [newCustomer, setNewCustomer] = useState<string | null>(null)
   const set = <K extends keyof SaveValues>(key: K, value: SaveValues[K]) => setValues((v) => ({ ...v, [key]: value }))
   const save = useSave(() => request
     ? put<JobRequest>(`/job-requests/${request.id}`, values)
@@ -130,19 +133,27 @@ function RequestForm({ request, onClose }: { request: JobRequest | null; onClose
       <section className="space-y-3"><h3 className="font-semibold text-navy-900">Müşteri Bilgileri</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Müşteri" required group><SearchSelect ariaLabel="Müşteri" value={values.customerId || null}
-            onChange={(id) => set('customerId', id ?? 0)} options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} placeholder="Müşteri ara" /></Field>
+            onChange={(id) => set('customerId', id ?? 0)} options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} placeholder="Müşteri ara"
+            onCreate={(t) => setNewCustomer(t)} createLabel="Yeni müşteri olarak ekle" /></Field>
           <Field label="Tarih" required><input className="input" type="date" value={values.date} onChange={(e) => set('date', e.target.value)} /></Field>
           {textField('Teslim Süresi', 'deliveryWindow', 'Örn. 2 gün')}
-          <Field label="Ödeme Müşteride" group><input type="checkbox" checked={values.customerPays} onChange={(e) => set('customerPays', e.target.checked)} /></Field>
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 self-end rounded-lg border border-slate-300 bg-white px-3">
+            <input type="checkbox" className="size-5" checked={values.customerPays} onChange={(e) => set('customerPays', e.target.checked)} />
+            <span>Ödeme müşteride</span>
+          </label>
         </div>
       </section>
       <section className="space-y-3"><h3 className="font-semibold text-navy-900">Yer Bilgileri</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Yükleme Yeri" required><input className="input" value={values.loadingAddress} onChange={(e) => set('loadingAddress', e.target.value)} /></Field>
           <Field label="İndirme Yeri" required><input className="input" value={values.deliveryAddress} onChange={(e) => set('deliveryAddress', e.target.value)} /></Field>
-          {coordField('Yükleme Enlem', 'loadingLatitude')}{coordField('Yükleme Boylam', 'loadingLongitude')}
-          {coordField('İndirme Enlem', 'deliveryLatitude')}{coordField('İndirme Boylam', 'deliveryLongitude')}
         </div>
+        <MoreFields title="Harita konumu (isteğe bağlı)">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {coordField('Yükleme Enlem', 'loadingLatitude')}{coordField('Yükleme Boylam', 'loadingLongitude')}
+            {coordField('İndirme Enlem', 'deliveryLatitude')}{coordField('İndirme Boylam', 'deliveryLongitude')}
+          </div>
+        </MoreFields>
       </section>
       <section className="space-y-3"><h3 className="font-semibold text-navy-900">Sevkiyat ve Evrak</h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -161,5 +172,7 @@ function RequestForm({ request, onClose }: { request: JobRequest | null; onClose
         </div>
       </section>
     </div>
+    {newCustomer != null && <CustomerForm customer={null} initialTitle={newCustomer} onClose={() => setNewCustomer(null)}
+      onSaved={(c) => { customers.refetch(); set('customerId', c.customer.id) }} />}
   </Modal>
 }
