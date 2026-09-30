@@ -39,7 +39,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
-            t.JobRequestId);
+            t.JobRequestId, t.IsLegacy);
     }
 
     public IQueryable<Trip> Filter(TripQuery q)
@@ -51,10 +51,10 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (q.DriverId is { } d) query = query.Where(t => t.DriverId == d);
         if (q.From is { } from) query = query.Where(t => t.LoadingDate >= from);
         if (q.To is { } to) query = query.Where(t => t.LoadingDate <= to);
-        if (q.Invoiced is { } inv) query = inv ? query.Where(t => t.InvoiceId != null) : query.Where(t => t.InvoiceId == null);
+        if (q.Invoiced is { } inv) query = inv ? query.Where(t => t.InvoiceId != null) : query.Where(t => t.InvoiceId == null && !t.IsLegacy);
         if (q.CarrierSupplierId is { } cs) query = query.Where(t => t.CarrierSupplierId == cs);
         if (q.MissingCarrierInvoice == true)
-            query = query.Where(t => t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null);
+            query = query.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(t => EF.Functions.ILike(t.Customer.Title, like) || EF.Functions.ILike(t.Vehicle.Plate, like)
                 || EF.Functions.ILike(t.Driver.FullName, like) || EF.Functions.ILike(t.LoadingAddress, like)

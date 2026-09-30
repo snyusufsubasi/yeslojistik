@@ -252,6 +252,11 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           ))}
         </div>
       )}
+      {trip?.isLegacy && (
+        <p className="mb-3 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
+          Bu sefer eski sistemden aktarıldı. Geçmiş için gösterilir; tutarları devir bakiyesinde olduğundan borç ve fatura hesaplarına girmez.
+        </p>
+      )}
       {invoiced && (
         <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Bu sefer {trip?.invoiceNo} numaralı faturaya bağlı. Müşteri ve satış fiyatı değiştirilemez.

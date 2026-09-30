@@ -32,7 +32,7 @@ export function assertOutsideRepo(out, repoRoot = REPO_ROOT) {
 }
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a), []))
-const BASE = new URL(args.base ?? 'https://pratikortam.com/zz_revize/')
+export const BASE = new URL(args.base ?? 'https://pratikortam.com/zz_revize/')
 const OUT = args.out
 const MAX = Number(args.max ?? 400)
 const PER_TEMPLATE = Number(args.samples ?? 3)
@@ -73,7 +73,7 @@ export const templateOf = (url) => { const u = new URL(url); return u.pathname +
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** Basit çerez kavanozu: Set-Cookie'leri toplar, Cookie başlığı üretir. */
-class Jar {
+export class Jar {
   constructor() { this.c = new Map() }
   update(headers) {
     for (const sc of headers.getSetCookie?.() ?? []) {
@@ -88,7 +88,7 @@ class Jar {
  * Tek ağ noktası. GET'ler yönlendirmeyi kendimiz izleriz; giriş dışında hiçbir yazma isteğine izin verilmez.
  * `login` yalnız giriş akışında true olur (giris.php GET'i ve giris_yap.php POST'u için).
  */
-async function req(url, { method = 'GET', body, jar, login = false } = {}) {
+export async function req(url, { method = 'GET', body, jar, login = false } = {}) {
   const u = new URL(url, BASE)
   const rel = u.pathname.slice(BASE.pathname.length)
   if (method !== 'GET' && !(login && u.origin === BASE.origin && rel === LOGIN_POST)) {
@@ -101,7 +101,7 @@ async function req(url, { method = 'GET', body, jar, login = false } = {}) {
   return res
 }
 
-async function loginFetch(jar) {
+export async function loginFetch(jar) {
   const user = process.env.PRATIK_USER, pass = process.env.PRATIK_PASS
   if (!user || !pass) throw new Error('PRATIK_USER ve PRATIK_PASS ortam değişkenleri yok. Ortam ayarlarına ekleyip yeni oturum açın.')
   await req(new URL('giris.php', BASE).href, { jar, login: true }) // PHPSESSID çerezini al

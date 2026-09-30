@@ -30,7 +30,7 @@ public class PayableService(AppDbContext db)
     {
         var ids = supplierIds.Distinct().ToList();
         var openings = await db.Suppliers.Where(s => ids.Contains(s.Id)).Select(s => new { s.Id, s.OpeningBalance }).ToListAsync(ct);
-        var trips = (await db.Trips.Where(t => t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
+        var trips = (await db.Trips.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
             .GroupBy(t => t.CarrierSupplierId!.Value).Select(g => new { Id = g.Key, Total = g.Sum(t => t.VehicleCost) }).ToListAsync(ct))
             .ToDictionary(x => x.Id, x => x.Total);
         var expenses = (await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
@@ -51,7 +51,7 @@ public class PayableService(AppDbContext db)
         var terms = await suppliers.Select(s => new { s.Id, s.PaymentTermDays, s.OpeningBalance, s.OpeningBalanceDate, s.CreatedAt }).ToListAsync(ct);
         var ids = terms.Select(t => t.Id).ToList();
 
-        var trips = await db.Trips.Where(t => t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
+        var trips = await db.Trips.Where(t => !t.IsLegacy && t.CarrierSupplierId != null && ids.Contains(t.CarrierSupplierId.Value) && AccruingStatuses.Contains(t.Status))
             .Select(t => new { t.Id, SupplierId = t.CarrierSupplierId!.Value, t.LoadingDate, t.DeliveryDate, t.VehicleCost, t.LoadingAddress, t.DeliveryAddress, t.Vehicle.Plate })
             .ToListAsync(ct);
         var expenses = await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
@@ -91,7 +91,7 @@ public class PayableService(AppDbContext db)
         var debit = items.Sum(i => i.Total);
         var overdue = items.Where(i => i.Remaining > 0 && i.DueDate < Clock.Today).Sum(i => i.Remaining);
         var tripCount = await db.Trips.CountAsync(t => t.CarrierSupplierId == supplier.Id, ct);
-        var missing = await db.Trips.CountAsync(t => t.CarrierSupplierId == supplier.Id && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null, ct);
+        var missing = await db.Trips.CountAsync(t => !t.IsLegacy && t.CarrierSupplierId == supplier.Id && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null, ct);
         return new SupplierSummaryDto(supplier with { Balance = debit - paid }, debit, paid, debit - paid, overdue, tripCount, missing);
     }
 
@@ -155,7 +155,7 @@ public class PayableService(AppDbContext db)
         var items = await ItemsAsync(null, ct);
         var today = Clock.Today;
         var cutoff = today.AddDays(-15);
-        var missing = await db.Trips.CountAsync(t => t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null
+        var missing = await db.Trips.CountAsync(t => !t.IsLegacy && t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null
             && (t.DeliveryDate ?? t.LoadingDate) < cutoff, ct);
         return (items.Where(i => i.Remaining > 0 && i.DueDate < today).Sum(i => i.Remaining), items.Sum(i => i.Remaining), missing);
     }

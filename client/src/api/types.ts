@@ -194,6 +194,8 @@ export interface Trip {
   deliveredAt?: string | null
   vehicleOwnership?: VehicleOwnership
   jobRequestId?: number | null
+  /** Eski sistemden aktarılmış geçmiş sefer: borç/fatura hesaplarına girmez. */
+  isLegacy?: boolean
 }
 
 export interface JobRequest {

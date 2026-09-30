@@ -108,7 +108,7 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
         if (limited.Count > 0)
         {
             var ids = limited.Select(c => c.Id).ToList();
-            var uninvoiced = await db.Trips.Where(t => ids.Contains(t.CustomerId) && t.InvoiceId == null
+            var uninvoiced = await db.Trips.Where(t => !t.IsLegacy && ids.Contains(t.CustomerId) && t.InvoiceId == null
                     && (t.Status == TripStatus.Delivered || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad))
                 .GroupBy(t => t.CustomerId).Select(g => new { g.Key, Sum = g.Sum(t => t.SalePrice) }).ToDictionaryAsync(x => x.Key, x => x.Sum, ct);
             foreach (var c in limited)
@@ -132,7 +132,7 @@ public class AlertService(AppDbContext db, BalanceService balances, PayableServi
                     $"Vadesi geçmiş {Formatters.Currency(g.Sum(i => i.Remaining))} ödeme (taşeron/tedarikçi).", $"/tedarikciler/{g.Key}", g.Min(i => i.DueDate)));
         }
         var cutoff = today.AddDays(-15);
-        var missing = await db.Trips.AsNoTracking().Where(t => t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null
+        var missing = await db.Trips.AsNoTracking().Where(t => !t.IsLegacy && t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null
                 && (t.DeliveryDate ?? t.LoadingDate) < cutoff)
             .GroupBy(t => new { t.CarrierSupplierId, t.CarrierSupplier!.Title })
             .Select(g => new { g.Key.CarrierSupplierId, g.Key.Title, Count = g.Count(), FirstDate = g.Min(t => t.DeliveryDate ?? t.LoadingDate) }).ToListAsync(ct);

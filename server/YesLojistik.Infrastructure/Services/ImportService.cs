@@ -33,7 +33,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["vehicles"] = ["Plaka", "Araç Tipi", "Marka", "Model", "Model Yılı", "Km", "Son Bakım", "Sonraki Bakım", "Muayene Bitiş", "Sigorta Bitiş",
             "Sahiplik", "Araç Sahibi", "Dorse Plakası"],
         ["trips"] = ["Yükleme Tarihi", "Müşteri", "Plaka", "Şoför", "Yükleme İli", "Yükleme Adresi", "Teslim İli", "Teslim Adresi", "Teslim Tarihi",
-            "Yük Cinsi", "Müşteri Ref No", "Araç Maliyeti", "Satış Fiyatı", "Durum", "Açıklama"],
+            "Yük Cinsi", "Müşteri Ref No", "Araç Maliyeti", "Satış Fiyatı", "Durum", "Açıklama", "Eski Kayıt"],
         ["job-requests"] = ["Tarih", "Müşteri", "Yükleme Yeri", "İndirme Yeri", "Teslim Süresi", "Yük Cinsi", "Yük Miktarı", "Araç Cinsi",
             "Müşteri Fiyatı", "Sevkiyat Fiyatı", "Komisyon", "Şoför Primi", "Masraf", "Ödeme Müşteride", "Yükleme Evrak No", "İrsaliye No",
             "Fatura Altı Not", "Açıklama", "Durum"],
@@ -68,7 +68,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["vehicles"] = ["34 VES 01", "Kamyon", "Ford", "Cargo", 2020, 420000, new DateTime(2026, 5, 12), new DateTime(2026, 11, 12), new DateTime(2027, 3, 1),
             new DateTime(2027, 1, 15), "Özmal", "", "34 DRS 01"],
         ["trips"] = [new DateTime(2026, 9, 1), "Yıldız Mobilya", "34 VES 01", "Mehmet Yılmaz", "İstanbul", "Tuzla OSB", "Ankara", "Sincan OSB",
-            new DateTime(2026, 9, 2), "Mobilya, 20 palet", "4500123", 18000m, 25000m, "Teslim Edildi", ""],
+            new DateTime(2026, 9, 2), "Mobilya, 20 palet", "4500123", 18000m, 25000m, "Teslim Edildi", "", "Hayır"],
         ["job-requests"] = [new DateTime(2026, 9, 1), "Yıldız Mobilya", "Tuzla OSB", "Sincan OSB", "2 gün", "Mobilya", 20m, "Tır", 25000m, 18000m,
             500m, 750m, 0m, "Hayır", "YE-1234", "IRS-5678", "", "", "Bekliyor"],
         ["invoices"] = ["A2026000123", new DateTime(2026, 9, 5), new DateTime(2026, 10, 5), "Yıldız Mobilya", 25000m, 20m, "2/10", 29000m,
@@ -86,7 +86,9 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["vehicles"] = "Zorunlu: Plaka, Araç Tipi. Sahiplik: Özmal veya Kiralık. Kiralıksa Araç Sahibi (tedarikçi ünvanı) zorunlu; önce tedarikçileri aktarın.",
         ["trips"] = "Zorunlu: Yükleme Tarihi, Müşteri, Plaka, Şoför, Yükleme Adresi, Teslim Adresi. Müşteri, plaka ve şoför sistemde kayıtlı olmalı " +
             "(önce onları aktarın). Durum: Planlandı, Yüklendi, Yolda, Teslim Edildi, İptal (boşsa teslim tarihi varsa Teslim Edildi). " +
-            "Aynı tarih, müşteri, plaka, teslim adresi ve satış fiyatına sahip sefer zaten varsa satır atlanır.",
+            "Aynı tarih, müşteri, plaka, teslim adresi, satış fiyatı ve açıklamaya sahip sefer zaten varsa satır atlanır. " +
+            "Eski Kayıt: Evet ise sefer yalnız geçmiş olarak görünür; taşeron borcu, kesilecek fatura ve risk hesabına girmez " +
+            "(tutarlar devir bakiyesine yazılır).",
         ["job-requests"] = "Zorunlu: Tarih, Müşteri, Yükleme Yeri, İndirme Yeri. Durum: Bekliyor veya İptal (sevk edilmiş talepler sefer olarak aktarılır). " +
             "Aynı tarih, müşteri, yükleme ve indirme yerine sahip talep zaten varsa atlanır.",
         ["invoices"] = "Eski sistemde kesilmiş faturalar içindir; e-Fatura gönderilmez. Zorunlu: Fatura No, Tarih, Müşteri, Matrah (KDV hariç). " +
@@ -376,8 +378,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         var vehicles = await db.Vehicles.Select(v => new { v.Id, v.Plate, v.Ownership, v.SupplierId, v.TrailerPlate }).ToListAsync(ct);
         var vehicleByPlate = vehicles.ToDictionary(v => v.Plate);
         var drivers = (await db.Drivers.Select(d => new { d.Id, d.FullName }).ToListAsync(ct)).GroupBy(d => Key(d.FullName)).ToDictionary(g => g.Key, g => g.First().Id);
-        var existing = (await db.Trips.Select(t => new { t.LoadingDate, t.CustomerId, t.VehicleId, t.DeliveryAddress, t.SalePrice }).ToListAsync(ct))
-            .Select(t => (t.LoadingDate, t.CustomerId, t.VehicleId, Key(t.DeliveryAddress), t.SalePrice)).ToHashSet();
+        var existing = (await db.Trips.Select(t => new { t.LoadingDate, t.CustomerId, t.VehicleId, t.DeliveryAddress, t.SalePrice, t.Description }).ToListAsync(ct))
+            .Select(t => (t.LoadingDate, t.CustomerId, t.VehicleId, Key(t.DeliveryAddress), t.SalePrice, Key(t.Description ?? ""))).ToHashSet();
         var r = ctx.R;
         var now = DateTime.UtcNow;
 
@@ -397,6 +399,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
 
             var loading = r.Date(row, "Yükleme Tarihi");
             var delivery = r.Date(row, "Teslim Tarihi");
+            var legacy = YesNo(r.Str(row, "Eski Kayıt")) ?? false;
             var status = r.Str(row, "Durum") is { } st
                 ? StatusByLabel.GetValueOrDefault(Key(st)) is var parsed && StatusByLabel.ContainsKey(Key(st)) ? parsed
                     : throw new FormatException($"“Durum” Planlandı, Yüklendi, Yolda, Teslim Edildi veya İptal olmalı: {st}")
@@ -408,7 +411,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             if (loading == null) ctx.Errors.Add(new ImportRowError(n, "Yükleme tarihi zorunlu."));
             if (!Validate(tripValidator, req, n, ctx.Errors) || loading == null) return Task.CompletedTask;
 
-            var key = (req.LoadingDate, req.CustomerId, req.VehicleId, Key(req.DeliveryAddress), Money.Round(req.SalePrice));
+            // Aynı gün, aynı araç ve güzergâhta aynı fiyata birden çok sefer olabilir; açıklama (ör. sevkiyat no) onları ayırır.
+            var key = (req.LoadingDate, req.CustomerId, req.VehicleId, Key(req.DeliveryAddress), Money.Round(req.SalePrice), Key(Clean(req.Description) ?? ""));
             if (!existing.Add(key))
             {
                 ctx.Skip(n, $"{Formatters.Date(req.LoadingDate)} {plate} → {req.DeliveryAddress} seferi");
@@ -423,8 +427,9 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
                 Status = status, CustomerReference = Clean(req.CustomerReference), CargoType = Clean(req.CargoType),
                 LoadingCity = Cities.Normalize(req.LoadingCity), DeliveryCity = Cities.Normalize(req.DeliveryCity),
                 TrailerPlate = vehicle!.TrailerPlate, CarrierSupplierId = vehicle.Ownership == VehicleOwnership.Rented ? vehicle.SupplierId : null,
+                IsLegacy = legacy,
             };
-            trip.Events.Add(new TripEvent { Status = status, Source = TripEventSource.Import, OccurredAt = now, RecordedAt = now, Note = "Excel aktarımı" });
+            trip.Events.Add(new TripEvent { Status = status, Source = TripEventSource.Import, OccurredAt = now, RecordedAt = now, Note = legacy ? "Eski sistemden aktarıldı" : "Excel aktarımı" });
             db.Trips.Add(trip);
             ctx.Created++;
             return Task.CompletedTask;

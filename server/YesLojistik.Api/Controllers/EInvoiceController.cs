@@ -97,7 +97,7 @@ public class ExportsController(AppDbContext db) : ControllerBase
         var expenses = await db.Expenses.AsNoTracking().Where(e => e.Date >= f && e.Date <= t).OrderBy(e => e.Date)
             .Select(e => new { e.Date, e.Category, Plate = e.Vehicle != null ? e.Vehicle.Plate : null, Supplier = e.Supplier != null ? e.Supplier.Title : null,
                 e.IsOnCredit, e.Amount, e.Description, e.ApprovalStatus }).ToListAsync(ct);
-        var carrier = await db.Trips.AsNoTracking().Where(x => x.CarrierSupplierId != null && x.Status != TripStatus.Cancelled && x.Status != TripStatus.Planned
+        var carrier = await db.Trips.AsNoTracking().Where(x => !x.IsLegacy && x.CarrierSupplierId != null && x.Status != TripStatus.Cancelled && x.Status != TripStatus.Planned
                 && (x.DeliveryDate ?? x.LoadingDate) >= f && (x.DeliveryDate ?? x.LoadingDate) <= t)
             .OrderBy(x => x.LoadingDate)
             .Select(x => new { x.Id, x.LoadingDate, x.DeliveryDate, Supplier = x.CarrierSupplier!.Title, x.Vehicle.Plate, x.LoadingAddress, x.DeliveryAddress,

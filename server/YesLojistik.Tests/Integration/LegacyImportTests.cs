@@ -148,4 +148,58 @@ public class LegacyImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await Import(c, "expenses", Workbook(ImportService.Columns["expenses"],
             [new DateTime(2026, 9, 5), "Avans", 500m, null, $"Kural Şoför {u}", null, null, null, null, "Şoförlü avans"]))).Created.Should().Be(1);
     }
+
+    [Fact]
+    public async Task Legacy_trips_are_history_only_no_payable_no_uninvoiced_not_invoiceable()
+    {
+        var c = await factory.LoginAsync();
+        var u = Guid.NewGuid().ToString("N")[..6];
+        var supplier = $"Eski Nakliyeci {u}";
+        var customer = $"Eski Müşteri {u}";
+        var plate = $"07 EK {Random.Shared.Next(100, 9999)}";
+        var driver = $"Eski Kayıt Şoför {u}";
+        (await Import(c, "suppliers", Workbook(ImportService.Columns["suppliers"],
+            [supplier, "Taşeron", null, null, null, null, null, null, null, null, null, 30, 5000m, new DateTime(2026, 9, 30)]))).Created.Should().Be(1);
+        (await Import(c, "customers", Workbook(ImportService.Columns["customers"], [customer]))).Created.Should().Be(1);
+        (await Import(c, "drivers", Workbook(ImportService.Columns["drivers"], [driver, null, null, null, null, null, null, supplier]))).Created.Should().Be(1);
+        (await Import(c, "vehicles", Workbook(ImportService.Columns["vehicles"],
+            [plate, "Tır", null, null, null, null, null, null, null, null, "Kiralık", supplier, null]))).Errors.Should().BeEmpty();
+
+        var trips = await Import(c, "trips", Workbook(ImportService.Columns["trips"],
+            [new DateTime(2026, 5, 1), customer, plate, driver, "İstanbul", $"Depo {u}", "Ankara", "Sincan", new DateTime(2026, 5, 2), "Mobilya", null,
+                18000m, 25000m, "Teslim Edildi", "Sevkiyat 123", "Evet"]));
+        trips.Errors.Should().BeEmpty();
+        trips.Created.Should().Be(1);
+
+        // Taşeron bakiyesi yalnız devir: eski seferin 18.000 maliyeti ikinci kez borç yazılmaz.
+        var sup = await (await c.GetAsync($"/api/suppliers?search={Uri.EscapeDataString(supplier)}")).ReadAsync<PagedResult<SupplierDto>>();
+        sup.Items.Single().Balance.Should().Be(5000);
+
+        // Sefer listede görünür, eski kayıt olarak işaretlidir; "faturalanmamış" filtresine düşmez.
+        var all = await (await c.GetAsync($"/api/trips?search={Uri.EscapeDataString(customer)}")).ReadAsync<PagedResult<TripDto>>();
+        var trip = all.Items.Single();
+        trip.IsLegacy.Should().BeTrue();
+        (await (await c.GetAsync($"/api/trips?search={Uri.EscapeDataString(customer)}&invoiced=false")).ReadAsync<PagedResult<TripDto>>()).Total.Should().Be(0);
+
+        // Eski sefer yeniden faturalanamaz.
+        var inv = await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(trip.CustomerId, new DateOnly(2026, 9, 30), null, 20, 0, null, false, [trip.Id], null));
+        inv.IsSuccessStatusCode.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Same_day_same_route_trips_with_different_descriptions_are_all_imported()
+    {
+        var c = await factory.LoginAsync();
+        var u = Guid.NewGuid().ToString("N")[..6];
+        var plate = $"09 SD {Random.Shared.Next(100, 9999)}";
+        (await Import(c, "customers", Workbook(ImportService.Columns["customers"], [$"Tekrar Cari {u}"]))).Created.Should().Be(1);
+        (await Import(c, "drivers", Workbook(ImportService.Columns["drivers"], [$"Tekrar Şoför {u}"]))).Created.Should().Be(1);
+        (await Import(c, "vehicles", Workbook(ImportService.Columns["vehicles"], [plate, "Tır"]))).Errors.Should().BeEmpty();
+        object?[] Row(string note) => [new DateTime(2026, 9, 1), $"Tekrar Cari {u}", plate, $"Tekrar Şoför {u}", null, "Tuzla", null, "Sincan",
+            null, null, null, 1000m, 2000m, "Teslim Edildi", note, "Evet"];
+        var file = Workbook(ImportService.Columns["trips"], Row("Sevkiyat 1"), Row("Sevkiyat 2"), Row("Sevkiyat 3"));
+        (await Import(c, "trips", file)).Created.Should().Be(3);
+        // Aynı dosya tekrar yüklenince hiçbiri çiftlenmez.
+        (await Import(c, "trips", file)).Skipped.Should().Be(3);
+    }
 }

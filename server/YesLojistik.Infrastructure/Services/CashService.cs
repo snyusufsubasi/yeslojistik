@@ -111,7 +111,7 @@ public class CashService(AppDbContext db, BalanceService balances, PayableServic
         var c = await db.Customers.AsNoTracking().Where(x => x.Id == customerId).Select(x => new { x.Id, x.CreditLimit }).FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Müşteri bulunamadı.");
         var open = (await balances.InvoiceBalancesAsync([customerId], ct)).Values.Sum(b => b.Remaining);
-        var uninvoiced = await db.Trips.Where(t => t.CustomerId == customerId && t.InvoiceId == null && t.Id != (excludeTripId ?? 0)
+        var uninvoiced = await db.Trips.Where(t => !t.IsLegacy && t.CustomerId == customerId && t.InvoiceId == null && t.Id != (excludeTripId ?? 0)
                 && (t.Status == TripStatus.Delivered || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad))
             .SumAsync(t => (decimal?)t.SalePrice, ct) ?? 0;
         var used = Money.Round(open + uninvoiced);

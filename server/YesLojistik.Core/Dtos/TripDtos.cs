@@ -10,7 +10,7 @@ public record TripDto(int Id, int CustomerId, string CustomerTitle, int VehicleI
     string? CargoUnit = null, string? TrailerPlate = null, string? LoadingCity = null, string? DeliveryCity = null,
     string? LoadingContact = null, string? DeliveryContact = null, int? CarrierSupplierId = null, string? CarrierSupplierTitle = null,
     string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, string? ReceivedBy = null, DateTime? DeliveredAt = null,
-    VehicleOwnership VehicleOwnership = VehicleOwnership.Own, int? JobRequestId = null);
+    VehicleOwnership VehicleOwnership = VehicleOwnership.Own, int? JobRequestId = null, bool IsLegacy = false);
 
 public record TripSaveRequest(int CustomerId, int VehicleId, int DriverId, string LoadingAddress, string DeliveryAddress,
     DateOnly LoadingDate, DateOnly? DeliveryDate, string? Description, decimal VehicleCost, decimal SalePrice,
