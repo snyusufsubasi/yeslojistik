@@ -2,19 +2,31 @@
 //
 // Kullanım (bulut oturumunda, PRATIK_USER / PRATIK_PASS ortam değişkenleriyle):
 //   node tools/legacy/crawl.mjs --out <repo dışı klasör> [--max 400] [--base https://pratikortam.com/zz_revize/]
-// Giriş SMS kodu isterse robot <out>/sms.txt dosyasına 6 haneli kodun yazılmasını bekler (10 dakika).
+// Giriş yalnızca e-posta ve şifreyle yapılır (SMS adımı atlanır). Hesap SMS'i zorunlu tutuyorsa robot açık bir hata verir.
 //
 // Güvenlik kuralları (kodda zorunlu):
-//  - Giriş istekleri dışında hiçbir POST/PUT/PATCH/DELETE gönderilmez (page.route ile engellenir).
+//  - Giriş isteği dışında hiçbir POST/PUT/PATCH/DELETE gönderilmez (page.route ile engellenir).
 //  - Adresinde sil/delete/kaldır/iptal/güncelle/kaydet/ekle/onay/çıkış geçen linklere GET bile yapılmaz.
+//  - Bu filtre giriş sırasında da açıktır: giriş sayfasının kendi betiği bile tehlikeli bir GET gönderemez.
 //  - Düğmelere tıklanmaz; yalnız linkler izlenir. Saniyede en fazla 1 sayfa açılır.
-//  - Şifre ve SMS kodu hiçbir yere yazılmaz; çıktılar repo dışındaki --out klasörüne gider.
+//  - Şifre hiçbir yere yazılmaz; çıktılar repo dışındaki --out klasörüne gider (repo içi yol reddedilir).
 import { createRequire } from 'node:module'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { join, resolve, relative, isAbsolute } from 'node:path'
 
 const require = createRequire(new URL('../../client/package.json', import.meta.url))
 const { chromium } = require('@playwright/test')
+
+/** Repo kökü (tools/legacy/../..): çıktı klasörü buranın içinde olamaz. */
+const REPO_ROOT = resolve(new URL('../..', import.meta.url).pathname)
+
+/** Çıktı yolu repo dizininin içindeyse (ya da repo kökünün kendisiyse) hata fırlatır: oturum durumu ve kişisel veri repoya sızmasın. */
+export function assertOutsideRepo(out, repoRoot = REPO_ROOT) {
+  const abs = resolve(out)
+  const rel = relative(repoRoot, abs)
+  const inside = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+  if (inside) throw new Error(`--out repo dizininin içinde olamaz: ${abs}. Oturum ve kişisel veri repoya karışmasın diye repo dışında bir yol verin.`)
+}
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a), []))
 const BASE = new URL(args.base ?? 'https://pratikortam.com/zz_revize/')
@@ -22,7 +34,9 @@ const OUT = args.out
 const MAX = Number(args.max ?? 400)
 const PER_TEMPLATE = Number(args.samples ?? 3)
 const LOGIN_PATHS = ['giris.php', 'cikis.php', 'islemler/tlfn_st.php', 'islemler/giris_yap.php']
-const LOGIN_POSTS = ['islemler/tlfn_st.php', 'islemler/giris_yap.php']
+// Giriş sırasında serbest bırakılanlar: yalnız asıl kimlik doğrulama POST'u ve giriş sayfasına gezinme. SMS ucu (tlfn_st.php) yok.
+const LOGIN_POSTS = ['islemler/giris_yap.php']
+const LOGIN_NAV = ['giris.php']
 
 /** Kesinlikle değiştiren işlemler: robot bunlara hiç gitmez. */
 export const DANGEROUS = /(sil|delete|remove|kaldir|kaldır|iptal|cancel|onay|approve|cikis|çıkış|logout|reset|temizle|gonder|gönder|send|mail|sms|odendi|ödendi|aktar|kapat)/i
@@ -68,9 +82,13 @@ export async function guard(context, base, state) {
       state.blocked.push(`${req.method()} ${url.pathname}`)
       return block(route)
     }
-    // Aynı sitedeki her .php isteği (gezinme, XHR, resim) güvenlik listesinden geçmeli; css/js/resim dosyaları serbest.
+    // Aynı sitedeki her .php GET'i (gezinme, XHR, resim) güvenlik listesinden geçmeli; css/js/resim dosyaları serbest.
+    // Giriş sırasında da açık: yalnız giriş sayfasına gezinmeye izin verilir, sayfa betiklerinin başka her GET'i yine denetlenir.
     const php = url.origin === base.origin && /\.php$/.test(url.pathname)
-    if (php && !state.loggingIn && !isSafeUrl(url.href, base, !req.isNavigationRequest())) {
+    if (!php) return route.continue()
+    const rel2 = url.pathname.slice(base.pathname.length)
+    if (state.loggingIn && req.isNavigationRequest() && LOGIN_NAV.includes(rel2)) return route.continue()
+    if (!isSafeUrl(url.href, base, !req.isNavigationRequest())) {
       state.blocked.push(`GET ${url.pathname}${url.search}`)
       return block(route)
     }
@@ -85,30 +103,15 @@ async function login(page, state) {
   await page.goto(new URL('giris.php', BASE).href)
   await page.fill('#kullanici_adi', user)
   await page.fill('#sifre', pass)
-  const firstStep = page.waitForResponse((r) => r.url().includes('islemler/tlfn_st.php'), { timeout: 20000 })
-  await page.evaluate(() => window.glck_st())
-  const answer = (await (await firstStep).text()).trim()
-  if (answer === '-2') throw new Error('E-posta veya şifre hatalı.')
-  if (answer === '1') {
-    const smsFile = join(OUT, 'sms.txt')
-    rmSync(smsFile, { force: true })
-    console.log(`SMS KODU GEREKİYOR: telefona gelen 6 haneli kodu ${smsFile} dosyasına yazın (10 dakika bekleniyor).`)
-    let code = ''
-    for (let i = 0; i < 600 && !/^\d{6}$/.test(code); i++) {
-      await sleep(1000)
-      if (existsSync(smsFile)) code = readFileSync(smsFile, 'utf8').trim()
-    }
-    rmSync(smsFile, { force: true })
-    if (!/^\d{6}$/.test(code)) throw new Error('SMS kodu gelmedi.')
-    await page.fill('#tlfn_kd', code)
-    await Promise.all([page.waitForURL(/anasayfa\.php/, { timeout: 30000 }), page.evaluate(() => window.tlfn_kntrl())])
-  } else if (answer === '0') {
+  // SMS adımını (glck_st → tlfn_st.php) atla; doğrudan asıl kimlik doğrulamayı çağır (giris → giris_yap.php).
+  await page.evaluate(() => window.giris())
+  try {
     await page.waitForURL(/anasayfa\.php/, { timeout: 30000 })
-  } else {
-    throw new Error(`Giriş beklenmeyen yanıt verdi (${answer}).`)
+  } catch {
+    throw new Error('E-posta/şifre ile giriş yapılamadı. Bilgiler hatalı olabilir ya da hesap SMS doğrulamasını zorunlu tutuyor olabilir.')
   }
   state.loggingIn = false
-  console.log('Giriş yapıldı.')
+  console.log('Giriş yapıldı (e-posta ve şifre).')
 }
 
 /** Sayfanın yapısını çıkarır: menü linkleri, tablolar (başlık + satır sayısı), formlar (alanlar, seçenekler), düğmeler. */
@@ -150,6 +153,7 @@ async function describe(page) {
 
 async function main() {
   if (!OUT) throw new Error('--out <klasör> zorunlu (repo dışında olmalı)')
+  assertOutsideRepo(OUT)
   mkdirSync(join(OUT, 'pages'), { recursive: true })
   const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined) })
   const statePath = join(OUT, 'session.json')

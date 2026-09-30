@@ -449,6 +449,16 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
     private static decimal Positive(decimal? amount, string col) =>
         amount is > 0 ? amount.Value : throw new FormatException($"“{col}” sıfırdan büyük olmalı.");
 
+    /// <summary>Tevkifat "2/10" biçimindedir: pay 0..10, payda tam olarak 10. "2" tek başına 2/10 sayılır; "2/5" ya da "2/foo" reddedilir.</summary>
+    private static int ParseTenths(string w)
+    {
+        var parts = w.Split('/');
+        var bad = new FormatException($"“Tevkifat” 2/10 gibi yazılmalı (payda 10 olmalı): {w}");
+        if (parts.Length > 2 || !int.TryParse(parts[0].Trim(), out var num) || num is < 0 or > 10) throw bad;
+        if (parts.Length == 2 && (!int.TryParse(parts[1].Trim(), out var den) || den != 10)) throw bad;
+        return num;
+    }
+
     private static PaymentMethod Method(string? s) => s == null ? PaymentMethod.BankTransfer : Key(s) switch
     {
         "NAKİT" or "NAKIT" or "KASA" => PaymentMethod.Cash,
@@ -527,10 +537,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             var date = Need(r.Date(row, "Tarih"), "Tarih");
             var subtotal = Positive(r.Dec(row, "Matrah"), "Matrah");
             var vatRate = r.Dec(row, "KDV Oranı") ?? 20;
-            var tenths = r.Str(row, "Tevkifat") is { } w && Key(w) is not ("YOK" or "0" or "-")
-                ? int.TryParse(w.Split('/')[0].Trim(), out var t) && t is >= 0 and <= 10 ? t
-                    : throw new FormatException($"“Tevkifat” 2/10 gibi yazılmalı: {w}")
-                : 0;
+            var tenths = r.Str(row, "Tevkifat") is { } w && Key(w) is not ("YOK" or "0" or "-") ? ParseTenths(w) : 0;
             InvoiceTotals totals;
             try { totals = InvoiceCalculator.Calculate([subtotal], vatRate, tenths); }
             catch (DomainException ex) { throw new FormatException(ex.Message); }
@@ -564,7 +571,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
     private async Task PaymentsAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
     {
         var customers = await CustomerIdsAsync(ct);
-        var invoices = (await db.Invoices.Select(i => new { i.Id, i.InvoiceNo, i.CustomerId }).ToListAsync(ct))
+        var invoices = (await db.Invoices.Select(i => new { i.Id, i.InvoiceNo, i.CustomerId, i.Status }).ToListAsync(ct))
             .GroupBy(i => Key(i.InvoiceNo)).ToDictionary(g => g.Key, g => g.First());
         var existing = (await db.Payments.Select(p => new { p.Date, p.CustomerId, p.Amount, p.Description }).ToListAsync(ct))
             .Select(p => (p.Date, p.CustomerId, p.Amount, Key(p.Description ?? ""))).ToHashSet();
@@ -580,6 +587,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             {
                 if (!invoices.TryGetValue(Key(no), out var inv)) ctx.Errors.Add(new ImportRowError(n, $"Fatura bulunamadı: “{no}”. Önce faturaları aktarın."));
                 else if (customerId != null && inv.CustomerId != customerId) ctx.Errors.Add(new ImportRowError(n, $"{no} numaralı fatura başka bir müşterinin."));
+                else if (inv.Status != InvoiceStatus.Issued) ctx.Errors.Add(new ImportRowError(n, $"{no} numaralı fatura kesilmiş durumda değil; tahsilat bağlanamaz."));
                 else invoiceId = inv.Id;
             }
             if (ctx.Errors.Count > before) return Task.CompletedTask;
@@ -587,13 +595,15 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             var amount = Positive(r.Dec(row, "Tutar"), "Tutar");
             var method = Method(r.Str(row, "Yöntem"));
             var description = r.Str(row, "Açıklama");
+            var instrument = method is PaymentMethod.Check or PaymentMethod.PromissoryNote;
+            var due = instrument ? r.Date(row, "Çek Vadesi") : null;
+            // Çek/senette vade zorunlu (portföy ve vade uyarıları buna dayanır); vadesiz kayıt sessizce "tahsil edildi" sayılmaz.
+            if (instrument && due == null) { ctx.Errors.Add(new ImportRowError(n, "Çek/senet tahsilatında “Çek Vadesi” zorunlu.")); return Task.CompletedTask; }
             if (!existing.Add((date, customerId!.Value, amount, Key(description ?? ""))))
             {
                 ctx.Skip(n, $"{Formatters.Date(date)} {amount:N2} TL tahsilat");
                 return Task.CompletedTask;
             }
-            var instrument = method is PaymentMethod.Check or PaymentMethod.PromissoryNote;
-            var due = instrument ? r.Date(row, "Çek Vadesi") : null;
             db.Payments.Add(new Payment
             {
                 CustomerId = customerId.Value, InvoiceId = invoiceId, Date = date, Amount = amount, Method = method, Description = description,
@@ -673,6 +683,12 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             var date = Need(r.Date(row, "Tarih"), "Tarih");
             var category = Category(r.Str(row, "Kategori")!);
             var amount = Positive(r.Dec(row, "Tutar"), "Tutar");
+            // Avans şoför hesabına işlenir; şoförsüz avans hiçbir hesaba düşmez (normal gider kuralının aynısı).
+            if (category == ExpenseCategory.DriverAdvance && driverId == null)
+            {
+                ctx.Errors.Add(new ImportRowError(n, "Şoför avansında “Şoför” zorunlu."));
+                return Task.CompletedTask;
+            }
             var description = r.Str(row, "Açıklama");
             if (!existing.Add((date, category, amount, vehicleId, Key(description ?? ""))))
             {

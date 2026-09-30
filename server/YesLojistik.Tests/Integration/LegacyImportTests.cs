@@ -103,4 +103,49 @@ public class LegacyImportTests(ApiFactory factory) : IClassFixture<ApiFactory>
         item.CustomerPays.Should().BeTrue();
         item.WaybillNo.Should().Be("IRS-1");
     }
+
+    [Fact]
+    public async Task Import_rejects_bad_withholding_cancelled_invoice_undated_instrument_and_driverless_advance()
+    {
+        var c = await factory.LoginAsync();
+        var u = Guid.NewGuid().ToString("N")[..6];
+        var customer = $"Kural Cari {u}";
+        (await Import(c, "customers", Workbook(ImportService.Columns["customers"], [customer]))).Created.Should().Be(1);
+
+        // 1) Tevkifat "2/5" reddedilir (payda 10 değil); Toplam boş, yine de satır hata verir ve hiçbir fatura yazılmaz.
+        var badVat = await Import(c, "invoices", Workbook(ImportService.Columns["invoices"],
+            [$"K{u}01", new DateTime(2026, 8, 1), null, customer, 1000m, 20m, "2/5", null, null, null]));
+        badVat.Errors.Should().ContainSingle(e => e.Message.Contains("Tevkifat"));
+        badVat.Created.Should().Be(0);
+
+        // Biri kesilmiş, biri iptal iki fatura.
+        (await Import(c, "invoices", Workbook(ImportService.Columns["invoices"],
+            [$"K{u}A", new DateTime(2026, 8, 1), null, customer, 1000m, 20m, null, null, null, "Kesildi"],
+            [$"K{u}I", new DateTime(2026, 8, 1), null, customer, 1000m, 20m, null, null, null, "İptal"]))).Created.Should().Be(2);
+
+        // 2) İptal faturaya tahsilat bağlanamaz.
+        var toCancelled = await Import(c, "payments", Workbook(ImportService.Columns["payments"],
+            [new DateTime(2026, 9, 1), customer, 500m, "Havale", $"K{u}I", null, null, null, "İptale ödeme"]));
+        toCancelled.Errors.Should().ContainSingle(e => e.Message.Contains("kesilmiş durumda değil"));
+        toCancelled.Created.Should().Be(0);
+
+        // 3) Vadesiz çek reddedilir.
+        var undated = await Import(c, "payments", Workbook(ImportService.Columns["payments"],
+            [new DateTime(2026, 9, 2), customer, 500m, "Çek", null, "123", "Ziraat", null, "Vadesiz çek"]));
+        undated.Errors.Should().ContainSingle(e => e.Message.Contains("Çek Vadesi"));
+        undated.Created.Should().Be(0);
+
+        // 4) Şoförsüz avans reddedilir.
+        var advance = await Import(c, "expenses", Workbook(ImportService.Columns["expenses"],
+            [new DateTime(2026, 9, 3), "Avans", 500m, null, null, null, null, null, null, "Şoförsüz avans"]));
+        advance.Errors.Should().ContainSingle(e => e.Message.Contains("Şoför"));
+        advance.Created.Should().Be(0);
+
+        // Doğru yazılmış çek/senet ve şoförlü avans ise kabul edilir.
+        (await Import(c, "drivers", Workbook(ImportService.Columns["drivers"], [$"Kural Şoför {u}"]))).Created.Should().Be(1);
+        (await Import(c, "payments", Workbook(ImportService.Columns["payments"],
+            [new DateTime(2026, 9, 4), customer, 500m, "Çek", null, "456", "Ziraat", new DateTime(2027, 1, 1), "Vadeli çek"]))).Created.Should().Be(1);
+        (await Import(c, "expenses", Workbook(ImportService.Columns["expenses"],
+            [new DateTime(2026, 9, 5), "Avans", 500m, null, $"Kural Şoför {u}", null, null, null, null, "Şoförlü avans"]))).Created.Should().Be(1);
+    }
 }
