@@ -18,10 +18,16 @@ import { paymentStatusTone, tripStatusLabel, tripStatusTone, vehicleStatusLabel,
 export default function DashboardPage() {
   const { user, can } = useAuth()
   const navigate = useNavigate()
-  const { data, isLoading } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000 })
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000 })
   usePageTitle('Ana Sayfa')
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
 
+  if (isError && !data) return (
+    <div className="card mx-auto mt-10 max-w-md p-6 text-center">
+      <p className="mb-4 text-slate-700">Ana sayfa bilgileri yüklenemedi. Sunucu açılıyor olabilir.</p>
+      <Button onClick={() => refetch()}>Tekrar dene</Button>
+    </div>
+  )
   if (isLoading || !data) return <Spinner />
 
   const tripCols: Column<Trip>[] = [

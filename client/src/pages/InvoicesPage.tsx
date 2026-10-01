@@ -103,7 +103,7 @@ export default function InvoicesPage() {
           )}
           footer={data && data.items.length > 0 ? (
             <tr className="bg-slate-50 text-sm font-medium">
-              <td className="td" colSpan={4}>Sayfa toplamı</td>
+              <td className="td" colSpan={3}>Sayfa toplamı</td>
               <td className="td text-right">{tl2(total)}</td>
               <td className="td text-right text-red-600">{tl2(remaining)}</td>
               <td className="td" colSpan={2} />

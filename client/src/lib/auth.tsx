@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { get, post, SESSION_EXPIRED_EVENT } from '../api/client'
+import { get, isTransientError, post, SESSION_EXPIRED_EVENT } from '../api/client'
 import type { CurrentUser, UserRole } from '../api/types'
 
 export type Permission = 'operations' | 'accounting' | 'admin'
@@ -27,13 +27,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
 
   useEffect(() => {
-    get<CurrentUser>('/auth/me')
-      .then(setUser)
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    // Sunucu uyanırken /auth/me geçici hata verir: kullanıcıyı girişe atmak yerine ~1 dakika boyunca tekrar dene.
+    const load = async () => {
+      for (let attempt = 0; !cancelled; attempt++) {
+        try {
+          const me = await get<CurrentUser>('/auth/me')
+          if (!cancelled) setUser(me)
+          break
+        } catch (e) {
+          if (!isTransientError(e) || attempt >= 8) { if (!cancelled) setUser(null); break }
+          await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * 2 ** attempt, 10_000)))
+        }
+      }
+      if (!cancelled) setLoading(false)
+    }
+    void load()
     const onExpired = () => { setUser(null); qc.clear() }
     window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
-    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
+    return () => { cancelled = true; window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired) }
   }, [qc])
 
   const login = useCallback(async (email: string, password: string) => {
