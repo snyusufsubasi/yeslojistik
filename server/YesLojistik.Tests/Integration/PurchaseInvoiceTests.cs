@@ -57,11 +57,18 @@ public class PurchaseInvoiceTests(ApiFactory factory) : IClassFixture<ApiFactory
         // Aynı numara aynı tedarikçide ikinci kez girilemez; başka tedarikçinin seferi bağlanamaz.
         (await c.PostJsonAsync("/api/purchase-invoices", new PurchaseInvoiceSaveRequest(s.Id, "SRT2026000000158", Today, null,
             PurchaseInvoiceKind.EInvoice, 1, 0, 0, null, null))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        // Sefer bağlanamazsa fatura da kaydedilmez (yarım fatura borcu artırmaz).
+        (await c.PostJsonAsync("/api/purchase-invoices", new PurchaseInvoiceSaveRequest(s.Id, "YARIM0001", Today, null,
+            PurchaseInvoiceKind.EInvoice, 50_000, 0, 0, null, [t1.Id]))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Balance()).Should().Be(29_000 + 9_000);
 
         // Fatura tutarı sefer tahmininden farklıysa borç faturadan gelir.
         inv = await (await c.PutJsonAsync($"/api/purchase-invoices/{inv.Id}", new PurchaseInvoiceSaveRequest(s.Id, inv.InvoiceNo, Today, null,
             PurchaseInvoiceKind.EInvoice, 25_000, 5_000, 0, "Tevkifatsız kesilmiş", [t1.Id]))).ReadAsync<PurchaseInvoiceDto>();
         (await Balance()).Should().Be(30_000 + 9_000);
+        // Tedarikçiler cari listesi kartla aynı bakiyeyi gösterir (alınan fatura dahil).
+        var cari = await (await c.GetAsync("/api/cari/suppliers")).ReadAsync<List<SupplierCariRow>>();
+        cari.Single(r => r.Id == s.Id).Balance.Should().Be(30_000 + 9_000);
 
         // Sefere bağlı ödeme faturayı kapatır.
         await c.PostJsonAsync("/api/supplier-payments", new SupplierPaymentSaveRequest(s.Id, Today, 30_000, PaymentMethod.BankTransfer, t1.Id, null));

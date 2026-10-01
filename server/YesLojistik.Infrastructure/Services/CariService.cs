@@ -39,7 +39,8 @@ public class CariService(AppDbContext db, BalanceService balances, PayableServic
         var items = await payables.ItemsAsync(null, ct);
         var byKind = items.GroupBy(i => i.SupplierId).ToDictionary(g => g.Key, g => new
         {
-            Trips = g.Where(i => i.Kind == PayableKind.Trip).Sum(i => i.Total),
+            // Alınan faturalar, faturalanan seferlerin yerini alır: ikisi birlikte sefer borcudur.
+            Trips = g.Where(i => i.Kind is PayableKind.Trip or PayableKind.Invoice).Sum(i => i.Total),
             Expenses = g.Where(i => i.Kind == PayableKind.Expense).Sum(i => i.Total),
             Overdue = g.Where(i => i.Remaining > 0 && i.DueDate < Clock.Today).Sum(i => i.Remaining),
         });

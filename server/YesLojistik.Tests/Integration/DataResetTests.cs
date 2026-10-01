@@ -22,13 +22,23 @@ public class DataResetTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await c.PutAsync("/api/settings", JsonContent.Create(settings with { TaxNumber = DemoCompany.TaxNumber, Iban = DemoCompany.Iban, Address = "Gerçek Adres" },
             options: ApiFactory.Json))).EnsureSuccessStatusCode();
         var customer = await (await c.PostJsonAsync("/api/customers", new CustomerSaveRequest("Demo Müşteri", null, null, null, null, null, null))).ReadAsync<CustomerSummaryDto>();
-        await (await c.PostJsonAsync("/api/suppliers", new SupplierSaveRequest("Demo Taşeron", SupplierKind.Carrier, null, null, null, null, null, null, null, null, null, 30, null))).ReadAsync<SupplierDto>();
+        var supplier = await (await c.PostJsonAsync("/api/suppliers", new SupplierSaveRequest("Demo Taşeron", SupplierKind.Carrier, null, null, null, null, null, null, null, null, null, 30, null))).ReadAsync<SupplierDto>();
+        (await c.PostJsonAsync("/api/purchase-invoices", new PurchaseInvoiceSaveRequest(supplier.Id, "DMO2026000000001", Today, null,
+            PurchaseInvoiceKind.EInvoice, 1_000, 200, 0, null, null))).EnsureSuccessStatusCode();
         var driver = await (await c.PostJsonAsync("/api/drivers", new DriverSaveRequest("Demo Şoför", null, null, null, null, null, null, true))).ReadAsync<DriverDto>();
         var vehicle = await (await c.PostJsonAsync("/api/vehicles", new VehicleSaveRequest("34 DMO 01", "Kamyon", null, null, null, 0, null, null, null, null, VehicleStatus.Available, driver.Id))).ReadAsync<VehicleDto>();
         var trip = await (await c.PostJsonAsync("/api/trips", new TripSaveRequest(customer.Customer.Id, vehicle.Id, driver.Id, "A", "B", Today, null, null, 100, 200))).ReadAsync<TripDto>();
         await (await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(customer.Customer.Id, Today, null, 20, 0, null, false, [trip.Id], null))).ReadAsync<InvoiceDto>();
         await (await c.PostJsonAsync("/api/users", new UserSaveRequest("Demo Şoför", "sofor@test.local", UserRole.Driver, true, "Sifre1234", driver.Id))).ReadAsync<UserDto>();
         await (await c.PostJsonAsync("/api/users", new UserSaveRequest("Operasyon", "ops@test.local", UserRole.Operations, true, "Sifre1234"))).ReadAsync<UserDto>();
+
+        // Demo veriler yüklüyken silme açıktır.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.CompanySettings.ExecuteUpdateAsync(s => s.SetProperty(x => x.HasSampleData, true));
+        }
+        var auditBefore = await AuditCountAsync();
 
         // Yanlış onay metni reddedilir, hiçbir şey silinmez.
         (await c.PostJsonAsync("/api/settings/reset-data", new { confirm = "evet" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -39,6 +49,9 @@ public class DataResetTests(ApiFactory factory) : IClassFixture<ApiFactory>
         (await ops.PostJsonAsync("/api/settings/reset-data", new { confirm = "SİL" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         (await c.PostJsonAsync("/api/settings/reset-data", new { confirm = "sil" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Kayıt geçmişi silinmez; gerçek veriye geçildikten sonra ikinci kez silinemez.
+        (await AuditCountAsync()).Should().BeGreaterThan(auditBefore);
+        (await c.PostJsonAsync("/api/settings/reset-data", new { confirm = "SİL" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var setup = (await (await c.GetAsync("/api/dashboard")).ReadAsync<DashboardDto>()).Setup;
         setup.Should().BeEquivalentTo(new { CustomerCount = 0, VehicleCount = 0, DriverCount = 0, TripCount = 0, UserCount = 2, SampleData = false });
@@ -69,5 +82,11 @@ public class DataResetTests(ApiFactory factory) : IClassFixture<ApiFactory>
         after.TaxNumber.Should().BeNull();
         after.Iban.Should().BeNull();
         after.Address.Should().Be("Gerçek Adres");
+    }
+
+    private async Task<int> AuditCountAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.CountAsync();
     }
 }

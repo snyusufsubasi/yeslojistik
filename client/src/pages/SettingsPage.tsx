@@ -352,6 +352,9 @@ function ResetDataCard() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const ok = ['SİL', 'SIL'].includes(confirm.trim().toLocaleUpperCase('tr-TR'))
+  const dashboard = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard') })
+  // Demo veriler temizlendikten sonra (gerçek kullanımda) bu kart gösterilmez; sunucu da işlemi reddeder.
+  if (!dashboard.data?.setup.sampleData) return null
 
   const run = async () => {
     setBusy(true)

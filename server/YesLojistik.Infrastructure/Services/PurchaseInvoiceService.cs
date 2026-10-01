@@ -76,10 +76,15 @@ public class PurchaseInvoiceService(AppDbContext db, IFileStorage storage)
     public async Task<PurchaseInvoiceDto> CreateAsync(PurchaseInvoiceSaveRequest req, CancellationToken ct = default)
     {
         var entity = new PurchaseInvoice();
-        await ApplyAsync(entity, req, ct);
-        db.PurchaseInvoices.Add(entity);
-        await db.SaveChangesAsync(ct);
-        await LinkTripsAsync(entity, req.TripIds ?? [], ct);
+        // Fatura ve sefer bağlantıları birlikte kaydedilir: bağlama başarısız olursa yarım fatura kalmaz.
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            await ApplyAsync(entity, req, ct);
+            db.PurchaseInvoices.Add(entity);
+            await db.SaveChangesAsync(ct);
+            await LinkTripsAsync(entity, req.TripIds ?? [], ct);
+            await tx.CommitAsync(ct);
+        }
         return await GetAsync(entity.Id, ct);
     }
 
@@ -87,9 +92,13 @@ public class PurchaseInvoiceService(AppDbContext db, IFileStorage storage)
     {
         var entity = await db.PurchaseInvoices.FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("Fatura bulunamadı.");
         if (entity.IsCancelled) throw new DomainException("İptal edilmiş fatura düzenlenemez.");
-        await ApplyAsync(entity, req, ct);
-        await db.SaveChangesAsync(ct);
-        await LinkTripsAsync(entity, req.TripIds ?? [], ct);
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            await ApplyAsync(entity, req, ct);
+            await db.SaveChangesAsync(ct);
+            await LinkTripsAsync(entity, req.TripIds ?? [], ct);
+            await tx.CommitAsync(ct);
+        }
         return await GetAsync(id, ct);
     }
 
