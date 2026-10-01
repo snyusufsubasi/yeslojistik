@@ -19,6 +19,13 @@
 - Server: `cd server && dotnet test` (needs a local PostgreSQL, user/password postgres).
 - Client: `cd client && npm run lint && npm run build`.
 
+## pratikortam.com: READ ONLY
+- pratikortam.com is in live use by the user's client. Never add, edit or delete anything there. Never fill or submit a form, and never press a save/delete/update button.
+- Its only purposes:
+  - pulling data (lists, details, filter results, exports);
+  - studying how pages and workflows are used, so the user's habits can be carried over to yeslojistik.
+- The user logs in themselves. Don't type the password.
+
 ## Data and security
 - Data from pratikortam (customers, VKN numbers, amounts, files) never goes into the repo. Only code and docs do.
 - Never write passwords or tokens into a file or command. The user enters them as environment variables in their own terminal.
