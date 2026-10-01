@@ -35,7 +35,7 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
   const { register, handleSubmit, control, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: payment
-      ? { ...payment, tripId: payment.tripId ?? null, description: payment.description ?? '', cashAccountId: payment.cashAccountId ?? null }
+      ? { ...payment, amount: Math.abs(payment.amount), tripId: payment.tripId ?? null, description: payment.description ?? '', cashAccountId: payment.cashAccountId ?? null }
       : { date: todayIso(), method: 'BankTransfer', description: '', tripId: null, cashAccountId: null, ...defaults },
   })
   const supplierId = useWatch({ control, name: 'supplierId' })
@@ -50,7 +50,10 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
     queryFn: () => get<PagedResult<Trip>>('/trips', { carrierSupplierId: supplierId, pageSize: 100, sort: 'loadingDate', desc: true }),
     enabled: !!supplierId && !Number.isNaN(supplierId),
   })
-  const save = useSave((v: FormValues) => payment ? api.update(payment.id, nullify(v)) : api.create(nullify(v)), {
+  // İade (eski paneldeki "Tedarikçiden Gelen EFT"): tedarikçi para geri gönderdi; borca eklenir, kasaya girer.
+  const [refund, setRefund] = useState(!!payment?.isRefund)
+  const body = (v: FormValues) => ({ ...nullify(v), isRefund: refund, tripId: refund ? null : v.tripId }) as unknown as FormValues
+  const save = useSave((v: FormValues) => payment ? api.update(payment.id, body(v)) : api.create(body(v)), {
     invalidate: ['supplier-payments', 'suppliers'], success: payment ? 'Ödeme güncellendi.' : 'Ödeme kaydedildi.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
@@ -72,7 +75,9 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
             <Button type="button" size="sm" variant="secondary" onClick={() => setValue('amount', summary.data!.balance, { shouldValidate: true })}>Tamamını gir</Button>
           </div>
         )}
-        <Field label="Tutar (TL)" required error={errors.amount?.message}><AmountInput control={control} name="amount" /></Field>
+        <Field label="Tutar (TL)" required error={errors.amount?.message}><AmountInput control={control} name="amount" />
+          <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={refund} onChange={(e) => setRefund(e.target.checked)} />Tedarikçiden iade (para bize geri geldi)</label>
+        </Field>
         <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
         <Field group className="sm:col-span-2" label="Nasıl ödediniz?" required error={errors.method?.message}>
           <ControlledChoice control={control} name="method" label="Ödeme Yöntemi" columns={5} options={choices(paymentMethodLabel, paymentMethodIcon)} />

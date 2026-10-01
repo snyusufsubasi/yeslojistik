@@ -187,6 +187,21 @@ export interface Vehicle {
   supplierTitle?: string | null
   trailerPlate?: string | null
   nextMaintenanceKm?: number | null
+  card?: VehicleCard | null
+}
+
+/** Eski paneldeki araç kartı alanları. */
+export interface VehicleCard {
+  capacity?: string | null
+  fuelType?: string | null
+  insuranceInfo?: string | null
+  cascoInfo?: string | null
+  cascoExpiry?: string | null
+  inspectionInfo?: string | null
+  emissionInfo?: string | null
+  emissionExpiry?: string | null
+  maintenanceInfo?: string | null
+  registrationOwner?: string | null
 }
 
 export interface Driver {
@@ -404,6 +419,7 @@ export interface Payment {
   instrumentStatus?: InstrumentStatus | null
   endorsedSupplierPaymentId?: number | null
   endorsedTo?: string | null
+  isRefund?: boolean
 }
 
 export interface Expense {
@@ -428,7 +444,23 @@ export interface Expense {
   approvalStatus?: ApprovalStatus
   rejectionReason?: string | null
   cashAccountId?: number | null
+  details?: ExpenseDetails | null
 }
+
+/** Giderin eski paneldeki ayrıntıları. */
+export interface ExpenseDetails {
+  categoryName?: string | null
+  title?: string | null
+  periodStart?: string | null
+  periodEnd?: string | null
+  fuelStation?: string | null
+  fuelType?: string | null
+  unitPrice?: number | null
+  previousOdometer?: number | null
+  externalRef?: string | null
+}
+
+export interface ExpenseCategoryTotal { name: string; count: number; total: number; percent: number }
 
 export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected'
 
@@ -690,6 +722,7 @@ export interface SupplierPayment {
   cashAccountId?: number | null
   cashAccountName?: string | null
   endorsedFromPaymentId?: number | null
+  isRefund?: boolean
 }
 
 export interface SupplierSummary {

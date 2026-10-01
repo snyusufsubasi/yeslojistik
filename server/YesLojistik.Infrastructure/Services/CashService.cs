@@ -21,12 +21,13 @@ public class CashService(AppDbContext db, BalanceService balances, PayableServic
         var payments = await db.Payments.AsNoTracking().Where(p => p.CashAccountId != null && (accountId == null || p.CashAccountId == accountId))
             .Where(p => p.InstrumentStatus == null || p.InstrumentStatus == InstrumentStatus.Collected)
             .Select(p => new { p.CashAccountId, p.Date, p.Amount, p.Method, Customer = p.Customer.Title, p.CustomerId }).ToListAsync(ct);
-        moves.AddRange(payments.Select(p => new Move(p.CashAccountId!.Value, p.Date, "Tahsilat", $"{p.Customer} · {CustomerAccountService.MethodLabel(p.Method)}",
-            p.Amount, 0, $"/musteriler/{p.CustomerId}")));
+        moves.AddRange(payments.Select(p => new Move(p.CashAccountId!.Value, p.Date, p.Amount < 0 ? "Müşteriye iade" : "Tahsilat",
+            $"{p.Customer} · {CustomerAccountService.MethodLabel(p.Method)}", Math.Max(p.Amount, 0), Math.Max(-p.Amount, 0), $"/musteriler/{p.CustomerId}")));
         var supplierPayments = await db.SupplierPayments.AsNoTracking()
             .Where(p => p.CashAccountId != null && p.EndorsedFromPaymentId == null && (accountId == null || p.CashAccountId == accountId))
             .Select(p => new { p.CashAccountId, p.Date, p.Amount, Supplier = p.Supplier.Title, p.SupplierId }).ToListAsync(ct);
-        moves.AddRange(supplierPayments.Select(p => new Move(p.CashAccountId!.Value, p.Date, "Tedarikçi ödemesi", p.Supplier, 0, p.Amount, $"/tedarikciler/{p.SupplierId}")));
+        moves.AddRange(supplierPayments.Select(p => new Move(p.CashAccountId!.Value, p.Date, p.Amount < 0 ? "Tedarikçiden iade" : "Tedarikçi ödemesi", p.Supplier,
+            Math.Max(-p.Amount, 0), Math.Max(p.Amount, 0), $"/tedarikciler/{p.SupplierId}")));
         var expenses = await db.Expenses.AsNoTracking()
             .Where(e => e.CashAccountId != null && !e.IsOnCredit && e.PaidBy == ExpensePaidBy.Company && e.ApprovalStatus == ApprovalStatus.Approved
                 && (accountId == null || e.CashAccountId == accountId))
@@ -43,6 +44,13 @@ public class CashService(AppDbContext db, BalanceService balances, PayableServic
             .Select(t => new { t.CashAccountId, t.Date, t.Amount, t.Kind, Name = t.Staff.FullName }).ToListAsync(ct);
         moves.AddRange(staff.Select(t => new Move(t.CashAccountId!.Value, t.Date, t.Kind == StaffTransactionKind.Advance ? "Personel avansı" : "Maaş ödemesi",
             t.Name, 0, t.Amount, "/personel")));
+        // Hesaba alınan sefer komisyonları (eski panelde komisyon "hesap"a alındığında banka ekstresine girer).
+        var commissions = await db.Trips.AsNoTracking()
+            .Where(t => t.Commission > 0 && t.CommissionAccountId != null && t.CommissionStatus == CommissionStatus.Received && t.Status != TripStatus.Cancelled
+                && (accountId == null || t.CommissionAccountId == accountId))
+            .Select(t => new { t.CommissionAccountId, t.LoadingDate, t.Commission, t.Id, t.ExternalRef, Driver = t.Driver.FullName }).ToListAsync(ct);
+        moves.AddRange(commissions.Select(t => new Move(t.CommissionAccountId!.Value, t.LoadingDate, "Komisyon",
+            $"Sefer {t.ExternalRef ?? t.Id.ToString()} · {t.Driver}", t.Commission, 0, $"/seferler?id={t.Id}")));
         var transfers = await db.CashTransfers.AsNoTracking().Where(t => accountId == null || t.FromAccountId == accountId || t.ToAccountId == accountId)
             .Select(t => new { t.FromAccountId, t.ToAccountId, t.Date, t.Amount, t.Note, From = t.FromAccount.Name, To = t.ToAccount.Name }).ToListAsync(ct);
         foreach (var t in transfers)

@@ -28,7 +28,7 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
     private static readonly Expression<Func<SupplierPayment, SupplierPaymentDto>> Projection = p => new SupplierPaymentDto(p.Id, p.SupplierId,
         p.Supplier.Title, p.Date, p.Amount, p.Method, p.TripId,
         p.Trip != null ? p.Trip.LoadingAddress + " → " + p.Trip.DeliveryAddress : null, p.Description,
-        p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.EndorsedFromPaymentId);
+        p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.EndorsedFromPaymentId, p.Amount < 0);
 
     private IQueryable<SupplierPayment> Filter(SupplierPaymentQuery q)
     {
@@ -110,7 +110,9 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
         }
         p.SupplierId = r.SupplierId;
         p.Date = r.Date;
-        p.Amount = Money.Round(r.Amount);
+        // Tedarikçiden gelen iade (eski paneldeki "Tedarikçiden Gelen EFT") eksi tutarla saklanır: borcu artırır, kasaya girer.
+        if (r.IsRefund && r.TripId != null) throw new DomainException("İade sefere bağlanamaz.");
+        p.Amount = r.IsRefund ? -Money.Round(r.Amount) : Money.Round(r.Amount);
         p.Method = r.Method;
         p.TripId = r.TripId;
         p.Description = CustomersController.NullIfEmpty(r.Description);

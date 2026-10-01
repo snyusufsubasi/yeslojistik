@@ -28,7 +28,7 @@ public class PaymentsController(AppDbContext db) : ControllerBase
     private static readonly Expression<Func<Payment, PaymentDto>> Projection = p => new PaymentDto(p.Id, p.CustomerId,
         p.Customer.Title, p.InvoiceId, p.Invoice != null ? p.Invoice.InvoiceNo : null, p.Date, p.Amount, p.Method, p.Description,
         p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.InstrumentNo, p.Bank, p.InstrumentDueDate, p.InstrumentStatus,
-        p.EndorsedSupplierPaymentId, null);
+        p.EndorsedSupplierPaymentId, null, p.Amount < 0);
 
     private IQueryable<Payment> Filter(PaymentQuery q)
     {
@@ -167,10 +167,13 @@ public class PaymentsController(AppDbContext db) : ControllerBase
         p.CustomerId = r.CustomerId;
         p.InvoiceId = r.InvoiceId;
         p.Date = r.Date;
-        p.Amount = Money.Round(r.Amount);
+        // Müşteriye iade (eski paneldeki "Müşteriye Yapılan EFT") eksi tutarla saklanır: bakiyede tahsilatı azaltır, kasadan çıkar.
+        if (r.IsRefund && (r.InvoiceId != null || r.Method is PaymentMethod.Check or PaymentMethod.PromissoryNote))
+            throw new DomainException("İade faturaya bağlanamaz ve çek/senetle yapılamaz.");
+        p.Amount = r.IsRefund ? -Money.Round(r.Amount) : Money.Round(r.Amount);
         if (r.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
         var isInstrument = r.Method is PaymentMethod.Check or PaymentMethod.PromissoryNote;
-        if (p.InstrumentStatus == InstrumentStatus.Endorsed && (!isInstrument || Money.Round(r.Amount) != p.Amount))
+        if (p.InstrumentStatus == InstrumentStatus.Endorsed && (!isInstrument || Money.Round(r.Amount) != Math.Abs(p.Amount)))
             throw new DomainException("Ciro edilmiş çek/senedin tutarı ya da yöntemi değiştirilemez; önce ciroyu geri alın.");
         p.Method = r.Method;
         p.Description = CustomersController.NullIfEmpty(r.Description);

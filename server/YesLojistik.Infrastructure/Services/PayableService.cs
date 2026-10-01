@@ -142,8 +142,8 @@ public class PayableService(AppDbContext db)
                 PayableKind.Opening => "Devir", PayableKind.Trip => "Fatura bekleyen sefer", PayableKind.Invoice => "Alış faturası", _ => "Vadeli gider",
             }, i.Reference, Desc: (string?)i.Description, Debit: i.Total, Credit: 0m,
             Status: i.Remaining <= 0 ? "Ödendi" : i.Paid > 0 ? "Kısmi ödendi" : i.DueDate < today ? "Vadesi geçti" : $"Vade {Formatters.Date(i.DueDate)}"))
-            .Concat(payments.Select(p => (p.Date, Order: 2, Type: "Ödeme", Reference: PaymentRef(p.Id),
-                Desc: p.Description ?? (p.TripId is { } t ? $"{TripRef(t)} için ödeme" : null), Debit: 0m, Credit: p.Amount,
+            .Concat(payments.Select(p => (p.Date, Order: 2, Type: p.Amount < 0 ? "Tedarikçiden iade" : "Ödeme", Reference: PaymentRef(p.Id),
+                Desc: p.Description ?? (p.TripId is { } t ? $"{TripRef(t)} için ödeme" : null), Debit: p.Amount < 0 ? -p.Amount : 0m, Credit: Math.Max(p.Amount, 0),
                 Status: CustomerAccountService.MethodLabel(p.Method))))
             .OrderBy(r => r.Date).ThenBy(r => r.Order);
         var running = 0m;

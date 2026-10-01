@@ -8,7 +8,7 @@ import { Check, Download, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
 import { api as apiClient, download, errorMessage, get, openPdf, post } from '../api/client'
 import { useToast } from '../components/Toast'
 import { compressImage } from '../lib/image'
-import type { ApprovalStatus, Expense, ExpenseCategory, PagedResult, Trip } from '../api/types'
+import type { ApprovalStatus, Expense, ExpenseCategory, ExpenseCategoryTotal, ExpenseDetails, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
@@ -158,6 +158,11 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const [newSupplier, setNewSupplier] = useState<string | null>(null)
   const toast = useToast()
   const [receipt, setReceipt] = useState<File | null>(null)
+  // Eski paneldeki ayrıntılar (gider adı, kullanıcı kategorisi, dönem, istasyon…) ayrı tutulur, kayıtta "details" olarak gider.
+  const [details, setDetails] = useState<ExpenseDetails>({ ...expense?.details })
+  const setD = (k: keyof ExpenseDetails, num = false) => (e: { target: { value: string } }) =>
+    setDetails((d) => ({ ...d, [k]: e.target.value === '' ? null : num ? Number(e.target.value) : e.target.value }))
+  const categoryNames = useQuery({ queryKey: ['expenses', 'categories'], queryFn: () => get<ExpenseCategoryTotal[]>('/expenses/categories'), staleTime: 60_000 })
   const { register, handleSubmit, control, setError, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
@@ -170,6 +175,8 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const amount = useWatch({ control, name: 'amount' })
   const category = useWatch({ control, name: 'category' })
   const liters = useWatch({ control, name: 'liters' })
+  const odometer = useWatch({ control, name: 'odometer' })
+  const kmDiff = details.previousOdometer && odometer ? odometer - details.previousOdometer : null
   const isFuel = category === 'Fuel'
   const forDriver = category === 'DriverAdvance' || category === 'DriverAllowance'
   const perLiter = isFuel && liters && amount ? amount / liters : null
@@ -179,7 +186,8 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
     queryFn: () => get<PagedResult<Trip>>('/trips', { vehicleId: vehicleId || undefined, pageSize: 100, sort: 'loadingDate', desc: true }),
   })
   const save = useSave(async (v: FormValues) => {
-    const saved = expense ? await api.update(expense.id, nullify(v)) : await api.create(nullify(v))
+    const body = { ...nullify(v), details } as unknown as FormValues
+    const saved = expense ? await api.update(expense.id, body) : await api.create(body)
     if (receipt) {
       const form = new FormData()
       form.append('file', await compressImage(receipt))
@@ -219,7 +227,17 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
           <Field label="Araç kilometresi" error={errors.odometer?.message} hint="Depo doldururken göstergedeki km. Araç km'si de güncellenir.">
             <input className="input text-right" type="number" step="1" min="0" inputMode="numeric" {...register('odometer', { valueAsNumber: true })} />
           </Field>
+          <Field label="İstasyon"><input className="input" placeholder="Shell Gebze" value={details.fuelStation ?? ''} onChange={setD('fuelStation')} /></Field>
+          <Field label="Yakıt Türü"><input className="input" placeholder="Dizel" value={details.fuelType ?? ''} onChange={setD('fuelType')} /></Field>
+          <Field label="Önceki km" hint={kmDiff && kmDiff > 0 ? `Fark ${kmDiff.toLocaleString('tr-TR')} km${amount ? ` · km başı ${(amount / kmDiff).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL` : ''}` : 'Km başı maliyet için önceki depodaki km.'}>
+            <input className="input text-right" type="number" min="0" inputMode="numeric" value={details.previousOdometer ?? ''} onChange={setD('previousOdometer', true)} />
+          </Field>
         </>}
+        <Field label="Gider Adı" hint="Ör. Ofis kirası, HGS"><input className="input" value={details.title ?? ''} onChange={setD('title')} /></Field>
+        <Field label="Kategori (kendi listeniz)" hint="Kategori analizinde bu ada göre toplanır.">
+          <input className="input" list="expense-category-names" value={details.categoryName ?? ''} onChange={setD('categoryName')} />
+          <datalist id="expense-category-names">{(categoryNames.data ?? []).map((c) => <option key={c.name} value={c.name} />)}</datalist>
+        </Field>
         <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" placeholder="Ör. Shell Gebze, 34 VES 01 depo" {...register('description')} /></Field>
         <div className="sm:col-span-2">
           <MoreFields title="Sefer, tedarikçi, ödeme ve fiş (isteğe bağlı)" defaultOpen={!!expense?.tripId || !!expense?.supplierId || !!defaultTripId}
@@ -244,6 +262,10 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
                 <FormSelect control={control} name="cashAccountId" placeholder="— Seçilmedi —" options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
               </Field>
             )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Dönem başlangıcı" hint="Kira, sigorta gibi dönemsel giderlerde"><input className="input" type="date" value={details.periodStart ?? ''} onChange={setD('periodStart')} /></Field>
+              <Field label="Dönem bitişi"><input className="input" type="date" value={details.periodEnd ?? ''} onChange={setD('periodEnd')} /></Field>
+            </div>
             <Field label="Fiş / fatura görseli" hint={expense?.hasReceipt ? 'Bu giderin fişi var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
               <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
             </Field>

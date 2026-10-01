@@ -38,7 +38,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
   const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: payment
-      ? { ...payment, invoiceId: payment.invoiceId ?? null, description: payment.description ?? '', cashAccountId: payment.cashAccountId ?? null,
+      ? { ...payment, amount: Math.abs(payment.amount), invoiceId: payment.invoiceId ?? null, description: payment.description ?? '', cashAccountId: payment.cashAccountId ?? null,
         instrumentNo: payment.instrumentNo ?? '', bank: payment.bank ?? '', instrumentDueDate: payment.instrumentDueDate ?? '' }
       : { date: todayIso(), method: 'BankTransfer', description: '', invoiceId: null, cashAccountId: null, instrumentNo: '', bank: '', instrumentDueDate: '', ...defaults },
   })
@@ -56,7 +56,10 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
   const openTotal = payment ? 0 : selectable.reduce((t, i) => t + i.remaining, 0)
   const date = useWatch({ control, name: 'date' })
 
-  const save = useSave((v: FormValues) => payment ? api.update(payment.id, nullify(v)) : api.create(nullify(v)), {
+  // İade (eski paneldeki "Müşteriye Yapılan EFT"): tutar müşterinin borcuna eklenir, kasadan çıkar.
+  const [refund, setRefund] = useState(!!payment?.isRefund)
+  const body = (v: FormValues) => ({ ...nullify(v), isRefund: refund, invoiceId: refund ? null : v.invoiceId }) as unknown as FormValues
+  const save = useSave((v: FormValues) => payment ? api.update(payment.id, body(v)) : api.create(body(v)), {
     invalidate: ['payments', 'invoices', 'customers'], success: payment ? 'Tahsilat güncellendi.' : 'Tahsilat kaydedildi.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
@@ -80,6 +83,7 @@ export function PaymentForm({ payment, defaults, onClose }: { payment: Payment |
         )}
         <Field label="Tutar (TL)" required error={errors.amount?.message}>
           <AmountInput control={control} name="amount" />
+          <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={refund} onChange={(e) => setRefund(e.target.checked)} />Müşteriye iade (para müşteriye gönderildi)</label>
         </Field>
         <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
         <Field group className="sm:col-span-2" label="Nasıl ödedi?" required error={errors.method?.message}>

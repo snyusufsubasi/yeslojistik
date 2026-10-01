@@ -112,5 +112,18 @@ public class ExpenseService(AppDbContext db, IFileStorage storage, ICurrentUser 
         e.VehicleId = vehicleId;
         e.TripId = r.TripId;
         e.Description = string.IsNullOrWhiteSpace(r.Description) ? null : r.Description.Trim();
+        if (r.Details is { } det)
+        {
+            static string? N(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+            e.CategoryName = N(det.CategoryName);
+            e.Title = N(det.Title);
+            e.PeriodStart = det.PeriodStart;
+            e.PeriodEnd = det.PeriodStart == null ? null : det.PeriodEnd;
+            e.FuelStation = isFuel ? N(det.FuelStation) : null;
+            e.FuelType = isFuel ? N(det.FuelType) : null;
+            e.UnitPrice = isFuel ? det.UnitPrice : null;
+            e.PreviousOdometer = isFuel ? det.PreviousOdometer : null;
+            e.ExternalRef ??= N(det.ExternalRef);
+        }
     }
 }

@@ -124,5 +124,19 @@ public class VehiclesController(AppDbContext db) : ControllerBase
         v.Ownership = r.Ownership;
         v.SupplierId = r.Ownership == VehicleOwnership.Rented ? r.SupplierId : null;
         v.TrailerPlate = Formatters.NormalizePlate(r.TrailerPlate) ?? CustomersController.NullIfEmpty(r.TrailerPlate)?.ToUpper(Formatters.Tr);
+        if (r.Card is { } c)
+        {
+            string? N(string? s) => CustomersController.NullIfEmpty(s);
+            v.Capacity = N(c.Capacity);
+            v.FuelType = N(c.FuelType);
+            v.InsuranceInfo = N(c.InsuranceInfo);
+            v.CascoInfo = N(c.CascoInfo);
+            v.CascoExpiry = c.CascoExpiry;
+            v.InspectionInfo = N(c.InspectionInfo);
+            v.EmissionInfo = N(c.EmissionInfo);
+            v.EmissionExpiry = c.EmissionExpiry;
+            v.MaintenanceInfo = N(c.MaintenanceInfo);
+            v.RegistrationOwner = N(c.RegistrationOwner);
+        }
     }
 }

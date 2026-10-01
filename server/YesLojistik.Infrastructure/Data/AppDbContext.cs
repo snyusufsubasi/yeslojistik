@@ -143,6 +143,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         b.Entity<Vehicle>(e =>
         {
             e.Property(x => x.Plate).HasMaxLength(15);
+            e.Property(x => x.Capacity).HasMaxLength(50);
+            e.Property(x => x.FuelType).HasMaxLength(30);
+            e.Property(x => x.InsuranceInfo).HasMaxLength(200);
+            e.Property(x => x.CascoInfo).HasMaxLength(200);
+            e.Property(x => x.InspectionInfo).HasMaxLength(200);
+            e.Property(x => x.EmissionInfo).HasMaxLength(200);
+            e.Property(x => x.MaintenanceInfo).HasMaxLength(200);
+            e.Property(x => x.RegistrationOwner).HasMaxLength(200);
             e.Property(x => x.Type).HasMaxLength(100);
             e.Property(x => x.Brand).HasMaxLength(50);
             e.Property(x => x.Model).HasMaxLength(50);
@@ -317,6 +325,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         b.Entity<Expense>(e =>
         {
             e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.CategoryName).HasMaxLength(100);
+            e.Property(x => x.Title).HasMaxLength(150);
+            e.Property(x => x.FuelStation).HasMaxLength(100);
+            e.Property(x => x.FuelType).HasMaxLength(30);
+            e.Property(x => x.UnitPrice).HasPrecision(12, 3);
+            e.Property(x => x.ExternalRef).HasMaxLength(40);
+            e.HasIndex(x => x.CategoryName);
             e.HasOne(x => x.Vehicle).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Trip).WithMany(t => t.Expenses).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);

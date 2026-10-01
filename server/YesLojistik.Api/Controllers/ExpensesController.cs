@@ -28,7 +28,8 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         e.Trip != null ? e.Trip.LoadingAddress + " → " + e.Trip.DeliveryAddress : null, e.Description,
         e.DriverId, e.Driver != null ? e.Driver.FullName : null, e.Liters, e.Odometer,
         e.SupplierId, e.Supplier != null ? e.Supplier.Title : null, e.IsOnCredit, e.ReceiptPath != null,
-        e.PaidBy, e.ApprovalStatus, e.RejectionReason, e.CashAccountId);
+        e.PaidBy, e.ApprovalStatus, e.RejectionReason, e.CashAccountId,
+        new ExpenseDetails(e.CategoryName, e.Title, e.PeriodStart, e.PeriodEnd, e.FuelStation, e.FuelType, e.UnitPrice, e.PreviousOdometer, e.ExternalRef));
 
     private IQueryable<Expense> Filter(ExpenseQuery q)
     {
@@ -54,6 +55,19 @@ public class ExpensesController(AppDbContext db) : ControllerBase
     {
         var (items, total, page, size) = await Filter(q).Select(Projection).PageAsync(q, ct);
         return new PagedResult<ExpenseDto>(items, total, page, size);
+    }
+
+    /// <summary>Kategori analizi (eski paneldeki "Kategori Analizi"): süzgeçteki giderlerin kullanıcı kategorisine göre toplamı ve yüzdesi.</summary>
+    [HttpGet("categories")]
+    public async Task<List<ExpenseCategoryTotal>> Categories([FromQuery] ExpenseQuery q, CancellationToken ct)
+    {
+        var rows = await Filter(q).Where(e => e.ApprovalStatus == ApprovalStatus.Approved)
+            .GroupBy(e => new { e.CategoryName, e.Category }).Select(g => new { g.Key.CategoryName, g.Key.Category, Total = g.Sum(e => e.Amount), Count = g.Count() })
+            .ToListAsync(ct);
+        var all = rows.Sum(r => r.Total);
+        return rows.GroupBy(r => r.CategoryName ?? DriverLedgerService.CategoryLabel(r.Category))
+            .Select(g => new ExpenseCategoryTotal(g.Key, g.Sum(r => r.Count), g.Sum(r => r.Total), all == 0 ? 0 : Math.Round(g.Sum(r => r.Total) * 100 / all, 2)))
+            .OrderByDescending(r => r.Total).ToList();
     }
 
     [HttpGet("export")]

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { Vehicle } from '../api/types'
+import type { Vehicle, VehicleCard } from '../api/types'
 import { Button, Field, Modal, Tabs } from './ui'
 import { DocumentsPanel, MaintenancePanel } from './FleetPanels'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
@@ -54,7 +54,11 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
     } : { plate: initialPlate ?? '', nextMaintenanceKm: null, modelYear: null, status: 'Available', km: 0, brand: '', model: '', lastMaintenanceDate: '', nextMaintenanceDate: '', inspectionExpiry: '', insuranceExpiry: '',
       ownership: 'Own', supplierId: null, trailerPlate: '', defaultDriverId: null },
   })
-  const save = useSave((v: FormValues) => vehicle ? api.update(vehicle.id, nullify(v)) : api.create(nullify(v)), {
+  // Eski paneldeki araç kartı (kapasite, yakıt, kasko, egzoz…) ayrı tutulur ve kayıtta "card" olarak gönderilir.
+  const [card, setCard] = useState<VehicleCard>({ ...vehicle?.card })
+  const setC = (k: keyof VehicleCard) => (e: { target: { value: string } }) => setCard((c) => ({ ...c, [k]: e.target.value }))
+  const body = (v: FormValues) => ({ ...nullify(v), card: Object.fromEntries(Object.entries(card).map(([k, x]) => [k, x === '' ? null : x])) }) as unknown as FormValues
+  const save = useSave((v: FormValues) => vehicle ? api.update(vehicle.id, body(v)) : api.create(body(v)), {
     invalidate: ['vehicles'], success: vehicle ? 'Araç güncellendi.' : 'Araç eklendi.', onSuccess: (v) => { onSaved?.(v); onClose() },
     onError: (e) => applyServerErrors(e, setError),
   })
@@ -125,6 +129,20 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
                 ))}
               </div>
             </Field>
+          </div>
+        </MoreFields>
+        <MoreFields title="Kapasite, yakıt, sigorta, kasko, muayene ve egzoz bilgileri (isteğe bağlı)" defaultOpen={!!vehicle?.card?.capacity || !!vehicle?.card?.cascoExpiry}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Taşıma Kapasitesi"><input className="input" placeholder="3,5 ton" value={card.capacity ?? ''} onChange={setC('capacity')} /></Field>
+            <Field label="Yakıt Türü"><input className="input" placeholder="Dizel" value={card.fuelType ?? ''} onChange={setC('fuelType')} /></Field>
+            <Field label="Sigorta Bilgisi" hint="Şirket, poliçe no"><input className="input" value={card.insuranceInfo ?? ''} onChange={setC('insuranceInfo')} /></Field>
+            <Field label="Kasko Bilgisi"><input className="input" value={card.cascoInfo ?? ''} onChange={setC('cascoInfo')} /></Field>
+            <Field label="Kasko Bitiş"><input className="input" type="date" value={card.cascoExpiry ?? ''} onChange={setC('cascoExpiry')} /></Field>
+            <Field label="Muayene Bilgisi"><input className="input" value={card.inspectionInfo ?? ''} onChange={setC('inspectionInfo')} /></Field>
+            <Field label="Egzoz Muayenesi Bilgisi"><input className="input" value={card.emissionInfo ?? ''} onChange={setC('emissionInfo')} /></Field>
+            <Field label="Egzoz Muayenesi Bitiş"><input className="input" type="date" value={card.emissionExpiry ?? ''} onChange={setC('emissionExpiry')} /></Field>
+            <Field label="Bakım Bilgisi" hint="Servis / usta"><input className="input" value={card.maintenanceInfo ?? ''} onChange={setC('maintenanceInfo')} /></Field>
+            <Field label="Ruhsat Sahibi"><input className="input" value={card.registrationOwner ?? ''} onChange={setC('registrationOwner')} /></Field>
           </div>
         </MoreFields>
         <button type="submit" className="hidden" />

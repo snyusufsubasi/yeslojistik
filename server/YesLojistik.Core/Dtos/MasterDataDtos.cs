@@ -40,12 +40,17 @@ public record AccountMovementDto(DateOnly Date, string Type, string Reference, s
 public record VehicleDto(int Id, string Plate, string Type, string? Brand, string? Model, int? ModelYear, int Km,
     DateOnly? LastMaintenanceDate, DateOnly? NextMaintenanceDate, DateOnly? InspectionExpiry, DateOnly? InsuranceExpiry,
     VehicleStatus Status, int? DefaultDriverId, string? DefaultDriverName, VehicleOwnership Ownership = VehicleOwnership.Own,
-    int? SupplierId = null, string? SupplierTitle = null, string? TrailerPlate = null, int? NextMaintenanceKm = null);
+    int? SupplierId = null, string? SupplierTitle = null, string? TrailerPlate = null, int? NextMaintenanceKm = null, VehicleCard? Card = null);
 
 public record VehicleSaveRequest(string Plate, string Type, string? Brand, string? Model, int? ModelYear, int Km,
     DateOnly? LastMaintenanceDate, DateOnly? NextMaintenanceDate, DateOnly? InspectionExpiry, DateOnly? InsuranceExpiry,
     VehicleStatus Status, int? DefaultDriverId, VehicleOwnership Ownership = VehicleOwnership.Own, int? SupplierId = null,
-    string? TrailerPlate = null, int? NextMaintenanceKm = null);
+    string? TrailerPlate = null, int? NextMaintenanceKm = null, VehicleCard? Card = null);
+
+/// <summary>Eski paneldeki araç kartı: kapasite, yakıt, sigorta/kasko/muayene/egzoz bilgisi ve tarihleri, ruhsat sahibi.</summary>
+public record VehicleCard(string? Capacity = null, string? FuelType = null, string? InsuranceInfo = null, string? CascoInfo = null,
+    DateOnly? CascoExpiry = null, string? InspectionInfo = null, string? EmissionInfo = null, DateOnly? EmissionExpiry = null,
+    string? MaintenanceInfo = null, string? RegistrationOwner = null);
 
 public record DriverDto(int Id, string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,

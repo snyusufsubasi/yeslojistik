@@ -28,10 +28,11 @@ public record InvoiceQuery : ListQuery
 public record PaymentDto(int Id, int CustomerId, string CustomerTitle, int? InvoiceId, string? InvoiceNo, DateOnly Date,
     decimal Amount, PaymentMethod Method, string? Description, int? CashAccountId = null, string? CashAccountName = null,
     string? InstrumentNo = null, string? Bank = null, DateOnly? InstrumentDueDate = null, InstrumentStatus? InstrumentStatus = null,
-    int? EndorsedSupplierPaymentId = null, string? EndorsedTo = null);
+    int? EndorsedSupplierPaymentId = null, string? EndorsedTo = null, bool IsRefund = false);
 
 public record PaymentSaveRequest(int CustomerId, int? InvoiceId, DateOnly Date, decimal Amount, PaymentMethod Method,
-    string? Description, int? CashAccountId = null, string? InstrumentNo = null, string? Bank = null, DateOnly? InstrumentDueDate = null);
+    string? Description, int? CashAccountId = null, string? InstrumentNo = null, string? Bank = null, DateOnly? InstrumentDueDate = null,
+    bool IsRefund = false);
 
 /// <summary>Çek/senet durum değişikliği. Ciroda tedarikçi zorunlu; tahsilde/tahsil edildiğinde hesap seçilebilir.</summary>
 public record InstrumentStatusRequest(InstrumentStatus Status, int? SupplierId = null, DateOnly? Date = null, int? CashAccountId = null);
@@ -53,11 +54,15 @@ public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateO
     int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null,
     int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false,
     ExpensePaidBy PaidBy = ExpensePaidBy.Company, ApprovalStatus ApprovalStatus = ApprovalStatus.Approved,
-    string? RejectionReason = null, int? CashAccountId = null);
+    string? RejectionReason = null, int? CashAccountId = null, ExpenseDetails? Details = null);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
     string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null, int? SupplierId = null,
-    bool IsOnCredit = false, int? CashAccountId = null);
+    bool IsOnCredit = false, int? CashAccountId = null, ExpenseDetails? Details = null);
+
+/// <summary>Giderin eski paneldeki ayrıntıları: kullanıcı kategorisi, gider adı, dönem; yakıtta istasyon, yakıt türü, litre fiyatı, önceki km.</summary>
+public record ExpenseDetails(string? CategoryName = null, string? Title = null, DateOnly? PeriodStart = null, DateOnly? PeriodEnd = null,
+    string? FuelStation = null, string? FuelType = null, decimal? UnitPrice = null, int? PreviousOdometer = null, string? ExternalRef = null);
 
 public record ExpenseQuery : ListQuery
 {
@@ -75,10 +80,11 @@ public record ExpenseQuery : ListQuery
 public record InvoiceEmailRequest(string? To, string? Message);
 
 public record SupplierPaymentDto(int Id, int SupplierId, string SupplierTitle, DateOnly Date, decimal Amount, PaymentMethod Method,
-    int? TripId, string? TripLabel, string? Description, int? CashAccountId = null, string? CashAccountName = null, int? EndorsedFromPaymentId = null);
+    int? TripId, string? TripLabel, string? Description, int? CashAccountId = null, string? CashAccountName = null, int? EndorsedFromPaymentId = null,
+    bool IsRefund = false);
 
 public record SupplierPaymentSaveRequest(int SupplierId, DateOnly Date, decimal Amount, PaymentMethod Method, int? TripId, string? Description,
-    int? CashAccountId = null);
+    int? CashAccountId = null, bool IsRefund = false);
 
 public record SupplierPaymentQuery : ListQuery
 {
@@ -122,3 +128,4 @@ public record PurchaseInvoiceQuery : ListQuery
 /// <summary>Faturası henüz gelmemiş taşeron seferi (alınan faturaya bağlanabilir).</summary>
 public record UninvoicedCarrierTripDto(int TripId, DateOnly LoadingDate, string Route, string Plate, decimal VehicleCost,
     decimal CostVatRate, decimal Payable, string? ExternalRef);
+public record ExpenseCategoryTotal(string Name, int Count, decimal Total, decimal Percent);

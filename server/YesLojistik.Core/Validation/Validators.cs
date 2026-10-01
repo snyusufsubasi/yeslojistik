@@ -307,6 +307,7 @@ public class ExpenseSaveRequestValidator : AbstractValidator<ExpenseSaveRequest>
 {
     public ExpenseSaveRequestValidator()
     {
+        RuleFor(x => x.Details!).SetValidator(new ExpenseDetailsValidator()).When(x => x.Details != null);
         RuleFor(x => x.Category).IsInEnum();
         RuleFor(x => x.Amount).Amount().GreaterThan(0).WithMessage("Tutar sıfırdan büyük olmalı.");
         RuleFor(x => x.Description).MaximumLength(500);
@@ -514,5 +515,20 @@ public class InvoiceNoteSaveRequestValidator : AbstractValidator<InvoiceNoteSave
         RuleFor(x => x.AccountName).MaximumLength(100);
         RuleFor(x => x.Iban).Must(v => IbanValidator.IsValid(v!)).WithMessage("Geçersiz IBAN.").When(x => !string.IsNullOrWhiteSpace(x.Iban));
         RuleFor(x => x.Text).MaximumLength(1000);
+    }
+}
+
+public class ExpenseDetailsValidator : AbstractValidator<ExpenseDetails>
+{
+    public ExpenseDetailsValidator()
+    {
+        RuleFor(x => x.CategoryName).MaximumLength(100);
+        RuleFor(x => x.Title).MaximumLength(150);
+        RuleFor(x => x.FuelStation).MaximumLength(100);
+        RuleFor(x => x.FuelType).MaximumLength(30);
+        RuleFor(x => x.ExternalRef).MaximumLength(40);
+        RuleFor(x => x.UnitPrice).InclusiveBetween(0, 10_000).When(x => x.UnitPrice.HasValue);
+        RuleFor(x => x.PeriodEnd).GreaterThanOrEqualTo(x => x.PeriodStart).WithMessage("Bitiş başlangıçtan önce olamaz.")
+            .When(x => x.PeriodStart.HasValue && x.PeriodEnd.HasValue);
     }
 }

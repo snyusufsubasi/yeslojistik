@@ -51,9 +51,9 @@ public class CustomerAccountService(AppDbContext db, BalanceService balances)
 
         var rows = invoices.Select(i => (i.Date, i.CreatedAt, Type: "Fatura", Ref: i.InvoiceNo, Desc: i.Notes, Debit: i.Total, Credit: 0m,
                 Status: BalanceService.PaymentStatus(InvoiceStatus.Issued, bal.GetValueOrDefault(i.Id))))
-            .Concat(payments.Select(p => (p.Date, p.CreatedAt, Type: "Tahsilat", Ref: $"T-{p.Id:D6}",
-                Desc: p.Description ?? (p.InvoiceNo != null ? $"{p.InvoiceNo} tahsilatı" : null), Debit: 0m,
-                Credit: p.InstrumentStatus is InstrumentStatus.Bounced or InstrumentStatus.Returned ? 0m : p.Amount,
+            .Concat(payments.Select(p => (p.Date, p.CreatedAt, Type: p.Amount < 0 ? "Müşteriye iade" : "Tahsilat", Ref: $"T-{p.Id:D6}",
+                Desc: p.Description ?? (p.InvoiceNo != null ? $"{p.InvoiceNo} tahsilatı" : null), Debit: p.Amount < 0 ? -p.Amount : 0m,
+                Credit: p.Amount < 0 || p.InstrumentStatus is InstrumentStatus.Bounced or InstrumentStatus.Returned ? 0m : p.Amount,
                 Status: p.InstrumentStatus switch
                 {
                     InstrumentStatus.Bounced => $"{MethodLabel(p.Method)} karşılıksız ({p.Amount:N2} TL sayılmadı)",

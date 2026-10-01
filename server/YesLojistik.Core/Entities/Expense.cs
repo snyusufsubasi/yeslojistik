@@ -39,4 +39,17 @@ public class Expense : BaseEntity
     /// <summary>Sabit ödemeden oluştuysa o kayıt (o ay ödendi mi sorusunun cevabı).</summary>
     public int? RecurringPaymentId { get; set; }
     public RecurringPayment? RecurringPayment { get; set; }
+    /// <summary>Kullanıcının tanımladığı gider kategorisi (eski paneldeki "Kategori", ör. "Nakliye spot araçlar").</summary>
+    public string? CategoryName { get; set; }
+    /// <summary>Giderin adı (eski paneldeki "Gider"); açıklama ayrıca tutulur.</summary>
+    public string? Title { get; set; }
+    /// <summary>Dönemsel gider (kira, sigorta…): başlangıç ve bitiş.</summary>
+    public DateOnly? PeriodStart { get; set; }
+    public DateOnly? PeriodEnd { get; set; }
+    // Yakıt ayrıntısı (eski paneldeki "Mazotlar").
+    public string? FuelStation { get; set; }
+    public string? FuelType { get; set; }
+    public decimal? UnitPrice { get; set; }
+    public int? PreviousOdometer { get; set; }
+    public string? ExternalRef { get; set; }
 }

@@ -27,4 +27,16 @@ public class Vehicle : BaseEntity
     public string? TrailerPlate { get; set; }
     public int? DefaultDriverId { get; set; }
     public Driver? DefaultDriver { get; set; }
+
+    // Eski paneldeki araç kartı alanları.
+    public string? Capacity { get; set; }
+    public string? FuelType { get; set; }
+    public string? InsuranceInfo { get; set; }
+    public string? CascoInfo { get; set; }
+    public DateOnly? CascoExpiry { get; set; }
+    public string? InspectionInfo { get; set; }
+    public string? EmissionInfo { get; set; }
+    public DateOnly? EmissionExpiry { get; set; }
+    public string? MaintenanceInfo { get; set; }
+    public string? RegistrationOwner { get; set; }
 }
