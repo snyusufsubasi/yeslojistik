@@ -9,6 +9,8 @@ public class Staff : BaseEntity
     public DateOnly? StartDate { get; set; }
     public decimal MonthlySalary { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Pratikortam aynası: eski sistemdeki kimlik (VKN, ünvan, plaka, ad). Ayna senkronu kaydı bununla bulur.</summary>
+    public string? LegacyKey { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

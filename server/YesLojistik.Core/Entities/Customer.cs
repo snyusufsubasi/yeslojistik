@@ -37,6 +37,11 @@ public class Customer : BaseEntity
     public string? PostalCode { get; set; }
     public string? Fax { get; set; }
     public string? Website { get; set; }
+    /// <summary>Pratikortam aynası: eski sistemdeki kimlik (VKN, ünvan, plaka, ad). Ayna senkronu kaydı bununla bulur.</summary>
+    public string? LegacyKey { get; set; }
+    /// <summary>Pratikortam'daki cari bakiye (ayna modunda Cari ekranında gösterilir) ve okunduğu an.</summary>
+    public decimal? LegacyBalance { get; set; }
+    public DateTime? LegacyBalanceAt { get; set; }
     /// <summary>Bu müşteriye kesilen faturanın satır ve not ayarları.</summary>
     public InvoiceTemplate InvoiceTemplate { get; set; } = new();
     public List<CustomerGroup> Groups { get; set; } = new();

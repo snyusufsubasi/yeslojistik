@@ -84,6 +84,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         });
         b.Entity<Customer>(e =>
         {
+            e.Property(x => x.LegacyKey).HasMaxLength(200);
+            e.HasIndex(x => x.LegacyKey);
             e.Ignore(x => x.CustomerNo);
             e.Property(x => x.Title).HasMaxLength(200);
             e.Property(x => x.TaxNumber).HasMaxLength(11);
@@ -126,6 +128,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         });
         b.Entity<Supplier>(e =>
         {
+            e.Property(x => x.LegacyKey).HasMaxLength(200);
+            e.HasIndex(x => x.LegacyKey);
             e.Ignore(x => x.SupplierNo);
             e.Property(x => x.Title).HasMaxLength(200);
             e.Property(x => x.TaxNumber).HasMaxLength(11);
@@ -142,6 +146,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         });
         b.Entity<Vehicle>(e =>
         {
+            e.Property(x => x.LegacyKey).HasMaxLength(200);
+            e.HasIndex(x => x.LegacyKey);
             e.Property(x => x.Plate).HasMaxLength(15);
             e.Property(x => x.Capacity).HasMaxLength(50);
             e.Property(x => x.FuelType).HasMaxLength(30);
@@ -161,6 +167,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         });
         b.Entity<Driver>(e =>
         {
+            e.Property(x => x.LegacyKey).HasMaxLength(200);
+            e.HasIndex(x => x.LegacyKey);
             e.Property(x => x.FullName).HasMaxLength(100);
             e.Property(x => x.Phone).HasMaxLength(20);
             e.Property(x => x.NationalId).HasMaxLength(11);
@@ -313,6 +321,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         });
         b.Entity<CashAccount>(e =>
         {
+            e.Property(x => x.LegacyKey).HasMaxLength(200);
+            e.HasIndex(x => x.LegacyKey);
             e.Property(x => x.Name).HasMaxLength(100);
             e.Property(x => x.Iban).HasMaxLength(34);
         });
@@ -373,6 +383,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
         });
         b.Entity<Staff>(e =>
         {
+            e.Property(x => x.LegacyKey).HasMaxLength(200);
+            e.HasIndex(x => x.LegacyKey);
             e.ToTable("staff");
             e.Property(x => x.FullName).HasMaxLength(150);
             e.Property(x => x.NationalId).HasMaxLength(11);

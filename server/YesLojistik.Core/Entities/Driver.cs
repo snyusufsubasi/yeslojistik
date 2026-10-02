@@ -22,4 +22,6 @@ public class Driver : BaseEntity
     public string? Plate { get; set; }
     public DriverRating? Rating { get; set; }
     public string? Note { get; set; }
+    /// <summary>Pratikortam aynası: eski sistemdeki kimlik (VKN, ünvan, plaka, ad). Ayna senkronu kaydı bununla bulur.</summary>
+    public string? LegacyKey { get; set; }
 }

@@ -718,7 +718,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         });
     }
 
-    private static ExpenseCategory Category(string s) => Key(s) switch
+    internal static ExpenseCategory Category(string s) => Key(s) switch
     {
         "YAKIT" or "AKARYAKIT" or "MAZOT" => ExpenseCategory.Fuel,
         "BAKIM" or "BAKIM/ONARIM" or "ONARIM" or "TAMİR" or "TAMIR" => ExpenseCategory.Maintenance,

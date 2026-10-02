@@ -39,4 +39,6 @@ public class Vehicle : BaseEntity
     public DateOnly? EmissionExpiry { get; set; }
     public string? MaintenanceInfo { get; set; }
     public string? RegistrationOwner { get; set; }
+    /// <summary>Pratikortam aynası: eski sistemdeki kimlik (VKN, ünvan, plaka, ad). Ayna senkronu kaydı bununla bulur.</summary>
+    public string? LegacyKey { get; set; }
 }

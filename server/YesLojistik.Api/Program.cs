@@ -116,7 +116,8 @@ var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>
 if (corsOrigins.Length > 0)
     builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
-builder.Services.AddControllers().AddJsonOptions(o =>
+builder.Services.AddScoped<YesLojistik.Api.Infrastructure.MirrorWriteGuard>();
+builder.Services.AddControllers(o => o.Filters.AddService<YesLojistik.Api.Infrastructure.MirrorWriteGuard>()).AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });

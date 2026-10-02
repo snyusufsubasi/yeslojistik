@@ -11,7 +11,7 @@ public class CariService(AppDbContext db, BalanceService balances, PayableServic
     public async Task<List<CustomerCariRow>> CustomersAsync(CancellationToken ct = default)
     {
         var customers = await db.Customers.AsNoTracking()
-            .Select(c => new { c.Id, c.Title, c.TaxNumber, c.Phone, c.OpeningBalance }).ToListAsync(ct);
+            .Select(c => new { c.Id, c.Title, c.TaxNumber, c.Phone, c.OpeningBalance, c.LegacyBalance, c.LegacyBalanceAt }).ToListAsync(ct);
         var invoiced = await db.Invoices.Where(i => i.Status == InvoiceStatus.Issued)
             .GroupBy(i => i.CustomerId).Select(g => new { g.Key, Sum = g.Sum(i => i.Total) }).ToDictionaryAsync(x => x.Key, x => x.Sum, ct);
         var collected = await db.Payments.Where(Payment.Counts)
@@ -28,14 +28,14 @@ public class CariService(AppDbContext db, BalanceService balances, PayableServic
             var col = collected.GetValueOrDefault(c.Id);
             var un = uninvoiced.GetValueOrDefault(c.Id);
             return new CustomerCariRow(c.Id, c.Id.ToString("D5"), c.Title, c.TaxNumber, c.Phone, c.OpeningBalance, inv, col,
-                c.OpeningBalance + inv - col, overdue.GetValueOrDefault(c.Id), un?.Count ?? 0, un?.Sum ?? 0);
+                c.OpeningBalance + inv - col, overdue.GetValueOrDefault(c.Id), un?.Count ?? 0, un?.Sum ?? 0, c.LegacyBalance, c.LegacyBalanceAt);
         }).OrderByDescending(r => r.Balance).ThenBy(r => r.Title).ToList();
     }
 
     public async Task<List<SupplierCariRow>> SuppliersAsync(CancellationToken ct = default)
     {
         var suppliers = await db.Suppliers.AsNoTracking()
-            .Select(s => new { s.Id, s.Title, s.TaxNumber, s.Phone, s.OpeningBalance }).ToListAsync(ct);
+            .Select(s => new { s.Id, s.Title, s.TaxNumber, s.Phone, s.OpeningBalance, s.LegacyBalance, s.LegacyBalanceAt }).ToListAsync(ct);
         var items = await payables.ItemsAsync(null, ct);
         var byKind = items.GroupBy(i => i.SupplierId).ToDictionary(g => g.Key, g => new
         {
@@ -59,7 +59,7 @@ public class CariService(AppDbContext db, BalanceService balances, PayableServic
             var tripCost = k?.Trips ?? 0;
             var exp = k?.Expenses ?? 0;
             return new SupplierCariRow(s.Id, $"T{s.Id:D5}", s.Title, s.TaxNumber, s.Phone, s.OpeningBalance, tripCost, exp, p,
-                s.OpeningBalance + tripCost + exp - p, k?.Overdue ?? 0, t?.Count ?? 0, t?.Missing ?? 0);
+                s.OpeningBalance + tripCost + exp - p, k?.Overdue ?? 0, t?.Count ?? 0, t?.Missing ?? 0, s.LegacyBalance, s.LegacyBalanceAt);
         }).OrderByDescending(r => r.Balance).ThenBy(r => r.Title).ToList();
     }
 }

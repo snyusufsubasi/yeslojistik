@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<TrackingService>();
         services.AddScoped<DriverAppService>();
         services.AddScoped<ImportService>();
+        services.AddScoped<LegacyMirrorService>();
         services.AddScoped<DriverNotifier>();
         services.AddScoped<StaffNotifier>();
         services.AddScoped<InvoiceMailer>();

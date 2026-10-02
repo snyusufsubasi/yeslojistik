@@ -9,6 +9,8 @@ public class CashAccount : BaseEntity
     public decimal OpeningBalance { get; set; }
     public DateOnly? OpeningBalanceDate { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>Pratikortam aynası: eski sistemdeki kimlik (VKN, ünvan, plaka, ad). Ayna senkronu kaydı bununla bulur.</summary>
+    public string? LegacyKey { get; set; }
 }
 
 /// <summary>Hesaplar arası para aktarımı (virman), ör. kasadan bankaya yatırılan nakit.</summary>

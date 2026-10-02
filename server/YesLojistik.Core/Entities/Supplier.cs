@@ -21,6 +21,11 @@ public class Supplier : BaseEntity
     public decimal OpeningBalance { get; set; }
     public DateOnly? OpeningBalanceDate { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>Pratikortam aynası: eski sistemdeki kimlik (VKN, ünvan, plaka, ad). Ayna senkronu kaydı bununla bulur.</summary>
+    public string? LegacyKey { get; set; }
+    /// <summary>Pratikortam'daki cari bakiye (ayna modunda Cari ekranında gösterilir) ve okunduğu an.</summary>
+    public decimal? LegacyBalance { get; set; }
+    public DateTime? LegacyBalanceAt { get; set; }
 
     public string SupplierNo => "T" + Id.ToString("D5");
 }

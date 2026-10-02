@@ -29,6 +29,13 @@ public class CompanySettings
     public DateOnly? LastDigestDate { get; set; }
     /// <summary>Demo veriler temizlendiyse zamanı; bir daha örnek veri yüklenmez.</summary>
     public DateTime? SampleDataClearedAt { get; set; }
+    /// <summary>Pratikortam aynası açık: kayıtlar düzenli olarak pratikortam'dan gelir, panelde değiştirilmez;
+    /// cari bakiyeler pratikortam'daki rakamdır. Senkron, aynada olmayan kayıtları geri alınabilir şekilde siler (soft delete).</summary>
+    public bool MirrorMode { get; set; }
+    public DateTime? MirrorLastAt { get; set; }
+    public string? MirrorLastSummary { get; set; }
+    /// <summary>Yazım istisnaları (JSON: {"BÜYÜK HARF": "İstenen yazım"}); senkron harf düzeninde kullanılır.</summary>
+    public string? SpellingExceptions { get; set; }
     /// <summary>Son yedeğin (panelden ya da otomatik) alındığı an.</summary>
     public DateTime? LastBackupAt { get; set; }
     /// <summary>Şoför "Teslim Edildi" demeden önce en az bir fotoğraf / imza yüklemiş olmalı.</summary>
