@@ -52,7 +52,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await tripDialog.getByLabel('Teslimat Adresi').fill('İzmir / Balçova')
   await tripDialog.getByLabel('Araç Maliyeti (TL)').fill('18000')
   await tripDialog.getByLabel('Müşteri Satış Fiyatı (TL)').fill('25000')
-  await expect(tripDialog.getByText('7.000 TL')).toBeVisible()
+  await expect(tripDialog.getByText('7.000 TL').first()).toBeVisible()
   await tripDialog.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Sefer oluşturuldu.')).toBeVisible()
 
@@ -67,7 +67,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await expect(row.getByText('Teslim Edildi')).toBeVisible()
 
   // Fatura
-  await page.getByRole('link', { name: 'Faturalar' }).click()
+  await page.getByRole('link', { name: 'Faturalar', exact: true }).click()
   await page.getByRole('button', { name: 'Yeni Fatura' }).click()
   await expect(page.getByRole('heading', { name: 'Yeni Fatura' })).toBeVisible()
   await pick(page.getByRole('combobox').first(), customer)
@@ -284,20 +284,20 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await expect(timeline.getByText('Planlandı', { exact: true })).toBeVisible()
   await ed.getByRole('button', { name: 'Kapat', exact: true }).last().click()
 
-  // Taşeron borcu: yüklenen seferin maliyeti
+  // Taşeron borcu: yüklenen seferin maliyeti, KDV ve tevkifatıyla (15.000 + %20 KDV − 2/10 tevkifat = 17.400)
   await page.getByRole('link', { name: 'Tedarikçiler', exact: true }).click()
   await page.getByPlaceholder('Ünvan, VKN, telefon...').fill(`E2E Nakliyat ${u}`)
-  await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) })).toContainText('15.000')
+  await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) })).toContainText('17.400')
 
   // Ödeme yap → bakiye düşer → ekstre açılır
   await page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) }).click()
-  await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('15.000,00')
+  await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('17.400,00')
   await page.getByRole('button', { name: 'Ödeme Yap' }).click()
   const pd = page.getByRole('dialog', { name: 'Ödeme Yap' })
   await pd.getByLabel(/^Tutar/).fill('6000')
   await pd.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Ödeme kaydedildi.')).toBeVisible()
-  await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('9.000,00')
+  await expect(page.getByText('Kalan Borcumuz').locator('..')).toContainText('11.400,00')
   await expectPdfOpens(page, () => page.getByRole('button', { name: 'Hesap Ekstresi' }).click(), /\/api\/suppliers\/\d+\/statement$/)
   await page.getByRole('link', { name: 'Tedarikçi Ödemeleri', exact: true }).click()
   await expect(page.getByRole('row', { name: new RegExp(`E2E Nakliyat ${u}`) }).first()).toContainText('6.000')
