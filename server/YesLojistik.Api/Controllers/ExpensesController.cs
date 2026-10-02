@@ -70,20 +70,37 @@ public class ExpensesController(AppDbContext db) : ControllerBase
             .OrderByDescending(r => r.Total).ToList();
     }
 
+    /// <summary>
+    /// Filtrenin tamamının toplamı (yalnızca sayfanın değil). Onay durumu seçilmediyse reddedilen giderler tutara girmez;
+    /// onaylı ve onay bekleyen kısımlar ayrıca verilir.
+    /// </summary>
+    [HttpGet("totals")]
+    public async Task<ExpenseTotalsDto> Totals([FromQuery] ExpenseQuery q, CancellationToken ct)
+    {
+        var rows = await Filter(q with { Sort = null }).GroupBy(e => e.ApprovalStatus)
+            .Select(g => new { Status = g.Key, Count = g.Count(), Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
+        return new ExpenseTotalsDto(rows.Sum(r => r.Count),
+            rows.Where(r => q.ApprovalStatus != null || r.Status != ApprovalStatus.Rejected).Sum(r => r.Sum),
+            rows.Where(r => r.Status == ApprovalStatus.Approved).Sum(r => r.Sum), rows.Where(r => r.Status == ApprovalStatus.Pending).Sum(r => r.Sum));
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] ExpenseQuery q, CancellationToken ct)
     {
         var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
-        return FileResults.Excel(ExcelExporter.Export("Giderler", rows,
-            new ExcelColumn<ExpenseDto>("Tarih", e => e.Date, ExcelExporter.DateFormat),
-            new("Kategori", e => ReportsController.CategoryLabel(e.Category.ToString())),
+        var t = await Totals(q, ct);
+        var total = new ExpenseDto(0, ExpenseCategory.Other, t.Total, default, null, null, null, null,
+            t.Pending > 0 ? $"Onaylı: {Formatters.Currency(t.Approved)} · Onay bekleyen: {Formatters.Currency(t.Pending)}" : null);
+        return FileResults.Excel(ExcelExporter.ExportWithTotal("Giderler", rows, total,
+            new ExcelColumn<ExpenseDto>("Tarih", e => e.Id == 0 ? null : e.Date, ExcelExporter.DateFormat),
+            new("Kategori", e => e.Id == 0 ? "Toplam" : ReportsController.CategoryLabel(e.Category.ToString())),
             new("Plaka", e => e.VehiclePlate),
             new("Sefer", e => e.TripLabel),
             new("Şoför", e => e.DriverName),
             new("Tedarikçi", e => e.SupplierTitle),
             new("Vadeli", e => e.IsOnCredit ? "Evet" : ""),
-            new("Ödeyen", e => e.PaidBy == ExpensePaidBy.Driver ? "Şoför" : "Firma"),
-            new("Onay", e => e.ApprovalStatus switch { ApprovalStatus.Pending => "Bekliyor", ApprovalStatus.Rejected => "Reddedildi", _ => "Onaylı" }),
+            new("Ödeyen", e => e.Id == 0 ? null : e.PaidBy == ExpensePaidBy.Driver ? "Şoför" : "Firma"),
+            new("Onay", e => e.Id == 0 ? null : e.ApprovalStatus switch { ApprovalStatus.Pending => "Bekliyor", ApprovalStatus.Rejected => "Reddedildi", _ => "Onaylı" }),
             new("Litre", e => e.Liters),
             new("Km", e => e.Odometer),
             new("Tutar", e => e.Amount, ExcelExporter.MoneyFormat),

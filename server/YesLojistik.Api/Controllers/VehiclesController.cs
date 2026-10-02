@@ -34,8 +34,7 @@ public class VehiclesController(AppDbContext db) : ControllerBase
 
     private static readonly Expression<Func<Vehicle, VehicleDto>> Projection = Projections.Vehicle;
 
-    [HttpGet]
-    public async Task<PagedResult<VehicleDto>> List([FromQuery] VehicleQuery q, CancellationToken ct)
+    private IQueryable<Vehicle> Filter(VehicleQuery q)
     {
         var query = db.Vehicles.AsNoTracking();
         if (q.Status is { } s) query = query.Where(v => v.Status == s);
@@ -44,9 +43,39 @@ public class VehiclesController(AppDbContext db) : ControllerBase
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(v => EF.Functions.ILike(v.Plate, like) || EF.Functions.ILike(v.Type, like)
                 || EF.Functions.ILike(v.Brand ?? "", like) || EF.Functions.ILike(v.Model ?? "", like));
-        var (items, total, page, size) = await query.ApplySort(q.Sort, q.Desc, SortMap, "plate", defaultDesc: false)
-            .Select(Projection).PageAsync(q, ct);
+        return query.ApplySort(q.Sort, q.Desc, SortMap, "plate", defaultDesc: false);
+    }
+
+    [HttpGet]
+    public async Task<PagedResult<VehicleDto>> List([FromQuery] VehicleQuery q, CancellationToken ct)
+    {
+        var (items, total, page, size) = await Filter(q).Select(Projection).PageAsync(q, ct);
         return new PagedResult<VehicleDto>(items, total, page, size);
+    }
+
+    /// <summary>Araç listesinin Excel'i (durum, arama ve sıralamayla).</summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> Export([FromQuery] VehicleQuery q, CancellationToken ct)
+    {
+        var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
+        return YesLojistik.Api.Infrastructure.FileResults.Excel(ExcelExporter.Export("Araçlar", rows,
+            new ExcelColumn<VehicleDto>("Plaka", v => v.Plate),
+            new("Dorse", v => v.TrailerPlate),
+            new("Araç Tipi", v => v.Type),
+            new("Marka", v => v.Brand),
+            new("Model", v => v.Model),
+            new("Model Yılı", v => v.ModelYear),
+            new("Mülkiyet", v => YesLojistik.Api.Infrastructure.ExportLabels.Ownership(v.Ownership)),
+            new("Taşeron", v => v.SupplierTitle),
+            new("Şoför", v => v.DefaultDriverName),
+            new("Durum", v => YesLojistik.Api.Infrastructure.ExportLabels.VehicleStatus(v.Status)),
+            new("Km", v => v.Km),
+            new("Son Bakım", v => v.LastMaintenanceDate, ExcelExporter.DateFormat),
+            new("Sonraki Bakım", v => v.NextMaintenanceDate, ExcelExporter.DateFormat),
+            new("Sonraki Bakım Km", v => v.NextMaintenanceKm),
+            new("Muayene Bitiş", v => v.InspectionExpiry, ExcelExporter.DateFormat),
+            new("Sigorta Bitiş", v => v.InsuranceExpiry, ExcelExporter.DateFormat),
+            new("Kasko Bitiş", v => v.Card?.CascoExpiry, ExcelExporter.DateFormat)), "araclar");
     }
 
     [HttpGet("lookup")]

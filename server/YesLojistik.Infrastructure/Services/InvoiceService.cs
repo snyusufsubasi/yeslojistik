@@ -22,6 +22,32 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
 
     public async Task<PagedResult<InvoiceDto>> ListAsync(InvoiceQuery q, CancellationToken ct = default, bool export = false)
     {
+        var query = await FilterAsync(q, ct);
+        var (items, total, page, size) = await query
+            .ApplySort(q.Sort, q.Desc, SortMap, "date")
+            .Select(i => new { Invoice = i, i.Customer.Title })
+            .PageAsync(q, ct, export ? QueryExtensions.ExportLimit : QueryExtensions.MaxPageSize);
+        var bal = await balances.InvoiceBalancesAsync(items.Select(i => i.Invoice.CustomerId), ct);
+        return new PagedResult<InvoiceDto>(items.Select(x => ToDto(x.Invoice, x.Title, bal, [])).ToList(), total, page, size);
+    }
+
+    /// <summary>
+    /// Filtrenin tamamının toplamı (yalnızca sayfanın değil). Durum seçilmediyse tutarlar kesilmiş faturalardan toplanır;
+    /// taslak ve iptaller kayıt sayısına girer ama tutara girmez.
+    /// </summary>
+    public async Task<InvoiceTotalsDto> TotalsAsync(InvoiceQuery q, CancellationToken ct = default)
+    {
+        var query = await FilterAsync(q, ct);
+        var count = await query.CountAsync(ct);
+        var counted = q.Status is null ? query.Where(i => i.Status == InvoiceStatus.Issued) : query;
+        var rows = await counted.Select(i => new { i.Id, i.CustomerId, i.Subtotal, i.VatAmount, i.WithholdingAmount, i.Total }).ToListAsync(ct);
+        var bal = await balances.InvoiceBalancesAsync(rows.Select(r => r.CustomerId).Distinct(), ct);
+        return new InvoiceTotalsDto(count, rows.Sum(r => r.Subtotal), rows.Sum(r => r.VatAmount), rows.Sum(r => r.WithholdingAmount),
+            rows.Sum(r => r.Total), rows.Sum(r => bal.TryGetValue(r.Id, out var b) ? b.Remaining : 0));
+    }
+
+    private async Task<IQueryable<Invoice>> FilterAsync(InvoiceQuery q, CancellationToken ct)
+    {
         var query = db.Invoices.AsNoTracking().WhereIds(q.Ids);
         if (q.CustomerId is { } c) query = query.Where(i => i.CustomerId == c);
         if (q.Status is { } s) query = query.Where(i => i.Status == s);
@@ -35,13 +61,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
                 .Values.Where(b => b.Remaining > 0).Select(b => b.InvoiceId).ToList();
             query = query.Where(i => open.Contains(i.Id));
         }
-
-        var (items, total, page, size) = await query
-            .ApplySort(q.Sort, q.Desc, SortMap, "date")
-            .Select(i => new { Invoice = i, i.Customer.Title })
-            .PageAsync(q, ct, export ? QueryExtensions.ExportLimit : QueryExtensions.MaxPageSize);
-        var bal = await balances.InvoiceBalancesAsync(items.Select(i => i.Invoice.CustomerId), ct);
-        return new PagedResult<InvoiceDto>(items.Select(x => ToDto(x.Invoice, x.Title, bal, [])).ToList(), total, page, size);
+        return query;
     }
 
     public async Task<InvoiceDto> GetAsync(int id, CancellationToken ct = default)

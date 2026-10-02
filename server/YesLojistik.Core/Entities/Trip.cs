@@ -111,9 +111,9 @@ public class Trip : BaseEntity
     public static decimal CarrierPayable(decimal cost, decimal vatRate, int? withholdingTenths) =>
         Domain.InvoiceCalculator.ForAmount(cost, vatRate, withholdingTenths).Total;
 
-    /// <summary>Kâra katkısı): satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Giderler ayrıca düşülür.</summary>
+    /// <summary>Kâra katkısı: satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Giderler ayrıca düşülür (bkz. <see cref="Domain.TripProfit"/>).</summary>
     public static decimal Margin(decimal sale, decimal cost, decimal commission, decimal bonus, decimal extra, bool extraInvoiced) =>
-        sale - cost + commission - bonus - (extraInvoiced ? 0 : extra);
+        new Domain.TripMoney(sale, cost, commission, bonus, extra, extraInvoiced, 0).Margin;
 
     public List<Expense> Expenses { get; set; } = new();
     public List<TripEvent> Events { get; set; } = new();

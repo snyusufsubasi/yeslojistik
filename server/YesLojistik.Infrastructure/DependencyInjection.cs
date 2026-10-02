@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<DashboardService>();
         services.AddScoped<AlertService>();
         services.AddScoped<ReportService>();
+        services.AddScoped<TripStatementService>();
         services.AddScoped<AttachmentService>();
         services.AddScoped<TrackingService>();
         services.AddScoped<DriverAppService>();

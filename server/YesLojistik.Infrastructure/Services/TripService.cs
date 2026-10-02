@@ -37,7 +37,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return new TripDto(t.Id, t.CustomerId, r.CustomerTitle, t.VehicleId, r.Plate, r.VehicleType, t.DriverId,
             r.DriverName, t.LoadingAddress, t.DeliveryAddress, t.LoadingDate, t.DeliveryDate, t.Description,
             t.VehicleCost, t.SalePrice, r.ExpenseTotal,
-            Trip.Margin(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced) - r.ExpenseTotal, t.Status,
+            new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced, r.ExpenseTotal).Profit, t.Status,
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
@@ -88,20 +88,15 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     {
         var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled).Select(t => new
         {
-            t.SalePrice, t.VehicleCost, t.Commission, CommissionToBank = t.CommissionAccount != null && t.CommissionAccount.Kind != CashAccountKind.Cash,
-            t.ExtraCharge, t.ExtraChargeInvoiced, t.DriverBonus,
+            Money = new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced,
+                t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
+            CommissionToBank = t.CommissionAccount != null && t.CommissionAccount.Kind != CashAccountKind.Cash,
             Uninvoiced = t.InvoiceId == null && !t.IsLegacy && t.Status == TripStatus.Delivered,
-            Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
         }).ToListAsync(ct);
-        var sale = rows.Sum(r => r.SalePrice);
-        var cost = rows.Sum(r => r.VehicleCost);
-        var commission = rows.Sum(r => r.Commission);
-        var extra = rows.Where(r => !r.ExtraChargeInvoiced).Sum(r => r.ExtraCharge);
-        var bonus = rows.Sum(r => r.DriverBonus);
-        var expenses = rows.Sum(r => r.Expenses);
-        return new TripTotalsDto(rows.Count, sale, cost, expenses, sale - cost + commission - extra - bonus - expenses,
-            rows.Count(r => r.Uninvoiced), rows.Where(r => r.Uninvoiced).Sum(r => r.SalePrice),
-            commission, rows.Where(r => r.CommissionToBank).Sum(r => r.Commission), extra, bonus);
+        var totals = TripMoneyTotals.Of(rows.Select(r => r.Money));
+        return new TripTotalsDto(totals.Count, totals.Sale, totals.VehicleCost, totals.Expenses, totals.Profit,
+            rows.Count(r => r.Uninvoiced), rows.Where(r => r.Uninvoiced).Sum(r => r.Money.Sale),
+            totals.Commission, rows.Where(r => r.CommissionToBank).Sum(r => r.Money.Commission), totals.ExtraCost, totals.DriverBonus);
     }
 
     /// <param name="export">Excel için: sayfa boyutu sınırı <see cref="QueryExtensions.ExportLimit"/> olur.</param>

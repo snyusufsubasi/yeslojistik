@@ -23,16 +23,45 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
             - (c.Payments.Sum(p => (decimal?)p.Amount) ?? 0),
     };
 
-    [HttpGet]
-    public async Task<PagedResult<CustomerDto>> List([FromQuery] ListQuery q, CancellationToken ct)
+    private IQueryable<Customer> Filter(ListQuery q)
     {
         var query = db.Customers.AsNoTracking();
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(c => EF.Functions.ILike(c.Title, like) || EF.Functions.ILike(c.TaxNumber ?? "", like)
                 || EF.Functions.ILike(c.Phone ?? "", like) || EF.Functions.ILike(c.Email ?? "", like));
-        var (items, total, page, size) = await CustomerAccountService.Project(
-            query.ApplySort(q.Sort, q.Desc, SortMap, "title", defaultDesc: false)).PageAsync(q, ct);
+        return query.ApplySort(q.Sort, q.Desc, SortMap, "title", defaultDesc: false);
+    }
+
+    [HttpGet]
+    public async Task<PagedResult<CustomerDto>> List([FromQuery] ListQuery q, CancellationToken ct)
+    {
+        var (items, total, page, size) = await CustomerAccountService.Project(Filter(q)).PageAsync(q, ct);
         return new PagedResult<CustomerDto>(items.Select(CustomerAccountService.WithNo).ToList(), total, page, size);
+    }
+
+    /// <summary>Müşteri listesinin Excel'i (arama ve sıralamayla), altında toplam bakiye.</summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> Export([FromQuery] ListQuery q, CancellationToken ct)
+    {
+        var rows = (await CustomerAccountService.Project(Filter(q)).Take(QueryExtensions.ExportLimit).ToListAsync(ct))
+            .Select(CustomerAccountService.WithNo).ToList();
+        var total = new CustomerDto(0, "", "Toplam", null, null, null, null, null, null, rows.Sum(c => c.Balance), rows.Sum(c => c.OpeningBalance));
+        return Api.Infrastructure.FileResults.Excel(ExcelExporter.ExportWithTotal("Müşteriler", rows, total,
+            new ExcelColumn<CustomerDto>("No", c => c.CustomerNo),
+            new("Ünvan", c => c.Title),
+            new("VKN/TCKN", c => c.TaxNumber),
+            new("Vergi Dairesi", c => c.TaxOffice),
+            new("Telefon", c => c.Phone),
+            new("E-posta", c => c.Email),
+            new("Yetkili", c => c.ContactName),
+            new("İl", c => c.City),
+            new("İlçe", c => c.District),
+            new("Adres", c => c.Address),
+            new("Vade (gün)", c => c.PaymentTermDays),
+            new("Risk Limiti", c => c.CreditLimit, ExcelExporter.MoneyFormat),
+            new("Devir Bakiyesi", c => c.OpeningBalance, ExcelExporter.MoneyFormat),
+            new("Cari Bakiye", c => c.Balance, ExcelExporter.MoneyFormat),
+            new("Durum", c => c.Id == 0 ? null : Api.Infrastructure.ExportLabels.Active(c.IsActive))), "musteriler");
     }
 
     [HttpGet("lookup")]
@@ -50,11 +79,16 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
     [HttpGet("{id:int}/movements")]
     public Task<List<AccountMovementDto>> Movements(int id, CancellationToken ct) => accounts.MovementsAsync(id, ct);
 
-    /// <summary>Hesap ekstresi PDF'i (isteğe bağlı tarih aralığıyla).</summary>
+    /// <summary>Hesap ekstresi PDF'i (isteğe bağlı tarih aralığıyla); format=xlsx ile aynı ekstre Excel olarak iner.</summary>
     [HttpGet("{id:int}/statement")]
     public async Task<IActionResult> Statement(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] bool download,
-        [FromServices] StatementPdfGenerator pdf, CancellationToken ct)
+        [FromQuery] string? format, [FromServices] StatementPdfGenerator pdf, CancellationToken ct)
     {
+        if (format == "xlsx")
+        {
+            var (xlsx, xlsxName) = await pdf.ExcelAsync(id, from, to, ct);
+            return File(xlsx, YesLojistik.Api.Infrastructure.FileResults.Xlsx, xlsxName);
+        }
         var (content, name, _, _) = await pdf.GenerateAsync(id, from, to, ct);
         return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
     }

@@ -32,12 +32,16 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var monthStart = Clock.MonthStart;
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-        var monthTrips = db.Trips.Where(t => t.LoadingDate >= monthStart && t.LoadingDate <= monthEnd && t.Status != TripStatus.Cancelled);
-        var monthTripCount = await monthTrips.CountAsync(ct);
-        var monthDelivered = await monthTrips.CountAsync(t => t.Status == TripStatus.Delivered, ct);
-        var monthRevenue = await monthTrips.SumAsync(t => (decimal?)(t.SalePrice + t.Commission), ct) ?? 0;
+        // Son 6 ayın seferleri bir kez okunur; bu ayın rakamları ve grafik aynı kâr formülünden (TripProfit) gelir.
+        var trendStart = monthStart.AddMonths(-5);
+        var trendTrips = await TripFigures.LoadAsync(db.Trips, trendStart, monthEnd, ct);
+        var monthTrips = trendTrips.Where(t => t.Date >= monthStart).ToList();
+        var monthTotals = monthTrips.Totals();
+        var monthTripCount = monthTotals.Count;
+        var monthDelivered = monthTrips.Count(t => t.Status == TripStatus.Delivered);
+        var monthRevenue = monthTotals.Revenue;
         var monthExpenses = (await db.Expenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved).SumAsync(e => (decimal?)e.Amount, ct) ?? 0)
-            + (await monthTrips.SumAsync(t => (decimal?)(t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)), ct) ?? 0);
+            + monthTotals.DirectCost;
 
         var activeCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad, ct);
         var plannedCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned, ct);
@@ -55,11 +59,7 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
             .Select(Projections.Vehicle)
             .ToListAsync(ct);
 
-        var trendStart = monthStart.AddMonths(-5);
-        var tripTrend = await db.Trips.Where(t => t.LoadingDate >= trendStart && t.LoadingDate <= monthEnd && t.Status != TripStatus.Cancelled)
-            .GroupBy(t => new { t.LoadingDate.Year, t.LoadingDate.Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)) })
-            .ToListAsync(ct);
+        var tripTrend = trendTrips.ToLookup(t => (t.Date.Year, t.Date.Month));
         var expenseTrend = await db.Expenses.Where(e => e.Date >= trendStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => new { e.Date.Year, e.Date.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Sum = g.Sum(e => e.Amount) })
@@ -67,9 +67,9 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var trend = Enumerable.Range(0, 6).Select(i =>
         {
             var m = trendStart.AddMonths(i);
-            var t = tripTrend.FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month);
+            var t = tripTrend[(m.Year, m.Month)].Totals();
             var e = expenseTrend.FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month)?.Sum ?? 0;
-            return new MonthTrendRow(m.Year, m.Month, t?.Revenue ?? 0, (t?.Cost ?? 0) + e);
+            return new MonthTrendRow(m.Year, m.Month, t.Revenue, t.DirectCost + e);
         }).ToList();
 
         var payable = await payables.DashboardAsync(ct);

@@ -23,6 +23,14 @@ public class PurchaseInvoiceService(AppDbContext db, IFileStorage storage)
         return new PagedResult<PurchaseInvoiceDto>(ids.Select(id => items[id]).ToList(), total, page, size);
     }
 
+    /// <summary>Filtrenin tamamının toplamı (yalnızca sayfanın değil).</summary>
+    public async Task<PurchaseInvoiceTotalsDto> TotalsAsync(PurchaseInvoiceQuery q, CancellationToken ct = default)
+    {
+        var rows = await Filter(q).Select(p => new { p.Subtotal, p.VatAmount, p.WithholdingAmount, p.Total }).ToListAsync(ct);
+        return new PurchaseInvoiceTotalsDto(rows.Count, rows.Sum(r => r.Subtotal), rows.Sum(r => r.VatAmount),
+            rows.Sum(r => r.WithholdingAmount), rows.Sum(r => r.Total));
+    }
+
     public IQueryable<PurchaseInvoice> Filter(PurchaseInvoiceQuery q)
     {
         var query = db.PurchaseInvoices.AsNoTracking();

@@ -16,15 +16,22 @@ public class PurchaseInvoicesController(PurchaseInvoiceService invoices) : Contr
     [HttpGet]
     public Task<PagedResult<PurchaseInvoiceDto>> List([FromQuery] PurchaseInvoiceQuery q, CancellationToken ct) => invoices.ListAsync(q, ct);
 
+    /// <summary>Filtrenin tamamının toplamı: matrah, KDV, tevkifat ve genel tutar.</summary>
+    [HttpGet("totals")]
+    public Task<PurchaseInvoiceTotalsDto> Totals([FromQuery] PurchaseInvoiceQuery q, CancellationToken ct) => invoices.TotalsAsync(q, ct);
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] PurchaseInvoiceQuery q, CancellationToken ct)
     {
         var rows = (await invoices.ListAsync(q with { Page = 1, PageSize = QueryExtensions.ExportLimit }, ct, export: true)).Items;
-        return FileResults.Excel(ExcelExporter.Export("Alınan Faturalar", rows,
-            new ExcelColumn<PurchaseInvoiceDto>("Tarih", p => p.Date, ExcelExporter.DateFormat),
+        var t = await invoices.TotalsAsync(q, ct);
+        var total = new PurchaseInvoiceDto(0, 0, "Toplam", "", default, null, default, t.Subtotal, t.VatAmount, t.WithholdingAmount, t.Total,
+            null, false, null, false, null, []);
+        return FileResults.Excel(ExcelExporter.ExportWithTotal("Alınan Faturalar", rows, total,
+            new ExcelColumn<PurchaseInvoiceDto>("Tarih", p => p.Id == 0 ? null : p.Date, ExcelExporter.DateFormat),
             new("Tedarikçi", p => p.SupplierTitle),
             new("Fatura No", p => p.InvoiceNo),
-            new("Tür", p => KindLabel(p.Kind)),
+            new("Tür", p => p.Id == 0 ? null : KindLabel(p.Kind)),
             new("Matrah", p => p.Subtotal, ExcelExporter.MoneyFormat),
             new("KDV", p => p.VatAmount, ExcelExporter.MoneyFormat),
             new("Tevkifat", p => p.WithholdingAmount, ExcelExporter.MoneyFormat),

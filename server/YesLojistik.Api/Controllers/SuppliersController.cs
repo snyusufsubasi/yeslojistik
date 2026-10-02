@@ -22,8 +22,7 @@ public class SuppliersController(AppDbContext db, PayableService payables) : Con
         ["city"] = s => s.City,
     };
 
-    [HttpGet]
-    public async Task<PagedResult<SupplierDto>> List([FromQuery] SupplierQuery q, CancellationToken ct)
+    private IQueryable<Supplier> Filter(SupplierQuery q)
     {
         var query = db.Suppliers.AsNoTracking();
         if (q.Kind is { } k) query = query.Where(s => s.Kind == k);
@@ -31,9 +30,43 @@ public class SuppliersController(AppDbContext db, PayableService payables) : Con
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(s => EF.Functions.ILike(s.Title, like) || EF.Functions.ILike(s.TaxNumber ?? "", like)
                 || EF.Functions.ILike(s.Phone ?? "", like) || EF.Functions.ILike(s.ContactName ?? "", like));
-        var (items, total, page, size) = await query.ApplySort(q.Sort, q.Desc, SortMap, "title", defaultDesc: false).PageAsync(q, ct);
+        return query.ApplySort(q.Sort, q.Desc, SortMap, "title", defaultDesc: false);
+    }
+
+    [HttpGet]
+    public async Task<PagedResult<SupplierDto>> List([FromQuery] SupplierQuery q, CancellationToken ct)
+    {
+        var (items, total, page, size) = await Filter(q).PageAsync(q, ct);
         var balances = await payables.BalancesAsync(items.Select(s => s.Id), ct);
         return new PagedResult<SupplierDto>(items.Select(s => ToDto(s, balances.GetValueOrDefault(s.Id))).ToList(), total, page, size);
+    }
+
+    /// <summary>Tedarikçi listesinin Excel'i (tür, arama ve sıralamayla), altında toplam borç.</summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> Export([FromQuery] SupplierQuery q, CancellationToken ct)
+    {
+        var items = await Filter(q).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
+        var balances = await payables.BalancesAsync(items.Select(s => s.Id), ct);
+        var rows = items.Select(s => ToDto(s, balances.GetValueOrDefault(s.Id))).ToList();
+        var total = new SupplierDto(0, "", "Toplam", SupplierKind.Other, null, null, null, null, null, null, null, null, null, 0, null,
+            rows.Sum(s => s.OpeningBalance), null, true, rows.Sum(s => s.Balance));
+        return Api.Infrastructure.FileResults.Excel(ExcelExporter.ExportWithTotal("Tedarikçiler", rows, total,
+            new ExcelColumn<SupplierDto>("No", s => s.SupplierNo),
+            new("Ünvan", s => s.Title),
+            new("Tür", s => s.Id == 0 ? null : Api.Infrastructure.ExportLabels.SupplierKind(s.Kind)),
+            new("VKN/TCKN", s => s.TaxNumber),
+            new("Vergi Dairesi", s => s.TaxOffice),
+            new("Telefon", s => s.Phone),
+            new("E-posta", s => s.Email),
+            new("Yetkili", s => s.ContactName),
+            new("İl", s => s.City),
+            new("İlçe", s => s.District),
+            new("Adres", s => s.Address),
+            new("IBAN", s => s.Iban),
+            new("Vade (gün)", s => s.Id == 0 ? null : s.PaymentTermDays),
+            new("Devir Bakiyesi", s => s.OpeningBalance, ExcelExporter.MoneyFormat),
+            new("Borcumuz", s => s.Balance, ExcelExporter.MoneyFormat),
+            new("Durum", s => s.Id == 0 ? null : Api.Infrastructure.ExportLabels.Active(s.IsActive))), "tedarikciler");
     }
 
     [HttpGet("lookup")]
@@ -54,17 +87,22 @@ public class SuppliersController(AppDbContext db, PayableService payables) : Con
     [HttpGet("{id:int}/movements")]
     public Task<List<AccountMovementDto>> Movements(int id, CancellationToken ct) => payables.MovementsAsync(id, ct);
 
-    /// <summary>Tedarikçi hesap ekstresi PDF'i (mutabakat için).</summary>
+    /// <summary>Tedarikçi hesap ekstresi PDF'i (mutabakat için); format=xlsx ile aynı ekstre Excel olarak iner.</summary>
     [HttpGet("{id:int}/statement")]
-    public async Task<IActionResult> Statement(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] bool download, CancellationToken ct)
+    public async Task<IActionResult> Statement(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] bool download,
+        [FromQuery] string? format, CancellationToken ct)
     {
         if (from is { } f && to is { } t && f > t) throw new DomainException("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
         var s = await db.Suppliers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Tedarikçi bulunamadı.");
+        string?[] party = [s.Title, string.Join(", ", new[] { s.Address, s.District, s.City }.Where(x => !string.IsNullOrWhiteSpace(x))),
+            string.IsNullOrWhiteSpace(s.TaxNumber) ? null : $"{s.TaxOffice} V.D. — {s.TaxNumber}", IbanValidator.Format(s.Iban) is { } iban ? $"IBAN: {iban}" : null];
+        var movements = await payables.MovementsAsync(id, ct);
+        if (format == "xlsx")
+            return File(StatementPdfGenerator.Excel("Tedarikçi Hesap Ekstresi", $"Tedarikçi No: {s.SupplierNo}", party, movements, from, to, supplier: true),
+                Infrastructure.FileResults.Xlsx, $"tedarikci-ekstre-{s.SupplierNo}.xlsx");
         var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         var (pdf, _) = StatementPdfGenerator.Render(company, "TEDARİKÇİ HESAP EKSTRESİ", $"Tedarikçi No: {s.SupplierNo}", "TEDARİKÇİ",
-            [s.Title, string.Join(", ", new[] { s.Address, s.District, s.City }.Where(x => !string.IsNullOrWhiteSpace(x))),
-                string.IsNullOrWhiteSpace(s.TaxNumber) ? null : $"{s.TaxOffice} V.D. — {s.TaxNumber}", IbanValidator.Format(s.Iban) is { } iban ? $"IBAN: {iban}" : null],
-            await payables.MovementsAsync(id, ct), from, to, supplier: true);
+            party, movements, from, to, supplier: true);
         var name = $"tedarikci-ekstre-{s.SupplierNo}.pdf";
         return download ? File(pdf, "application/pdf", name) : File(pdf, "application/pdf");
     }

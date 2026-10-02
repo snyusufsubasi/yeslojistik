@@ -77,6 +77,15 @@ public record TripRouteHint(int Count, decimal AvgSalePrice, decimal AvgVehicleC
 public record TripHintsDto(TripDto? LastTrip, IReadOnlyList<TripAddressHint> LoadingAddresses, IReadOnlyList<TripAddressHint> DeliveryAddresses,
     IReadOnlyList<string> CargoTypes, TripRouteHint? Route);
 
+/// <summary>Sevkiyat listesi satırı (müşteriye gönderilen PDF). Tutar = nakliye bedeli + faturalanan ek masraf, KDV hariç.</summary>
+public record TripStatementLine(int TripId, string No, DateOnly Date, int CustomerId, string Customer, string From, string To,
+    string Plate, string Driver, string? Cargo, string? CustomerReference, string? DocumentNo,
+    decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total);
+
+/// <summary>İcmal satırı: müşteri ve ay bazında sefer sayısı ve vergili tutarlar. Toplam = matrah + KDV − tevkifat.</summary>
+public record TripSummaryRow(int CustomerId, string Customer, int Year, int Month, int TripCount,
+    decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total);
+
 /// <summary>Sefer listesindeki süzgece uyan seferlerin toplamı (eski paneldeki "Kazanç Tablosu"). İptal edilen seferler sayılmaz.</summary>
 /// <remarks>Kazanç = satış − maliyet + komisyon − prim − (faturalanmayan) ek masraf − giderler.</remarks>
 public record TripTotalsDto(int Count, decimal Sale, decimal VehicleCost, decimal Expenses, decimal Profit, int UninvoicedCount, decimal UninvoicedTotal,

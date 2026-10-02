@@ -51,6 +51,39 @@ public class ReportsController(ReportService reports, PayableService payables, B
             new("Tahsil Edilen", r => r.Collected, ExcelExporter.MoneyFormat)), "aylik-ozet");
     }
 
+    /// <summary>Kazanç raporu: ay, müşteri, araç ya da şoför bazında satış, maliyet, komisyon, prim, masraf ve kâr.</summary>
+    [HttpGet("profit")]
+    public async Task<IActionResult> Profit([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] ProfitGroupBy groupBy,
+        [FromQuery] string? format, [FromQuery] int? customerId, [FromQuery] int? vehicleId, [FromQuery] int? driverId, CancellationToken ct)
+    {
+        var (f, t) = Range(from, to);
+        if (f > t) throw new Core.Domain.DomainException("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
+        var rows = await reports.ProfitAsync(f, t, groupBy, ct, customerId, vehicleId, driverId);
+        if (format != "xlsx") return Ok(rows);
+        ProfitReportRow[] total = rows.Count == 0 ? [] :
+        [
+            new ProfitReportRow("", "Toplam", rows.Sum(r => r.TripCount), rows.Sum(r => r.Sale), rows.Sum(r => r.Commission), rows.Sum(r => r.VehicleCost),
+                rows.Sum(r => r.DriverBonus), rows.Sum(r => r.ExtraCost), rows.Sum(r => r.Expenses), rows.Sum(r => r.Profit),
+                Core.Domain.TripProfit.MarginPercent(rows.Sum(r => r.Profit), rows.Sum(r => r.Sale + r.Commission))),
+        ];
+        var caption = groupBy switch { ProfitGroupBy.Customer => "Müşteri", ProfitGroupBy.Vehicle => "Plaka", ProfitGroupBy.Driver => "Şoför", _ => "Ay" };
+        using var wb = new ExcelWorkbookBuilder();
+        wb.AddSheet("Kazanç", rows, total,
+            [$"Kazanç raporu ({caption} bazında) · {Core.Domain.Formatters.Date(f)} – {Core.Domain.Formatters.Date(t)}",
+                "Tutarlar KDV hariç. Kâr = satış + komisyon − araç/taşeron maliyeti − şoför primi − faturalanmayan ek masraf − sefer giderleri."],
+            new ExcelColumn<ProfitReportRow>(caption, r => r.Label),
+            new("Sefer", r => r.TripCount),
+            new("Satış", r => r.Sale, ExcelExporter.MoneyFormat),
+            new("Komisyon", r => r.Commission, ExcelExporter.MoneyFormat),
+            new("Araç / Taşeron Maliyeti", r => r.VehicleCost, ExcelExporter.MoneyFormat),
+            new("Şoför Primi", r => r.DriverBonus, ExcelExporter.MoneyFormat),
+            new("Ek Masraf", r => r.ExtraCost, ExcelExporter.MoneyFormat),
+            new("Sefer Giderleri", r => r.Expenses, ExcelExporter.MoneyFormat),
+            new("Kâr", r => r.Profit, ExcelExporter.MoneyFormat),
+            new("Marj %", r => r.MarginPercent));
+        return FileResults.Excel(wb.Build(), "kazanc-raporu");
+    }
+
     [HttpGet("trips")]
     public async Task<IActionResult> Trips([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string? format, CancellationToken ct)
     {

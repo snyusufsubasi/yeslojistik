@@ -31,8 +31,7 @@ public class DriversController(AppDbContext db) : ControllerBase
 
     private static readonly Expression<Func<Driver, DriverDto>> Projection = Projections.Driver;
 
-    [HttpGet]
-    public async Task<PagedResult<DriverDto>> List([FromQuery] DriverQuery q, CancellationToken ct)
+    private IQueryable<Driver> Filter(DriverQuery q)
     {
         var query = db.Drivers.AsNoTracking();
         if (q.Active is { } a) query = query.Where(d => d.IsActive == a);
@@ -40,8 +39,34 @@ public class DriversController(AppDbContext db) : ControllerBase
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(d => EF.Functions.ILike(d.FullName, like) || EF.Functions.ILike(d.Phone ?? "", like)
                 || EF.Functions.ILike(d.Plate ?? "", like) || EF.Functions.ILike(d.NationalId ?? "", like));
-        var (items, total, page, size) = await query.ApplySort(q.Sort, q.Desc, SortMap, "fullName", defaultDesc: false)
-            .Select(Projection).PageAsync(q, ct);
+        return query.ApplySort(q.Sort, q.Desc, SortMap, "fullName", defaultDesc: false);
+    }
+
+    /// <summary>Şoför listesinin Excel'i (pasif/aktif, arama ve sıralamayla).</summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> Export([FromQuery] DriverQuery q, CancellationToken ct)
+    {
+        var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
+        return YesLojistik.Api.Infrastructure.FileResults.Excel(ExcelExporter.Export("Şoförler", rows,
+            new ExcelColumn<DriverDto>("Ad Soyad", d => d.FullName),
+            new("Telefon", d => d.Phone),
+            new("TCKN", d => d.NationalId),
+            new("Ehliyet Sınıfı", d => d.LicenseClass),
+            new("Ehliyet No", d => d.LicenseNo),
+            new("Ehliyet Bitiş", d => d.LicenseExpiry, ExcelExporter.DateFormat),
+            new("SRC Bitiş", d => d.SrcExpiry, ExcelExporter.DateFormat),
+            new("Psikoteknik Bitiş", d => d.PsychotechnicExpiry, ExcelExporter.DateFormat),
+            new("Plaka", d => d.Plate),
+            new("Taşeron", d => d.SupplierTitle),
+            new("Değerlendirme", d => YesLojistik.Api.Infrastructure.ExportLabels.DriverRating(d.Rating)),
+            new("Not", d => d.Note),
+            new("Durum", d => YesLojistik.Api.Infrastructure.ExportLabels.Active(d.IsActive))), "soforler");
+    }
+
+    [HttpGet]
+    public async Task<PagedResult<DriverDto>> List([FromQuery] DriverQuery q, CancellationToken ct)
+    {
+        var (items, total, page, size) = await Filter(q).Select(Projection).PageAsync(q, ct);
         // Mobil uygulama hesabı ve konum rızası (KVKK) listede görünsün.
         var ids = items.Select(d => d.Id).ToList();
         var accounts = await db.Users.AsNoTracking().Where(u => u.DriverId != null && ids.Contains(u.DriverId.Value) && u.IsActive)

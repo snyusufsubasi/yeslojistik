@@ -48,6 +48,39 @@ public class TripsController(TripService trips) : ControllerBase
     }
 
 
+    /// <summary>Sevkiyat listesi PDF'i (müşteriye gönderilebilir): filtredeki seferler, tutar, KDV, tevkifat ve toplam.</summary>
+    [HttpGet("pdf")]
+    public async Task<IActionResult> ListPdf([FromQuery] TripQuery q, [FromServices] TripStatementService statements, [FromQuery] bool download,
+        CancellationToken ct)
+    {
+        var (content, name) = await statements.ListPdfAsync(q, ct);
+        return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
+    }
+
+    /// <summary>İcmal: filtredeki seferlerin müşteri ve ay bazında özeti (JSON, PDF ya da Excel).</summary>
+    [HttpGet("summary")]
+    public async Task<IActionResult> Summary([FromQuery] TripQuery q, [FromServices] TripStatementService statements, [FromQuery] string? format,
+        [FromQuery] bool download, CancellationToken ct)
+    {
+        if (format == "pdf")
+        {
+            var (content, name) = await statements.SummaryPdfAsync(q, ct);
+            return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
+        }
+        var rows = TripStatementService.Summary(await statements.LinesAsync(q, ct));
+        if (format != "xlsx") return Ok(rows);
+        var total = new TripSummaryRow(0, "Toplam", 0, 0, rows.Sum(r => r.TripCount), rows.Sum(r => r.Subtotal), rows.Sum(r => r.VatAmount),
+            rows.Sum(r => r.WithholdingAmount), rows.Sum(r => r.Total));
+        return FileResults.Excel(ExcelExporter.ExportWithTotal("İcmal", rows, total,
+            new ExcelColumn<TripSummaryRow>("Müşteri", r => r.Customer),
+            new("Ay", r => r.Month == 0 ? null : ReportService.MonthLabel(r.Year, r.Month)),
+            new("Sefer", r => r.TripCount),
+            new("Matrah", r => r.Subtotal, ExcelExporter.MoneyFormat),
+            new("KDV", r => r.VatAmount, ExcelExporter.MoneyFormat),
+            new("Tevkifat", r => r.WithholdingAmount, ExcelExporter.MoneyFormat),
+            new("Toplam", r => r.Total, ExcelExporter.MoneyFormat)), "icmal");
+    }
+
     /// <summary>Yeni sefer formu önerileri: son sefer, kayıtlı adresler, sık yük cinsleri ve güzergâh fiyatı.</summary>
     [HttpGet("hints")]
     public Task<TripHintsDto> Hints([FromQuery] int? customerId, [FromQuery] string? loadingCity, [FromQuery] string? deliveryCity, CancellationToken ct) =>

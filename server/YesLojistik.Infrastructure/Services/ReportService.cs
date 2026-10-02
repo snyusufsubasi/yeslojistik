@@ -13,11 +13,7 @@ public class ReportService(AppDbContext db, BalanceService balances)
         var from = new DateOnly(year, 1, 1);
         var to = new DateOnly(year, 12, 31);
 
-        var trips = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
-            .GroupBy(t => t.LoadingDate.Month)
-            .Select(g => new { Month = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
-                CarrierCost = g.Where(t => t.CarrierSupplierId != null).Sum(t => t.VehicleCost) })
-            .ToListAsync(ct);
+        var trips = (await TripFigures.LoadAsync(db.Trips, from, to, ct)).ToLookup(t => t.Date.Month);
         var invoiced = await db.Invoices.Where(i => i.Date >= from && i.Date <= to && i.Status == InvoiceStatus.Issued)
             .GroupBy(i => i.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(i => i.Total) }).ToListAsync(ct);
         var collected = await db.Payments.Where(Payment.Counts).Where(p => p.Date >= from && p.Date <= to)
@@ -29,59 +25,45 @@ public class ReportService(AppDbContext db, BalanceService balances)
 
         return Enumerable.Range(1, 12).Select(m =>
         {
-            var t = trips.FirstOrDefault(x => x.Month == m);
+            var t = trips[m].Totals();
+            // Aylık özette o ayın bütün onaylı giderleri (sefere bağlı olsun olmasın) düşülür.
             var exp = expenses.FirstOrDefault(x => x.Month == m)?.Sum ?? 0;
-            var revenue = t?.Revenue ?? 0;
-            var cost = t?.Cost ?? 0;
-            return new MonthlySummaryRow(year, m, t?.Count ?? 0, revenue, cost,
+            return new MonthlySummaryRow(year, m, t.Count, t.Revenue, t.DirectCost,
                 invoiced.FirstOrDefault(x => x.Month == m)?.Sum ?? 0, collected.FirstOrDefault(x => x.Month == m)?.Sum ?? 0,
-                exp, revenue - cost - exp, t?.CarrierCost ?? 0, carrierPaid.FirstOrDefault(x => x.Month == m)?.Sum ?? 0);
+                exp, TripProfit.Profit(t.Revenue, t.DirectCost, exp), trips[m].Where(x => x.HasCarrier).Sum(x => x.Money.VehicleCost),
+                carrierPaid.FirstOrDefault(x => x.Month == m)?.Sum ?? 0);
         }).ToList();
     }
 
     public async Task<List<TripProfitRow>> TripProfitAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var rows = await db.Trips.AsNoTracking()
-            .Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
-            .OrderBy(t => t.LoadingDate).ThenBy(t => t.Id)
-            .Select(t => new
-            {
-                t.Id, t.LoadingDate, Customer = t.Customer.Title, t.Vehicle.Plate, t.LoadingAddress, t.DeliveryAddress, t.Status,
-                SalePrice = t.SalePrice + t.Commission, VehicleCost = t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge), Expenses = t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0,
-            }).ToListAsync(ct);
-        return rows.Select(r => new TripProfitRow(r.Id, r.LoadingDate, r.Customer, r.Plate, $"{r.LoadingAddress} → {r.DeliveryAddress}",
-            TripStatusRules.Label(r.Status), r.SalePrice, r.VehicleCost, r.Expenses, r.SalePrice - r.VehicleCost - r.Expenses)).ToList();
+        var rows = await TripFigures.LoadAsync(db.Trips, from, to, ct);
+        return rows.Select(r => new TripProfitRow(r.Id, r.Date, r.Customer, r.Plate, $"{r.LoadingAddress} → {r.DeliveryAddress}",
+            TripStatusRules.Label(r.Status), r.Money.Revenue, r.Money.DirectCost, r.Money.Expenses, r.Money.Profit)).ToList();
     }
 
     public async Task<List<VehicleReportRow>> VehiclesAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
         var vehicles = await db.Vehicles.AsNoTracking().OrderBy(v => v.Plate).Select(v => new { v.Id, v.Plate, v.Type }).ToListAsync(ct);
-        var trips = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
-            .GroupBy(t => t.VehicleId)
-            .Select(g => new { VehicleId = g.Key, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)) })
-            .ToListAsync(ct);
+        var trips = (await TripFigures.LoadAsync(db.Trips, from, to, ct)).ToLookup(t => t.VehicleId);
         var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.VehicleId != null && e.ApprovalStatus == ApprovalStatus.Approved)
             .GroupBy(e => e.VehicleId!.Value).Select(g => new { VehicleId = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
 
         return vehicles.Select(v =>
         {
-            var t = trips.FirstOrDefault(x => x.VehicleId == v.Id);
+            var t = trips[v.Id].Totals();
+            // Araca yazılan bütün onaylı giderler (yakıt, bakım; sefere bağlı olsun olmasın) düşülür.
             var e = expenses.FirstOrDefault(x => x.VehicleId == v.Id)?.Sum ?? 0;
-            return new VehicleReportRow(v.Id, v.Plate, v.Type, t?.Count ?? 0, t?.Revenue ?? 0, t?.Cost ?? 0, e,
-                (t?.Revenue ?? 0) - (t?.Cost ?? 0) - e);
+            return new VehicleReportRow(v.Id, v.Plate, v.Type, t.Count, t.Revenue, t.DirectCost, e, TripProfit.Profit(t.Revenue, t.DirectCost, e));
         }).ToList();
     }
 
     public async Task<List<DriverReportRow>> DriversAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var rows = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
-            .GroupBy(t => new { t.DriverId, t.Driver.FullName })
-            .Select(g => new
-            {
-                g.Key.DriverId, g.Key.FullName, Count = g.Count(), Delivered = g.Count(t => t.Status == TripStatus.Delivered),
-                Revenue = g.Sum(t => t.SalePrice + t.Commission), Cost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
-                Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
-            }).ToListAsync(ct);
+        var rows = (await TripFigures.LoadAsync(db.Trips, from, to, ct))
+            .GroupBy(t => (t.DriverId, FullName: t.Driver))
+            .Select(g => new { g.Key.DriverId, g.Key.FullName, Delivered = g.Count(t => t.Status == TripStatus.Delivered), Totals = g.Totals() })
+            .ToList();
         var paid = await db.Expenses
             .Where(e => e.DriverId != null && e.Date >= from && e.Date <= to
                 && (e.Category == ExpenseCategory.DriverAdvance || e.Category == ExpenseCategory.DriverAllowance))
@@ -95,8 +77,8 @@ public class ReportService(AppDbContext db, BalanceService balances)
         var result = rows.Select(r =>
         {
             var p = paid.FirstOrDefault(x => x.DriverId == r.DriverId);
-            return new DriverReportRow(r.DriverId, r.FullName, r.Count, r.Delivered, r.Revenue, r.Cost, r.Expenses,
-                r.Revenue - r.Cost - r.Expenses, p?.Advances ?? 0, p?.Allowances ?? 0);
+            return new DriverReportRow(r.DriverId, r.FullName, r.Totals.Count, r.Delivered, r.Totals.Revenue, r.Totals.DirectCost,
+                r.Totals.Expenses, r.Totals.Profit, p?.Advances ?? 0, p?.Allowances ?? 0);
         }).ToList();
         // Dönemde seferi olmayan ama avans/harcırah verilen şoförler de listelenir.
         result.AddRange(paid.Where(p => rows.All(r => r.DriverId != p.DriverId))
@@ -151,42 +133,68 @@ public class ReportService(AppDbContext db, BalanceService balances)
 
     public async Task<List<CustomerProfitRow>> CustomerProfitAsync(DateOnly from, DateOnly to, BalanceService balances, CancellationToken ct = default)
     {
-        var rows = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
-            .GroupBy(t => new { t.CustomerId, t.Customer.Title })
-            .Select(g => new
-            {
-                g.Key.CustomerId, g.Key.Title, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), VehicleCost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
-                Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
-            }).ToListAsync(ct);
+        var rows = (await TripFigures.LoadAsync(db.Trips, from, to, ct))
+            .GroupBy(t => (t.CustomerId, Title: t.Customer))
+            .Select(g => new { g.Key.CustomerId, g.Key.Title, Totals = g.Totals() })
+            .ToList();
         var open = (await balances.BalancesByCustomerAsync(rows.Select(r => r.CustomerId), ct));
         var days = Math.Max(1, to.DayNumber - from.DayNumber + 1);
         return rows.Select(r =>
         {
-            var cost = r.VehicleCost + r.Expenses;
-            var profit = r.Revenue - cost;
+            var t = r.Totals;
             var receivable = open[r.CustomerId].Sum(b => b.Remaining);
             // Yaklaşık tahsil süresi (DSO): açık alacak / (dönem cirosu KDV'li ≈ ×1,2 / gün)
-            int? dso = r.Revenue > 0 ? (int)Math.Round(receivable / (r.Revenue * 1.2m / days)) : null;
-            return new CustomerProfitRow(r.CustomerId, r.Title, r.Count, r.Revenue, cost, profit,
-                r.Revenue > 0 ? Math.Round(profit / r.Revenue * 100, 1) : null, receivable, dso);
+            int? dso = t.Revenue > 0 ? (int)Math.Round(receivable / (t.Revenue * 1.2m / days)) : null;
+            return new CustomerProfitRow(r.CustomerId, r.Title, t.Count, t.Revenue, t.DirectCost + t.Expenses, t.Profit,
+                t.MarginPercent, receivable, dso);
         }).OrderByDescending(r => r.Profit).ToList();
     }
 
     public async Task<List<RouteProfitRow>> RouteProfitAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var rows = await db.Trips.Where(t => t.LoadingDate >= from && t.LoadingDate <= to && t.Status != TripStatus.Cancelled)
-            .GroupBy(t => new { t.LoadingCity, t.DeliveryCity })
-            .Select(g => new
-            {
-                g.Key.LoadingCity, g.Key.DeliveryCity, Count = g.Count(), Revenue = g.Sum(t => t.SalePrice + t.Commission), VehicleCost = g.Sum(t => t.VehicleCost + t.DriverBonus + (t.ExtraChargeInvoiced ? 0 : t.ExtraCharge)),
-                Expenses = g.Sum(t => t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
-            }).ToListAsync(ct);
+        var rows = (await TripFigures.LoadAsync(db.Trips, from, to, ct))
+            .GroupBy(t => (t.LoadingCity, t.DeliveryCity))
+            .Select(g => new { g.Key.LoadingCity, g.Key.DeliveryCity, Totals = g.Totals() })
+            .ToList();
         return rows.Select(r =>
         {
-            var cost = r.VehicleCost + r.Expenses;
-            var profit = r.Revenue - cost;
-            return new RouteProfitRow(r.LoadingCity ?? "İl girilmemiş", r.DeliveryCity ?? "İl girilmemiş", r.Count,
-                Money.Round(r.Revenue / r.Count), Money.Round(cost / r.Count), profit, r.Revenue > 0 ? Math.Round(profit / r.Revenue * 100, 1) : null);
+            var t = r.Totals;
+            return new RouteProfitRow(r.LoadingCity ?? "İl girilmemiş", r.DeliveryCity ?? "İl girilmemiş", t.Count,
+                Money.Round(t.Revenue / t.Count), Money.Round((t.DirectCost + t.Expenses) / t.Count), t.Profit, t.MarginPercent);
         }).OrderByDescending(r => r.TripCount).ThenByDescending(r => r.Profit).ToList();
+    }
+
+    private static readonly string[] MonthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+    public static string MonthLabel(int year, int month) => $"{MonthNames[month - 1]} {year}";
+
+    /// <summary>
+    /// Kazanç raporu: seferlerin satış, komisyon, maliyet, prim, ek masraf, sefer giderleri ve kârı; ay, müşteri, araç ya da şoför bazında.
+    /// Sefere bağlı olmayan genel giderler (kira, maaş vb.) dahil değildir; onlar aylık özette düşülür.
+    /// </summary>
+    public async Task<List<ProfitReportRow>> ProfitAsync(DateOnly from, DateOnly to, ProfitGroupBy groupBy, CancellationToken ct = default,
+        int? customerId = null, int? vehicleId = null, int? driverId = null)
+    {
+        var query = db.Trips.AsQueryable();
+        if (customerId is { } c) query = query.Where(t => t.CustomerId == c);
+        if (vehicleId is { } v) query = query.Where(t => t.VehicleId == v);
+        if (driverId is { } d) query = query.Where(t => t.DriverId == d);
+        var trips = await TripFigures.LoadAsync(query, from, to, ct);
+        var groups = groupBy switch
+        {
+            ProfitGroupBy.Customer => trips.GroupBy(t => (Key: t.CustomerId.ToString(), Label: t.Customer)),
+            ProfitGroupBy.Vehicle => trips.GroupBy(t => (Key: t.VehicleId.ToString(), Label: t.Plate)),
+            ProfitGroupBy.Driver => trips.GroupBy(t => (Key: t.DriverId.ToString(), Label: t.Driver)),
+            _ => trips.GroupBy(t => (Key: $"{t.Date.Year:D4}-{t.Date.Month:D2}", Label: MonthLabel(t.Date.Year, t.Date.Month))),
+        };
+        var rows = groups.Select(g =>
+        {
+            var t = g.Totals();
+            return new ProfitReportRow(g.Key.Key, g.Key.Label, t.Count, t.Sale, t.Commission, t.VehicleCost, t.DriverBonus, t.ExtraCost,
+                t.Expenses, t.Profit, t.MarginPercent);
+        });
+        return (groupBy == ProfitGroupBy.Month
+            ? rows.OrderBy(r => r.Key, StringComparer.Ordinal)
+            : rows.OrderByDescending(r => r.Profit).ThenBy(r => r.Label, StringComparer.Create(Formatters.Tr, false))).ToList();
     }
 }

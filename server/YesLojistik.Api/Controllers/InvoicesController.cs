@@ -14,14 +14,22 @@ public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf
     [HttpGet]
     public Task<PagedResult<InvoiceDto>> List([FromQuery] InvoiceQuery q, CancellationToken ct) => invoices.ListAsync(q, ct);
 
+    /// <summary>Filtrenin tamamının toplamı: matrah, KDV, tevkifat, genel toplam ve kalan.</summary>
+    [HttpGet("totals")]
+    public Task<InvoiceTotalsDto> Totals([FromQuery] InvoiceQuery q, CancellationToken ct) => invoices.TotalsAsync(q, ct);
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] InvoiceQuery q, CancellationToken ct)
     {
         var rows = (await invoices.ListAsync(q with { Page = 1, PageSize = QueryExtensions.ExportLimit }, ct, export: true)).Items;
-        return FileResults.Excel(ExcelExporter.Export("Faturalar", rows,
+        var t = await invoices.TotalsAsync(q, ct);
+        // Toplam satırı: durum seçilmediyse yalnızca kesilen faturalar toplanır (taslak/iptal hariç), ekrandaki şeritle aynı.
+        var total = new InvoiceDto(0, "Toplam", 0, q.Status is null ? "Kesilen faturalar" : "", default, default, t.Subtotal, 0, t.VatAmount, 0,
+            t.WithholdingAmount, t.Total, t.Total - t.Remaining, t.Remaining, default, "", null, []);
+        return FileResults.Excel(ExcelExporter.ExportWithTotal("Faturalar", rows, total,
             new ExcelColumn<InvoiceDto>("Fatura No", i => i.InvoiceNo),
-            new("Tarih", i => i.Date, ExcelExporter.DateFormat),
-            new("Vade", i => i.DueDate, ExcelExporter.DateFormat),
+            new("Tarih", i => i.Id == 0 ? null : i.Date, ExcelExporter.DateFormat),
+            new("Vade", i => i.Id == 0 ? null : i.DueDate, ExcelExporter.DateFormat),
             new("Müşteri", i => i.CustomerTitle),
             new("Ara Toplam", i => i.Subtotal, ExcelExporter.MoneyFormat),
             new("KDV", i => i.VatAmount, ExcelExporter.MoneyFormat),

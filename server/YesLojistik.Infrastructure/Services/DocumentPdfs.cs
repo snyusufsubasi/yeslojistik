@@ -176,13 +176,38 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
         return (pdf, $"ekstre-{customer.CustomerNo}-{slug}.pdf", customer, closing);
     }
 
+    /// <summary>Müşteri ekstresinin Excel'i (PDF ile aynı satır ve toplamlar).</summary>
+    public async Task<(byte[] Content, string FileName)> ExcelAsync(int customerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var customer = await db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId, ct)
+            ?? throw new NotFoundException("Müşteri bulunamadı.");
+        var all = await accounts.MovementsAsync(customerId, ct);
+        var xlsx = Excel("Hesap Ekstresi", $"Cari No: {customer.CustomerNo}",
+            [customer.Title, customer.Address, string.IsNullOrWhiteSpace(customer.TaxNumber) ? null : $"{customer.TaxOffice} V.D. — {customer.TaxNumber}"],
+            all, from, to, supplier: false);
+        var slug = new string(customer.Title.Where(char.IsLetterOrDigit).Take(30).ToArray());
+        return (xlsx, $"ekstre-{customer.CustomerNo}-{slug}.xlsx");
+    }
+
     /// <summary>
     /// Ekstre PDF'i (müşteri ve tedarikçi için ortak). Tedarikçide "Borç" = firmanın tedarikçiye borçlandığı tutar,
     /// "Alacak" = tedarikçiye yapılan ödeme; pozitif bakiye tedarikçinin alacağıdır.
     /// </summary>
-    public static (byte[] Pdf, decimal Closing) Render(CompanySettings company, string title, string partyNo, string partyCaption,
-        string?[] partyLines, IReadOnlyList<AccountMovementDto> all, DateOnly? from, DateOnly? to, bool supplier)
+    /// <summary>Ekstrenin dönemi: devreden bakiye, dönem hareketleri ve kapanış bakiyesi (PDF ve Excel aynı rakamları kullanır).</summary>
+    public sealed record StatementPeriod(decimal Opening, IReadOnlyList<AccountMovementDto> Rows, decimal Closing, string Period, bool HasOpening)
     {
+        public decimal Debit => Rows.Sum(r => r.Debit);
+        public decimal Credit => Rows.Sum(r => r.Credit);
+
+        /// <summary>Kapanış bakiyesinin etiketi. Müşteride pozitif bakiye müşterinin borcu, tedarikçide tedarikçinin alacağıdır.</summary>
+        public string ClosingLabel(bool supplier) => supplier
+            ? (Closing >= 0 ? "Bakiye (alacağınız)" : "Bakiye (borcunuz)")
+            : (Closing >= 0 ? "Bakiye (borcunuz)" : "Bakiye (alacağınız)");
+    }
+
+    public static StatementPeriod Slice(IReadOnlyList<AccountMovementDto> all, DateOnly? from, DateOnly? to)
+    {
+        if (from is { } f && to is { } t && f > t) throw new DomainException("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
         var before = all.Where(m => from is { } f0 && m.Date < f0).ToList();
         var opening = before.Count > 0 ? before[^1].RunningBalance : 0m;
         var rows = all.Where(m => (from is not { } f1 || m.Date >= f1) && (to is not { } t1 || m.Date <= t1)).ToList();
@@ -194,6 +219,39 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
             (null, { } b) => $"{Formatters.Date(b)} tarihine kadar",
             ({ } a, { } b) => $"{Formatters.Date(a)} – {Formatters.Date(b)}",
         };
+        return new StatementPeriod(opening, rows, closing, period, from is not null);
+    }
+
+    /// <summary>Ekstrenin Excel'i: PDF ile aynı satırlar, devreden bakiye, dönem toplamları ve kapanış bakiyesi.</summary>
+    public static byte[] Excel(string title, string partyNo, string?[] partyLines, IReadOnlyList<AccountMovementDto> all,
+        DateOnly? from, DateOnly? to, bool supplier)
+    {
+        var s = Slice(all, from, to);
+        var rows = new List<AccountMovementDto>();
+        if (s.HasOpening) rows.Add(new AccountMovementDto(from!.Value, "Devir", "", "Devreden bakiye", 0, 0, s.Opening, ""));
+        rows.AddRange(s.Rows);
+        AccountMovementDto Total(string label, decimal debit, decimal credit, decimal? balance) => new(default, "", "", label, debit, credit, balance ?? 0, "");
+        AccountMovementDto[] footer = [Total("Dönem toplamı", s.Debit, s.Credit, s.Closing), Total(s.ClosingLabel(supplier), 0, 0, Math.Abs(s.Closing))];
+        var preface = new List<string> { title, $"{partyLines[0]} · {partyNo}" };
+        preface.AddRange(partyLines.Skip(1).Where(x => !string.IsNullOrWhiteSpace(x))!);
+        preface.Add($"Dönem: {s.Period} · Düzenleme: {Formatters.Date(Clock.Today)}");
+        using var wb = new ExcelWorkbookBuilder();
+        wb.AddSheet("Ekstre", rows, footer, preface,
+            new ExcelColumn<AccountMovementDto>("Tarih", m => m.Date == default ? null : m.Date, ExcelExporter.DateFormat),
+            new("İşlem", m => m.Type),
+            new("Belge", m => m.Reference),
+            new("Açıklama", m => m.Description),
+            new("Borç", m => m.Debit == 0 ? null : m.Debit, ExcelExporter.MoneyFormat),
+            new("Alacak", m => m.Credit == 0 ? null : m.Credit, ExcelExporter.MoneyFormat),
+            new("Bakiye", m => m.RunningBalance, ExcelExporter.MoneyFormat));
+        return wb.Build();
+    }
+
+    public static (byte[] Pdf, decimal Closing) Render(CompanySettings company, string title, string partyNo, string partyCaption,
+        string?[] partyLines, IReadOnlyList<AccountMovementDto> all, DateOnly? from, DateOnly? to, bool supplier)
+    {
+        var s = Slice(all, from, to);
+        var (opening, rows, closing, period) = (s.Opening, s.Rows, s.Closing, s.Period);
 
         var pdf = Document.Create(doc => doc.Page(page =>
         {
@@ -262,9 +320,7 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
                     Row("Dönem borç toplamı", rows.Sum(r => r.Debit));
                     Row("Dönem alacak toplamı", rows.Sum(r => r.Credit));
                     tot.Item().LineHorizontal(1).LineColor(PdfKit.Navy);
-                    Row(supplier
-                        ? (closing >= 0 ? "Bakiye (alacağınız)" : "Bakiye (borcunuz)")
-                        : (closing >= 0 ? "Bakiye (borcunuz)" : "Bakiye (alacağınız)"), Math.Abs(closing), bold: true);
+                    Row(s.ClosingLabel(supplier), Math.Abs(closing), bold: true);
                 });
                 if (!supplier && !string.IsNullOrWhiteSpace(company.Iban))
                     col.Item().Text(x => { x.Span("IBAN: ").Bold(); x.Span(company.Iban); });

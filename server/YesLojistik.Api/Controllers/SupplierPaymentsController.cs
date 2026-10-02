@@ -48,15 +48,25 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
         return new PagedResult<SupplierPaymentDto>(items, total, page, size);
     }
 
+    /// <summary>Filtrenin tamamının toplamı (yalnızca sayfanın değil). Tedarikçiden gelen iadeler eksi tutarla düşülür.</summary>
+    [HttpGet("totals")]
+    public async Task<PaymentTotalsDto> Totals([FromQuery] SupplierPaymentQuery q, CancellationToken ct)
+    {
+        var rows = await Filter(q).Select(p => p.Amount).ToListAsync(ct);
+        return new PaymentTotalsDto(rows.Count, rows.Sum(), -rows.Where(a => a < 0).Sum());
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] SupplierPaymentQuery q, CancellationToken ct)
     {
         var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
-        return FileResults.Excel(ExcelExporter.Export("Ödemeler", rows,
-            new ExcelColumn<SupplierPaymentDto>("Tarih", p => p.Date, ExcelExporter.DateFormat),
+        var t = await Totals(q, ct);
+        var total = new SupplierPaymentDto(0, 0, "Toplam", default, t.Total, default, null, null, null);
+        return FileResults.Excel(ExcelExporter.ExportWithTotal("Ödemeler", rows, total,
+            new ExcelColumn<SupplierPaymentDto>("Tarih", p => p.Id == 0 ? null : p.Date, ExcelExporter.DateFormat),
             new("Tedarikçi", p => p.SupplierTitle),
             new("Sefer", p => p.TripLabel),
-            new("Yöntem", p => CustomerAccountService.MethodLabel(p.Method)),
+            new("Yöntem", p => p.Id == 0 ? null : CustomerAccountService.MethodLabel(p.Method)),
             new("Tutar", p => p.Amount, ExcelExporter.MoneyFormat),
             new("Açıklama", p => p.Description)), "odemeler");
     }

@@ -62,15 +62,25 @@ public class PaymentsController(AppDbContext db) : ControllerBase
         return items.Select(p => p.EndorsedSupplierPaymentId is { } sid ? p with { EndorsedTo = titles.GetValueOrDefault(sid) } : p).ToList();
     }
 
+    /// <summary>Filtrenin tamamının toplamı (yalnızca sayfanın değil). Müşteriye iadeler eksi tutarla düşülür.</summary>
+    [HttpGet("totals")]
+    public async Task<PaymentTotalsDto> Totals([FromQuery] PaymentQuery q, CancellationToken ct)
+    {
+        var rows = await Filter(q).Select(p => p.Amount).ToListAsync(ct);
+        return new PaymentTotalsDto(rows.Count, rows.Sum(), -rows.Where(a => a < 0).Sum());
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] PaymentQuery q, CancellationToken ct)
     {
         var rows = await Filter(q).Select(Projection).Take(QueryExtensions.ExportLimit).ToListAsync(ct);
-        return FileResults.Excel(ExcelExporter.Export("Tahsilatlar", rows,
-            new ExcelColumn<PaymentDto>("Tarih", p => p.Date, ExcelExporter.DateFormat),
+        var t = await Totals(q, ct);
+        var total = new PaymentDto(0, 0, "Toplam", null, null, default, t.Total, default, null);
+        return FileResults.Excel(ExcelExporter.ExportWithTotal("Tahsilatlar", rows, total,
+            new ExcelColumn<PaymentDto>("Tarih", p => p.Id == 0 ? null : p.Date, ExcelExporter.DateFormat),
             new("Müşteri", p => p.CustomerTitle),
             new("Fatura", p => p.InvoiceNo),
-            new("Yöntem", p => CustomerAccountService.MethodLabel(p.Method)),
+            new("Yöntem", p => p.Id == 0 ? null : CustomerAccountService.MethodLabel(p.Method)),
             new("Hesap", p => p.CashAccountName),
             new("Çek/Senet No", p => p.InstrumentNo),
             new("Banka", p => p.Bank),

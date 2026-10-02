@@ -42,6 +42,16 @@ public record ExpenseCategoryRow(string Category, decimal Amount);
 public record CustomerProfitRow(int CustomerId, string Customer, int TripCount, decimal Revenue, decimal Cost, decimal Profit, decimal? MarginPercent,
     decimal OpenReceivable, int? CollectionDays);
 
+public enum ProfitGroupBy { Month, Customer, Vehicle, Driver }
+
+/// <summary>
+/// Kazanç raporu satırı (ay, müşteri, araç ya da şoför). Tutarlar KDV hariç.
+/// Kâr = satış + komisyon − araç/taşeron maliyeti − şoför primi − faturalanmayan ek masraf − sefer giderleri.
+/// </summary>
+/// <param name="Key">Ay için "2026-05", diğerlerinde kaydın numarası.</param>
+public record ProfitReportRow(string Key, string Label, int TripCount, decimal Sale, decimal Commission, decimal VehicleCost,
+    decimal DriverBonus, decimal ExtraCost, decimal Expenses, decimal Profit, decimal? MarginPercent);
+
 public record RouteProfitRow(string From, string To, int TripCount, decimal AvgRevenue, decimal AvgCost, decimal Profit, decimal? MarginPercent);
 
 public record SearchResult(string Type, int Id, string Title, string? Subtitle, string Link);

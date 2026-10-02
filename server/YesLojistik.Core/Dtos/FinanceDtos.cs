@@ -128,4 +128,18 @@ public record PurchaseInvoiceQuery : ListQuery
 /// <summary>Faturası henüz gelmemiş taşeron seferi (alınan faturaya bağlanabilir).</summary>
 public record UninvoicedCarrierTripDto(int TripId, DateOnly LoadingDate, string Route, string Plate, decimal VehicleCost,
     decimal CostVatRate, decimal Payable, string? ExternalRef);
+// Liste filtrelerinin tamamının toplamları ("filtre toplamı"; yalnızca görünen sayfanın değil).
+
+/// <summary>Faturalar: tutarlar kesilmiş faturalardan (durum seçildiyse o durumdan). Kalan = tahsil edilmemiş tutar.</summary>
+public record InvoiceTotalsDto(int Count, decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total, decimal Remaining);
+
+/// <summary>Alınan faturalar (iptaller yalnızca "iptalleri göster" seçiliyse girer).</summary>
+public record PurchaseInvoiceTotalsDto(int Count, decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total);
+
+/// <summary>Giderler: Total filtredeki bütün giderler; Approved onaylı, Pending onay bekleyen kısım.</summary>
+public record ExpenseTotalsDto(int Count, decimal Total, decimal Approved, decimal Pending);
+
+/// <summary>Tahsilat / tedarikçi ödemesi: Total net tutar (iadeler düşülmüş), Refunds iadelerin toplamı (pozitif).</summary>
+public record PaymentTotalsDto(int Count, decimal Total, decimal Refunds);
+
 public record ExpenseCategoryTotal(string Name, int Count, decimal Total, decimal Percent);
