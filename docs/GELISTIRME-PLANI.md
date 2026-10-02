@@ -34,7 +34,7 @@
    - klavyeyle hızlı giriş,
    - yanlışlıkla kapanınca kaybolmayan formlar.
 7. **Sunucu uykudayken ekran donmuş gibi görünüyor.** Ücretsiz sunucu uykudan uyanırken ekranlar sonsuz dönen simgede kalıyor ya da sizi oturumdan atıyor. Hata ve "Tekrar dene" ekranları yok.
-8. **.NET 8 desteği 10 Kasım 2026'da bitiyor.** Yaklaşık 6 hafta içinde .NET 10'a geçilmeli.
+8. ✅ **.NET 10'a geçildi (2 Ekim).** .NET 8 desteği 10 Kasım 2026'da bitiyordu. Sunucu, Docker imajları ve CI artık .NET 10 kullanıyor.
 
 ---
 
@@ -147,7 +147,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 14 | Ana listelerde Excel dışa aktarma ve arşiv/pasif görünümü | Müşteri, tedarikçi, şoför ve araç listelerinde sadece içe aktarma var | 4 dışa aktarma ucu + düğmeler | M |
 | 15 | Hata kodu (iz numarası) ve hata kayıtları | "Beklenmeyen hata" mesajının nedeni bulunamıyor | `ExceptionHandler` + mesajda "Hata kodu: …" | S |
 | 16 | Arka plan işleri zamanlayıcıyla çalışsın | Sabah özeti ve e-fatura durumu uyuyan sunucuda çalışmıyor | GitHub Actions zamanlayıcısı + "Son çalışma" bilgisi | S |
-| 17 | .NET 10'a yükseltme | .NET 8 desteği 10 Kasım'da bitiyor | Tüm `.csproj`, Docker, CI | M |
+| 17 | ✅ .NET 10'a yükseltme (2 Ekim) | .NET 8 desteği 10 Kasım'da bitiyor | Tüm `.csproj`, Docker, CI | M |
 | 18 | Yedek saklama süresini uzat ve dışarıya kopyala | Muhasebe kayıtları 5–10 yıl saklanmalı, şu an 30 gün | `backup.yml` + harici depo (R2/B2) | M |
 
 ## Aşama 3 — Orta vade
@@ -213,7 +213,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 11 | Trip SaleVatRate/SaleWithholdingTenths ignored by invoicing | high | `InvoiceService.cs` ~55-116 |
 | 12 | Purchase invoice create/update not atomic | high | `PurchaseInvoiceService.cs` |
 | 13 | No granular permissions; deletes open to all office roles | high | `Policies.cs`, Customers/Suppliers/Expenses/Attachments controllers |
-| 14 | .NET 8 EOL 2026-11-10 | high | `*.csproj`, Dockerfiles, `ci.yml` |
+| 14 | ✅ Done (2 Oct): upgraded to .NET 10 (net10.0, EF Core/Npgsql 10, sdk/aspnet:10.0 images) | high | `*.csproj`, Dockerfiles, `ci.yml` |
 | 15 | Fast entry: Kaydet ve Yeni / kopya / keep-open | high | `client/src/components/TripForm.tsx` |
 | 16 | Modal: no autofocus, focus trap, restore, Ctrl+Enter; no dirty guard | high | `client/src/components/ui.tsx` Modal |
 | 17 | Suggestion chips in Tab order; SearchSelect doesn't select on Tab | high | `TripForm.tsx`, `Inputs.tsx`, `FormSelect.tsx` |

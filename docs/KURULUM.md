@@ -135,7 +135,7 @@ Yedeğin gerçekten açıldığını görmek için geri yüklemeyi ayrı bir mak
 Bkz. [README](../README.md). Yeni migration:
 
 ```bash
-dotnet tool install -g dotnet-ef --version 8.0.11
+dotnet tool update -g dotnet-ef --version 10.0.12
 cd server
 ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add <Ad> -p YesLojistik.Infrastructure -s YesLojistik.Api -o Data/Migrations
 ```

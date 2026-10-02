@@ -83,7 +83,8 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] **Veritabanı:** ücretsiz veritabanı 28 Ekim'de silinir.
   - Ekim ortasında karar verilir: ya ücretli plana geçilir ya da yeni ücretsiz veritabanı açılıp ayna yeniden doldurulur.
   - Gerçek geçişten önce ücretli plan şart.
-- [ ] .NET 10'a yükseltme (.NET 8 desteği 10 Kasım'da bitiyor). Yedeklerin saklama süresi uzatılır.
+- [x] .NET 10'a yükseltme (.NET 8 desteği 10 Kasım'da bitiyordu). 2 Ekim'de yapıldı.
+- [ ] Yedeklerin saklama süresi uzatılır.
 
 ### A9 — Geçiş günü (1 gün)
 - [ ] Pratikortam'a kayıt girişi durur → son senkron yapılır → ayna kapatılır → panel kayıt girişine açılır.

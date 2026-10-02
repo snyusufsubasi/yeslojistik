@@ -7,7 +7,7 @@ ve şoför mobil uygulaması.
 
 - **Web panel:** React 19 + TypeScript + Vite + Tailwind CSS, Leaflet/OpenStreetMap harita (`client/`)
 - **Şoför uygulaması:** Expo / React Native, Android + iOS (`mobile/`) — bkz. [mobile/README.md](mobile/README.md)
-- **API:** .NET 8 Web API + EF Core (`server/`)
+- **API:** .NET 10 Web API + EF Core (`server/`)
 - **Veritabanı:** PostgreSQL 16
 - **Kurulum:** Docker Compose + Caddy (otomatik HTTPS)
 
@@ -33,7 +33,7 @@ Sunucu kiralamadan denemek için ücretsiz Render.com kurulumu: [docs/KURULUM.md
 
 ## Hızlı başlangıç (geliştirme)
 
-Gerekenler: .NET 8 SDK, Node 22, PostgreSQL 16 (`localhost:5432`, kullanıcı/şifre `postgres`/`postgres`).
+Gerekenler: .NET 10 SDK, Node 22, PostgreSQL 16 (`localhost:5432`, kullanıcı/şifre `postgres`/`postgres`).
 
 ```bash
 # 1) API — ilk açılışta tabloları oluşturur, örnek veriyi yükler

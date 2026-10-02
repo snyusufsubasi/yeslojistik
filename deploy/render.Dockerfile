@@ -7,7 +7,7 @@ RUN npm ci
 COPY client/ ./
 RUN npm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY server/YesLojistik.sln ./
 COPY server/YesLojistik.Api/YesLojistik.Api.csproj YesLojistik.Api/
@@ -18,13 +18,13 @@ RUN dotnet restore YesLojistik.Api/YesLojistik.Api.csproj
 COPY server/ ./
 RUN dotnet publish YesLojistik.Api/YesLojistik.Api.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 # QuestPDF (PDF) için yazı tipi kütüphanesi ve saat dilimi verisi
-# Yedek/geri yükleme (pg_dump, pg_restore) için PostgreSQL 16 istemcisi (PGDG deposu, Debian bookworm).
+# Yedek/geri yükleme (pg_dump, pg_restore) için PostgreSQL 16 istemcisi (PGDG deposu; .NET 10 imajı Ubuntu 24.04 "noble", dağıtım adı /etc/os-release içinden alınır).
 RUN apt-get update && apt-get install -y --no-install-recommends libfontconfig1 tzdata curl ca-certificates gnupg \
     && install -d /usr/share/postgresql-common/pgdg \
     && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update && apt-get install -y --no-install-recommends postgresql-client-16 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

@@ -9,7 +9,7 @@
 Kuzenin nakliye firması (YES Lojistik) için seferleri, araçları, şoförleri, müşteri carilerini, faturaları, tahsilatları ve giderleri tek yerden yönettiği bir web paneli istiyor. Elimizde sadece bir tasarım görseli var; repo boş (`README.md` dışında hiçbir şey yok). Bu yüzden sıfırdan, **aşamalı** kuracağız.
 
 Kararlar:
-- **Stack:** React (Vite + TypeScript) + Tailwind · .NET 8 Web API (C#) · PostgreSQL · EF Core · Docker
+- **Stack:** React (Vite + TypeScript) + Tailwind · .NET 10 Web API (C#) · PostgreSQL · EF Core · Docker
 - **v1 kapsamı:** Sadece web panel (masaüstü + mobil uyumlu). Şoför mobil uygulaması, GPS ve GİB e-Fatura **v2**.
 - **Fatura:** v1'de sistem içi fatura kaydı + PDF çıktısı. Resmi e-Fatura mevcut muhasebe programından kesilmeye devam eder; mimari sonradan entegratör eklenebilecek şekilde kurulur.
 
