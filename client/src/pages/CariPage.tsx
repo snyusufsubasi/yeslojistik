@@ -8,7 +8,8 @@ import type { CustomerCariRow, SupplierCariRow } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader, StatCard } from '../components/ui'
 import { useToast } from '../components/Toast'
-import { tl } from '../lib/format'
+import { ago, tl } from '../lib/format'
+import { useMirror } from '../lib/hooks'
 import { normalizeSearch as searchKey } from '../lib/search'
 
 type Kind = 'customers' | 'suppliers'
@@ -41,17 +42,22 @@ export default function CariPage({ kind }: { kind: Kind }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('open')
   const { data, isFetching } = useQuery({ queryKey: ['cari', kind], queryFn: () => get<Row[]>(`/cari/${kind}`) })
+  // Pratikortam aynası açıkken bakiye pratikortam'daki rakamdır; panel kendi borç/alacak hesabını yapmaz.
+  const { mirror, status } = useMirror()
+  const bal = (r: Row) => (mirror ? r.legacyBalance ?? 0 : r.balance)
 
   const rows = useMemo(() => {
     const q = searchKey(search)
+    const b = (r: Row) => (mirror ? r.legacyBalance ?? 0 : r.balance)
     return (data ?? []).filter((r) =>
-      (filter === 'all' || (filter === 'open' ? r.balance !== 0 : r.overdue > 0))
+      (filter === 'all' || (filter === 'open' ? b(r) !== 0 : r.overdue > 0))
       && (!q || searchKey(`${r.title} ${r.taxNumber ?? ''} ${r.phone ?? ''}`).includes(q)))
-  }, [data, search, filter])
+      .sort((a, z) => b(z) - b(a))
+  }, [data, search, filter, mirror])
 
   const sum = (f: (r: Row) => number) => rows.reduce((s, r) => s + f(r), 0)
   const all = data ?? []
-  const totalBalance = all.reduce((s, r) => s + r.balance, 0)
+  const totalBalance = all.reduce((s, r) => s + bal(r), 0)
   const totalOverdue = all.reduce((s, r) => s + r.overdue, 0)
   const overdueCount = all.filter((r) => r.overdue > 0).length
   const waiting = kind === 'customers'
@@ -64,11 +70,15 @@ export default function CariPage({ kind }: { kind: Kind }) {
     <span className={clsx(v === 0 && 'text-slate-400', strong && v > 0 && 'font-semibold text-slate-900', strong && v < 0 && 'font-semibold text-emerald-700')}>{tl(v)}</span>
   )
 
-  const columns: Column<Row>[] = [
-    { key: 'title', header: kind === 'customers' ? 'Müşteri' : 'Tedarikçi', className: 'min-w-48', render: (r) => <>
-      <span className="font-medium text-slate-900">{r.title}</span>
-      {r.taxNumber && <span className="block text-sm text-slate-500">VKN {r.taxNumber}</span>}
-    </> },
+  const titleColumn: Column<Row> = { key: 'title', header: kind === 'customers' ? 'Müşteri' : 'Tedarikçi', className: 'min-w-48', render: (r) => <>
+    <span className="font-medium text-slate-900">{r.title}</span>
+    {r.taxNumber && <span className="block text-sm text-slate-500">VKN {r.taxNumber}</span>}
+  </> }
+  const columns: Column<Row>[] = mirror ? [
+    titleColumn,
+    { key: 'balance', header: 'Bakiye (pratikortam)', align: 'right', render: (r) => money(bal(r), true) },
+  ] : [
+    titleColumn,
     { key: 'opening', header: 'Devir', align: 'right', render: (r) => money(r.opening) },
     ...(kind === 'customers' ? [
       { key: 'invoiced', header: 'Kesilen Fatura', align: 'right', render: (r) => money((r as CustomerCariRow).invoiced) },
@@ -95,7 +105,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
     <tr><td colSpan={columns.length} className="border-t border-slate-200 bg-slate-50 px-6 py-3">
     <div className="flex flex-wrap items-center justify-between gap-3 text-[0.9375rem]">
       <span className="text-slate-600">{rows.length} kayıt</span>
-      <span>Bakiye toplamı <b className="tabular-nums text-slate-900">{tl(sum((r) => r.balance))}</b>
+      <span>Bakiye toplamı <b className="tabular-nums text-slate-900">{tl(sum(bal))}</b>
         {sum((r) => r.overdue) > 0 && <> · <span className="text-red-600">vadesi geçen <b className="tabular-nums">{tl(sum((r) => r.overdue))}</b></span></>}
       </span>
     </div>
@@ -104,12 +114,19 @@ export default function CariPage({ kind }: { kind: Kind }) {
 
   return (
     <>
-      <PageHeader title={t.title} subtitle={t.subtitle}
+      <PageHeader title={t.title} subtitle={mirror ? 'Bakiyeler pratikortam\'daki cari ile aynıdır. Satıra tıklayınca kart açılır.' : t.subtitle}
         actions={<>
           <Button variant="secondary" onClick={() => navigate(t.listTo)}>{t.list}</Button>
-          <Button icon={<t.payIcon className="size-4" />} onClick={() => navigate(t.pay)}>{t.payLabel}</Button>
+          {!mirror && <Button icon={<t.payIcon className="size-4" />} onClick={() => navigate(t.pay)}>{t.payLabel}</Button>}
         </>} />
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      {mirror ? (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+          <StatCard title={t.balance} value={tl(totalBalance)} icon={<Scale />} color="blue" onClick={() => setFilter('open')}
+            sub={`${all.filter((r) => bal(r) !== 0).length} hesapta bakiye var`} />
+          <StatCard title="Pratikortam'dan" value={status?.lastAt ? ago(status.lastAt) : '—'} icon={<FileSpreadsheet />} color="orange"
+            sub="Son güncelleme. Günde birkaç kez kendiliğinden yenilenir." />
+        </div>
+      ) : <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard title={t.balance} value={tl(totalBalance)} icon={<Scale />} color="blue" onClick={() => setFilter('open')}
           sub={`${all.filter((r) => r.balance !== 0).length} hesapta bakiye var`} />
         <StatCard title="Vadesi geçen" value={tl(totalOverdue)} icon={<AlertTriangle />} color="red" onClick={() => setFilter('overdue')}
@@ -119,11 +136,11 @@ export default function CariPage({ kind }: { kind: Kind }) {
               sub={waiting.count ? `${waiting.count} sefer · fatura kesmek için tıklayın` : 'Bekleyen yok'} onClick={() => navigate('/faturalar/yeni')} />
           : <StatCard title="Taşeron faturası gelmeyen" value={`${waiting.count} sefer`} icon={<Truck />} color="orange"
               sub="Listelemek için tıklayın" onClick={() => navigate('/seferler?carrierInvoice=missing')} />}
-      </div>
+      </div>}
       <Card bodyClassName="p-0" title="Hesaplar" icon={<Scale className="size-4" />}
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />}>
         <div role="radiogroup" aria-label="Gösterilecek hesaplar" className="flex flex-wrap gap-2 border-b border-slate-100 px-6 py-3">
-          {([['open', 'Bakiyesi olanlar'], ['overdue', 'Vadesi geçenler'], ['all', 'Hepsi']] as const).map(([v, label]) => (
+          {([['open', 'Bakiyesi olanlar'], ['overdue', 'Vadesi geçenler'], ['all', 'Hepsi']] as const).filter(([v]) => !mirror || v !== 'overdue').map(([v, label]) => (
             <button key={v} role="radio" aria-checked={filter === v} onClick={() => setFilter(v)}
               className={clsx('min-h-9 rounded-full border px-4 text-[0.9375rem] font-medium transition',
                 filter === v ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}>
@@ -141,7 +158,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
                 {r.overdue > 0 ? <div className="text-sm text-red-600">Vadesi geçen {tl(r.overdue)}</div>
                   : <div className="text-sm text-slate-500">{r.taxNumber ? `VKN ${r.taxNumber}` : r.phone ?? ''}</div>}
               </div>
-              <span className="shrink-0 font-semibold tabular-nums">{tl(r.balance)}</span>
+              <span className="shrink-0 font-semibold tabular-nums">{tl(bal(r))}</span>
             </div>
           )} />
       </Card>

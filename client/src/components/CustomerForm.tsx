@@ -178,7 +178,7 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
             <div className="flex gap-2">
               <input className="input" placeholder="Yeni grup adı" value={newGroup} onChange={(e) => setNewGroup(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addGroup() } }} />
-              <Button type="button" variant="secondary" onClick={addGroup}>Ekle</Button>
+              <Button write type="button" variant="secondary" onClick={addGroup}>Ekle</Button>
             </div>
           </MoreFields>
         </div>

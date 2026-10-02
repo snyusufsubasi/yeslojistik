@@ -56,8 +56,8 @@ export default function PurchaseInvoicesPage() {
     key: 'actions', header: '', align: 'right', render: (p) => (
       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
         {p.hasFile && <IconButton label="Faturayı aç" onClick={() => openPdf(`/purchase-invoices/${p.id}/file`, `${p.invoiceNo}.pdf`).catch((e) => toast.error(errorMessage(e)))}><Paperclip className="size-4" /></IconButton>}
-        {can('accounting') && <IconButton label="Düzenle" onClick={() => setEditing(p)}><Pencil className="size-4" /></IconButton>}
-        {can('accounting') && <IconButton label="İptal et" onClick={() => setCancelling(p)}><Ban className="size-4" /></IconButton>}
+        {can('accounting') && <IconButton write label="Düzenle" onClick={() => setEditing(p)}><Pencil className="size-4" /></IconButton>}
+        {can('accounting') && <IconButton write label="İptal et" onClick={() => setCancelling(p)}><Ban className="size-4" /></IconButton>}
       </div>
     ),
   })
@@ -69,7 +69,7 @@ export default function PurchaseInvoicesPage() {
       <PageHeader title="Alınan Faturalar" subtitle="Taşerondan ve tedarikçilerden gelen faturalar; bağlanan seferler fatura bekleyenlerden düşer"
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/purchase-invoices/export', query, 'alinan-faturalar.xlsx')}>Excel</Button>
-          {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button>}
+          {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button>}
         </>} />
       <Card title="Fatura Listesi" icon={<FileInput className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, tedarikçi, VKN..." />}>

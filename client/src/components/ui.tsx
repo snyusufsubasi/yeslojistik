@@ -1,4 +1,4 @@
-import { useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { ChevronLeft, Loader2, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
@@ -16,8 +16,16 @@ const variants: Record<Variant, string> = {
   ghost: 'text-slate-700 hover:bg-slate-100',
 }
 
-export function Button({ variant = 'primary', size = 'md', loading, icon, className, children, disabled, ...rest }:
-  ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md'; loading?: boolean; icon?: ReactNode }) {
+/**
+ * Pratikortam aynası açıkken (Layout sağlar) kayıt ekleyen/değiştiren düğmeler gizlenir: o dönemde kayıtlar pratikortam'dan gelir.
+ * Böyle düğmeler `write` ile işaretlenir; sunucu da aynı işlemleri reddeder.
+ */
+export const MirrorContext = createContext(false)
+
+export function Button({ variant = 'primary', size = 'md', loading, icon, className, children, disabled, write, ...rest }:
+  ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md'; loading?: boolean; icon?: ReactNode; write?: boolean }) {
+  const mirror = useContext(MirrorContext)
+  if (write && mirror) return null
   return (
     <button
       className={clsx('inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-[1.125rem]',
@@ -31,7 +39,9 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
   )
 }
 
-export function IconButton({ label, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+export function IconButton({ label, className, children, write, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; write?: boolean }) {
+  const mirror = useContext(MirrorContext)
+  if (write && mirror) return null
   return (
     <button title={label} aria-label={label}
       className={clsx('inline-flex size-10 items-center justify-center rounded-lg text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40', className)}

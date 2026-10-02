@@ -4,9 +4,9 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Bell, Building2, CheckCircle2, Circle, DatabaseZap, Download, FileText, HardDrive, History, KeyRound, Pencil, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { Bell, Building2, CheckCircle2, Circle, DatabaseZap, Download, FileText, HardDrive, History, KeyRound, Pencil, Plus, RefreshCw, Trash2, Upload, Users } from 'lucide-react'
 import { errorMessage, get, post, put } from '../api/client'
-import type { CompanySettings, Dashboard, DataStats, EInvoiceInfo, User, UserRole } from '../api/types'
+import type { CompanySettings, Dashboard, DataStats, EInvoiceInfo, MirrorStatus, User, UserRole } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
 import { DocumentsPanel } from '../components/FleetPanels'
@@ -17,8 +17,8 @@ import { FormSelect } from '../components/FormSelect'
 import { CitySelect } from '../components/CitySelect'
 import { AuditLogTable } from '../components/AuditLog'
 import { InvoiceNotesCard } from '../components/InvoiceNotesCard'
-import { dateTime, fileSize, tl2 } from '../lib/format'
-import { crud, useLookup, useSave } from '../lib/hooks'
+import { ago, dateTime, fileSize, tl2 } from '../lib/format'
+import { crud, useLookup, useMirror, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
 type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'notifications' | 'password'
@@ -52,6 +52,7 @@ export default function SettingsPage() {
       )}
       {tab === 'data' && can('admin') && (
         <div className="flex flex-col gap-4">
+          <MirrorCard />
           <GoLiveCard />
           <BackupCard />
           <MigrationCheckCard />
@@ -340,6 +341,83 @@ function PasswordForm() {
         <Field label="Yeni Şifre (tekrar)" error={errors.confirm?.message}><input className="input" type="password" autoComplete="new-password" {...register('confirm')} /></Field>
         <Button type="submit" loading={isSubmitting}>Şifreyi Değiştir</Button>
       </form>
+    </Card>
+  )
+}
+
+/** Yazım istisnaları metin olarak: her satır "BÜYÜK HARF = İstenen yazım". */
+const exceptionsText = (m: Record<string, string>) => Object.entries(m).map(([k, v]) => `${k} = ${v}`).join('\n')
+const parseExceptions = (t: string) => Object.fromEntries(t.split('\n').map((l) => l.split('=').map((x) => x.trim()))
+  .filter((p) => p.length === 2 && p[0] && p[1]))
+
+/**
+ * Pratikortam aynası (yan yana kullanım): açıkken kayıtlar günde birkaç kez pratikortam'dan gelir, panelde eklenmez ve değiştirilmez,
+ * cari bakiyeler pratikortam'daki rakamdır. Yazım istisnaları senkronun harf düzeninde kullanılır.
+ */
+function MirrorCard() {
+  const { status } = useMirror()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const [asking, setAsking] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [text, setText] = useState<string | null>(null)
+  if (!status) return null
+  const words = text ?? exceptionsText(status.spellingExceptions)
+
+  const setMode = async (enabled: boolean) => {
+    setBusy(true)
+    try {
+      await post<MirrorStatus>('/legacy/mode', { enabled })
+      await qc.invalidateQueries()
+      toast.success(enabled ? 'Pratikortam aynası açıldı. Kayıtlar bir sonraki senkronda gelir.' : 'Pratikortam aynası kapatıldı.')
+      setAsking(false)
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const saveWords = async () => {
+    try {
+      const saved = await put<Record<string, string>>('/legacy/spelling', parseExceptions(words))
+      setText(exceptionsText(saved))
+      await qc.invalidateQueries({ queryKey: ['legacy'] })
+      toast.success('Yazım istisnaları kaydedildi. Bir sonraki senkronda uygulanır.')
+    } catch (e) {
+      toast.error(errorMessage(e))
+    }
+  }
+
+  return (
+    <Card title="Pratikortam aynası" icon={<RefreshCw className="size-4" />} className="max-w-2xl">
+      <div className="space-y-4 text-[0.9375rem] text-slate-700">
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge tone={status.mirrorMode ? 'green' : 'gray'}>{status.mirrorMode ? 'Açık' : 'Kapalı'}</Badge>
+          <span>{status.lastAt ? <>Son güncelleme {ago(status.lastAt)} ({dateTime(status.lastAt)})</> : 'Henüz senkron yapılmadı.'}</span>
+        </div>
+        {status.lastSummary && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">{status.lastSummary}</p>}
+        <p>Açıkken müşteri, tedarikçi, şoför, araç, sevkiyat ve giderler günde birkaç kez pratikortam'dan kendiliğinden gelir.
+          Bu dönemde değişiklikler pratikortam'da yapılır; panelde ekleme ve düzenleme kapalıdır. Cari bakiyeler pratikortam'daki rakamdır.</p>
+        {status.mirrorMode
+          ? <Button variant="secondary" loading={busy} onClick={() => setMode(false)}>Aynayı kapat</Button>
+          : <Button icon={<RefreshCw className="size-4" />} onClick={() => setAsking(true)}>Aynayı aç</Button>}
+        <label className="block">
+          <span className="label">Yazım istisnaları</span>
+          <span className="mb-1 block text-sm text-slate-500">Büyük harf düzeltmesinde farklı yazılmasını istediğiniz kelimeler. Her satıra bir tane: <code>MES = MES</code></span>
+          <textarea className="input min-h-24 font-mono text-sm" value={words} onChange={(e) => setText(e.target.value)} />
+        </label>
+        <Button variant="secondary" onClick={saveWords}>İstisnaları kaydet</Button>
+      </div>
+      <ConfirmDialog open={asking} title="Pratikortam aynası açılsın mı?" danger={false} confirmText="Evet, aç" loading={busy}
+        onClose={() => setAsking(false)} onConfirm={() => setMode(true)}
+        message={<div className="space-y-2">
+          <p>Panel pratikortam'ın aynası olur:</p>
+          <ul className="list-inside list-disc space-y-1">
+            <li>Kayıtlar pratikortam'dakiyle aynı hâle getirilir.</li>
+            <li>Pratikortam'da olmayan kayıtlar (ör. eski aktarımın fazlası, devir ödemeleri) silinmez, pasife alınır; geri getirilebilir.</li>
+            <li>Panelde ekleme ve düzenleme kapanır, değişiklikler pratikortam'da yapılır.</li>
+          </ul>
+        </div>} />
     </Card>
   )
 }

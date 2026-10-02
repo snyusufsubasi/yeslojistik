@@ -73,7 +73,7 @@ export function TripAttachments({ trip }: { trip: Trip }) {
                 <a href={`/api/attachments/${a.id}?download=true`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100" title="İndir" aria-label="İndir">
                   <ExternalLink className="size-4" />
                 </a>
-                <IconButton label="Sil" onClick={() => setDeleting(a)}><Trash2 className="size-4" /></IconButton>
+                <IconButton write label="Sil" onClick={() => setDeleting(a)}><Trash2 className="size-4" /></IconButton>
               </div>
             </li>
           ))}

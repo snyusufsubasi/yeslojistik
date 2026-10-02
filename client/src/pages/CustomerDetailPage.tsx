@@ -43,8 +43,8 @@ export default function CustomerDetailPage() {
           {s.overdueAmount > 0 && <Button variant="secondary" icon={<BellRing className="size-4" />} onClick={() => setStatement('reminder')}>Vade Hatırlatma</Button>}
           {s.tripCount === 0 && s.totalDebit === 0 && s.totalCredit === 0 &&
             <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>}
-          {can('accounting') && <Button variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
-          {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => navigate(`/faturalar/yeni?customerId=${id}`)}>Yeni Fatura</Button>}
+          {can('accounting') && <Button write variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
+          {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate(`/faturalar/yeni?customerId=${id}`)}>Yeni Fatura</Button>}
         </>} />
 
       <div className="grid gap-4 lg:grid-cols-3">

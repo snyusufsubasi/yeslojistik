@@ -43,7 +43,7 @@ export default function SuppliersPage() {
         actions={<>
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/tedarikciler')}>Cari Tablosu</Button>}
           <ImportButton entity="suppliers" />
-          <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Tedarikçi</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Tedarikçi</Button>
         </>} />
       <Card title="Tedarikçi Listesi" icon={<Truck className="size-4" />} bodyClassName="p-0"
         actions={<div className="flex flex-wrap gap-2">

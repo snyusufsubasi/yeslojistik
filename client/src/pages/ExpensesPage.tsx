@@ -85,8 +85,8 @@ export default function ExpensesPage() {
             <Button size="sm" icon={<Check className="size-4" />} loading={approveMut.isPending && approveMut.variables === e.id} onClick={() => approveMut.mutate(e.id)}>Onayla</Button>
             <Button size="sm" variant="secondary" onClick={() => setRejecting(e)}>Reddet</Button>
           </>}
-          <IconButton label="Düzenle" onClick={() => setEditing(e)}><Pencil className="size-4" /></IconButton>
-          <IconButton label="Sil" onClick={() => setDeleting(e)}><Trash2 className="size-4" /></IconButton>
+          <IconButton write label="Düzenle" onClick={() => setEditing(e)}><Pencil className="size-4" /></IconButton>
+          <IconButton write label="Sil" onClick={() => setDeleting(e)}><Trash2 className="size-4" /></IconButton>
         </div>
       ),
     },
@@ -99,7 +99,7 @@ export default function ExpensesPage() {
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/expenses/export', query, 'giderler.xlsx')}>Excel</Button>
           <ImportButton entity="expenses" />
-          <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Gider Ekle</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Gider Ekle</Button>
         </>} />
       {tripId && (
         <div className="mb-3 flex items-center gap-2 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-700">

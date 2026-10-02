@@ -43,7 +43,7 @@ export default function CustomersPage() {
         actions={<>
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/musteriler')}>Cari Tablosu</Button>}
           <ImportButton entity="customers" />
-          <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>
         </>} />
       <Card title="Müşteri Listesi" icon={<Users className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />}>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { del, errorMessage, get, post, put } from '../api/client'
-import type { ListParams, LookupItem, PagedResult } from '../api/types'
+import type { ListParams, LookupItem, MirrorStatus, PagedResult } from '../api/types'
 import { useToast } from '../components/Toast'
 
 export function useDebounce<T>(value: T, ms = 300) {
@@ -81,4 +81,10 @@ export function useOpenNewFromUrl(open: () => void) {
     next.delete('new')
     setParams(next, { replace: true })
   }, [params, setParams])
+}
+
+/** Pratikortam aynası durumu: açıkken kayıtlar pratikortam'dan gelir, panelde ekleme/düzenleme kapalıdır. */
+export function useMirror() {
+  const { data } = useQuery({ queryKey: ['legacy', 'status'], queryFn: () => get<MirrorStatus>('/legacy/status'), staleTime: 60_000 })
+  return { mirror: data?.mirrorMode ?? false, status: data }
 }

@@ -45,8 +45,8 @@ export default function SupplierPaymentsPage() {
   if (can('accounting')) columns.push({
     key: 'actions', header: '', align: 'right', render: (p) => (
       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-        <IconButton label="Düzenle" onClick={() => setEditing(p)}><Pencil className="size-4" /></IconButton>
-        <IconButton label="Sil" onClick={() => setDeleting(p)}><Trash2 className="size-4" /></IconButton>
+        <IconButton write label="Düzenle" onClick={() => setEditing(p)}><Pencil className="size-4" /></IconButton>
+        <IconButton write label="Sil" onClick={() => setDeleting(p)}><Trash2 className="size-4" /></IconButton>
       </div>
     ),
   })
@@ -57,7 +57,7 @@ export default function SupplierPaymentsPage() {
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/supplier-payments/export', query, 'odemeler.xlsx')}>Excel</Button>
           {can('accounting') && <ImportButton entity="supplier-payments" />}
-          {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Ödeme Yap</Button>}
+          {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Ödeme Yap</Button>}
         </>} />
       <Card title="Ödeme Listesi" icon={<HandCoins className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Tedarikçi, açıklama..." />}>

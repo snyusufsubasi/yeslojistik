@@ -115,7 +115,7 @@ export default function InvoiceCreatePage() {
                 </div>
               )}
           </Card>
-          <Card title="Ek Satırlar" actions={<Button size="sm" variant="secondary" icon={<Plus className="size-3.5" />} disabled={customerId === ''}
+          <Card title="Ek Satırlar" actions={<Button write size="sm" variant="secondary" icon={<Plus className="size-3.5" />} disabled={customerId === ''}
             onClick={() => setExtra((x) => [...x, { key: Date.now(), description: '', amount: '' }])}>Satır Ekle</Button>}>
             {customerId !== '' && (
               <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -134,7 +134,7 @@ export default function InvoiceCreatePage() {
                       onChange={(e) => setExtra((x) => x.map((y) => y.key === l.key ? { ...y, description: e.target.value } : y))} />
                     <input className="input w-36 text-right" type="number" step="0.01" min="0" placeholder="Tutar" aria-label={`Satır ${i + 1} tutar`} value={l.amount}
                       onChange={(e) => setExtra((x) => x.map((y) => y.key === l.key ? { ...y, amount: e.target.value } : y))} />
-                    <IconButton label="Satırı sil" onClick={() => setExtra((x) => x.filter((y) => y.key !== l.key))}><Trash2 className="size-4" /></IconButton>
+                    <IconButton write label="Satırı sil" onClick={() => setExtra((x) => x.filter((y) => y.key !== l.key))}><Trash2 className="size-4" /></IconButton>
                   </div>
                 ))}
               </div>

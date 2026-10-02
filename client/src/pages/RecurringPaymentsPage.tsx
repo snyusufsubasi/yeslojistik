@@ -45,7 +45,7 @@ export default function RecurringPaymentsPage() {
     { key: 'actions', header: '', align: 'right', render: (r) => (
       <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
         {r.isActive && !r.paidDate && <Button size="sm" variant="secondary" icon={<CheckCircle2 className="size-4" />} onClick={() => setPaying(r)}>Ödendi</Button>}
-        <IconButton label="Düzenle" onClick={() => setEditing(r)}><Pencil className="size-4" /></IconButton>
+        <IconButton write label="Düzenle" onClick={() => setEditing(r)}><Pencil className="size-4" /></IconButton>
       </div>
     ) },
   ]
@@ -53,7 +53,7 @@ export default function RecurringPaymentsPage() {
   return (
     <>
       <PageHeader title="Sabit Ödemeler" subtitle="Her ay tekrarlanan ödemeler. “Ödendi” deyince gider olarak yazılır, seçilen hesaptan düşer."
-        actions={<Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>} />
+        actions={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>} />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard title="Bu ayın toplamı" value={tl(active.reduce((s, r) => s + r.amount, 0))} icon={<Repeat />} color="blue" sub={`${active.length} kalem`} />
         <StatCard title="Ödenmeyen" value={tl(unpaid.reduce((s, r) => s + r.amount, 0))} icon={<CalendarClock />} color="orange" sub={`${unpaid.length} kalem`} />

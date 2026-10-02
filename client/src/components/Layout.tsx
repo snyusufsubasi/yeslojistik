@@ -10,10 +10,12 @@ import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Dashboard, Health } from '../api/types'
 import { useAuth, type Permission } from '../lib/auth'
-import { longDate } from '../lib/format'
+import { ago, longDate } from '../lib/format'
+import { useMirror } from '../lib/hooks'
 import { roleLabel } from '../lib/labels'
 import { quickActions } from '../lib/quickActions'
 import { Logo } from './Logo'
+import { MirrorContext } from './ui'
 import { useTextSize } from '../lib/textSize'
 
 type Badge = { count: number; tone: 'blue' | 'red' | 'orange' | 'violet'; title: string }
@@ -93,6 +95,7 @@ export function Layout() {
   const { data: health } = useQuery({ queryKey: ['health'], queryFn: () => get<Health>('/health'), refetchInterval: 60_000 })
   const { data: dashboard } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000, enabled: user?.role !== 'Driver' })
   const { data: alerts = [] } = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
+  const { mirror, status: mirrorStatus } = useMirror()
   // Masaüstünde daraltılmışsa yalnızca ikonlar; telefonda açılan menü her zaman tam görünür.
   const slim = collapsed && !open
 
@@ -160,7 +163,7 @@ export function Layout() {
             <CalendarDays className="size-4" />
             {longDate()}
           </div>
-          <NewMenu />
+          {!mirror && <NewMenu />}
           <AlertsBell />
           <UserMenu name={user!.fullName} role={roleLabel[user!.role]} onLogout={logout} />
         </header>
@@ -169,11 +172,17 @@ export function Layout() {
             Bakım çalışması yapılıyor: şu an yalnızca görüntüleme yapılabilir, kayıt eklenemez ve değiştirilemez.
           </div>
         )}
+        {mirror && (
+          <div role="status" className="border-b border-sky-200 bg-sky-50 px-4 py-2 text-center text-[0.9375rem] text-sky-900">
+            <b>Pratikortam aynası:</b> kayıtlar pratikortam'dan gelir, değişikliği orada yapın.
+            {mirrorStatus?.lastAt && <> Son güncelleme {ago(mirrorStatus.lastAt)}.</>}
+          </div>
+        )}
         <main className="mx-auto w-full min-w-0 max-w-[1500px] flex-1 px-4 pb-28 pt-6 lg:px-10 lg:py-10">
-          <Outlet />
+          <MirrorContext.Provider value={mirror}><Outlet /></MirrorContext.Provider>
         </main>
       </div>
-      <BottomBar onMenu={() => setOpen(true)} />
+      <BottomBar onMenu={() => setOpen(true)} mirror={mirror} />
     </div>
   )
 }
@@ -209,7 +218,7 @@ function QuickActionMenu({ items, onPick, className }: { items: typeof quickActi
 }
 
 /** Telefonda altta sabit çubuk: en çok gidilen yerler ve ortada büyük "+ Yeni". */
-function BottomBar({ onMenu }: { onMenu: () => void }) {
+function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) {
   const { can } = useAuth()
   const [open, setOpen] = useState(false)
   const location = useLocation()
@@ -229,12 +238,14 @@ function BottomBar({ onMenu }: { onMenu: () => void }) {
       <nav aria-label="Alt kısayollar" className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden">
         {link('/', 'Ana Sayfa', Home, true)}
         {link('/seferler', 'Sevkiyat', Truck)}
-        <div className="flex flex-1 items-center justify-center">
-          <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
-            className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-md ring-4 ring-white">
-            {open ? <X className="size-7" /> : <Plus className="size-8" />}
-          </button>
-        </div>
+        {mirror ? link('/araclar', 'Araçlar', Building2) : (
+          <div className="flex flex-1 items-center justify-center">
+            <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
+              className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-md ring-4 ring-white">
+              {open ? <X className="size-7" /> : <Plus className="size-8" />}
+            </button>
+          </div>
+        )}
         {link(can('accounting') ? '/cari/musteriler' : '/musteriler', 'Cariler', Users)}
         <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium text-slate-600">
           <Menu className="size-6" />Menü

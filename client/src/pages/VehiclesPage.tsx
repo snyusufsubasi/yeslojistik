@@ -57,8 +57,8 @@ export default function VehiclesPage() {
   if (can('operations')) columns.push({
     key: 'actions', header: '', align: 'right', render: (v) => (
       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-        <IconButton label="Düzenle" onClick={() => setEditing(v)}><Pencil className="size-4" /></IconButton>
-        <IconButton label="Sil" onClick={() => setDeleting(v)}><Trash2 className="size-4" /></IconButton>
+        <IconButton write label="Düzenle" onClick={() => setEditing(v)}><Pencil className="size-4" /></IconButton>
+        <IconButton write label="Sil" onClick={() => setDeleting(v)}><Trash2 className="size-4" /></IconButton>
       </div>
     ),
   })
@@ -68,7 +68,7 @@ export default function VehiclesPage() {
       <PageHeader title="Araçlar" subtitle="Filo, bakım ve belge takibi"
         actions={can('operations') && <>
           <ImportButton entity="vehicles" />
-          <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>
         </>} />
       <Card title="Araç Listesi" icon={<Truck className="size-4" />} bodyClassName="p-0"
         actions={<>

@@ -44,7 +44,7 @@ export default function CashAccountsPage() {
         actions={<>
           <ImportButton entity="cash-accounts" />
           <Button variant="secondary" icon={<ArrowLeftRight className="size-4" />} disabled={list.length < 2} onClick={() => setTransfer(true)}>Virman</Button>
-          <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Hesap Ekle</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Hesap Ekle</Button>
         </>} />
       <p className="mb-3 text-sm text-slate-600">Tahsilat, taşeron ödemesi, gider ve şoför ödemesi girerken “Kasa / Banka” seçerseniz bakiye burada kendiliğinden hesaplanır. Çek/senet yalnızca tahsil edilince hesaba girer.</p>
       {accounts.isLoading ? <Spinner /> : list.length === 0 ? (
@@ -84,8 +84,8 @@ function AccountMovements({ account, onEdit }: { account: CashAccount; onEdit: (
     <div className="space-y-4 lg:col-span-2">
       <Card title={account.name} icon={<Landmark className="size-4" />} bodyClassName="p-0"
         actions={<>
-          <IconButton label="Düzenle" onClick={onEdit}><Pencil className="size-4" /></IconButton>
-          <IconButton label="Sil" onClick={() => setDeleting(true)}><Trash2 className="size-4" /></IconButton>
+          <IconButton write label="Düzenle" onClick={onEdit}><Pencil className="size-4" /></IconButton>
+          <IconButton write label="Sil" onClick={() => setDeleting(true)}><Trash2 className="size-4" /></IconButton>
         </>}>
         {account.iban && <p className="border-b border-slate-100 px-4 py-2 text-sm text-slate-600">IBAN: {account.iban}</p>}
         {movements.isLoading ? <Spinner /> : rows.length === 0 ? <Empty>Bu hesapta hareket yok.</Empty> : (
@@ -115,7 +115,7 @@ function AccountMovements({ account, onEdit }: { account: CashAccount; onEdit: (
               <li key={t.id} className="flex items-center gap-3 px-4 py-2 text-sm">
                 <span className="flex-1">{date(t.date)} · {t.fromAccountName} → {t.toAccountName}{t.note && <span className="text-slate-500"> · {t.note}</span>}</span>
                 <span className="font-medium">{tl2(t.amount)}</span>
-                <IconButton label="Virmanı sil" onClick={() => removeTransfer.mutate(t.id)}><Trash2 className="size-4" /></IconButton>
+                <IconButton write label="Virmanı sil" onClick={() => removeTransfer.mutate(t.id)}><Trash2 className="size-4" /></IconButton>
               </li>
             ))}
           </ul>

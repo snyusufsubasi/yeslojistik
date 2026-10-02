@@ -41,7 +41,7 @@ export default function StaffPage() {
     { key: 'remaining', header: 'Kalan', align: 'right', render: (s) => <span className={clsx('font-semibold', s.remaining > 0 ? 'text-slate-900' : 'text-emerald-700')}>{tl(s.remaining)}</span> },
     { key: 'actions', header: '', align: 'right', render: (s) => (
       <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-        <IconButton label="Düzenle" onClick={() => setEditing(s)}><Pencil className="size-4" /></IconButton>
+        <IconButton write label="Düzenle" onClick={() => setEditing(s)}><Pencil className="size-4" /></IconButton>
       </div>
     ) },
   ]
@@ -51,7 +51,7 @@ export default function StaffPage() {
       <PageHeader title="Personeller" subtitle="Aylık maaş, avans ve primler. Kalan = maaş + prim − avans − ödenen."
         actions={<>
           <ImportButton entity="staff" />
-          <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Personel Ekle</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Personel Ekle</Button>
         </>} />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard title="Bu ayın maaşları" value={tl(active.reduce((s, x) => s + x.salary, 0))} icon={<UserRound />} color="blue" sub={`${active.length} çalışan`} />
@@ -169,7 +169,7 @@ function StaffLedger({ staff, onClose }: { staff: Staff; onClose: () => void }) 
               <Badge tone={kindTone[t.kind]}>{kindLabel[t.kind]}</Badge>
               <span className="min-w-0 flex-1 truncate text-sm text-slate-500">{[t.note, t.cashAccountName].filter(Boolean).join(' · ')}</span>
               <span className="font-medium tabular-nums">{tl2(t.amount)}</span>
-              <IconButton label="Kaydı sil" onClick={() => remove.mutate(t.id)}><Trash2 className="size-4" /></IconButton>
+              <IconButton write label="Kaydı sil" onClick={() => remove.mutate(t.id)}><Trash2 className="size-4" /></IconButton>
             </li>
           ))}
         </ul>

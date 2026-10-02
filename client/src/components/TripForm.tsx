@@ -477,7 +477,7 @@ function QuickDriverDialog({ supplierId, onClose, onSaved, initialName = '' }: {
   })
   return (
     <Modal open onClose={onClose} title="Hızlı şoför ekle" size="sm"
-      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button disabled={fullName.trim().length < 3} loading={save.isPending} onClick={() => save.mutate(undefined)}>Ekle</Button></>}>
+      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button write disabled={fullName.trim().length < 3} loading={save.isPending} onClick={() => save.mutate(undefined)}>Ekle</Button></>}>
       <div className="space-y-3">
         <Field label="Ad Soyad" required><input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus /></Field>
         <Field label="Telefon"><input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0532 123 45 67" /></Field>

@@ -48,7 +48,7 @@ export default function SupplierDetailPage() {
             onClick={() => openPdf(`/suppliers/${id}/statement`, `tedarikci-ekstre-${s.supplierNo}.pdf`).catch((e) => toast.error(errorMessage(e)))}>Hesap Ekstresi</Button>
           {sum.tripCount === 0 && sum.totalDebit === 0 && sum.totalCredit === 0 &&
             <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>}
-          {can('accounting') && <Button variant="success" icon={<HandCoins className="size-4" />} onClick={() => setPaying(true)}>Ödeme Yap</Button>}
+          {can('accounting') && <Button write variant="success" icon={<HandCoins className="size-4" />} onClick={() => setPaying(true)}>Ödeme Yap</Button>}
         </>} />
 
       <div className="grid gap-4 lg:grid-cols-3">

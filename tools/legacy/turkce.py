@@ -92,9 +92,10 @@ def fix_district(v):
     return p or v
 
 def fix_title(v):
-    """Ünvan: noktadan sonra boşluk ("TİC.LTD.ŞTİ." → "TİC. LTD. ŞTİ."); "A.Ş." gibi tek harfli kısaltmalara dokunulmaz."""
+    """Ünvan: noktadan sonra boşluk ("TİC.LTD.ŞTİ." → "TİC. LTD. ŞTİ."); "A.Ş." gibi tek harfli kısaltmaların içine dokunulmaz."""
     v = clean(v)
-    return ' '.join(re.sub(rf'\.(?={_WORD[:-1]}{{2,}})', '. ', v).split()) if v else v
+    # Noktadan önce en az iki harf varsa (TİC., LTD.) sonrasına boşluk: "TİC.A.Ş." → "TİC. A.Ş."; A.Ş. içine dokunulmaz.
+    return ' '.join(re.sub(rf'(?<={_WORD[:-1]}{{2}})\.(?={_WORD[:-1]})', '. ', v).split()) if v else v
 
 
 

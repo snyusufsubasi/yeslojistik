@@ -67,7 +67,7 @@ export default function InvoicesPage() {
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/invoices/export', query, 'faturalar.xlsx')}>Excel</Button>
           {can('accounting') && <ImportButton entity="invoices" />}
-          {can('accounting') && <Button icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
+          {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
         </>} />
       <Card title="Fatura Listesi" icon={<FileText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, müşteri..." />}>
@@ -132,7 +132,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
       footer={inv && <>
         {can('accounting') && inv.status !== 'Cancelled' && <Button variant="secondary" icon={<Ban className="size-4" />} onClick={() => setCancelling(true)}>İptal Et</Button>}
         {can('accounting') && inv.status === 'Draft' && <Button icon={<FileCheck2 className="size-4" />} loading={issue.isPending} onClick={() => issue.mutate(undefined)}>Faturayı Kes</Button>}
-        {can('accounting') && inv.status === 'Issued' && inv.remaining > 0 && <Button variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
+        {can('accounting') && inv.status === 'Issued' && inv.remaining > 0 && <Button write variant="success" icon={<Wallet className="size-4" />} onClick={() => setPaying(true)}>Tahsilat Ekle</Button>}
         {can('accounting') && inv.status === 'Issued' && settings.data?.emailEnabled &&
           <Button variant="secondary" icon={<Mail className="size-4" />} onClick={() => setMailing(true)}>E-posta Gönder</Button>}
         <Button variant="secondary" icon={<Printer className="size-4" />} onClick={() => onPdf(inv)}>PDF</Button>

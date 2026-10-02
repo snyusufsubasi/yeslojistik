@@ -40,7 +40,7 @@ export function ImportButton({ entity }: { entity: Entity }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <Button variant="secondary" icon={<FileSpreadsheet className="size-4" />} onClick={() => setOpen(true)}>Excel'den Aktar</Button>
+      <Button write variant="secondary" icon={<FileSpreadsheet className="size-4" />} onClick={() => setOpen(true)}>Excel'den Aktar</Button>
       {open && <ImportDialog entity={entity} onClose={() => setOpen(false)} />}
     </>
   )

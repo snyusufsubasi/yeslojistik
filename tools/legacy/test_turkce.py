@@ -13,6 +13,7 @@ class FixCase(unittest.TestCase):
     def test_company_suffixes(self):
         self.assertEqual(fix_case(fix_title('ÖRNEK LOJİSTİK TİC.LTD.ŞTİ.')), 'Örnek Lojistik Tic. Ltd. Şti.')
         self.assertEqual(fix_case('ÖRNEK İNŞAAT SAN. VE TİC. A.Ş.'), 'Örnek İnşaat San. ve Tic. A.Ş.')
+        self.assertEqual(fix_case(fix_title('ÖRNEK SERVİS HİZM. TİC.A.Ş.')), 'Örnek Servis Hizm. Tic. A.Ş.')
 
     def test_acronyms_and_mixed(self):
         self.assertEqual(fix_case('BRK NAKLİYAT'), 'BRK Nakliyat')

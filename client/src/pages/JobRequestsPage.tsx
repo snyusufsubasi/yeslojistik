@@ -68,7 +68,7 @@ export default function JobRequestsPage() {
     <PageHeader title="İş Talepleri" subtitle="Araç ve şoför belirlenmeden önce gelen işler"
       actions={can('operations') && <>
         <ImportButton entity="job-requests" />
-        <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni İş Talebi</Button>
+        <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni İş Talebi</Button>
       </>} />
     <Card title="İş Talebi Listesi" icon={<ClipboardList className="size-4" />} bodyClassName="p-0"
       actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, yükleme, teslimat..." />}>

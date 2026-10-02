@@ -124,7 +124,7 @@ export default function TripsPage() {
               onClick={() => statusMut.mutate({ id: t.id, s })}>{tripStatusAction[s]}</Button>
           ))}
           <IconButton label="Şoför bilgisini kopyala" onClick={() => copyDriver(t)}><ClipboardCopy className="size-4" /></IconButton>
-          <IconButton label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
+          <IconButton write label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
         </div>
       ),
     })
@@ -136,8 +136,8 @@ export default function TripsPage() {
         actions={<>
           <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/trips/export', query, 'seferler.xlsx')}>Excel</Button>
           {can('operations') && <ImportButton entity="trips" />}
-          {can('accounting') && <Button variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
-          {can('operations') && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sefer</Button>}
+          {can('accounting') && <Button write variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
+          {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sefer</Button>}
         </>} />
       <div role="tablist" aria-label="Görünüm" className="mb-4 inline-flex rounded-xl border border-slate-200 bg-white p-1">
         {([['list', 'Liste', List], ['board', 'Pano', Columns3]] as const).map(([v, label, Icon]) => (

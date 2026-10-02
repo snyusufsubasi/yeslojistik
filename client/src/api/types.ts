@@ -910,11 +910,14 @@ export interface CustomerCariRow {
   id: number; customerNo: string; title: string; taxNumber: string | null; phone: string | null
   opening: number; invoiced: number; collected: number; balance: number; overdue: number
   uninvoicedTripCount: number; uninvoicedTrips: number
+  /** Pratikortam aynası: pratikortam carisindeki bakiye. */
+  legacyBalance: number | null; legacyBalanceAt: string | null
 }
 export interface SupplierCariRow {
   id: number; supplierNo: string; title: string; taxNumber: string | null; phone: string | null
   opening: number; tripCost: number; creditExpenses: number; paid: number; balance: number; overdue: number
   tripCount: number; missingInvoiceCount: number
+  legacyBalance: number | null; legacyBalanceAt: string | null
 }
 export interface TripTotals {
   count: number; sale: number; vehicleCost: number; expenses: number; profit: number; uninvoicedCount: number; uninvoicedTotal: number
@@ -975,4 +978,10 @@ export interface UninvoicedCarrierTrip {
   costVatRate: number
   payable: number
   externalRef?: string | null
+}
+
+/** Pratikortam aynası (yan yana kullanım): kayıtlar düzenli olarak pratikortam'dan gelir, panelde değiştirilmez. */
+export interface MirrorStatus {
+  mirrorMode: boolean; lastAt: string | null; lastSummary: string | null
+  spellingExceptions: Record<string, string>
 }
