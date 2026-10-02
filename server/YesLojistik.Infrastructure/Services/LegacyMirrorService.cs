@@ -26,31 +26,31 @@ public partial class LegacyMirrorService(AppDbContext db)
         var settings = await db.CompanySettings.FirstAsync(ct);
         if (!dryRun && !settings.MirrorMode)
             throw new DomainException("Pratikortam aynası kapalı. Önce Ayarlar'dan aynayı açın.");
-        var at = snap.TakenAt ?? DateTime.UtcNow;
+        var at = (snap.TakenAt ?? DateTime.UtcNow).ToUniversalTime();
         var counts = new List<MirrorCount>();
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var suppliers = await SyncAsync("Tedarikçi", db.Suppliers, snap.Suppliers, s => s.Key,
-            x => x.LegacyKey, (x, k) => x.LegacyKey = k, Adopt<Supplier, MirrorParty>(x => x.TaxNumber, x => x.Title, s => s.TaxNumber, s => s.Title),
+            x => x.LegacyKey, (x, k) => x.LegacyKey = k, Adopt<Supplier, MirrorParty>(x => x.TaxNumber, x => x.Title, s => Tax(s.TaxNumber), s => s.Title),
             s => new Supplier { Kind = SupplierKind.Carrier },
             (x, s) =>
             {
-                x.Title = s.Title.Trim(); x.TaxNumber = Clean(s.TaxNumber); x.TaxOffice = Clean(s.TaxOffice); x.Phone = Phone(s.Phone);
-                x.Email = Clean(s.Email); x.Iban = Clean(s.Iban); x.City = Cities.Normalize(s.City); x.District = Clean(s.District);
-                x.ContactName = Clean(s.ContactName); x.OpeningBalance = 0; x.OpeningBalanceDate = null; x.IsActive = true;
-                x.LegacyBalance = s.Balance; x.LegacyBalanceAt = s.Balance == null ? null : at;
+                x.Title = Fit(s.Title, 200)!; x.TaxNumber = Tax(s.TaxNumber); x.TaxOffice = Fit(s.TaxOffice, 100); x.Phone = Phone(s.Phone);
+                x.Email = Fit(s.Email, 200); x.Iban = Fit(s.Iban?.Replace(" ", ""), 34); x.City = Cities.Normalize(s.City); x.District = Fit(s.District, 50);
+                x.ContactName = Fit(s.ContactName, 100); x.OpeningBalance = 0; x.OpeningBalanceDate = null; x.IsActive = true;
+                SetBalance(x, s.Balance, at);
             }, allowLargeRemoval, counts, ct);
 
         var customers = await SyncAsync("Müşteri", db.Customers, snap.Customers, s => s.Key,
-            x => x.LegacyKey, (x, k) => x.LegacyKey = k, Adopt<Customer, MirrorParty>(x => x.TaxNumber, x => x.Title, s => s.TaxNumber, s => s.Title),
+            x => x.LegacyKey, (x, k) => x.LegacyKey = k, Adopt<Customer, MirrorParty>(x => x.TaxNumber, x => x.Title, s => Tax(s.TaxNumber), s => s.Title),
             s => new Customer(),
             (x, s) =>
             {
-                x.Title = s.Title.Trim(); x.TaxNumber = Clean(s.TaxNumber); x.TaxOffice = Clean(s.TaxOffice); x.Phone = Phone(s.Phone);
-                x.Email = Clean(s.Email); x.City = Cities.Normalize(s.City); x.District = Clean(s.District); x.ContactName = Clean(s.ContactName);
+                x.Title = Fit(s.Title, 200)!; x.TaxNumber = Tax(s.TaxNumber); x.TaxOffice = Fit(s.TaxOffice, 100); x.Phone = Phone(s.Phone);
+                x.Email = Fit(s.Email, 200); x.City = Cities.Normalize(s.City); x.District = Fit(s.District, 50); x.ContactName = Fit(s.ContactName, 100);
                 x.OpeningBalance = 0; x.OpeningBalanceDate = null; x.IsActive = true;
-                x.LegacyBalance = s.Balance; x.LegacyBalanceAt = s.Balance == null ? null : at;
+                SetBalance(x, s.Balance, at);
             }, allowLargeRemoval, counts, ct);
 
         var drivers = await SyncAsync("Şoför", db.Drivers, snap.Drivers, s => s.Key,
@@ -58,7 +58,7 @@ public partial class LegacyMirrorService(AppDbContext db)
             s => new Driver(),
             (x, s) =>
             {
-                x.FullName = s.FullName.Trim(); x.Phone = Phone(s.Phone); x.NationalId = Clean(s.NationalId); x.LicenseClass = Clean(s.LicenseClass);
+                x.FullName = Fit(s.FullName, 100)!; x.Phone = Phone(s.Phone); x.NationalId = Tax(s.NationalId); x.LicenseClass = Fit(s.LicenseClass, 20);
                 x.SupplierId = s.SupplierKey == null ? null : Ref(suppliers, s.SupplierKey, "tedarikçi"); x.IsActive = true;
             }, allowLargeRemoval, counts, ct);
 
@@ -68,20 +68,20 @@ public partial class LegacyMirrorService(AppDbContext db)
             s => new Vehicle(),
             (x, s) =>
             {
-                x.Plate = Formatters.NormalizePlate(s.Plate) ?? s.Plate.Trim(); x.Type = s.Type.Trim();
+                x.Plate = Formatters.NormalizePlate(s.Plate) ?? s.Plate.Trim(); x.Type = Fit(s.Type, 100)!;
                 x.Ownership = s.Own ? VehicleOwnership.Own : VehicleOwnership.Rented;
                 x.SupplierId = s.Own ? null : Ref(suppliers, s.OwnerKey ?? throw new DomainException($"{s.Plate}: kiralık aracın sahibi yok."), "tedarikçi");
                 x.TrailerPlate = Formatters.NormalizePlate(s.TrailerPlate);
                 if (s.Own)
                 {
-                    x.Brand = Clean(s.Brand); x.ModelYear = s.ModelYear; x.InspectionExpiry = s.InspectionExpiry; x.InsuranceExpiry = s.InsuranceExpiry;
+                    x.Brand = Fit(s.Brand, 50); x.ModelYear = s.ModelYear; x.InspectionExpiry = s.InspectionExpiry; x.InsuranceExpiry = s.InsuranceExpiry;
                 }
             }, allowLargeRemoval, counts, ct);
 
         await SyncAsync("Kasa / Banka", db.CashAccounts, snap.CashAccounts, s => s.Key,
             x => x.LegacyKey, (x, k) => x.LegacyKey = k, Adopt<CashAccount, MirrorCashAccount>(null, x => x.Name, null, s => s.Name),
             s => new CashAccount { Kind = CashAccountKind.Bank },
-            (x, s) => { x.Name = s.Name.Trim(); x.OpeningBalance = 0; x.OpeningBalanceDate = null; x.IsActive = true; },
+            (x, s) => { x.Name = Fit(s.Name, 100)!; x.OpeningBalance = 0; x.OpeningBalanceDate = null; x.IsActive = true; },
             allowLargeRemoval, counts, ct);
 
         await SyncAsync("Personel", db.Staff, snap.Staff, s => s.Key,
@@ -89,8 +89,8 @@ public partial class LegacyMirrorService(AppDbContext db)
             s => new Staff(),
             (x, s) =>
             {
-                x.FullName = s.FullName.Trim(); x.NationalId = Clean(s.NationalId); x.Phone = Phone(s.Phone); x.StartDate = s.StartDate;
-                x.MonthlySalary = Money.Round(s.MonthlySalary); x.Notes = Clean(s.Notes);
+                x.FullName = Fit(s.FullName, 100)!; x.NationalId = Tax(s.NationalId); x.Phone = Phone(s.Phone); x.StartDate = s.StartDate;
+                x.MonthlySalary = Money.Round(s.MonthlySalary); x.Notes = Fit(s.Notes, 1000);
             }, allowLargeRemoval, counts, ct);
 
         var now = DateTime.UtcNow;
@@ -98,7 +98,7 @@ public partial class LegacyMirrorService(AppDbContext db)
         await SyncAsync("Sevkiyat", db.Trips, snap.Trips, s => s.Key,
             x => x.ExternalRef, (x, k) => x.ExternalRef = k,
             // Eski tek seferlik aktarımın seferleri açıklamadaki "Sevkiyat N" ile sahiplenilir.
-            new Adopter<Trip, MirrorTrip>(x => SevkiyatNo().Match(x.Description ?? "") is { Success: true } m ? "S" + m.Groups[1].Value : null, s => s.Key),
+            new Adopter<Trip, MirrorTrip>(x => SevkiyatNo().Match(x.Description ?? "") is { Success: true } m ? ["S" + m.Groups[1].Value] : [], s => [s.Key]),
             s => new Trip { IsLegacy = true, Status = TripStatus.Delivered, Events = [new TripEvent { Status = TripStatus.Delivered,
                 Source = TripEventSource.Import, OccurredAt = now, RecordedAt = now, Note = "Pratikortam aynası" }] },
             (x, s) =>
@@ -107,9 +107,9 @@ public partial class LegacyMirrorService(AppDbContext db)
                 x.DriverId = Ref(drivers, s.DriverKey, "şoför");
                 var v = vehicleById[x.VehicleId];
                 x.CarrierSupplierId = v.Ownership == VehicleOwnership.Rented ? v.SupplierId : null; x.TrailerPlate = v.TrailerPlate;
-                x.LoadingDate = s.Date; x.DeliveryDate = s.Date; x.LoadingAddress = s.LoadingAddress.Trim(); x.DeliveryAddress = s.DeliveryAddress.Trim();
-                x.CargoType = Clean(s.CargoType); x.VehicleCost = Money.Round(s.VehicleCost); x.SalePrice = Money.Round(s.SalePrice);
-                x.Description = Clean(s.Description); x.DeliveryDocumentNo = Clean(s.DeliveryDocumentNo);
+                x.LoadingDate = s.Date; x.DeliveryDate = s.Date; x.LoadingAddress = Fit(s.LoadingAddress, 300) ?? "-"; x.DeliveryAddress = Fit(s.DeliveryAddress, 300) ?? "-";
+                x.CargoType = Fit(s.CargoType, 100); x.VehicleCost = Money.Round(s.VehicleCost); x.SalePrice = Money.Round(s.SalePrice);
+                x.Description = Fit(s.Description, 1000); x.DeliveryDocumentNo = Fit(s.DeliveryDocumentNo, 50);
                 x.IsLegacy = true; x.Status = TripStatus.Delivered;
             }, allowLargeRemoval, counts, ct);
 
@@ -120,7 +120,7 @@ public partial class LegacyMirrorService(AppDbContext db)
             {
                 x.Date = s.Date; x.Category = ImportService.Category(s.Category); x.Amount = Money.Round(s.Amount);
                 x.VehicleId = s.VehicleKey == null ? null : Ref(vehicles, s.VehicleKey, "araç");
-                x.Liters = s.Liters; x.Odometer = s.Odometer; x.Description = Clean(s.Description);
+                x.Liters = s.Liters; x.Odometer = s.Odometer; x.Description = Fit(s.Description, 500);
             }, allowLargeRemoval, counts, ct);
 
         // Tahsilat ve ödemeler aynada tutulmaz (bakiye pratikortam rakamıdır); eski aktarımın devir kayıtları silinir.
@@ -173,13 +173,18 @@ public partial class LegacyMirrorService(AppDbContext db)
     private static Dictionary<string, string> Exceptions(string? json) =>
         string.IsNullOrEmpty(json) ? [] : JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? [];
 
-    /// <summary>Anahtarı olmayan eski kayıtları sahiplenme kuralı: kaydın ve kaynağın aynı doğal anahtarı (VKN, ad, plaka).</summary>
-    private sealed record Adopter<TEntity, TSrc>(Func<TEntity, string?> Entity, Func<TSrc, string?> Source);
+    /// <summary>Anahtarı olmayan eski kayıtları sahiplenme kuralı: kaydın ve kaynağın doğal anahtarları (VKN, ad, plaka), sırayla denenir.</summary>
+    private sealed record Adopter<TEntity, TSrc>(Func<TEntity, IEnumerable<string>> Entity, Func<TSrc, IEnumerable<string>> Source);
 
     private static Adopter<TEntity, TSrc> Adopt<TEntity, TSrc>(Func<TEntity, string?>? entityTax, Func<TEntity, string> entityName,
         Func<TSrc, string?>? srcTax, Func<TSrc, string> srcName) =>
-        new(x => entityTax?.Invoke(x) is { Length: > 0 } t ? "V" + t : "N" + Norm(entityName(x)),
-            s => srcTax?.Invoke(s) is { Length: > 0 } t ? "V" + t : "N" + Norm(srcName(s)));
+        new(x => Keys(entityTax?.Invoke(x), entityName(x)), s => Keys(srcTax?.Invoke(s), srcName(s)));
+
+    private static IEnumerable<string> Keys(string? tax, string name)
+    {
+        if (!string.IsNullOrEmpty(tax)) yield return "V" + tax;
+        yield return "N" + Norm(name);
+    }
 
     private async Task<Dictionary<string, int>> SyncAsync<TEntity, TSrc>(string name, DbSet<TEntity> set, IReadOnlyList<TSrc> source,
         Func<TSrc, string> key, Func<TEntity, string?> getKey, Action<TEntity, string> setKey, Adopter<TEntity, TSrc>? adopt,
@@ -188,8 +193,11 @@ public partial class LegacyMirrorService(AppDbContext db)
     {
         var all = await set.IgnoreQueryFilters().ToListAsync(ct);
         var byKey = all.Where(x => getKey(x) != null).GroupBy(x => getKey(x)!).ToDictionary(g => g.Key, g => g.OrderBy(x => x.IsDeleted).First());
-        var orphans = adopt == null ? [] : all.Where(x => getKey(x) == null && adopt.Entity(x) != null)
-            .GroupBy(x => adopt.Entity(x)!).ToDictionary(g => g.Key, g => g.OrderBy(x => x.IsDeleted).First());
+        var orphanList = adopt == null ? [] : all.Where(x => getKey(x) == null).OrderBy(x => x.IsDeleted).ToList();
+        var orphans = new Dictionary<string, TEntity>();
+        foreach (var x in orphanList)
+            foreach (var k in adopt!.Entity(x)) orphans.TryAdd(k, x);
+        var adopted = new HashSet<TEntity>(ReferenceEqualityComparer.Instance);
         var touched = new HashSet<TEntity>(ReferenceEqualityComparer.Instance);
         var result = new Dictionary<string, int>();
         var created = 0;
@@ -197,7 +205,11 @@ public partial class LegacyMirrorService(AppDbContext db)
         {
             var k = key(s);
             if (result.ContainsKey(k)) throw new DomainException($"{name}: aynı anahtar iki kez geldi ({k}).");
-            if (!byKey.TryGetValue(k, out var x) && adopt?.Source(s) is { } ak && orphans.Remove(ak, out var o)) { x = o; setKey(x, k); }
+            if (!byKey.TryGetValue(k, out var x) && adopt != null
+                && adopt.Source(s).Select(ak => orphans.GetValueOrDefault(ak)).FirstOrDefault(o => o != null && !adopted.Contains(o)) is { } o)
+            {
+                x = o; adopted.Add(o); setKey(x, k);
+            }
             var isNew = x == null;
             if (x == null) { x = create(s); setKey(x, k); set.Add(x); }
             apply(x, s);
@@ -219,12 +231,28 @@ public partial class LegacyMirrorService(AppDbContext db)
         return result;
     }
 
+    /// <summary>Bakiye ve okunduğu an yalnız rakam değişince yazılır (aynı rakam her senkronda "güncellendi" sayılmasın).</summary>
+    private static void SetBalance(Customer x, decimal? balance, DateTime at)
+    {
+        if (x.LegacyBalance == balance) return;
+        x.LegacyBalance = balance; x.LegacyBalanceAt = balance == null ? null : at;
+    }
+
+    private static void SetBalance(Supplier x, decimal? balance, DateTime at)
+    {
+        if (x.LegacyBalance == balance) return;
+        x.LegacyBalance = balance; x.LegacyBalanceAt = balance == null ? null : at;
+    }
+
     private static int Ref(Dictionary<string, int> map, string key, string what) =>
         map.TryGetValue(key, out var id) ? id : throw new DomainException($"Aynada {what} bulunamadı: {key}");
 
     private static string Part(int n, string label) => n > 0 ? $"{n} {label}, " : "";
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-    private static string? Phone(string? s) => Formatters.NormalizePhone(s) ?? Clean(s);
+    private static string? Phone(string? s) => Formatters.NormalizePhone(s) ?? Fit(s, 20);
+    private static string? Fit(string? s, int max) => Clean(s) is { } c ? c[..Math.Min(c.Length, max)] : null;
+    /// <summary>VKN/TCKN: yalnız 10-11 haneli rakamsa saklanır (eski paneldeki hatalı numaralar boş kalır).</summary>
+    private static string? Tax(string? s) => Clean(s) is { } c && c.Length is 10 or 11 && c.All(char.IsDigit) ? c : null;
     private static string Norm(string s) => new(s.ToLower(Formatters.Tr).Where(char.IsLetterOrDigit).ToArray());
 
     [GeneratedRegex(@"^Sevkiyat (\d+)")]

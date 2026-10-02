@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pratikortam dışa aktarımlarını panelin Excel aktarım şablonlarına çevirir.
 
-Kullanım:  python3 tools/legacy/transform.py <extract çıktı klasörü> [--exceptions istisnalar.json]   (gerekli: pip install openpyxl)
+Kullanım:  python3 tools/legacy/transform.py <extract çıktı klasörü> [--json] [--exceptions istisnalar.json]   (gerekli: pip install openpyxl)
 Girdi:     <klasör>/exports/*.html|xlsx  (extract.mjs)
 Çıktı:     <klasör>/aktar/1-tedarikciler.xlsx … 10-personeller.xlsx  +  rapor.txt   (repoya girmez)
 
@@ -266,7 +266,8 @@ for t in trips_src:
                   'Yükleme Adresi': fix_places(clean(t['Yükleme Noktası'])) or '-', 'Teslim Adresi': fix_places(clean(t['İndirme Noktası'])) or '-',
                   'Teslim Tarihi': d,
                   'Yük Cinsi': clean(t['Ürün']), 'Araç Maliyeti': float(money(t['Şöför Fiyat'])), 'Satış Fiyatı': float(money(t['Müşteri Fiyat'])),
-                  'Durum': 'Teslim Edildi', 'Açıklama': ' · '.join(x for x in extras if x)[:1000], 'Eski Kayıt': 'Evet'})
+                  'Durum': 'Teslim Edildi', 'Açıklama': ' · '.join(x for x in extras if x)[:1000], 'Eski Kayıt': 'Evet',
+                  '_no': t.get('Sevkiyat No') or f"{t['Tarih']}-{plate}-{len(trips)}", '_doc': clean(t.get('Teslim Evrak No'))})
 if skipped: note(f'{skipped} sefer satırı müşteri/plaka/şoför boş olduğu için alınmadı.')
 note(f'Seferler: {len(trips)} sefer, hepsi eski kayıt (borç/alacak doğurmaz).')
 note('Cari devri yok: müşteri ve tedarikçiler 0 bakiyeyle açılır.')
@@ -332,6 +333,74 @@ write('5-seferler.xlsx', 'trips', trips)
 if expenses: write('8-giderler.xlsx', 'expenses', expenses)
 if cash_accounts: write('9-banka-hesaplari.xlsx', 'cash-accounts', cash_accounts)
 if staff: write('10-personeller.xlsx', 'staff', staff)
+# ---------- ayna anlık görüntüsü (--json) ----------
+# Sunucudaki LegacyMirrorService (POST /api/legacy/mirror) bunu uygular. Anahtarlar kalıcıdır: VKN (yoksa ünvan), plaka,
+# ad, sevkiyat no. Bakiye: pratikortam carisindeki rakam (caride olmayan cari 0).
+if '--json' in sys.argv:
+    import hashlib
+    cust_cari = html_table(EXP / 'musteri-cari.html', numbered=True) if (EXP / 'musteri-cari.html').exists() else []
+    sup_cari = html_table(EXP / 'tedarikci-cari.html', min_cols=11, numbered=True) if (EXP / 'tedarikci-cari.html').exists() else []
+
+    def party_keys(rows):
+        keys, seen = {}, set()
+        for k, r in rows.items():
+            pk = r.get('VKN/TCKN') if r.get('VKN/TCKN') and r.get('VKN/TCKN') not in seen else 'T:' + k
+            if k == key(UNKNOWN_OWNER): pk = 'X:BILINMEYEN'
+            seen.add(pk); keys[k] = pk
+        return keys
+    sup_key, cust_key = party_keys(suppliers), party_keys(customers)
+
+    def balances(cari, rows, keys, vkn_col, title_col):
+        by_vkn = {r['VKN/TCKN']: k for k, r in rows.items() if r.get('VKN/TCKN')}
+        out = collections.defaultdict(D)
+        for c in cari:
+            k = by_vkn.get(clean(c.get(vkn_col))) or (key(c.get(title_col)) if key(c.get(title_col)) in rows else None)
+            if k: out[keys[k]] += money(c.get('Bakiye'))
+            else: note(f"Ayna: carisi eşlenemeyen satır (bakiye {c.get('Bakiye')})")
+        return out
+    cust_bal = balances(cust_cari, customers, cust_key, 'Müşteri VKN', 'Firma')
+    sup_bal = balances(sup_cari, suppliers, sup_key, 'Tedarikçi VKN', 'Tedarikçi Ünvanı')
+
+    def party(k, r, keys, bal):
+        return {'key': keys[k], 'title': cased('Ünvan', r['Ünvan']), 'taxNumber': r.get('VKN/TCKN'), 'taxOffice': cased('Vergi Dairesi', r.get('Vergi Dairesi')),
+                'phone': r.get('Telefon'), 'email': r.get('E-posta'), 'iban': r.get('IBAN'), 'city': r.get('İl'), 'district': cased('İlçe', r.get('İlçe')),
+                'contactName': cased('Yetkili', r.get('Yetkili')), 'balance': float(bal.get(keys[k], D(0))) if keys[k] != 'X:BILINMEYEN' else None}
+    by_title = {key(r['Ünvan']): k for k, r in suppliers.items()}
+    cust_by_title = {key(r['Ünvan']): k for k, r in customers.items()}
+    drv_by_name = {key(r['Ad Soyad']): k for k, r in drivers.items()}
+    iso = lambda d: d.isoformat() if d else None  # noqa: E731
+    expense_keys = collections.Counter()
+    def expense_key(e):
+        base = '|'.join(str(e.get(c)) for c in ('Tarih', 'Kategori', 'Tutar', 'Plaka', 'Açıklama', 'Litre', 'Km'))
+        expense_keys[base] += 1
+        return 'G' + hashlib.sha1(f'{base}|{expense_keys[base]}'.encode()).hexdigest()[:20]
+    snapshot = {
+        'takenAt': dt.datetime.now(dt.timezone.utc).isoformat(),
+        'suppliers': [party(k, r, sup_key, sup_bal) for k, r in suppliers.items()],
+        'customers': [party(k, r, cust_key, cust_bal) for k, r in customers.items()],
+        'drivers': [{'key': 'D:' + k, 'fullName': cased('Ad Soyad', r['Ad Soyad']), 'phone': r.get('Telefon'), 'nationalId': r.get('TC Kimlik No'),
+                     'licenseClass': r.get('Ehliyet Sınıfı'), 'supplierKey': sup_key[by_title[key(r['Tedarikçi'])]] if r.get('Tedarikçi') else None}
+                    for k, r in drivers.items()],
+        'vehicles': [{'key': p, 'plate': p, 'type': cased('Araç Tipi', r.get('Araç Tipi') or 'Kamyon'), 'own': r['Sahiplik'] == 'Özmal',
+                      'ownerKey': sup_key[by_title[key(r['Araç Sahibi'])]] if r.get('Araç Sahibi') else None, 'trailerPlate': r.get('Dorse Plakası'),
+                      'brand': cased('Marka', r.get('Marka')), 'modelYear': r.get('Model Yılı'), 'inspectionExpiry': iso(r.get('Muayene Bitiş')),
+                      'insuranceExpiry': iso(r.get('Sigorta Bitiş'))} for p, r in vehicles.items()],
+        'trips': [{'key': 'S' + str(t['_no']), 'date': iso(t['Yükleme Tarihi']), 'customerKey': cust_key[cust_by_title[key(t['Müşteri'])]], 'vehicleKey': t['Plaka'],
+                   'driverKey': 'D:' + drv_by_name[key(t['Şoför'])], 'loadingAddress': cased('Yükleme Adresi', t['Yükleme Adresi']),
+                   'deliveryAddress': cased('Teslim Adresi', t['Teslim Adresi']), 'cargoType': cased('Yük Cinsi', t.get('Yük Cinsi')),
+                   'vehicleCost': t['Araç Maliyeti'], 'salePrice': t['Satış Fiyatı'], 'description': t.get('Açıklama') or None,
+                   'deliveryDocumentNo': t.get('_doc')} for t in trips],
+        'expenses': [{'key': expense_key(e), 'date': iso(e['Tarih']), 'category': e['Kategori'], 'amount': e['Tutar'], 'vehicleKey': e.get('Plaka'),
+                      'liters': e.get('Litre'), 'odometer': e.get('Km'), 'description': e.get('Açıklama')} for e in expenses if e.get('Tarih')],
+        'cashAccounts': [{'key': 'B:' + key(c['Hesap Adı']), 'name': cased('Hesap Adı', c['Hesap Adı'])} for c in cash_accounts],
+        'staff': [{'key': 'P:' + key(st['Ad Soyad']), 'fullName': cased('Ad Soyad', st['Ad Soyad']), 'nationalId': st.get('TC Kimlik No'),
+                   'phone': st.get('Telefon'), 'startDate': iso(st.get('İşe Başlangıç')), 'monthlySalary': st.get('Maaş') or 0, 'notes': st.get('Not')}
+                  for st in staff],
+    }
+    (OUT / 'ayna.json').write_text(json.dumps(snapshot, ensure_ascii=False), encoding='utf-8')
+    note(f"Ayna: ayna.json ({', '.join(f'{k} {len(v)}' for k, v in snapshot.items() if isinstance(v, list))}); "
+         f"pratikortam bakiyesi {len(cust_bal)} müşteri, {len(sup_bal)} tedarikçi")
+
 if case_changes:
     note(''); note('HARF DÜZENİ (BÜYÜK HARF → düzgün yazım): ' + ', '.join(f'{k} {n}' for k, n in case_changes.most_common()))
 if fixes:

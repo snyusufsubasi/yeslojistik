@@ -18,7 +18,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve, relative, isAbsolute } from 'node:path'
 
 const require = createRequire(new URL('../../client/package.json', import.meta.url))
-const { chromium } = require('@playwright/test')
+// Tarayıcı yalnız tarama (crawl) için gerekir; extract.mjs onsuz çalışır (zamanlanmış senkronda Playwright kurulu değil).
+const chromium = () => require('@playwright/test').chromium
 
 /** Repo kökü (tools/legacy/../..): çıktı klasörü buranın içinde olamaz. */
 const REPO_ROOT = resolve(new URL('../..', import.meta.url).pathname)
@@ -174,7 +175,7 @@ async function main() {
   await loginFetch(jar)
 
   // Tarayıcı yalnız ayrıştırma için; hiçbir ağ isteği yapamaz.
-  const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined) })
+  const browser = await chromium().launch({ executablePath: process.env.PW_CHROMIUM_PATH || (existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined) })
   const context = await browser.newContext()
   await context.route('**/*', (route) => route.abort())
   const page = await context.newPage()

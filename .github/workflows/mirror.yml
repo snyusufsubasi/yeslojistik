@@ -1,0 +1,62 @@
+# Pratikortam aynası: pratikortam.com'dan verileri SALT OKUMA ile çeker, düzeltir ve panele uygular (yan yana kullanım dönemi).
+# Gerekli secret'lar: PRATIK_USER, PRATIK_PASS (pratikortam girişi), PANEL_EMAIL, PANEL_PASSWORD (panel yönetici hesabı).
+# Panelde Ayarlar → "Pratikortam aynası" açık değilse yalnız deneme yapılır, hiçbir şey yazılmaz.
+# Loga yalnız sayılar yazılır; indirilen veri iş bitince silinir, artifact olarak saklanmaz.
+name: Pratikortam aynası
+
+on:
+  schedule:
+    - cron: "7 4,9,14,19 * * *" # 07:07, 12:07, 17:07, 22:07 İstanbul
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Panele uygula (kapalıysa yalnız deneme)"
+        type: boolean
+        default: true
+      allow_large_removal:
+        description: "Bir türün yarısından fazlası silinse bile uygula (yalnız ilk dolumda)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRATIK_USER: ${{ secrets.PRATIK_USER }}
+      PRATIK_PASS: ${{ secrets.PRATIK_PASS }}
+      PANEL_EMAIL: ${{ secrets.PANEL_EMAIL }}
+      PANEL_PASSWORD: ${{ secrets.PANEL_PASSWORD }}
+      PANEL_URL: https://yeslojistik.onrender.com
+    steps:
+      - name: Ayarları kontrol et
+        run: |
+          for v in PRATIK_USER PRATIK_PASS PANEL_EMAIL PANEL_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::$v secret'ı tanımlanmalı (Settings → Secrets and variables → Actions)."; exit 1; fi
+          done
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet openpyxl
+      - name: Pratikortam'dan indir (salt okuma)
+        run: node tools/legacy/extract.mjs --out "$RUNNER_TEMP/pratik"
+      - name: Panele uygula
+        run: |
+          ARGS="--api $PANEL_URL"
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.apply }}" = "true" ]; then ARGS="$ARGS --apply"; fi
+          if [ "${{ inputs.allow_large_removal }}" = "true" ]; then ARGS="$ARGS --allow-large-removal"; fi
+          python3 tools/legacy/mirror.py "$RUNNER_TEMP/pratik" $ARGS | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: İndirilen veriyi sil
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/pratik"
