@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pratikortam dışa aktarımlarını panelin Excel aktarım şablonlarına çevirir.
 
-Kullanım:  python3 tools/legacy/transform.py <extract çıktı klasörü>   (gerekli: pip install openpyxl)
+Kullanım:  python3 tools/legacy/transform.py <extract çıktı klasörü> [--exceptions istisnalar.json]   (gerekli: pip install openpyxl)
 Girdi:     <klasör>/exports/*.html|xlsx  (extract.mjs)
 Çıktı:     <klasör>/aktar/1-tedarikciler.xlsx … 10-personeller.xlsx  +  rapor.txt   (repoya girmez)
 
@@ -12,10 +12,12 @@ Kurallar (kullanıcı kararı, 2 Ekim):
     taşeronu eski panelde yazılmamışsa "Taşeronu Belli Olmayan Araçlar" tedarikçisine bağlanır.
   * İl, ilçe ve yükleme/teslim yerlerindeki yer adı yazım hataları düzeltilir (ANTALAYA → ANTALYA); her düzeltme rapora yazılır.
 """
-import collections, datetime as dt, html.parser, re, sys
+import collections, datetime as dt, html.parser, json, re, sys
 from decimal import Decimal as D
 from pathlib import Path
 import openpyxl
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from turkce import key, clean, fix_places, fix_city, fix_district, fix_title, fix_case, fixes  # noqa: E402
 
 SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else sys.exit(__doc__)
 EXP, OUT = SRC / 'exports', SRC / 'aktar'
@@ -63,8 +65,6 @@ def html_table(path, min_cols=3, numbered=False):
     return [dict(zip(head, r)) for r in body]
 
 
-_TR = str.maketrans('iı', 'İI')
-def key(s): return ' '.join(str(s or '').translate(_TR).upper().split())
 _PLATE = re.compile(r'(\d{2})\s*([A-ZÇĞİÖŞÜ]{1,3})\s*(\d{2,5})')
 _PAIR = re.compile(r'^(\d{2}[A-ZÇĞİÖŞÜ]{1,3}\d{2,4})(\d{2}[A-ZÇĞİÖŞÜ]{1,3}\d{2,4})$')
 def split_plate(raw):
@@ -81,9 +81,6 @@ def split_plate(raw):
     return (fmt[0] if fmt else None), (fmt[1] if len(fmt) > 1 else None)
 
 
-def clean(s):
-    s = ' '.join(str(s or '').split())
-    return None if s in ('', '-', '0', 'None') else s
 def money(v):
     if v is None or v == '': return D(0)
     if isinstance(v, (int, float)): return D(str(v)).quantize(D('0.01'))
@@ -93,96 +90,22 @@ def money(v):
     return D(s).quantize(D('0.01'))
 
 
-# ---------- yazım düzeltme ----------
-# Doğru yazılışlar: 81 il (Cities.cs) + sık geçen ilçe ve semtler. Kamuya açık yer adlarıdır, müşteri verisi değildir.
-PROVINCES = re.findall(r'"([^"]+)"', (Path(__file__).resolve().parents[2] / 'server/YesLojistik.Core/Domain/Cities.cs')
-                       .read_text(encoding='utf-8').split('All =')[1].split('];')[0])
-PLACES = PROVINCES + '''Afyon Antep Urfa Maraş İzmit İskenderun Adapazarı
-Adalar Arnavutköy Ataşehir Avcılar Bağcılar Bahçelievler Bakırköy Başakşehir Bayrampaşa Beşiktaş Beykoz Beylikdüzü Beyoğlu
-Büyükçekmece Çatalca Çekmeköy Esenler Esenyurt Eyüpsultan Fatih Gaziosmanpaşa Güngören Kadıköy Kağıthane Kartal Küçükçekmece
-Maltepe Pendik Sancaktepe Sarıyer Silivri Sultanbeyli Sultangazi Şile Şişli Tuzla Ümraniye Üsküdar Zeytinburnu
-Ataköy Bostancı Kozyatağı Göztepe Fulya Etiler Levent Maslak Mecidiyeköy Okmeydanı Poyrazköy Ferhatpaşa Paşaköy Kasımpaşa
-Unkapanı Florya İkitelli İstinye Göktürk Ömerli Orhanlı Piyalepaşa Ulus Balat Dudullu Hadımköy Yenibosna Kurtköy Gebze Dilovası
-Çayırova Darıca Körfez Gölcük Kartepe Başiskele Derince İzmit
-Altındağ Çankaya Etimesgut Gölbaşı Keçiören Mamak Pursaklar Sincan Yenimahalle Polatlı Kızılay Beykent Ostim
-Balçova Bayraklı Bornova Buca Çiğli Gaziemir Güzelbahçe Karabağlar Karşıyaka Konak Menemen Narlıdere Torbalı Urla Ödemiş
-Selçuk Çeşme Menderes Kemalpaşa Aliağa Alsancak Işıkkent
-Muratpaşa Konyaaltı Kepez Döşemealtı Aksu Alanya Manavgat Kemer Serik Kaş Kumluca
-Osmangazi Nilüfer Yıldırım Mudanya Gemlik İnegöl Gürsu Kestel Balat Görükle
-Bodrum Fethiye Marmaris Datça Milas Menteşe Dalaman Köyceğiz Yalıkavak Ortaca
-Edremit Bandırma Ayvalık Gönen Burhaniye Altıeylül Karesi
-Pamukkale Merkezefendi Seyhan Çukurova Sarıçam Yüreğir Ceyhan Şahinbey Şehitkamil
-Melikgazi Kocasinan Talas Mimarsinan Tepebaşı Odunpazarı Serdivan Arifiye Erenler Akyazı
-Çorlu Çerkezköy Süleymanpaşa Ergene Lüleburgaz Antakya Arsuz Dörtyol Defne Mezitli Yenişehir Tarsus Toroslar
-Efeler Kuşadası Didim Nazilli Selçuklu Karatay Meram Ereğli Ayvacık Biga Gelibolu Turgutlu Akhisar Yunusemre Şehzadeler
-Tatvan Güroymak Elazığ Bulancak'''.split()
-
-_FOLD = str.maketrans('İIÖÜŞÇĞÂÎÛ', 'IIOUSCGAIU')
-def fold(s): return key(s).translate(_FOLD)
-PLACE_BY_FOLD = {fold(p): p for p in PLACES}
-
-def lev(a, b, limit):
-    """İki kelime arasındaki harf farkı (ekleme/silme/değiştirme); limit aşılınca limit+1 döner."""
-    if abs(len(a) - len(b)) > limit: return limit + 1
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i]
-        for j, cb in enumerate(b, 1): cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
-        if min(cur) > limit: return limit + 1
-        prev = cur
-    return prev[-1]
-
-def place(word):
-    """Kelime bir yer adının hatalı yazılışıysa doğru yazılışı (yoksa None). Kısa kelimelere dokunulmaz."""
-    f = fold(word)
-    if len(f) < 4: return None
-    if f in PLACE_BY_FOLD: return PLACE_BY_FOLD[f]
-    if len(f) < 5: return None
-    limit = 1 if len(f) < 8 else 2
-    dist = {p: d for k, p in PLACE_BY_FOLD.items() if (d := lev(f, k, limit)) <= limit}
-    best = [p for p, d in dist.items() if d == min(dist.values())]
-    return best[0] if len(best) == 1 else None  # en yakın tek aday (ANTALAYA → Antalya; Antakya 2 harf uzakta)
-
-fixes = collections.Counter()
-_WORD = r'[A-Za-zÇĞİÖŞÜÂÎÛçğıöşüâîû]+'
-def fix_places(text):
-    """Serbest metindeki yer adlarını düzeltir ("ANTALAYA 2 YER" → "ANTALYA 2 YER", "KONYA ALTI" → "KONYAALTI"). Büyük harf korunur."""
-    if not text: return text
-    def same_case(src, right): return key(right) if src.isupper() else right
-    parts = re.split(f'({_WORD})', text)  # tek sıralar kelime, çift sıralar aradaki işaretler
-    for i in range(1, len(parts) - 2, 2):
-        if parts[i] and parts[i + 1] == ' ' and (p :=PLACE_BY_FOLD.get(fold(parts[i] + parts[i + 2]))):
-            parts[i], parts[i + 1], parts[i + 2] = same_case(parts[i], p), '', ''
-    for i in range(1, len(parts), 2):
-        if parts[i] and (p := place(parts[i])): parts[i] = same_case(parts[i], p)
-    out = ''.join(parts)
-    if out != text: fixes[f'{text} → {out}'] += 1
+# Harf düzeni (BÜYÜK HARF → "Ahmet Yılmaz") yazarken tek noktadan uygulanır. Kural her yerde aynı sonucu verdiği için
+# müşteri/şoför/taşeron adları sefer, araç ve gider satırlarındaki adlarla tutarlı kalır.
+EXCEPTIONS = json.loads(Path(sys.argv[sys.argv.index('--exceptions') + 1]).read_text(encoding='utf-8')) if '--exceptions' in sys.argv else {}
+CASE_COLS = {'Ünvan', 'Müşteri', 'Tedarikçi', 'Araç Sahibi', 'Şoför', 'Ad Soyad', 'Yetkili', 'Vergi Dairesi', 'İlçe',
+             'Yükleme Adresi', 'Teslim Adresi', 'Yük Cinsi', 'Araç Tipi', 'Marka', 'Hesap Adı'}
+def cased(col, v):
+    if col not in CASE_COLS or not isinstance(v, str): return v
+    out = fix_case(v, EXCEPTIONS)
+    if out != v: case_changes[col] += 1
     return out
-
-def fix_city(v):
-    """İl alanı: listedeki resmi yazılış ("SAKARAYA" → "Sakarya"); tanınmazsa olduğu gibi kalır."""
-    v = clean(v)
-    p = place(v) if v else None
-    out = p if p in PROVINCES else ({'Afyon': 'Afyonkarahisar', 'Antep': 'Gaziantep', 'Urfa': 'Şanlıurfa', 'Maraş': 'Kahramanmaraş', 'İzmit': 'Kocaeli'}.get(p) or v)
-    if v and out != v and key(out) != key(v): fixes[f'{v} → {out}'] += 1
-    return out
-
-def fix_district(v):
-    v = clean(v)
-    p = place(v) if v and ' ' not in v else None
-    if p and key(p) != key(v): fixes[f'{v} → {p}'] += 1
-    return p or v
-
-def fix_title(v):
-    """Ünvan: noktadan sonra boşluk ("TİC.LTD.ŞTİ." → "TİC. LTD. ŞTİ."); "A.Ş." gibi tek harfli kısaltmalara dokunulmaz."""
-    v = clean(v)
-    return ' '.join(re.sub(rf'\.(?={_WORD[:-1]}{{2,}})', '. ', v).split()) if v else v
-
+case_changes = collections.Counter()
 
 def write(name, entity, rows):
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = 'Veri'
     cols = COLS[entity]; ws.append(cols)
-    for r in rows: ws.append([r.get(c) for c in cols])
+    for r in rows: ws.append([cased(c, r.get(c)) for c in cols])
     wb.save(OUT / name)
     note(f'{name}: {len(rows)} satır')
 
@@ -312,7 +235,7 @@ for a in own_src:  # öz araçların marka, sigorta ve muayene bilgileri
     year = re.search(r'\b(19|20)\d{2}\b', mm)
     row.update({'Marka': clean(re.sub(r'\b(19|20)\d{2}\b', '', mm)), 'Model Yılı': int(year.group(0)) if year else None,
                 'Muayene Bitiş': tr_date(a.get('Muay. / Tarih')), 'Sigorta Bitiş': tr_date(a.get('Sigorta / Tarih'))})
-    if clean(a.get('Tip')): row['Araç Tipi'] = clean(a.get('Tip')).title()
+    if clean(a.get('Tip')): row['Araç Tipi'] = clean(a.get('Tip'))
 unknown = sum(v.get('Araç Sahibi') == UNKNOWN_OWNER for v in vehicles.values())
 note(f"Araçlar: {len(OWN_PLATES)} öz araç (eski panelin Araçlar listesi"
      + (f'; {len(own_src) - len(OWN_PLATES)} plaka orada iki kez yazılmış' if len(own_src) > len(OWN_PLATES) else '') + f"), {len(vehicles) - len(OWN_PLATES)} taşeron aracı"
@@ -409,6 +332,8 @@ write('5-seferler.xlsx', 'trips', trips)
 if expenses: write('8-giderler.xlsx', 'expenses', expenses)
 if cash_accounts: write('9-banka-hesaplari.xlsx', 'cash-accounts', cash_accounts)
 if staff: write('10-personeller.xlsx', 'staff', staff)
+if case_changes:
+    note(''); note('HARF DÜZENİ (BÜYÜK HARF → düzgün yazım): ' + ', '.join(f'{k} {n}' for k, n in case_changes.most_common()))
 if fixes:
     note(''); note(f'YAZIM DÜZELTMELERİ ({sum(fixes.values())} alan):')
     for k, n in sorted(fixes.items()): note(f'  {k}' + (f'  ({n} kez)' if n > 1 else ''))
