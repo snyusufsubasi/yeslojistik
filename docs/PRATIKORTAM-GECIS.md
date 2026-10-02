@@ -2,17 +2,27 @@
 
 > Bu belgeye veri, şifre veya kişisel bilgi yazılmaz.
 >
-> **Durum (2 Ekim) — canlıdaki veri hatalı, yeni ücretli veritabanına düzeltilmiş hâliyle yeniden yüklenecek.**
-> - 30 Eylül gecesi eski kurallarla canlıya yüklendi: 48 araç yanlışlıkla öz araç, cari devirleri ve aktif seferler borç/alacak doğurdu,
->   yer adlarında yazım hataları vardı. Render kayıtlarına göre o günden beri panelde elle kayıt girilmedi.
-> - Kullanıcı kararı: eski veritabanı silinmez, **yeni ücretli Render veritabanı** açılır (Frankfurt, basic, 5 GB) ve düzeltilmiş veri oraya
->   yüklenir. Eski ücretsiz veritabanı 28 Ekim'e kadar yedek olarak kalır. Canlıda `Seed__SampleData=false` yapıldı (2 Ekim).
-> - **Bekleyen (kullanıcı):** Render'a ödeme kartı eklemek (dashboard.render.com/billing) ve bulut ortamına
->   `PANEL_EMAIL`/`PANEL_PASSWORD` eklemek. Yeni veritabanında yönetici, Render'daki `Seed__AdminEmail`/`Seed__AdminPassword` ile kurulur.
-> - **Sonraki oturumda sıra:** 1) `create_postgres` (yeslojistik-db-prod, basic_256mb, frankfurt, 16, 5 GB) → 2) kullanıcı Render panelinde
->   servisin `DATABASE_URL`'ini yeni veritabanından seçer (bağlantı şifresi sohbete/komuta yazılmaz) → 3) servis açılınca boş şema + yönetici
->   oluşur → 4) `extract.mjs` → `transform.py` → `prova.py --apply` (sonuç "BORÇ/ALACAK KONTROLÜ: temiz") → 5) firma bilgileri ve
->   diğer kullanıcılar yeniden girilir → 6) gece yedeği düzeltilir (4 çalışmanın dördü de başarısız; `BACKUP_*` secret'ları eksik görünüyor).
+> **Durum (2 Ekim akşam) — yan yana kullanım: panel pratikortam'ın aynası. Kod canlıda; kullanıcının secret eklemesi bekleniyor.**
+> - **Hedef (kullanıcı, 2 Ekim):** iş pratikortam'da sürer; panel günde birkaç kez oradan beslenen, Türkçesi düzgün, okunaklı bir aynadır.
+>   Panelde kayıt değiştirilmez. Cari bakiyeler pratikortam'daki rakamdır. Ücretli veritabanına şimdilik geçilmeyecek (28 Ekim'de silinecek;
+>   ayna her şeyi pratikortam'dan yeniden kurabildiği için gerekirse yeni ücretsiz veritabanına yeniden doldurulur, karar Ekim ortasında).
+> - **Nasıl çalışır:** `.github/workflows/mirror.yml` (07/12/17/22 İstanbul + elle) → `extract.mjs` (salt okuma) → `mirror.py`
+>   (`transform.py --json`, yazım istisnaları panelden) → `POST /api/legacy/mirror` (`LegacyMirrorService`).
+>   Kayıtlar kalıcı anahtarla eşlenir (VKN/ünvan, plaka, ad, sevkiyat no); 30 Eylül aktarımının anahtarsız kayıtları VKN ya da adla
+>   sahiplenilir. Görüntüde olmayan kayıt **soft delete** olur (geri alınabilir); tahsilat/tedarikçi ödemeleri aynada tutulmaz.
+>   Bir türün yarısından fazlası silinecekse durur (`allow_large_removal` yalnız ilk dolumda).
+> - **Ayna modu (Ayarlar → Veriler → "Pratikortam aynası"):** açıkken sunucu aynadaki kayıtlara yazmayı reddeder (`MirrorWriteGuard`),
+>   panel ekle/düzenle/sil düğmelerini gizler, üstte bilgi şeridi çıkar, Cari ekranı pratikortam bakiyesini gösterir. Kapalıyken senkron yalnız dener.
+> - **Yazım:** `tools/legacy/turkce.py`: yer adı düzeltme (ANTALAYA → Antalya) + harf düzeni (AHMET YILMAZ → Ahmet Yılmaz,
+>   TİC.LTD.ŞTİ. → Tic. Ltd. Şti., AVM/BRK/plaka büyük kalır). İstisnalar panelde.
+> - **Yerel prova (2 Ekim):** 30 Eylül'deki hatalı aktarımın aynısı kuruldu (48 öz araç, 28 devir ödemesi, 136 kesilecek sefer), ayna uygulandı:
+>   10 öz / 127 taşeron araç, kesilecek sefer 0, 17 müşteri + 17 tedarikçi pratikortam bakiyesi, çift kayıt yok; ikinci çalıştırma "değişiklik yok".
+> - **Bekleyen (kullanıcı):** GitHub → Settings → Secrets and variables → Actions: `PRATIK_USER`, `PRATIK_PASS`, `PANEL_EMAIL`, `PANEL_PASSWORD`.
+>   Gece yedeği için ayrıca `BACKUP_URL`, `BACKUP_TOKEN`, `BACKUP_PASSPHRASE` (yedek 4/4 başarısız).
+> - **Sonra (onayla):** panelden tam yedek → Ayarlar'dan aynayı aç → "Pratikortam aynası" workflow'unu elle, `allow_large_removal` işaretli
+>   çalıştır → kontrol: 10/127 araç, bakiyeler pratikortam ile aynı, 5 rastgele cari yan yana.
+> - Not: gerçek veriyi toptan silen geçici bir "sıfırlama izni" denendi, güvenlik denetiminde reddedildi ve gönderilmedi; aynanın
+>   geri alınabilir eşleştirmesi bunun yerini aldı.
 >
 > **Önceki durum (30 Eylül gece):**
 > - Kod bitti ve canlıda (main `e4784f8`, PR #21 ve #22). Panel eski panele benzer düzende: Sevkiyat / Cari / Listeler / Öz Mal / Banka & Çek menüsü,

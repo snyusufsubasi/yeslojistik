@@ -38,10 +38,9 @@
 
 ## Veri aktarımı: sıkıntıyı kalıcı çözme
 
-> **Kullanıcı kararı (2 Ekim):** Eski veriden borç/alacak çıkarılmaz, yalnız kayıtlar eklenir. Cari devri yok, seferler eski kayıt, bankalar 0 bakiye.
-> Öz araç yalnız eski panelin "Araçlar" listesi. Yer adı yazım hataları aktarımda düzeltilir.
-> `tools/legacy/transform.py` ve `prova.py` buna göre değişti (ayrıntı: `PRATIKORTAM-GECIS.md`).
-> Aşağıdaki "cari bazında karşılaştırma" maddeleri bu karara göre "her bakiye 0 mı" kontrolüne dönüşür.
+> **Kullanıcı kararı (2 Ekim, güncel):** Yan yana kullanım. Panel pratikortam'ın aynası: günde 4 kez otomatik senkron, panelde düzenleme yok,
+> cari bakiyeler pratikortam rakamı, Türkçe yazım düzeltmeli. Ayrıntı ve sıradakiler: `PRATIKORTAM-GECIS.md`. Aşağıdaki "Eski Sistemden Taşı"
+> sihirbazı tam geçiş günü için geçerliliğini korur; o güne kadar öncelik görünüş, Türkçe ve pratikortam'a benzeyen düzen (Faz 2–3).
 
 ### Neden her seferinde sorun çıkıyor?
 
@@ -115,7 +114,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 
 | # | Başlık | Neden önemli | Ne değişecek | Efor |
 |---|---|---|---|---|
-| 1 | Veritabanını ücretli plana geçir (karar: yeni ücretli veritabanı; Render ödeme kartı bekleniyor) | Ücretsiz veritabanı 28 Ekim 2026'da silinir. 1 GB sınırı var, nokta-zaman geri dönüşü yok | `render.yaml` (plan, `region: frankfurt`), yedek anahtarı ayarı, bir kez yedekten geri yükleme denemesi | M |
+| 1 | Veritabanını ücretli plana geçir (2 Ekim: kullanıcı şimdilik istemiyor; ayna yeniden kurabildiği için karar Ekim ortasında) | Ücretsiz veritabanı 28 Ekim 2026'da silinir. 1 GB sınırı var, nokta-zaman geri dönüşü yok | `render.yaml` (plan, `region: frankfurt`), yedek anahtarı ayarı, bir kez yedekten geri yükleme denemesi | M |
 | 2 | ✅ Canlıda demo veri yüklemeyi kapat (2 Ekim) | Veritabanı yeniden kurulursa sahte müşteriler gerçek verinin içine karışır | `render.yaml` → `Seed__SampleData: "false"` | S |
 | 3 | Tedarikçi cari bakiyesini düzelt | Alış faturaları cari listesine girmiyor, bakiye yanlış | `CariService.SuppliersAsync` + tutarlılık testi | S |
 | 4 | "Demo verilerini temizle"yi kilitle ve onar | Gerçek veriyi tek kelimeyle silebiliyor. Alış faturası varken hata veriyor | `DataResetService`: sadece demo durumunda çalışsın, eksik tablolar eklensin, kayıt geçmişi silinmesin | S |
