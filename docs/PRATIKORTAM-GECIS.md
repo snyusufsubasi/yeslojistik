@@ -21,6 +21,8 @@
 >   Gece yedeği için ayrıca `BACKUP_URL`, `BACKUP_TOKEN`, `BACKUP_PASSPHRASE` (yedek 4/4 başarısız).
 > - **Sonra (onayla):** panelden tam yedek → Ayarlar'dan aynayı aç → "Pratikortam aynası" workflow'unu elle, `allow_large_removal` işaretli
 >   çalıştır → kontrol: 10/127 araç, bakiyeler pratikortam ile aynı, 5 rastgele cari yan yana.
+> - **Harita (2 Ekim):** pratikortam'ın bütün ekranları salt okuma robotuyla tarandı (83 sayfa, 48 ekran şablonu);
+>   ekran ekran karşılaştırma, eksik alanlar, çıktılar ve öncelikli öneri listesi `docs/PRATIKORTAM-HARITA.md`'de.
 > - Not: gerçek veriyi toptan silen geçici bir "sıfırlama izni" denendi, güvenlik denetiminde reddedildi ve gönderilmedi; aynanın
 >   geri alınabilir eşleştirmesi bunun yerini aldı.
 >
