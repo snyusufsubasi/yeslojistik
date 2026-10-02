@@ -76,7 +76,7 @@ interface DateProps<F extends FieldValues> {
   id?: string
 }
 
-/** Tarih kutusu ve yanında tek tıklık hazır seçenekler ("Bugün", "+30 gün", "+1 yıl"). */
+/** Tarih kutusu ve yanında tek tıklık hazır seçenekler ("Bugün", "+30 gün", "+1 yıl"). Seçenekler Tab sırasına girmez. */
 export function DateQuick<F extends FieldValues>({ control, name, quick = 'today', from, dueDays = [15, 30, 60, 90], years = [1, 2, 5], disabled, id }: DateProps<F>) {
   const { field: { value: raw, onChange, onBlur, ref } } = useController({ control, name })
   const value = (raw as string | null | undefined) ?? ''
@@ -93,14 +93,14 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
       {chips.length > 0 && !disabled && (
         <div className="flex flex-wrap gap-1.5">
           {chips.map((c) => (
-            <button key={c.label} type="button" onClick={() => onChange(c.v)}
+            <button key={c.label} type="button" tabIndex={-1} onClick={() => onChange(c.v)}
               className={clsx('min-h-9 rounded-full border px-3 text-sm font-medium transition',
                 value === c.v ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
               {c.label}
             </button>
           ))}
           {value && quick !== 'today' && (
-            <button type="button" onClick={() => onChange('')} className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-sm text-slate-600 hover:bg-slate-100">
+            <button type="button" tabIndex={-1} onClick={() => onChange('')} className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-sm text-slate-600 hover:bg-slate-100">
               <X className="size-4" /> Temizle
             </button>
           )}
@@ -140,9 +140,9 @@ export function DaysInput<F extends FieldValues>({ control, name, options = [0, 
       </div>
       {!disabled && (
         <div className="flex flex-wrap gap-1.5">
-          {emptyLabel && <button type="button" className={chip(!has)} onClick={() => onChange(NaN)}>{emptyLabel}</button>}
+          {emptyLabel && <button type="button" tabIndex={-1} className={chip(!has)} onClick={() => onChange(NaN)}>{emptyLabel}</button>}
           {options.map((d) => (
-            <button key={d} type="button" className={chip(has && v === d)} onClick={() => onChange(d)}>{d === 0 ? 'Peşin' : `${d} gün`}</button>
+            <button key={d} type="button" tabIndex={-1} className={chip(has && v === d)} onClick={() => onChange(d)}>{d === 0 ? 'Peşin' : `${d} gün`}</button>
           ))}
         </div>
       )}
@@ -161,7 +161,7 @@ export function SuggestChips({ values, value, onPick, disabled }: { values: stri
     <div className="mt-2 flex flex-wrap gap-1.5">
       {values.map((v) => {
         const active = current === v.toLocaleLowerCase('tr')
-        return <button key={v} type="button" aria-pressed={active} className={chip(active)} onClick={() => onPick(v)}>{v}</button>
+        return <button key={v} type="button" tabIndex={-1} aria-pressed={active} className={chip(active)} onClick={() => onPick(v)}>{v}</button>
       })}
     </div>
   )

@@ -135,7 +135,7 @@ export default function InvoiceCreatePage() {
               <div className="mb-3 flex flex-wrap items-center gap-1.5">
                 <span className="text-sm text-slate-600">Hızlı ekle:</span>
                 {quickLines.map((d) => (
-                  <button key={d} type="button" className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  <button key={d} type="button" tabIndex={-1} className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     onClick={() => setExtra((x) => [...x, { key: Date.now(), description: d, amount: '' }])}>+ {d}</button>
                 ))}
               </div>

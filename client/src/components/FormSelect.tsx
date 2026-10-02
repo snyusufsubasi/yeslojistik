@@ -37,7 +37,7 @@ function pushRecent(key: string, id: number) {
 }
 
 /**
- * Aranabilir seçim kutusu: kutuya yazdıkça liste süzülür, ok tuşları ve Enter ile seçilir.
+ * Aranabilir seçim kutusu: kutuya yazdıkça liste süzülür, ok tuşları ve Enter (ya da Tab) ile seçilir.
  * Aranan kayıt yoksa (onCreate verildiyse) aynı yerden yeni kayıt eklenir.
  */
 export function SearchSelect({ value, onChange, options, placeholder = 'Seçiniz', disabled, name, onCreate, createLabel = 'Yeni ekle', recent = [], ariaLabel, clearable = true }:
@@ -47,6 +47,8 @@ export function SearchSelect({ value, onChange, options, placeholder = 'Seçiniz
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Kullanıcı yazdı ya da ok tuşuyla gezdiyse Tab vurgulanan seçeneği seçer; yalnızca üzerinden geçiyorsa seçim değişmez.
+  const navigated = useRef(false)
   const listId = useId()
   const selected = value == null || Number.isNaN(value) ? undefined : options.find((o) => o.value === value)
 
@@ -67,18 +69,23 @@ export function SearchSelect({ value, onChange, options, placeholder = 'Seçiniz
   const close = () => { setOpen(false); setQuery('') }
   const choose = (o: Option) => { onChange(o.value); close(); inputRef.current?.blur() }
   const create = () => { const t = query.trim(); close(); onCreate?.(t) }
-  const openList = () => { if (disabled) return; setOpen(true); setActive(0) }
+  const openList = () => { if (disabled) return; setOpen(true); setActive(0); navigated.current = false }
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (!open) return openList()
+      navigated.current = true
       setActive((a) => (a + (e.key === 'ArrowDown' ? 1 : -1) + count) % Math.max(count, 1))
     } else if (e.key === 'Enter') {
       if (!open) return
       e.preventDefault()
       if (active < shown.length) choose(shown[active])
       else if (canCreate) create()
+    } else if (e.key === 'Tab' && open && navigated.current && active < shown.length) {
+      // Odak bir sonraki alana geçer (varsayılan davranış engellenmez): "akd" + Tab → Akdeniz seçilir.
+      onChange(shown[active].value)
+      close()
     } else if (e.key === 'Escape' && open) {
       e.stopPropagation()
       close()
@@ -95,7 +102,7 @@ export function SearchSelect({ value, onChange, options, placeholder = 'Seçiniz
         placeholder={selected ? selected.label : open ? 'Yazarak arayın…' : placeholder}
         value={open ? query : selected?.label ?? ''}
         onFocus={openList} onClick={openList}
-        onChange={(e) => { setQuery(e.target.value); setActive(0); setOpen(true) }}
+        onChange={(e) => { setQuery(e.target.value); setActive(0); setOpen(true); navigated.current = e.target.value.trim() !== '' }}
         onBlur={close} onKeyDown={onKeyDown} />
       <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
         {clearable && selected && !disabled && (
@@ -154,7 +161,7 @@ export function FormSelect<T extends FieldValues>({ control, name, options, plac
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 text-sm text-slate-500"><History className="size-4" /> Son seçilenler:</span>
           {shortcuts.map((o) => (
-            <button key={o.value} type="button" onClick={() => choose(o.value)}
+            <button key={o.value} type="button" tabIndex={-1} onClick={() => choose(o.value)}
               className="min-h-8 max-w-[16rem] truncate rounded-full border border-slate-300 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50">
               {o.label}
             </button>

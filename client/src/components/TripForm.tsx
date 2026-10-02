@@ -35,10 +35,10 @@ import { vehicleOwnershipIcon } from '../lib/icons'
 const cargoUnits = ['palet', 'koli', 'adet', 'ton', 'kg', 'm³']
 const defaultCargoTypes = ['Genel kargo', 'Mobilya', 'Tekstil', 'Gıda', 'İnşaat malzemesi', 'Otomotiv parçası']
 
-/** Öneri düğmesi (adres, yük cinsi, birim): tek tıkla alanı doldurur. */
+/** Öneri düğmesi (adres, yük cinsi, birim): tek tıkla alanı doldurur. Tab sırasına girmez; klavyeyle kutuya yazılır. */
 function Chip({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: ReactNode; title?: string }) {
   return (
-    <button type="button" onClick={onClick} title={title}
+    <button type="button" tabIndex={-1} onClick={onClick} title={title}
       className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-full border px-3 text-sm transition ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
       <span className="truncate">{children}</span>
     </button>

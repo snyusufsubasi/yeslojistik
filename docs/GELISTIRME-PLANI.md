@@ -124,7 +124,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 6 | ✅ Hata ve "Tekrar dene" ekranları | Sunucu uyanırken ekran sonsuz döner, ağ hatasında kullanıcı oturumdan atılır | `DataTable`, `DashboardPage`, `auth.tsx`. Metin: "Sunucu birkaç saniye içinde açılıyor olabilir. [Tekrar dene]" | M |
 | 7 | Alış faturası kaydını "ya hep ya hiç" yap | Sefer bağlama başarısız olursa fatura yarım kalır ve borç yanlış artar | `PurchaseInvoiceService` işlem (transaction) | S |
 | 8 | ✅ Ana sayfa yüklemesini hafiflet (ilk yükleme 666 kB → 299 kB) | İlk açılışta gereksiz yere grafik kütüphanesi iniyor (665 kB) | `App.tsx` → `DashboardPage` sonradan yüklensin, grafik ayrı parçaya ayrılsın | S |
-| 9 | Klavye akışı: öneri düğmeleri Tab sırasından çıksın, Tab ile seçim yapılsın | Tab tuşu 30'dan fazla küçük düğmede duruyor. "akd" yazıp Tab'a basınca seçim kayboluyor | `TripForm`, `Inputs`, `FormSelect` | S |
+| 9 | ✅ Klavye akışı: öneri düğmeleri Tab sırasından çıksın, Tab ile seçim yapılsın | Tab tuşu 30'dan fazla küçük düğmede duruyor. "akd" yazıp Tab'a basınca seçim kayboluyor | `TripForm`, `Inputs`, `FormSelect` | S |
 | 10 | Sadece main dalı CI'dan geçince yayına al | Hatalı kod da otomatik yayına çıkıyor | `render.yaml` → `autoDeployTrigger: checksPass` | S |
 
 ## Aşama 2 — Kısa vade (1–2 hafta)
