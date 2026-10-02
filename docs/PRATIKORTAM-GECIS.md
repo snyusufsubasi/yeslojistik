@@ -5,9 +5,9 @@
 > **Durum (30 Eylül gece) — kalan tek iş: veriyi canlıya yüklemek.**
 > - Kod bitti ve canlıda (main `e4784f8`, PR #21 ve #22). Panel eski panele benzer düzende: Sevkiyat / Cari / Listeler / Öz Mal / Banka & Çek menüsü,
 >   Müşteriler Cari ve Tedarikçiler Cari tabloları, Sevkiyatlar'da kazanç şeridi ve Bugün/Gelecek/Geçmiş/Bu ay hapları, Personeller ve Sabit Ödemeler.
-> - Aktarım araçları hazır ve boş veritabanında prova edildi (her müşteri ve taşeron bakiyesi eski panelle kişi kişi tuttu, ikinci yükleme çift yazmaz):
+> - Aktarım araçları hazır ve boş veritabanında prova edildi (borç/alacak oluşmuyor, ikinci yükleme çift yazmaz):
 >   `tools/legacy/extract.mjs` → `transform.py` → `prova.py`. Dosyalar 1–10: tedarikçi, müşteri, şoför, araç (öz araç bilgileriyle), sefer,
->   devir tahsilat/ödeme, gider (mazot dahil), banka hesabı, personel.
+>   gider (mazot dahil), banka hesabı, personel. (6–7 devir dosyaları artık üretilmiyor.)
 > - Bulut ortamının ağ izni `pratikortam.com` ve `yeslojistik.onrender.com` için açık. Ortamda `PRATIK_USER`/`PRATIK_PASS` var;
 >   canlıya yüklemek için ayrıca `PANEL_EMAIL`/`PANEL_PASSWORD` (panel yönetici hesabı) gerekir, yeni oturumda okunur.
 >
@@ -27,18 +27,23 @@
 > 5. `GET /api/dashboard` → `setup.sampleData` true ise (demo veri) `POST /api/settings/reset-data {"confirm":"SİL"}` (paneldeki "Demo verilerini temizle").
 >    Demo olmayan kayıt varsa **dur, kullanıcıya sor**.
 > 6. Yükle: `PANEL_EMAIL=… PANEL_PASSWORD=… python3 tools/legacy/prova.py <scratchpad>/pratik --api https://yeslojistik.onrender.com --apply`
->    Her dosya önce deneme (dryRun) sonra gerçek yüklenir; sonuç "KİŞİ KİŞİ MUTABAKAT: hepsi tuttu" olmalı.
+>    Her dosya önce deneme (dryRun) sonra gerçek yüklenir; sonuç "BORÇ/ALACAK KONTROLÜ: temiz, hepsi 0" olmalı.
 > 7. Tekrar tam yedek al; kullanıcıya pratikortam ve panel şifrelerini ortamdan silmesini hatırlat.
 >
 > Elle yükleme de olur: dosyaları sırayla ilgili sayfalardaki "Excel'den Aktar" ile (9: Kasa / Banka, 10: Personeller sayfasından).
-> Giderlerde taşeron ödemeleri ve mahsuplaşmalar alınmaz; bunlar cari devrinde zaten var.
 >
-> **Bakiye kuralı.** Aynı kural `transform.py` başındaki açıklamada da yazılı.
-> - **Müşteri devri:** kesilen fatura − alınan ödeme.
-> - **Faturalanmış seferler:** "Eski kayıt" olarak aktarılır. Geçmişte ve raporlarda görünür, bakiye ve "kesilecek fatura" hesabına girmez.
-> - **"Bekleniyor" seferler (106 adet):** Aktif gelir ve yeni sistemde faturalanır.
-> - **Taşeron devri:** eski bakiye − aktif seferlerin maliyeti. Yeni sistem aktif seferlerin maliyetini borç olarak yeniden yazar, toplam yine eski bakiyeye eşit olur.
-> - **Eksi çıkan devir:** Cutover tarihli bir ödeme/tahsilat kaydı olarak girer.
+> **Aktarım kuralları (kullanıcı kararı, 2 Ekim).** Aynı kurallar `transform.py` başındaki açıklamada da yazılı.
+> - **Borç/alacak taşınmaz, yalnız kayıtlar eklenir.** Müşteri ve tedarikçi devri 0. Bütün seferler "Eski kayıt" olarak gelir:
+>   geçmişte ve raporlarda görünür, borç/alacak, "kesilecek fatura" ve risk hesabına girmez. Banka hesapları 0 bakiyeyle açılır.
+>   Eski "Giderler" listesindeki taşeron ödemeleri ve mahsuplaşmalar gider sayılmaz, alınmaz.
+> - **Öz araç yalnız eski panelin "Araçlar" listesindeki plakalardır** (bugün 10 araç). Diğer bütün plakalar taşeron aracıdır.
+>   Eski panelde 50 "Piyasa" seferinde taşeron boş bırakılmış. Bu seferlerin araçları "Taşeronu Belli Olmayan Araçlar" adlı
+>   tedarikçiye bağlanır, araç kartından gerçek taşerona çevrilebilir. Eskiden bunlar yanlışlıkla öz araç sayılıyordu (48 araç).
+> - **Yazım düzeltme:** il, ilçe ve yükleme/teslim yerlerindeki yer adı hataları düzeltilir. Örnekler: ANTALAYA → ANTALYA,
+>   KADİKÖY → KADIKÖY, SAKARAYA → Sakarya. Ünvanlarda noktadan sonra boşluk bırakılır (TİC.LTD.ŞTİ. → TİC. LTD. ŞTİ.).
+>   Her düzeltme `rapor.txt`'de "YAZIM DÜZELTMELERİ" başlığı altında listelenir. AVM ve firma adlarına dokunulmaz.
+> - **Kontrol:** `prova.py --apply` sonunda "BORÇ/ALACAK KONTROLÜ: temiz, hepsi 0" yazmalı.
+>   Yerel boş veritabanında prova edildi (2 Ekim): 144 tedarikçi, 155 müşteri, 137 şoför, 137 araç, 235 sefer, 150 gider; hepsi 0.
 >
 > **Veri notları:**
 > - Eski panel çekici ve dorseyi tek alanda tutuyor (`34ABC123-34DEF456`). Aktarımda araç ve dorse plakası olarak ayrılır.

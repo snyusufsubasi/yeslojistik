@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""transform.py çıktısını bir panel API'sine (yerel prova ya da canlı) aktarır ve bakiyeleri eski panelle karşılaştırır.
+"""transform.py çıktısını bir panel API'sine (yerel prova ya da canlı) aktarır ve borç/alacak oluşmadığını kontrol eder.
 
 Kullanım:
   python3 tools/legacy/prova.py <extract klasörü> --api http://localhost:5090 [--apply]
@@ -22,8 +22,7 @@ log = []
 def say(s): print(s); log.append(s)
 
 ORDER = [('1-tedarikciler.xlsx', 'suppliers'), ('2-musteriler.xlsx', 'customers'), ('3-soforler.xlsx', 'drivers'),
-         ('4-araclar.xlsx', 'vehicles'), ('5-seferler.xlsx', 'trips'), ('6-devir-tahsilatlari.xlsx', 'payments'),
-         ('7-devir-odemeleri.xlsx', 'supplier-payments'), ('8-giderler.xlsx', 'expenses'), ('9-banka-hesaplari.xlsx', 'cash-accounts'),
+         ('4-araclar.xlsx', 'vehicles'), ('5-seferler.xlsx', 'trips'), ('8-giderler.xlsx', 'expenses'), ('9-banka-hesaplari.xlsx', 'cash-accounts'),
          ('10-personeller.xlsx', 'staff')]
 # Panel hata mesajındaki ipucu → boşaltılacak sütun
 DROPPABLE = [('VKN', 'VKN/TCKN'), ('telefon', 'Telefon'), ('e-posta', 'E-posta'), ('IBAN', 'IBAN'), ('il seçin', 'İl'), ('TC kimlik', 'TC Kimlik No')]
@@ -80,59 +79,20 @@ for name, entity in ORDER:
         say(f"{name}: deneme temiz ({res['created']} yeni, {res['skipped']} atlanacak)")
 
 if APPLY:
-    # Mutabakat: API'den bakiyeler
-    def total(path, field):
-        page, s = 1, 0
-        while True:
-            st, res = request('GET', f'{path}?page={page}&pageSize=100', headers=AUTH)
-            s += sum(i[field] for i in res['items'])
-            if page * 100 >= res['total']: return s, res['total']
-            page += 1
-    cb, cn = total('/api/customers', 'balance'); sb, sn = total('/api/suppliers', 'balance')
-    st, trips = request('GET', '/api/trips?page=1&pageSize=1', headers=AUTH)
-    st, un = request('GET', '/api/trips?page=1&pageSize=1&invoiced=false', headers=AUTH)
-    say('')
-    say(f'PANELDE: {cn} müşteri, bakiye toplamı {cb:,.2f} TL · {sn} tedarikçi, borç toplamı {sb:,.2f} TL')
-    # Kişi kişi mutabakat: panel bakiyesi ↔ eski panel carisi (müşteride faturası bekleyen seferler düşülür).
+    # Kontrol: eski veriden borç/alacak çıkmamalı. Her müşteri ve tedarikçi bakiyesi 0, faturası kesilecek sefer yok.
     def listing(path):
         items, page = [], 1
         while True:
             st, res = request('GET', f'{path}?page={page}&pageSize=100', headers=AUTH); items += res['items']
             if page * 100 >= res['total']: return items
             page += 1
-    from decimal import Decimal as Dm
-    exec_ns = {}
-    code = (Path(__file__).parent / 'transform.py').read_text(encoding='utf-8').split('# ---------- girdiler ----------')[0]
-    exec(compile(code, 'transform-helpers', 'exec'), exec_ns)  # yalnız yardımcılar (html_table, money, key, clean)
-    ht, money, key, clean = exec_ns['html_table'], exec_ns['money'], exec_ns['key'], exec_ns['clean']
-    ws = openpyxl.load_workbook(SRC / 'exports' / 'sevkiyatlar.xlsx', read_only=True).worksheets[0]
-    raw = list(ws.iter_rows(values_only=True)); ix = {h: i for i, h in enumerate(raw[0])}
-    import re, collections
-    waiting = collections.defaultdict(Dm)
-    for r in raw[1:]:
-        if r and isinstance(r[0], str) and re.match(r'\d{4}-\d\d-\d\d$', r[0]) and str(r[ix['Kesilen Fatura']]).strip() == 'Bekleniyor':
-            waiting[key(r[ix['Firma Ünvanı']])] += money(r[ix['Müşteri Meblağ']])
-    firms = {clean(f.get('VKN/TCKN')): key(f.get('Firma')) for f in ht(SRC / 'exports' / 'firmalar.html')}
-    all_c = listing('/api/customers')
-    panel_c = {c['taxNumber']: c for c in all_c if c.get('taxNumber')}
-    panel_ct = {key(c['title']): c for c in all_c}  # VKN'si boş ya da boşaltılmış müşteriler ünvanla eşlenir
-    miss = 0
-    for c in ht(SRC / 'exports' / 'musteri-cari.html', numbered=True):
-        v = clean(c.get('Müşteri VKN')); p = panel_c.get(v) or panel_ct.get(firms.get(v, key(c.get('Firma'))))
-        want = money(c.get('Bakiye')) - waiting[firms.get(v, key(c.get('Firma')))]
-        if not p or abs(Dm(str(p['balance'])) - want) > Dm('0.05'):
-            miss += 1; say(f"  UYUŞMAZ müşteri {v}: panel {p and p['balance']} ≠ beklenen {want}")
-    sup_file = SRC / 'exports' / 'tedarikci-cari.html'
-    if not sup_file.exists():  # eski çekimler: taşeron carisi yalnız taramada vardı
-        site = json.loads((SRC / 'site-map.json').read_text()); pg = next(x for x in site['pages'] if x['url'].endswith('alck_tdrkc.php'))
-        sup_file = SRC / 'pages' / f"{pg['n']}.html"
-    panel_s = {key(x['title']): x for x in listing('/api/suppliers')}
-    panel_sv = {x['taxNumber']: x for x in panel_s.values() if x.get('taxNumber')}
-    for c in ht(sup_file, min_cols=11, numbered=True):
-        p = panel_sv.get(clean(c.get('Tedarikçi VKN'))) or panel_s.get(key(c.get('Tedarikçi Ünvanı')))
-        if not p or abs(Dm(str(p['balance'])) - money(c.get('Bakiye'))) > Dm('0.05'):
-            miss += 1; say(f"  UYUŞMAZ taşeron {c.get('Tedarikçi Ünvanı')}: panel {p and p['balance']} ≠ eski {c.get('Bakiye')}")
-    say(f'KİŞİ KİŞİ MUTABAKAT: {"hepsi tuttu" if miss == 0 else f"{miss} uyuşmazlık"}')
-    say(f"PANELDE: {trips['total']} sefer, faturası kesilecek {un['total']} sefer")
+    say('')
+    nonzero = [(w, x['title'], x['balance']) for w, path in (('müşteri', '/api/customers'), ('tedarikçi', '/api/suppliers'))
+               for x in listing(path) if abs(x['balance']) > 0.005]
+    for w, title, bal in nonzero: say(f'  BAKİYE {w} {title}: {bal:,.2f} TL')
+    st, trips = request('GET', '/api/trips?page=1&pageSize=1', headers=AUTH)
+    st, un = request('GET', '/api/trips?page=1&pageSize=1&invoiced=false', headers=AUTH)
+    say(f'PANELDE: {trips["total"]} sefer, faturası kesilecek {un["total"]} sefer')
+    say(f'BORÇ/ALACAK KONTROLÜ: {"temiz, hepsi 0" if not nonzero else f"{len(nonzero)} carinin bakiyesi 0 değil (panelde önceden kayıt olabilir)"}')
 
 (AKTAR / ('prova-rapor.txt' if APPLY else 'deneme-rapor.txt')).write_text('\n'.join(log) + '\n', encoding='utf-8')

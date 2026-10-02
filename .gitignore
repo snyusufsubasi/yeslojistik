@@ -23,3 +23,5 @@ client/e2e/zz-*.spec.ts
 
 # Sunucu dışı yedek ayarı (rclone config, gizli anahtar içerir)
 deploy/rclone/
+__pycache__/
+*.pyc

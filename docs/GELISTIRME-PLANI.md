@@ -38,6 +38,11 @@
 
 ## Veri aktarımı: sıkıntıyı kalıcı çözme
 
+> **Kullanıcı kararı (2 Ekim):** Eski veriden borç/alacak çıkarılmaz, yalnız kayıtlar eklenir. Cari devri yok, seferler eski kayıt, bankalar 0 bakiye.
+> Öz araç yalnız eski panelin "Araçlar" listesi. Yer adı yazım hataları aktarımda düzeltilir.
+> `tools/legacy/transform.py` ve `prova.py` buna göre değişti (ayrıntı: `PRATIKORTAM-GECIS.md`).
+> Aşağıdaki "cari bazında karşılaştırma" maddeleri bu karara göre "her bakiye 0 mı" kontrolüne dönüşür.
+
 ### Neden her seferinde sorun çıkıyor?
 
 | Sorun | Sonucu |
