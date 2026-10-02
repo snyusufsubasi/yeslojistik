@@ -25,3 +25,6 @@ client/e2e/zz-*.spec.ts
 deploy/rclone/
 __pycache__/
 *.pyc
+
+# Alt ajanların geçici çalışma kopyaları
+.claude/worktrees/
