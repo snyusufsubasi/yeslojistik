@@ -10,6 +10,8 @@
 
 *Belgede gerçek müşteri, tedarikçi adı ya da tutar yok. Yalnızca kayıt sayıları var.*
 
+> **Güncel sıra ve kullanıcı kararları (2 Ekim):** `YOL-HARITASI.md` (A0–A9). Bu belge teknik ayrıntı kaynağıdır.
+
 ---
 
 ## Özet
