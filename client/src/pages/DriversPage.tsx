@@ -62,7 +62,7 @@ export default function DriversPage() {
   }, [params, setParams])
 
   const query = { page, pageSize: 20, search: debounced, active: showPassive ? undefined : true, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Driver>('drivers', query)
+  const { data, isFetching, error, refetch } = usePaged<Driver>('drivers', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['drivers', 'vehicles'], success: 'Şoför silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Driver>[] = [
@@ -104,7 +104,7 @@ export default function DriversPage() {
           </label>
           <SearchBox value={search} onChange={setSearch} placeholder="Ad, telefon..." />
         </>}>
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(d) => d.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(d) => d.id}
           onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz şoför yok. “Yeni Şoför” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />

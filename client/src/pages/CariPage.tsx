@@ -41,7 +41,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
   const toast = useToast()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('open')
-  const { data, isFetching } = useQuery({ queryKey: ['cari', kind], queryFn: () => get<Row[]>(`/cari/${kind}`) })
+  const { data, isFetching, error, refetch } = useQuery({ queryKey: ['cari', kind], queryFn: () => get<Row[]>(`/cari/${kind}`) })
   // Pratikortam aynası açıkken bakiye pratikortam'daki rakamdır; panel kendi borç/alacak hesabını yapmaz.
   const { mirror, status } = useMirror()
   const bal = (r: Row) => (mirror ? r.legacyBalance ?? 0 : r.balance)
@@ -148,7 +148,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
             </button>
           ))}
         </div>
-        <DataTable columns={columns} rows={rows} loading={isFetching} rowKey={(r) => r.id}
+        <DataTable columns={columns} rows={rows} loading={isFetching} error={error} onRetry={refetch} rowKey={(r) => r.id}
           onRowClick={(r) => navigate(`${t.detail}/${r.id}`)} footer={footer}
           empty={search ? 'Aramanıza uyan kayıt yok.' : filter === 'overdue' ? 'Vadesi geçen hesap yok.' : filter === 'open' ? 'Bakiyesi olan hesap yok. Hepsini görmek için “Hepsi”yi seçin.' : 'Henüz kayıt yok.'}
           mobileCard={(r) => (

@@ -3,11 +3,31 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 export const api = axios.create({ baseURL: '/api', withCredentials: true })
 
 export const SESSION_EXPIRED_EVENT = 'yl:session-expired'
+/** Sunucuya ulaşılamadığında (ör. ücretsiz sunucu uykudan uyanırken) ve yeniden ulaşıldığında yayınlanır. */
+export const SERVER_STATUS_EVENT = 'yl:server-status'
+/** Bir sayfa verisi kalıcı bir hatayla yüklenemediğinde yayınlanır (detail: kullanıcıya gösterilecek mesaj). */
+export const LOAD_ERROR_EVENT = 'yl:load-error'
+
+/** Geçici hata: sunucuya hiç ulaşılamadı ya da sunucu açılıyor (502/503/504). Tekrar denemek anlamlıdır. */
+export function isTransientError(err: unknown): boolean {
+  if (!axios.isAxiosError(err) || err.code === 'ERR_CANCELED') return false
+  const status = err.response?.status
+  return status === undefined || status === 502 || status === 503 || status === 504
+}
+
+let serverDown = false
+function setServerDown(down: boolean) {
+  if (down === serverDown) return
+  serverDown = down
+  window.dispatchEvent(new CustomEvent(SERVER_STATUS_EVENT, { detail: down }))
+}
 
 let refreshing: Promise<void> | null = null
 
 // Erişim token'ı 15 dakikada dolar; 401 alınca bir kez sessizce yenileyip isteği tekrarlarız.
-api.interceptors.response.use(undefined, async (error: AxiosError) => {
+api.interceptors.response.use((res) => { setServerDown(false); return res }, async (error: AxiosError) => {
+  if (isTransientError(error)) setServerDown(true)
+  else if (error.response) setServerDown(false)
   const config = error.config as (AxiosRequestConfig & { _retried?: boolean }) | undefined
   const url = config?.url ?? ''
   if (error.response?.status !== 401 || !config || config._retried || url.startsWith('/auth/')) {
@@ -17,8 +37,9 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
   try {
     refreshing ??= api.post('/auth/refresh').then(() => undefined).finally(() => { refreshing = null })
     await refreshing
-  } catch {
-    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+  } catch (refreshError) {
+    // Sunucu uyanırken yenileme geçici hata verebilir; bu durumda oturumu kapatmayız.
+    if (!isTransientError(refreshError)) window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
     return Promise.reject(error)
   }
   return api.request(config)
@@ -30,6 +51,11 @@ interface ProblemDetails {
 }
 
 /** Sunucu hatasını kullanıcıya gösterilecek Türkçe mesaja çevirir. */
+/** Sunucu kaydı bulamadı (404). */
+export function isNotFound(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 404
+}
+
 export function errorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as ProblemDetails | undefined
@@ -38,8 +64,8 @@ export function errorMessage(err: unknown): string {
       if (first) return first
     }
     if (data?.title) return data.title
-    if (!err.response) return 'Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.'
-    if (err.response.status === 403) return 'Bu işlem için yetkiniz yok.'
+    if (isTransientError(err)) return 'Sunucuya ulaşılamıyor. Sunucu açılıyor olabilir ya da internet bağlantınız kesik; birkaç saniye sonra tekrar deneyin.'
+    if (err.response?.status === 403) return 'Bu işlem için yetkiniz yok.'
   }
   return 'Beklenmeyen bir hata oluştu.'
 }

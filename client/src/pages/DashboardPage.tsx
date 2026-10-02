@@ -8,7 +8,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { get } from '../api/client'
 import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { Badge, Button, Card, Spinner, StatCard } from '../components/ui'
+import { Badge, Button, Card, Loading, StatCard } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useAuth } from '../lib/auth'
 import { quickActions } from '../lib/quickActions'
@@ -18,11 +18,11 @@ import { paymentStatusTone, tripStatusLabel, tripStatusTone, vehicleStatusLabel,
 export default function DashboardPage() {
   const { user, can } = useAuth()
   const navigate = useNavigate()
-  const { data, isLoading } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000 })
+  const { data, error, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000 })
   usePageTitle('Ana Sayfa')
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
 
-  if (isLoading || !data) return <Spinner />
+  if (!data) return <Loading error={error} onRetry={refetch} className={error ? 'card mx-auto mt-10 max-w-md' : undefined} />
 
   const tripCols: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', render: (t) => date(t.loadingDate) },

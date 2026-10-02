@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import clsx from 'clsx'
-import { ChevronLeft, Loader2, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Loader2, RefreshCw, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { HelpTip } from './Inputs'
 import type { Tone } from '../lib/labels'
 import { usePageTitle } from '../lib/usePageTitle'
+import { errorMessage, isTransientError } from '../api/client'
 
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
 
@@ -173,6 +174,23 @@ export function ConfirmDialog({ open, title, message, confirmText = 'Evet', dang
 
 export function Spinner({ className }: { className?: string }) {
   return <div className={clsx('flex justify-center py-10 text-brand-600', className)}><Loader2 className="size-8 animate-spin" /></div>
+}
+
+/** Veri yüklenemediğinde gösterilir: sunucu uyanıyorsa bunu söyler, değilse hatanın kendisini; altta "Tekrar dene". */
+export function ErrorState({ error, onRetry, className }: { error: unknown; onRetry?: () => void; className?: string }) {
+  const text = isTransientError(error) ? 'Sunucu birkaç saniye içinde açılıyor olabilir.' : errorMessage(error)
+  return (
+    <div role="alert" className={clsx('flex flex-col items-center gap-3 px-4 py-10 text-center text-[0.9375rem] text-slate-700', className)}>
+      <AlertTriangle className="size-6 text-amber-600" />
+      <p>{text}</p>
+      {onRetry && <Button variant="secondary" size="sm" icon={<RefreshCw />} onClick={onRetry}>Tekrar dene</Button>}
+    </div>
+  )
+}
+
+/** Veri gelene kadar: hata varsa hata ekranı ("Tekrar dene" ile), yoksa dönen simge. */
+export function Loading({ error, onRetry, className }: { error?: unknown; onRetry?: () => void; className?: string }) {
+  return error ? <ErrorState error={error} onRetry={onRetry} className={className} /> : <Spinner className={className} />
 }
 
 export function Empty({ children = 'Kayıt bulunamadı.' }: { children?: ReactNode }) {

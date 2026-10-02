@@ -11,7 +11,7 @@ import { Button, Card, ConfirmDialog, Field, IconButton, Modal } from './ui'
 
 /** Faturaya eklenecek hazır notlar (eski paneldeki "Fatura Notları"): hesap adı, IBAN ve açıklama; müşteri şablonunda seçilir. */
 export function InvoiceNotesCard() {
-  const { data, isFetching } = useQuery({ queryKey: ['invoice-notes'], queryFn: () => get<InvoiceNote[]>('/invoice-notes') })
+  const { data, isFetching, error, refetch } = useQuery({ queryKey: ['invoice-notes'], queryFn: () => get<InvoiceNote[]>('/invoice-notes') })
   const [editing, setEditing] = useState<InvoiceNote | 'new' | null>(null)
   const [deleting, setDeleting] = useState<InvoiceNote | null>(null)
   const deleteMut = useSave((id: number) => del(`/invoice-notes/${id}`), { invalidate: ['invoice-notes', 'customers'], success: 'Not silindi.', onSuccess: () => setDeleting(null) })
@@ -32,7 +32,7 @@ export function InvoiceNotesCard() {
     <Card title="Fatura Notları" icon={<FileText className="size-4" />} bodyClassName="p-0"
       actions={<Button size="sm" icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Not</Button>}>
       <p className="px-6 pt-4 text-sm text-slate-600">Müşterinin fatura şablonunda seçilen not, yeni faturanın açıklamasına kendiliğinden yazılır.</p>
-      <DataTable columns={columns} rows={data} loading={isFetching} rowKey={(n) => n.id} onRowClick={setEditing}
+      <DataTable columns={columns} rows={data} loading={isFetching} error={error} onRetry={refetch} rowKey={(n) => n.id} onRowClick={setEditing}
         empty="Henüz fatura notu yok. “Yeni Not” ile banka hesabınızı ve açıklamayı ekleyin." />
       {editing && <NoteForm note={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Notu sil" loading={deleteMut.isPending} confirmText="Sil"

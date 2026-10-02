@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { API_URL, DRIVER_APP_URL } from './helpers'
 
 // Şoför uygulamasının web önizlemesi (Expo export) üzerinde uçtan uca akış.
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, geolocation: { latitude: 40.1, longitude: 29.0 }, permissions: ['geolocation'] })
@@ -6,7 +7,7 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 test('şoför uygulaması: giriş → rıza → sefer → teslim → çevrimdışı masraf → fotoğraf', async ({ page, context, playwright }) => {
   page.on('dialog', (d) => d.accept())
   // Ofisten şoföre yeni bir sefer ata
-  const office = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const office = await playwright.request.newContext({ baseURL: API_URL })
   expect((await office.post('/api/auth/login', { data: { email: 'admin@yeslojistik.com', password: 'Admin123!' } })).ok()).toBeTruthy()
   const driver = (await (await office.get('/api/drivers?search=Mehmet')).json()).items[0]
   const vehicle = (await (await office.get('/api/vehicles?search=34 VES 01')).json()).items[0]
@@ -17,14 +18,14 @@ test('şoför uygulaması: giriş → rıza → sefer → teslim → çevrimdı�
     deliveryAddress: target, loadingDate: new Date().toISOString().slice(0, 10), vehicleCost: 1000, salePrice: 2000 } })
   expect(created.ok()).toBeTruthy()
   // Rıza ekranı her çalıştırmada görünsün: şoförün önceki onayını geri al.
-  const mobile = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const mobile = await playwright.request.newContext({ baseURL: API_URL })
   const token = (await (await mobile.post('/api/auth/token', { data: { email: 'sofor@yeslojistik.com', password: 'Sofor123!' } })).json()).accessToken
   expect((await mobile.post('/api/driver/consent', { data: { accepted: false, version: '1' }, headers: { Authorization: `Bearer ${token}` } })).ok()).toBeTruthy()
   await mobile.dispose()
 
-  await page.goto('http://localhost:8082/')
+  await page.goto(DRIVER_APP_URL + '/')
   await page.getByText('Sunucu ayarı').click()
-  await page.getByLabel('Sunucu adresi').fill('http://localhost:5080')
+  await page.getByLabel('Sunucu adresi').fill(API_URL)
   await page.getByLabel('E-posta').fill('sofor@yeslojistik.com')
   await page.getByLabel('Şifre', { exact: true }).fill('Sofor123!')
   await page.screenshot({ path: 'e2e/screenshots/app-login.png' })

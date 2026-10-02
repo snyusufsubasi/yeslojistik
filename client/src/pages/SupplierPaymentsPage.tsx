@@ -29,7 +29,7 @@ export default function SupplierPaymentsPage() {
   const [page, setPage] = usePage([debounced, supplierId, from, to])
 
   const query = { page, pageSize: 20, search: debounced, supplierId, from, to, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<SupplierPayment>('supplier-payments', query)
+  const { data, isFetching, error, refetch } = usePaged<SupplierPayment>('supplier-payments', query)
   const { data: totals } = useListTotals<PaymentTotals>('supplier-payments', query)
   const deleteMut = useSave((id: number) => api.remove(id), {
     invalidate: ['supplier-payments', 'suppliers'], success: 'Ödeme silindi.', onSuccess: () => setDeleting(null),
@@ -73,7 +73,7 @@ export default function SupplierPaymentsPage() {
           { label: 'Toplam', value: tl2(totals.total), tone: 'text-red-700' },
           ...(totals.refunds > 0 ? [{ label: 'Gelen iadeler (düşüldü)', value: tl2(totals.refunds) }] : []),
         ]} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced || supplierId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz ödeme yok. Taşerona ya da tedarikçiye ödeme yapınca “Ödeme Yap” ile kaydedin."} />

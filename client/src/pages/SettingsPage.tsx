@@ -10,7 +10,7 @@ import type { CompanySettings, Dashboard, DataStats, EInvoiceInfo, MirrorStatus,
 import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
 import { DocumentsPanel } from '../components/FleetPanels'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Loading, Modal, PageHeader, Tabs } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
@@ -97,8 +97,8 @@ const companySchema = z.object({
 type CompanyValues = z.infer<typeof companySchema>
 
 function CompanyForm() {
-  const { data } = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings') })
-  if (!data) return <Spinner />
+  const { data, error, refetch } = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings') })
+  if (!data) return <Loading error={error} onRetry={refetch} />
   return <CompanyFormInner settings={data} />
 }
 
@@ -234,7 +234,7 @@ function UsersTab() {
   const { user: me } = useAuth()
   const [editing, setEditing] = useState<User | 'new' | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
-  const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: () => get<User[]>('/users') })
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['users'], queryFn: () => get<User[]>('/users') })
   const del = useSave((id: number) => usersApi.remove(id), { invalidate: ['users'], success: 'Kullanıcı silindi.', onSuccess: () => setDeleting(null) })
   const unlock = useSave((id: number) => post(`/users/${id}/unlock`), { invalidate: ['users'], success: 'Hesabın kilidi açıldı.' })
   const signOut = useSave((id: number) => post(`/users/${id}/sign-out`), { invalidate: ['users'], success: 'Kullanıcının tüm oturumları kapatıldı.' })
@@ -259,7 +259,7 @@ function UsersTab() {
   return (
     <Card title="Kullanıcılar" icon={<Users className="size-4" />} bodyClassName="p-0"
       actions={<Button size="sm" icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Kullanıcı</Button>}>
-      <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(u) => u.id} />
+      <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(u) => u.id} />
       <div className="border-t border-slate-100 p-3 text-sm text-slate-500">
         <b>Yönetici:</b> her şey · <b>Operasyon:</b> sefer, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
         <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi seferlerini görür, durum ve fotoğraf gönderir.
@@ -572,7 +572,7 @@ function NotificationPrefsCard() {
   const q = useQuery({ queryKey: ['me', 'notification-preferences'], queryFn: () => get<NotificationPref[]>('/me/notification-preferences') })
   const save = useSave((v: { type: string; push: boolean }[]) => put<NotificationPref[]>('/me/notification-preferences', v),
     { invalidate: ['me'], success: 'Bildirim tercihleri kaydedildi.' })
-  if (!q.data) return <Spinner />
+  if (!q.data) return <Loading error={q.error} onRetry={q.refetch} />
   return (
     <Card title="Telefon Bildirimleri" icon={<Bell className="size-4" />} className="max-w-2xl">
       <p className="mb-3 text-sm text-slate-600">
@@ -633,7 +633,7 @@ function MigrationCheckCard() {
       <p className="mb-3 text-sm text-slate-600">
         Sunucu değiştirirken eski sunucuda <b>Sayımı kopyala</b> deyip buraya (yeni sunucuya) yapıştırın. Tüm sayılar ve toplamlar aynıysa taşınma eksiksizdir.
       </p>
-      {!s ? <Spinner /> : (
+      {!s ? <Loading error={stats.error} onRetry={stats.refetch} /> : (
         <>
           <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(JSON.stringify(s)).then(() => toast.success('Sayım kopyalandı.'), () => toast.error('Kopyalanamadı.'))}>Sayımı kopyala</Button>
           <textarea className="input mt-3 h-20 font-mono text-sm" aria-label="Diğer sunucunun sayımı" placeholder="Diğer sunucunun sayımını buraya yapıştırın"

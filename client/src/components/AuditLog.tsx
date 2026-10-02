@@ -23,7 +23,7 @@ export function AuditLogTable({ entityType, entityId }: { entityType?: string; e
   const debounced = useDebounce(search)
   const fixed = entityType !== undefined
   const [page, setPage] = usePage([debounced, type])
-  const { data, isFetching } = usePaged<AuditLogEntry>('audit', {
+  const { data, isFetching, error, refetch } = usePaged<AuditLogEntry>('audit', {
     page, pageSize: fixed ? 50 : 30, search: debounced, entityType: fixed ? entityType : type || undefined, entityId,
   })
   const cols: Column<AuditLogEntry>[] = [
@@ -46,7 +46,7 @@ export function AuditLogTable({ entityType, entityId }: { entityType?: string; e
           <div className="min-w-56 flex-1"><SearchBox value={search} onChange={setSearch} placeholder="Kişi, kayıt ya da değişiklik ara..." /></div>
         </div>
       )}
-      <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(a) => a.id}
+      <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(a) => a.id}
         page={page} pageSize={fixed ? 50 : 30} total={data?.total} onPage={setPage} empty="Kayıt yok." />
     </>
   )

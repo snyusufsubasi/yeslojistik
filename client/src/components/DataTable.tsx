@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
-import { Empty, Spinner } from './ui'
+import { Empty, ErrorState, Spinner } from './ui'
 import { useRowSelection, type RowSelection } from '../lib/selection'
 
 /** Seçim sütunu eklenince sayfanın verdiği toplam satırı (<tr>) da bir hücre kaydırılır. */
@@ -58,10 +58,13 @@ interface Props<T> {
   bulkActions?: (rows: T[]) => ReactNode
   /** Onay kutusunun ekran okuyucu adı, ör. "Sefer 978". */
   rowLabel?: (row: T) => string
+  /** Sorgu hatası: satır yoksa tablo yerine hata ekranı ve "Tekrar dene" gösterilir. */
+  error?: unknown
+  onRetry?: () => void
 }
 
 export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort, desc, onSort, page = 1, pageSize = 20,
-  total, onPage, empty, footer, rowClassName, mobileCard, selectable, selection, selectionResetKey, bulkActions, rowLabel }: Props<T>) {
+  total, onPage, empty, footer, rowClassName, mobileCard, selectable, selection, selectionResetKey, bulkActions, rowLabel, error, onRetry }: Props<T>) {
   const pages = total !== undefined ? Math.max(1, Math.ceil(total / pageSize)) : 1
   const own = useRowSelection(rowKey, [selectionResetKey])
   const sel = selection ?? (selectable ? own : undefined)
@@ -142,7 +145,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
           {footer && <tfoot>{sel ? withLeadingCell(footer) : footer}</tfoot>}
         </table>
       </div>
-      {!rows && loading && <Spinner />}
+      {!rows && (error && !loading ? <ErrorState error={error} onRetry={onRetry} /> : loading && <Spinner />)}
       {rows && rows.length === 0 && <Empty>{empty}</Empty>}
       {onPage && total !== undefined && total > pageSize && (
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[0.9375rem] text-slate-700">

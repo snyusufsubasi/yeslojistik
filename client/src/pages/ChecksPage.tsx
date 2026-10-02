@@ -42,7 +42,7 @@ export default function ChecksPage() {
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced, status, dueTo])
   const query = { page, pageSize: 20, search: debounced, instruments: true, instrumentStatus: status, dueTo, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Payment>('payments', query)
+  const { data, isFetching, error, refetch } = usePaged<Payment>('payments', query)
 
   const columns: Column<Payment>[] = [
     { key: 'due', header: 'Vade', sortKey: 'instrumentDueDate', render: (p) => {
@@ -86,7 +86,7 @@ export default function ChecksPage() {
           { label: 'Çek / senet', value: totals.count },
           { label: 'Toplam', value: tl2(totals.total) },
         ]} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
           empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'} />

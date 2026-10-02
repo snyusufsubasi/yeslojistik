@@ -63,7 +63,7 @@ export default function ExpensesPage() {
   const [page, setPage] = usePage([debounced, category, vehicleId, from, to, tripId, approvalStatus])
 
   const query = { page, pageSize: 20, search: debounced, category, vehicleId, tripId, from, to, approvalStatus, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Expense>('expenses', query)
+  const { data, isFetching, error, refetch } = usePaged<Expense>('expenses', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['expenses', 'trips', 'suppliers'], success: 'Gider silindi.', onSuccess: () => setDeleting(null) })
   const approveMut = useSave((id: number) => post(`/expenses/${id}/approve`), { invalidate: ['expenses', 'trips', 'driver-ledger'], success: 'Masraf onaylandı.' })
 
@@ -123,7 +123,7 @@ export default function ExpensesPage() {
           { label: 'Toplam', value: tl2(totals.total) },
           ...(totals.pending > 0 ? [{ label: 'Onaylı', value: tl2(totals.approved) }, { label: 'Onay bekleyen', value: tl2(totals.pending), tone: 'text-amber-700' }] : []),
         ]} note={approvalStatus ? undefined : 'Reddedilen giderler toplama girmez.'} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(e) => e.id} onRowClick={setEditing}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(e) => e.id} onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to || approvalStatus ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."} />
       </Card>

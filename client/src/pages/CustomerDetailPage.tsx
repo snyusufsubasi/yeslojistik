@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, BellRing, FileSpreadsheet, FileText, Mail, MapPin, Pencil, Phone, Plus, Trash2, UserCircle2, Wallet } from 'lucide-react'
-import { errorMessage, get, openPdf, post } from '../api/client'
+import { errorMessage, get, isNotFound, openPdf, post } from '../api/client'
 import type { AccountMovement, CompanySettings, CustomerSummary, Invoice, Payment, Trip } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
 import { DataTable, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
-import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Loading, Tabs } from '../components/ui'
 import { ExportButton } from '../components/Exports'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../lib/auth'
@@ -29,7 +29,7 @@ export default function CustomerDetailPage() {
   const summary = useQuery({ queryKey: ['customers', 'summary', id], queryFn: () => get<CustomerSummary>(`/customers/${id}`) })
   const deleteMut = useSave(() => crud('customers').remove(id), { invalidate: ['customers'], success: 'Müşteri silindi.', onSuccess: () => navigate('/musteriler') })
 
-  if (summary.isLoading) return <Spinner />
+  if (summary.isLoading || (summary.error && !isNotFound(summary.error))) return <Loading error={summary.error} onRetry={summary.refetch} />
   if (!summary.data) return <p className="text-sm text-slate-500">Müşteri bulunamadı. <Link className="text-brand-600" to="/musteriler">Listeye dön</Link></p>
   const s = summary.data
   const c = s.customer
@@ -114,7 +114,7 @@ function Amount({ label, value, tone, big, sub }: { label: string; value: number
 }
 
 function Movements({ id }: { id: number }) {
-  const { data, isLoading } = useQuery({ queryKey: ['customers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/customers/${id}/movements`) })
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['customers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/customers/${id}/movements`) })
   const cols: Column<AccountMovement>[] = [
     { key: 'date', header: 'Tarih', render: (m) => date(m.date) },
     { key: 'type', header: 'İşlem', render: (m) => <span className="inline-flex items-center gap-1">{m.type !== 'Tahsilat' ? <FileText className="size-3.5 text-brand-600" /> : <Wallet className="size-3.5 text-emerald-600" />}{m.type}</span> },
@@ -125,12 +125,12 @@ function Movements({ id }: { id: number }) {
     { key: 'balance', header: 'Bakiye', align: 'right', render: (m) => <span className="font-medium">{tl2(m.runningBalance)}</span> },
     { key: 'status', header: 'Durum', render: (m) => <Badge tone={m.type !== 'Tahsilat' ? paymentStatusTone(m.status) : 'green'}>{m.status}</Badge> },
   ]
-  return <DataTable columns={cols} rows={data ? [...data].reverse() : undefined} loading={isLoading} rowKey={(m) => m.type + m.reference} empty="Henüz hareket yok." />
+  return <DataTable columns={cols} rows={data ? [...data].reverse() : undefined} loading={isLoading} error={error} onRetry={refetch} rowKey={(m) => m.type + m.reference} empty="Henüz hareket yok." />
 }
 
 function CustomerTrips({ id }: { id: number }) {
   const [page, setPage] = useState(1)
-  const { data, isFetching } = usePaged<Trip>('trips', { customerId: id, page, pageSize: 15 })
+  const { data, isFetching, error, refetch } = usePaged<Trip>('trips', { customerId: id, page, pageSize: 15 })
   const cols: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', render: (t) => date(t.loadingDate) },
     { key: 'route', header: 'Güzergah', render: (t) => `${t.loadingAddress} → ${t.deliveryAddress}` },
@@ -139,12 +139,12 @@ function CustomerTrips({ id }: { id: number }) {
     { key: 'price', header: 'Tutar', align: 'right', render: (t) => tl(t.salePrice) },
     { key: 'inv', header: 'Fatura', render: (t) => t.invoiceNo ?? <span className="text-amber-600">Faturalanmadı</span> },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(t) => t.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
 }
 
 function CustomerInvoices({ id }: { id: number }) {
   const [page, setPage] = useState(1)
-  const { data, isFetching } = usePaged<Invoice>('invoices', { customerId: id, page, pageSize: 15 })
+  const { data, isFetching, error, refetch } = usePaged<Invoice>('invoices', { customerId: id, page, pageSize: 15 })
   const cols: Column<Invoice>[] = [
     { key: 'no', header: 'Fatura No', render: (i) => <Link className="text-brand-600 hover:underline" to={`/faturalar?id=${i.id}`}>{i.invoiceNo}</Link> },
     { key: 'date', header: 'Tarih', render: (i) => date(i.date) },
@@ -153,12 +153,12 @@ function CustomerInvoices({ id }: { id: number }) {
     { key: 'rem', header: 'Kalan', align: 'right', render: (i) => tl2(i.remaining) },
     { key: 'status', header: 'Durum', render: (i) => <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge> },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(i) => i.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(i) => i.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
 }
 
 function CustomerPayments({ id }: { id: number }) {
   const [page, setPage] = useState(1)
-  const { data, isFetching } = usePaged<Payment>('payments', { customerId: id, page, pageSize: 15 })
+  const { data, isFetching, error, refetch } = usePaged<Payment>('payments', { customerId: id, page, pageSize: 15 })
   const cols: Column<Payment>[] = [
     { key: 'date', header: 'Tarih', render: (p) => date(p.date) },
     { key: 'inv', header: 'Fatura', render: (p) => p.invoiceNo ?? '—' },
@@ -166,7 +166,7 @@ function CustomerPayments({ id }: { id: number }) {
     { key: 'desc', header: 'Açıklama', render: (p) => p.description ?? '' },
     { key: 'amount', header: 'Tutar', align: 'right', render: (p) => tl2(p.amount) },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(p) => p.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
 }
 
 function firstOfYear() {

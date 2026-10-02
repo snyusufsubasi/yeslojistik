@@ -22,7 +22,7 @@ export default function SuppliersPage() {
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced, kind])
   const query = { page, pageSize: 20, search: debounced, kind: kind || undefined, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Supplier>('suppliers', query)
+  const { data, isFetching, error, refetch } = usePaged<Supplier>('suppliers', query)
 
   const columns: Column<Supplier>[] = [
     { key: 'no', header: 'No', sortKey: 'id', render: (s) => <span className="text-slate-500">{s.supplierNo}</span> },
@@ -56,7 +56,7 @@ export default function SuppliersPage() {
           </select>
           <SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />
         </div>}>
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(s) => s.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(s) => s.id}
           onRowClick={(s) => navigate(`/tedarikciler/${s.id}`)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}

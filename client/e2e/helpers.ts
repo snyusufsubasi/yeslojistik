@@ -1,5 +1,9 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
+/** API ve şoför uygulamasının adresi: CI'da 5080 ve 8082; paralel çalışırken ortam değişkeniyle değiştirilebilir. */
+export const API_URL = process.env.E2E_API_URL ?? 'http://localhost:5080'
+export const DRIVER_APP_URL = process.env.E2E_DRIVER_URL ?? 'http://localhost:8082'
+
 export const ADMIN = { email: process.env.E2E_EMAIL ?? 'admin@yeslojistik.com', password: process.env.E2E_PASSWORD ?? 'Admin123!' }
 
 export async function login(page: Page) {

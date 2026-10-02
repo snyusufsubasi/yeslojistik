@@ -61,7 +61,7 @@ export default function StaffPage() {
       <Card bodyClassName="p-0" title="Personel listesi" icon={<UserRound className="size-4" />}
         actions={<label className="input flex items-center gap-2"><span className="shrink-0 text-sm text-slate-500">Ay</span>
           <input type="month" aria-label="Ay" className="min-w-0 flex-1 bg-transparent outline-none" value={month} onChange={(e) => setMonth(e.target.value || thisMonth())} /></label>}>
-        <DataTable columns={columns} rows={rows} loading={staff.isFetching} rowKey={(s) => s.id} onRowClick={setOpen}
+        <DataTable columns={columns} rows={rows} loading={staff.isFetching} error={staff.error} onRetry={staff.refetch} rowKey={(s) => s.id} onRowClick={setOpen}
           empty="Henüz personel yok. “Personel Ekle” ile ekleyin. Şoförler bu listeye değil Şoförler sayfasına girilir."
           mobileCard={(s) => (
             <div className="flex items-center justify-between gap-3">

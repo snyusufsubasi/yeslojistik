@@ -32,7 +32,7 @@ export default function JobRequestsPage() {
   useOpenNewFromUrl(() => setEditing('new'))
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced, status, from, to])
-  const { data, isFetching } = usePaged<JobRequest>('job-requests', {
+  const { data, isFetching, error, refetch } = usePaged<JobRequest>('job-requests', {
     page, pageSize: 20, search: debounced, status: status || undefined, from, to,
   })
   const cancel = useSave((id: number) => post<JobRequest>(`/job-requests/${id}/cancel`, {}), {
@@ -78,7 +78,7 @@ export default function JobRequestsPage() {
         <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
         <DateFilter label="Bitiş" value={to} onChange={setTo} />
       </div>
-      <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(r) => r.id}
+      <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(r) => r.id}
         onRowClick={(r) => setEditing(r)} page={page} pageSize={20} total={data?.total} onPage={setPage}
         empty="Bu filtrelere uyan iş talebi yok. Yeni İş Talebi ile kayıt açabilirsiniz."
         mobileCard={(r) => <div className="space-y-1"><div className="flex justify-between gap-2"><b>{r.customerTitle}</b><Badge tone={r.status === 'Pending' ? 'orange' : r.status === 'Converted' ? 'green' : 'gray'}>{statusNames[r.status]}</Badge></div><div>{r.loadingAddress} → {r.deliveryAddress}</div><div className="text-sm text-slate-500">{date(r.date)} · {r.cargoType || 'Yük belirtilmedi'}</div></div>} />

@@ -62,7 +62,7 @@ export default function RecurringPaymentsPage() {
       <Card bodyClassName="p-0" title="Ödeme listesi" icon={<Repeat className="size-4" />}
         actions={<label className="input flex items-center gap-2"><span className="shrink-0 text-sm text-slate-500">Ay</span>
           <input type="month" aria-label="Ay" className="min-w-0 flex-1 bg-transparent outline-none" value={month} onChange={(e) => setMonth(e.target.value || thisMonth())} /></label>}>
-        <DataTable columns={columns} rows={rows} loading={list.isFetching} rowKey={(r) => r.id} onRowClick={setEditing}
+        <DataTable columns={columns} rows={rows} loading={list.isFetching} error={list.error} onRetry={list.refetch} rowKey={(r) => r.id} onRowClick={setEditing}
           empty="Henüz sabit ödeme yok. Kira, sigorta taksiti, muhasebe ücreti gibi her ay ödenenleri ekleyin."
           mobileCard={(r) => (
             <div className="flex items-center justify-between gap-3">

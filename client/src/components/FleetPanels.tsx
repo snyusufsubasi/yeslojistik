@@ -7,7 +7,7 @@ import { Download, Pencil, Plus, Trash2 } from 'lucide-react'
 import { api as apiClient, del, download, errorMessage, get, openPdf, post, put } from '../api/client'
 import type { DocumentOwnerType, DocumentType, DriverLedger, FleetDocument, MaintenanceRecord } from '../api/types'
 import { useToast } from './Toast'
-import { Badge, Button, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner } from './ui'
+import { Badge, Button, ConfirmDialog, Empty, Field, IconButton, Loading, Modal, Spinner } from './ui'
 import { FormSelect } from './FormSelect'
 import { ControlledChoice, ControlledToggle } from './Choice'
 import { AmountInput, DateQuick, SuggestChips } from './Inputs'
@@ -263,7 +263,7 @@ export function DriverLedgerPanel({ driverId }: { driverId: number }) {
   const l = ledger.data
   return (
     <div>
-      {ledger.isLoading || !l ? <Spinner /> : <>
+      {!l ? <Loading error={ledger.error} onRetry={ledger.refetch} /> : <>
         <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Verilen avans + ödeme" value={tl2(l.advances + l.paidToDriver)} />
           <Stat label="Onaylı masraf + iade" value={tl2(l.driverExpenses + l.receivedFromDriver)} />

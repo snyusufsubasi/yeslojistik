@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { expectPdfOpens, login, unique, pick } from './helpers'
+import { expectPdfOpens, login, unique, pick, API_URL } from './helpers'
 
 test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi tahsilat → bakiye', async ({ page }) => {
   const id = unique()
@@ -345,7 +345,7 @@ test('e-Fatura açılır, kesilen fatura e-Arşiv numarası alır, XML ve muhase
 test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hesabı', async ({ page, playwright }) => {
   const u = unique()
   // Şoför uygulamasından (API) onay bekleyen bir masraf gelir.
-  const office = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const office = await playwright.request.newContext({ baseURL: API_URL })
   expect((await office.post('/api/auth/login', { data: { email: 'admin@yeslojistik.com', password: 'Admin123!' } })).ok()).toBeTruthy()
   const driver = (await (await office.get('/api/drivers?search=Mehmet')).json()).items[0]
   const vehicle = (await (await office.get('/api/vehicles?search=34 VES 01')).json()).items[0]
@@ -354,7 +354,7 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
     customerId: customer.id, vehicleId: vehicle.id, driverId: driver.id, loadingAddress: 'Bursa', deliveryAddress: `Onay Deposu ${u}`,
     loadingDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }), vehicleCost: 1000, salePrice: 2000 } })).json()
   await office.dispose()
-  const mobile = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const mobile = await playwright.request.newContext({ baseURL: API_URL })
   const token = (await (await mobile.post('/api/auth/token', { data: { email: 'sofor@yeslojistik.com', password: 'Sofor123!' } })).json()).accessToken
   expect((await mobile.post(`/api/driver/trips/${trip.id}/expenses`, { data: { category: 'Toll', amount: 275, description: `Köprü ${u}` },
     headers: { Authorization: `Bearer ${token}` } })).ok()).toBeTruthy()

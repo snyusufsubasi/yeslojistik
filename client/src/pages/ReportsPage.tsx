@@ -8,7 +8,7 @@ import { useToast } from '../components/Toast'
 import type { CustomerAgingRow, CustomerProfitRow, RouteProfitRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, ProfitGroupBy, ProfitReportRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { ExportButton } from '../components/Exports'
-import { Button, Card, PageHeader, Select, Spinner, Tabs, DateFilter } from '../components/ui'
+import { Button, Card, PageHeader, Select, Loading, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
@@ -98,8 +98,8 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 }
 
 function Monthly({ year }: { year: number }) {
-  const { data, isLoading } = useReport<MonthlySummaryRow[]>('monthly', { year })
-  if (isLoading || !data) return <Spinner />
+  const { data, error, refetch } = useReport<MonthlySummaryRow[]>('monthly', { year })
+  if (!data) return <Loading error={error} onRetry={refetch} />
   const chart = data.map((r) => ({ name: MONTHS[r.month - 1].slice(0, 3), Ciro: r.tripRevenue, Maliyet: r.vehicleCost + r.expenses }))
   const sum = (k: keyof MonthlySummaryRow) => data.reduce((s, r) => s + (r[k] as number), 0)
   const cols: Column<MonthlySummaryRow>[] = [
@@ -148,7 +148,7 @@ const groupByCaption: Record<ProfitGroupBy, string> = { Month: 'Ay', Customer: '
 
 /** Kazanç raporu: satış, komisyon, maliyet, prim, masraf ve kâr; ay, müşteri, araç ya da şoför bazında (tek kâr formülü). */
 function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: ProfitGroupBy }) {
-  const { data, isLoading } = useReport<ProfitReportRow[]>('profit', { from, to, groupBy })
+  const { data, isLoading, error, refetch } = useReport<ProfitReportRow[]>('profit', { from, to, groupBy })
   const money = (k: keyof ProfitReportRow) => (r: ProfitReportRow) => tl2(r[k] as number)
   const cols: Column<ProfitReportRow>[] = [
     { key: 'l', header: groupByCaption[groupBy], className: 'whitespace-normal! min-w-32', render: (r) => groupBy === 'Customer'
@@ -167,7 +167,7 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
   const revenue = sum('sale') + sum('commission')
   return <>
     <p className="px-4 pb-2 text-sm text-slate-500">Tutarlar KDV hariç. Kâr = satış + komisyon − araç/taşeron maliyeti − şoför primi − müşteriye faturalanmayan ek masraf − sefere bağlı onaylı giderler. Seferle ilgisi olmayan genel giderler (kira, maaş vb.) Aylık Özet'te düşülür.</p>
-    <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.key} empty="Bu dönemde sefer yok."
+    <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.key} empty="Bu dönemde sefer yok."
       footer={data && data.length > 0 ? (
         <tr className="bg-slate-50 text-sm font-medium">
           <td className="td">Toplam</td>
@@ -188,7 +188,7 @@ function Kpi({ label, value, tone }: { label: string; value: string; tone?: stri
 }
 
 function Trips({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<TripProfitRow[]>('trips', { from, to })
+  const { data, isLoading, error, refetch } = useReport<TripProfitRow[]>('trips', { from, to })
   const cols: Column<TripProfitRow>[] = [
     { key: 'd', header: 'Tarih', render: (r) => date(r.loadingDate) },
     { key: 'c', header: 'Müşteri', render: (r) => r.customer },
@@ -202,7 +202,7 @@ function Trips({ from, to }: { from: string; to: string }) {
     { key: 'm', header: 'Marj', align: 'right', render: (r) => r.salePrice ? `%${Math.round(r.profit / r.salePrice * 100)}` : '—' },
   ]
   const total = (k: 'salePrice' | 'vehicleCost' | 'expenses' | 'profit') => data?.reduce((s, r) => s + r[k], 0) ?? 0
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.tripId} empty="Bu aralıkta sefer yok."
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.tripId} empty="Bu aralıkta sefer yok."
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td" colSpan={5}>Toplam ({data.length} sefer)</td>
@@ -212,7 +212,7 @@ function Trips({ from, to }: { from: string; to: string }) {
 }
 
 function Vehicles({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<VehicleReportRow[]>('vehicles', { from, to })
+  const { data, isLoading, error, refetch } = useReport<VehicleReportRow[]>('vehicles', { from, to })
   const cols: Column<VehicleReportRow>[] = [
     { key: 'p', header: 'Plaka', render: (r) => <span className="font-medium">{r.plate}</span> },
     { key: 't', header: 'Tip', render: (r) => r.type },
@@ -222,11 +222,11 @@ function Vehicles({ from, to }: { from: string; to: string }) {
     { key: 'e', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
     { key: 'n', header: 'Net', align: 'right', render: (r) => <span className={r.net < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.net)}</span> },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.vehicleId} />
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} />
 }
 
 function Drivers({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<DriverReportRow[]>('drivers', { from, to })
+  const { data, isLoading, error, refetch } = useReport<DriverReportRow[]>('drivers', { from, to })
   const cols: Column<DriverReportRow>[] = [
     { key: 'd', header: 'Şoför', render: (r) => <span className="font-medium">{r.driver}</span> },
     { key: 'c', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
@@ -238,11 +238,11 @@ function Drivers({ from, to }: { from: string; to: string }) {
     { key: 'adv', header: 'Avans / Harcırah', align: 'right', render: (r) => r.advances || r.allowances
       ? <>{tl(r.advances)}<span className="block text-sm text-slate-500">Harcırah {tl(r.allowances)}</span></> : '—' },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.driverId} empty="Bu aralıkta sefer yok." />
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.driverId} empty="Bu aralıkta sefer yok." />
 }
 
 function Fuel({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<FuelReportRow[]>('fuel', { from, to })
+  const { data, isLoading, error, refetch } = useReport<FuelReportRow[]>('fuel', { from, to })
   const measured = (data ?? []).filter((r) => r.km && r.litersPer100Km)
   const totalKm = measured.reduce((a, r) => a + (r.km ?? 0), 0)
   const fleet = totalKm > 0 ? measured.reduce((a, r) => a + (r.litersPer100Km ?? 0) * (r.km ?? 0), 0) / totalKm : null
@@ -264,13 +264,13 @@ function Fuel({ from, to }: { from: string; to: string }) {
         Tüketim, yakıt giderlerine girilen <b>litre</b> ve <b>araç kilometresinden</b> hesaplanır (depoyu her seferinde doldurduğunuzda en doğru sonucu verir).
         {fleet != null && <> Filo ortalaması: <b>{num(fleet, 1)} L/100 km</b>. Ortalamanın %15'ten fazla üstündeki araçlar kırmızı görünür.</>}
       </p>
-      <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.vehicleId} empty="Bu aralıkta yakıt gideri yok." />
+      <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} empty="Bu aralıkta yakıt gideri yok." />
     </>
   )
 }
 
 function Aging() {
-  const { data, isLoading } = useReport<CustomerAgingRow[]>('aging', {})
+  const { data, isLoading, error, refetch } = useReport<CustomerAgingRow[]>('aging', {})
   const cols: Column<CustomerAgingRow>[] = [
     { key: 'c', header: 'Müşteri', render: (r) => <span className="font-medium">{r.customer}</span> },
     { key: 'nd', header: 'Vadesi Gelmemiş', align: 'right', render: (r) => tl2(r.notDue) },
@@ -281,7 +281,7 @@ function Aging() {
     { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof CustomerAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.customerId} empty="Açık alacak yok."
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.customerId} empty="Açık alacak yok."
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
@@ -290,8 +290,8 @@ function Aging() {
 }
 
 function Expenses({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<ExpenseCategoryRow[]>('expenses', { from, to })
-  if (isLoading || !data) return <Spinner />
+  const { data, error, refetch } = useReport<ExpenseCategoryRow[]>('expenses', { from, to })
+  if (!data) return <Loading error={error} onRetry={refetch} />
   const total = data.reduce((s, r) => s + r.amount, 0)
   const chart = data.map((r) => ({ name: expenseCategoryLabel[r.category] ?? r.category, Tutar: r.amount }))
   return (
@@ -327,7 +327,7 @@ function Expenses({ from, to }: { from: string; to: string }) {
 }
 
 function Payables() {
-  const { data, isLoading } = useReport<PayableAgingRow[]>('payables', {})
+  const { data, isLoading, error, refetch } = useReport<PayableAgingRow[]>('payables', {})
   const cols: Column<PayableAgingRow>[] = [
     { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
     { key: 'nd', header: 'Vadesi Gelmemiş', align: 'right', render: (r) => tl2(r.notDue) },
@@ -338,7 +338,7 @@ function Payables() {
     { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof PayableAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Açık taşeron borcu yok."
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Açık taşeron borcu yok."
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
@@ -349,7 +349,7 @@ function Payables() {
 const margin = (m?: number | null) => m == null ? '—' : <span className={m < 0 ? 'font-medium text-red-600' : m < 10 ? 'text-amber-700' : 'text-emerald-700'}>%{m.toLocaleString('tr-TR')}</span>
 
 function CustomerProfit({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<CustomerProfitRow[]>('customers', { from, to })
+  const { data, isLoading, error, refetch } = useReport<CustomerProfitRow[]>('customers', { from, to })
   const cols: Column<CustomerProfitRow>[] = [
     { key: 'c', header: 'Müşteri', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/musteriler/${r.customerId}`}>{r.customer}</Link> },
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
@@ -362,12 +362,12 @@ function CustomerProfit({ from, to }: { from: string; to: string }) {
   ]
   return <>
     <p className="px-4 pb-2 text-sm text-slate-500">Maliyet: araç/taşeron maliyeti + sefere bağlı onaylı giderler. Tahsil süresi yaklaşıktır (açık alacak ÷ dönemdeki günlük KDV'li ciro).</p>
-    <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.customerId} empty="Bu dönemde sefer yok." />
+    <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.customerId} empty="Bu dönemde sefer yok." />
   </>
 }
 
 function RouteProfit({ from, to }: { from: string; to: string }) {
-  const { data, isLoading } = useReport<RouteProfitRow[]>('routes', { from, to })
+  const { data, isLoading, error, refetch } = useReport<RouteProfitRow[]>('routes', { from, to })
   const cols: Column<RouteProfitRow>[] = [
     { key: 'r', header: 'Güzergâh', render: (r) => <span className="font-medium">{r.from} → {r.to}</span> },
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
@@ -376,11 +376,11 @@ function RouteProfit({ from, to }: { from: string; to: string }) {
     { key: 'p', header: 'Toplam Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => `${r.from}-${r.to}`} empty="Bu dönemde sefer yok. Güzergâh için seferlerde yükleme ve teslim ilini girin." />
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => `${r.from}-${r.to}`} empty="Bu dönemde sefer yok. Güzergâh için seferlerde yükleme ve teslim ilini girin." />
 }
 
 function Suppliers() {
-  const { data, isLoading } = useReport<SupplierReportRow[]>('suppliers', {})
+  const { data, isLoading, error, refetch } = useReport<SupplierReportRow[]>('suppliers', {})
   const cols: Column<SupplierReportRow>[] = [
     { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
     { key: 'c', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
@@ -389,7 +389,7 @@ function Suppliers() {
     { key: 'p', header: 'Ödenen', align: 'right', render: (r) => tl2(r.paid) },
     { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-medium text-orange-600' : 'font-medium'}>{tl2(r.balance)}</span> },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
 }
 
 /** Muhasebeciye aylık aktarım: satış faturaları, tahsilatlar, giderler, taşeron maliyet/ödemeleri tek Excel'de; e-Fatura XML'leri ZIP. */

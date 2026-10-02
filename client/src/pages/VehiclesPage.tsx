@@ -38,7 +38,7 @@ export default function VehiclesPage() {
   }, [params, setParams])
 
   const query = { page, pageSize: 20, search: debounced, status, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Vehicle>('vehicles', query)
+  const { data, isFetching, error, refetch } = usePaged<Vehicle>('vehicles', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['vehicles'], success: 'Araç silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Vehicle>[] = [
@@ -80,7 +80,7 @@ export default function VehiclesPage() {
           <Select aria-label="Durum" className="sm:w-40" value={status} onChange={setStatus} options={options(vehicleStatusLabel)} placeholder="Tüm durumlar" />
           <SearchBox value={search} onChange={setSearch} placeholder="Plaka, marka, tip..." />
         </>}>
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(v) => v.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id}
           onRowClick={can('operations') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : "Henüz araç yok. “Yeni Araç” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />

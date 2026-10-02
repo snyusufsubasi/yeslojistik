@@ -82,7 +82,7 @@ export default function TripsPage() {
   const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined,
     customerGroup: debouncedGroup || undefined, missingPrice: preset === 'price' || undefined, pendingDeliveryDocument: preset === 'document' || undefined,
     commissionStatus: preset === 'commission' ? 'Pending' : undefined, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Trip>('trips', query)
+  const { data, isFetching, error, refetch } = usePaged<Trip>('trips', query)
   const { page: _p, pageSize: _s, sort: _o, desc: _d, ...filters } = query
   const { data: totals } = useQuery({ queryKey: ['trips', 'totals', filters], queryFn: () => get<TripTotals>('/trips/totals', filters) })
   const today = todayIso()
@@ -227,7 +227,7 @@ export default function TripsPage() {
         </div>
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
           onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(t) => t.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id}
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}

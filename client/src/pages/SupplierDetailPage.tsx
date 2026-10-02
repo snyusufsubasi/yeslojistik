@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Copy, Download, FileSpreadsheet, HandCoins, Mail, MapPin, Pencil, Phone, Trash2, Truck } from 'lucide-react'
-import { download, errorMessage, get, openPdf } from '../api/client'
+import { download, errorMessage, get, isNotFound, openPdf } from '../api/client'
 import type { AccountMovement, Driver, SupplierPayment, SupplierSummary, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
@@ -11,7 +11,7 @@ import { SupplierForm } from '../components/SupplierForm'
 import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { useAuth } from '../lib/auth'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, PageHeader, Spinner, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, PageHeader, Loading, Tabs } from '../components/ui'
 import { ExportButton } from '../components/Exports'
 import { date, tl, tl2 } from '../lib/format'
 import { crud, usePaged, usePage, useSave } from '../lib/hooks'
@@ -31,7 +31,7 @@ export default function SupplierDetailPage() {
   const q = useQuery({ queryKey: ['suppliers', 'detail', id], queryFn: () => get<SupplierSummary>(`/suppliers/${id}`) })
   const deleteMut = useSave(() => crud('suppliers').remove(id), { invalidate: ['suppliers'], success: 'Tedarikçi silindi.', onSuccess: () => navigate('/tedarikciler') })
 
-  if (q.isLoading) return <Spinner />
+  if (q.isLoading || (q.error && !isNotFound(q.error))) return <Loading error={q.error} onRetry={q.refetch} />
   if (!q.data) return <p className="text-sm text-slate-500">Tedarikçi bulunamadı. <Link className="text-brand-600" to="/tedarikciler">Listeye dön</Link></p>
   const sum = q.data
   const s = sum.supplier
@@ -120,7 +120,7 @@ function SupplierTrips({ id }: { id: number }) {
   const [page, setPage] = usePage([id])
   const selection = useRowSelection<Trip>((t) => t.id, [id])
   const [paying, setPaying] = useState<number[] | null>(null)
-  const { data, isFetching } = usePaged<Trip>('trips', { carrierSupplierId: id, page, pageSize: 20, sort: 'loadingDate', desc: true })
+  const { data, isFetching, error, refetch } = usePaged<Trip>('trips', { carrierSupplierId: id, page, pageSize: 20, sort: 'loadingDate', desc: true })
   const cols: Column<Trip>[] = [
     { key: 'date', header: 'Yükleme', render: (t) => date(t.loadingDate) },
     { key: 'customer', header: 'Müşteri', render: (t) => t.customerTitle },
@@ -131,7 +131,7 @@ function SupplierTrips({ id }: { id: number }) {
     { key: 'cost', header: 'Araç Maliyeti', align: 'right', render: (t) => tl(t.vehicleCost) },
   ]
   return <>
-    <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(t) => t.id} page={page} total={data?.total} onPage={setPage}
+    <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id} page={page} total={data?.total} onPage={setPage}
       onRowClick={(t) => navigate(`/seferler?id=${t.id}`)} empty="Bu tedarikçinin aracıyla yapılmış sefer yok."
       selectable selection={selection} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}`}
       bulkActions={(rows) => <>
@@ -144,24 +144,24 @@ function SupplierTrips({ id }: { id: number }) {
 }
 
 function SupplierVehicles({ id }: { id: number }) {
-  const { data, isFetching } = usePaged<Vehicle>('vehicles', { supplierId: id, pageSize: 100 })
+  const { data, isFetching, error, refetch } = usePaged<Vehicle>('vehicles', { supplierId: id, pageSize: 100 })
   const cols: Column<Vehicle>[] = [
     { key: 'plate', header: 'Plaka', render: (v) => <span className="font-medium">{v.plate}</span> },
     { key: 'type', header: 'Tip', render: (v) => [v.type, v.brand, v.model].filter(Boolean).join(' ') },
     { key: 'trailer', header: 'Dorse', render: (v) => v.trailerPlate ?? '—' },
     { key: 'status', header: 'Durum', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(v) => v.id} empty="Bu tedarikçiye bağlı araç yok. Araçlar sayfasında aracı “Kiralık” yapıp sahibini seçin." />
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id} empty="Bu tedarikçiye bağlı araç yok. Araçlar sayfasında aracı “Kiralık” yapıp sahibini seçin." />
 }
 
 function SupplierDrivers({ id }: { id: number }) {
-  const { data, isFetching } = usePaged<Driver>('drivers', { supplierId: id, pageSize: 100 })
+  const { data, isFetching, error, refetch } = usePaged<Driver>('drivers', { supplierId: id, pageSize: 100 })
   const cols: Column<Driver>[] = [
     { key: 'name', header: 'Ad Soyad', render: (d) => <span className="font-medium">{d.fullName}</span> },
     { key: 'phone', header: 'Telefon', render: (d) => d.phone ? <a className="text-brand-600" href={`tel:${d.phone.replace(/\s/g, '')}`}>{d.phone}</a> : '—' },
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(d) => d.id} empty="Bu tedarikçiye bağlı şoför yok." />
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(d) => d.id} empty="Bu tedarikçiye bağlı şoför yok." />
 }
 
 function Amount({ label, value, tone, big, sub }: { label: string; value: number; tone: string; big?: boolean; sub?: string }) {
@@ -175,7 +175,7 @@ function Amount({ label, value, tone, big, sub }: { label: string; value: number
 }
 
 function Movements({ id }: { id: number }) {
-  const { data, isLoading } = useQuery({ queryKey: ['suppliers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/suppliers/${id}/movements`) })
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['suppliers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/suppliers/${id}/movements`) })
   const cols: Column<AccountMovement>[] = [
     { key: 'date', header: 'Tarih', render: (m) => date(m.date) },
     { key: 'type', header: 'İşlem', render: (m) => m.type },
@@ -186,12 +186,12 @@ function Movements({ id }: { id: number }) {
     { key: 'bal', header: 'Bakiye', align: 'right', render: (m) => <span className="font-medium">{tl2(m.runningBalance)}</span> },
     { key: 'status', header: 'Durum', render: (m) => <span className={m.status === 'Vadesi geçti' ? 'font-medium text-red-600' : 'text-slate-600'}>{m.status}</span> },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(m) => `${m.type}-${m.reference}`} empty="Henüz hareket yok." />
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(m) => `${m.type}-${m.reference}`} empty="Henüz hareket yok." />
 }
 
 function SupplierPayments({ id }: { id: number }) {
   const [page, setPage] = usePage([id])
-  const { data, isFetching } = usePaged<SupplierPayment>('supplier-payments', { supplierId: id, page, pageSize: 20, sort: 'date', desc: true })
+  const { data, isFetching, error, refetch } = usePaged<SupplierPayment>('supplier-payments', { supplierId: id, page, pageSize: 20, sort: 'date', desc: true })
   const cols: Column<SupplierPayment>[] = [
     { key: 'date', header: 'Tarih', render: (p) => date(p.date) },
     { key: 'method', header: 'Yöntem', render: (p) => paymentMethodLabel[p.method] },
@@ -199,6 +199,6 @@ function SupplierPayments({ id }: { id: number }) {
     { key: 'desc', header: 'Açıklama', render: (p) => p.description ?? '' },
     { key: 'amount', header: 'Tutar', align: 'right', render: (p) => tl2(p.amount) },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(p) => p.id} page={page} total={data?.total} onPage={setPage}
+  return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id} page={page} total={data?.total} onPage={setPage}
     empty="Bu tedarikçiye henüz ödeme yapılmamış." />
 }

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { API_URL, DRIVER_APP_URL } from './helpers'
 
 // Mobil uygulamanın yönetici modu (web önizlemesi): özet → yeni sefer → durum → cari → tahsilat.
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
@@ -6,9 +7,9 @@ test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
 test('mobil yönetici: özet → yeni sefer → yüklendi → cari → tahsilat', async ({ page }) => {
   page.on('dialog', (d) => d.accept())
   const u = Date.now().toString().slice(-5)
-  await page.goto('http://localhost:8082/')
+  await page.goto(DRIVER_APP_URL + '/')
   await page.getByText('Sunucu ayarı').click()
-  await page.getByLabel('Sunucu adresi').fill('http://localhost:5080')
+  await page.getByLabel('Sunucu adresi').fill(API_URL)
   await page.getByLabel('E-posta').fill('admin@yeslojistik.com')
   await page.getByLabel('Şifre', { exact: true }).fill('Admin123!')
   await page.getByRole('button', { name: 'Giriş Yap' }).click()

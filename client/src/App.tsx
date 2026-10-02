@@ -1,10 +1,10 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
-import { Spinner } from './components/ui'
+import { ErrorState, Spinner } from './components/ui'
 import { useAuth, type Permission } from './lib/auth'
 import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 
 const TripsPage = lazy(() => import('./pages/TripsPage'))
 const JobRequestsPage = lazy(() => import('./pages/JobRequestsPage'))
@@ -36,9 +36,10 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ defa
 const AccountDeletionPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.AccountDeletionPage })))
 
 function RequireAuth() {
-  const { user, loading } = useAuth()
+  const { user, loading, unreachable, retry } = useAuth()
   const location = useLocation()
   if (loading) return <Spinner className="h-screen items-center" />
+  if (unreachable) return <ErrorState error={unreachable} onRetry={retry} className="h-screen justify-center" />
   if (!user) return <Navigate to="/giris" replace state={{ from: location.pathname + location.search }} />
   if (user.role === 'Driver') return <DriverNotice />
   return <Layout />

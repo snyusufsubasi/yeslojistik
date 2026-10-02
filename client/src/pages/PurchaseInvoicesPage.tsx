@@ -37,7 +37,7 @@ export default function PurchaseInvoicesPage() {
   const toast = useToast()
   const [page, setPage] = usePage([debounced, supplierId, kind, from, to])
   const query = { page, pageSize: 20, search: debounced, supplierId, kind, from, to }
-  const { data, isFetching } = usePaged<PurchaseInvoice>('purchase-invoices', query)
+  const { data, isFetching, error, refetch } = usePaged<PurchaseInvoice>('purchase-invoices', query)
   const cancelMut = useSave((id: number) => post<PurchaseInvoice>(`/purchase-invoices/${id}/cancel`, { reason: null }), {
     invalidate: ['purchase-invoices', 'suppliers', 'trips'], success: 'Fatura iptal edildi; seferleri yeniden fatura bekliyor.', onSuccess: () => setCancelling(null),
   })
@@ -87,7 +87,7 @@ export default function PurchaseInvoicesPage() {
           { label: 'Tevkifat', value: tl2(totals.withholdingAmount) },
           { label: 'Genel tutar', value: tl2(totals.total) },
         ]} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           page={page} total={data?.total} onPage={setPage}
           empty={debounced || supplierId || kind || from || to ? 'Aramanıza uyan fatura yok.' : 'Henüz alınan fatura yok. Taşerondan fatura gelince “Fatura Ekle” ile seferlere bağlayın.'} />

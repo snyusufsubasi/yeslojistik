@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { login } from './helpers'
+import { login, API_URL } from './helpers'
 
 test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context, playwright }) => {
   // Hazırlık: 34 VES 01 ile yola çıkmış bir sefer ve şoför uygulamasından gelen konumlar
-  const office = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const office = await playwright.request.newContext({ baseURL: API_URL })
   expect((await office.post('/api/auth/login', { data: { email: 'admin@yeslojistik.com', password: 'Admin123!' } })).ok()).toBeTruthy()
   const driver = (await (await office.get('/api/drivers?search=Mehmet')).json()).items[0]
   const vehicle = (await (await office.get('/api/vehicles?search=34 VES 01')).json()).items[0]
@@ -13,7 +13,7 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
     customerId: customer.id, vehicleId: vehicle.id, driverId: driver.id, loadingAddress: 'İstanbul / Tuzla',
     deliveryAddress: target, loadingDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }), vehicleCost: 18000, salePrice: 25000 } })).json()
   for (const status of ['Loaded', 'OnRoad']) expect((await office.post(`/api/trips/${trip.id}/status`, { data: { status } })).ok()).toBeTruthy()
-  const mobile = await playwright.request.newContext({ baseURL: 'http://localhost:5080' })
+  const mobile = await playwright.request.newContext({ baseURL: API_URL })
   const token = (await (await mobile.post('/api/auth/token', { data: { email: 'sofor@yeslojistik.com', password: 'Sofor123!' } })).json()).accessToken
   const now = Date.now()
   const pings = [0, 1, 2].map((i) => ({ latitude: 40.8 - i * 0.2, longitude: 29.3 - i * 0.2, speedKmh: 80, recordedAt: new Date(now - (3 - i) * 60_000).toISOString() }))
@@ -52,7 +52,7 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
   // Giriş yapmamış müşteri gözüyle
   const anon = await context.browser()!.newContext()
   const p2 = await anon.newPage()
-  await p2.goto(url.replace(/^https?:\/\/[^/]+/, 'http://localhost:5173'))
+  await p2.goto(url.replace(/^https?:\/\/[^/]+/, process.env.E2E_BASE_URL ?? 'http://localhost:5173'))
   await expect(p2.getByText('Araç yolda')).toBeVisible()
   await expect(p2.getByText('Yükünüz yolda')).toBeVisible()
   await expect(p2.getByRole('definition').filter({ hasText: '34 VES **' })).toBeVisible()

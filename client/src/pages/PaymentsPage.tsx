@@ -34,7 +34,7 @@ export default function PaymentsPage() {
   const toast = useToast()
 
   const query = { page, pageSize: 20, search: debounced, customerId, from, to, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Payment>('payments', query)
+  const { data, isFetching, error, refetch } = usePaged<Payment>('payments', query)
   const { data: totals } = useListTotals<PaymentTotals>('payments', query)
   const deleteMut = useSave((id: number) => api.remove(id), {
     invalidate: ['payments', 'invoices', 'customers'], success: 'Tahsilat silindi.', onSuccess: () => setDeleting(null),
@@ -78,7 +78,7 @@ export default function PaymentsPage() {
           { label: 'Toplam', value: tl2(totals.total), tone: 'text-emerald-700' },
           ...(totals.refunds > 0 ? [{ label: 'İadeler (düşüldü)', value: tl2(totals.refunds) }] : []),
         ]} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}

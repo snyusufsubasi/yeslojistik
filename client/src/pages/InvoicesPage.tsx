@@ -9,7 +9,7 @@ import { useRowSelection } from '../lib/selection'
 import { ExportButton, TotalsStrip } from '../components/Exports'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Loading, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
@@ -39,7 +39,7 @@ export default function InvoicesPage() {
   }, [params, setParams])
 
   const query = { page, pageSize: 20, search: debounced, status, customerId, unpaid: unpaid || undefined, from, to, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Invoice>('invoices', query)
+  const { data, isFetching, error, refetch } = usePaged<Invoice>('invoices', query)
 
   const pdf = (i: Invoice) => openPdf(`/invoices/${i.id}/pdf`, `${i.invoiceNo}.pdf`).catch((e) => toast.error(errorMessage(e)))
 
@@ -91,7 +91,7 @@ export default function InvoicesPage() {
           { label: 'Genel toplam', value: tl2(totals.total) },
           { label: 'Kalan', value: tl2(totals.remaining), tone: totals.remaining > 0 ? 'text-red-600' : 'text-emerald-700' },
         ]} note={status ? undefined : 'Tutarlar kesilen faturalardan; taslak ve iptaller hariç.'} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
           selectable selection={selection} rowLabel={(i) => `Fatura ${i.invoiceNo}`}
@@ -127,7 +127,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
   const [cancelling, setCancelling] = useState(false)
   const [mailing, setMailing] = useState(false)
   const settings = useQuery({ queryKey: ['settings'], queryFn: () => get<CompanySettings>('/settings'), staleTime: 60_000 })
-  const { data: inv, isLoading } = useQuery({ queryKey: ['invoices', 'detail', id], queryFn: () => get<Invoice>(`/invoices/${id}`) })
+  const { data: inv, error: invError, refetch: refetchInv } = useQuery({ queryKey: ['invoices', 'detail', id], queryFn: () => get<Invoice>(`/invoices/${id}`) })
   const issue = useSave(() => post<Invoice>(`/invoices/${id}/issue`), { invalidate: ['invoices', 'customers'], success: 'Fatura kesildi.' })
   const cancel = useSave(() => post<Invoice>(`/invoices/${id}/cancel`), {
     invalidate: ['invoices', 'customers', 'trips'], success: 'Fatura iptal edildi.', onSuccess: () => setCancelling(false),
@@ -143,7 +143,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
           <Button variant="secondary" icon={<Mail className="size-4" />} onClick={() => setMailing(true)}>E-posta Gönder</Button>}
         <Button variant="secondary" icon={<Printer className="size-4" />} onClick={() => onPdf(inv)}>PDF</Button>
       </>}>
-      {isLoading || !inv ? <Spinner /> : (
+      {!inv ? <Loading error={invError} onRetry={refetchInv} /> : (
         <div className="space-y-4">
           <div className="grid gap-3 text-sm sm:grid-cols-4">
             <KV label="Müşteri" value={inv.customerTitle} />

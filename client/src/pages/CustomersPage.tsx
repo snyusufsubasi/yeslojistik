@@ -22,7 +22,7 @@ export default function CustomersPage() {
   const [page, setPage] = usePage([debounced])
 
   const query = { page, pageSize: 20, search: debounced, sort: sort.key, desc: sort.desc }
-  const { data, isFetching } = usePaged<Customer>('customers', query)
+  const { data, isFetching, error, refetch } = usePaged<Customer>('customers', query)
 
   const columns: Column<Customer>[] = [
     { key: 'no', header: 'No', sortKey: 'id', render: (c) => <span className="text-slate-500">{c.customerNo}</span> },
@@ -50,7 +50,7 @@ export default function CustomersPage() {
         </>} />
       <Card title="Müşteri Listesi" icon={<Users className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />}>
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(c) => c.id}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(c) => c.id}
           onRowClick={(c) => navigate(`/musteriler/${c.id}`)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz müşteri yok. “Yeni Müşteri” ile ekleyin ya da listenizi “Excel'den Aktar” ile yükleyin."}
