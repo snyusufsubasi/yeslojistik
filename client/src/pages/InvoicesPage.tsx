@@ -5,6 +5,7 @@ import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet }
 import { download, errorMessage, get, openPdf, post } from '../api/client'
 import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
+import { useRowSelection } from '../lib/selection'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
@@ -31,6 +32,7 @@ export default function InvoicesPage() {
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
   const [page, setPage] = usePage([debounced, status, customerId, unpaid, from, to])
+  const selection = useRowSelection<Invoice>((i) => i.id, [debounced, status, customerId, unpaid, from, to])
   useEffect(() => {
     if (params.get('id') || params.get('unpaid')) { params.delete('id'); params.delete('unpaid'); setParams(params, { replace: true }) }
   }, [params, setParams])
@@ -84,6 +86,10 @@ export default function InvoicesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
+          selectable selection={selection} rowLabel={(i) => `Fatura ${i.invoiceNo}`}
+          bulkActions={(rows) => <Button size="sm" variant="secondary" icon={<Download />}
+            onClick={() => download('/invoices/export', { ids: rows.map((i) => i.id).join(','), sort: sort.key, desc: sort.desc }, 'secilen-faturalar.xlsx')
+              .catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>}
           empty={debounced || status || customerId || unpaid || from || to
             ? 'Bu filtrelere uyan fatura yok.'
             : 'Henüz fatura yok. Seferler teslim edilince “Yeni Fatura” ile faturalayın.'}

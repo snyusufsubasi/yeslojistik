@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Copy, FileSpreadsheet, HandCoins, Mail, MapPin, Pencil, Phone, Trash2, Truck } from 'lucide-react'
-import { errorMessage, get, openPdf } from '../api/client'
+import { ArrowLeft, Copy, Download, FileSpreadsheet, HandCoins, Mail, MapPin, Pencil, Phone, Trash2, Truck } from 'lucide-react'
+import { download, errorMessage, get, openPdf } from '../api/client'
 import type { AccountMovement, Driver, SupplierPayment, SupplierSummary, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
+import { useRowSelection } from '../lib/selection'
+import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
 import { SupplierForm } from '../components/SupplierForm'
 import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { useAuth } from '../lib/auth'
@@ -111,7 +113,11 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
 
 function SupplierTrips({ id }: { id: number }) {
   const navigate = useNavigate()
+  const toast = useToast()
+  const { can } = useAuth()
   const [page, setPage] = usePage([id])
+  const selection = useRowSelection<Trip>((t) => t.id, [id])
+  const [paying, setPaying] = useState<number[] | null>(null)
   const { data, isFetching } = usePaged<Trip>('trips', { carrierSupplierId: id, page, pageSize: 20, sort: 'loadingDate', desc: true })
   const cols: Column<Trip>[] = [
     { key: 'date', header: 'Yükleme', render: (t) => date(t.loadingDate) },
@@ -122,8 +128,17 @@ function SupplierTrips({ id }: { id: number }) {
     { key: 'inv', header: 'Taşeron Faturası', render: (t) => t.carrierInvoiceNo ?? (t.status === 'Delivered' ? <span className="text-amber-700">Gelmedi</span> : '—') },
     { key: 'cost', header: 'Araç Maliyeti', align: 'right', render: (t) => tl(t.vehicleCost) },
   ]
-  return <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(t) => t.id} page={page} total={data?.total} onPage={setPage}
-    onRowClick={(t) => navigate(`/seferler?id=${t.id}`)} empty="Bu tedarikçinin aracıyla yapılmış sefer yok." />
+  return <>
+    <DataTable columns={cols} rows={data?.items} loading={isFetching} rowKey={(t) => t.id} page={page} total={data?.total} onPage={setPage}
+      onRowClick={(t) => navigate(`/seferler?id=${t.id}`)} empty="Bu tedarikçinin aracıyla yapılmış sefer yok."
+      selectable selection={selection} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}`}
+      bulkActions={(rows) => <>
+        {can('accounting') && <Button write size="sm" variant="secondary" icon={<HandCoins />} onClick={() => setPaying(rows.map((t) => t.id))}>Toplu ödeme</Button>}
+        <Button size="sm" variant="secondary" icon={<Download />}
+          onClick={() => download('/trips/export', { ids: rows.map((t) => t.id).join(',') }, 'secilen-seferler.xlsx').catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>
+      </>} />
+    {paying && <BulkSupplierPaymentDialog tripIds={paying} onClose={() => setPaying(null)} onDone={selection.clear} />}
+  </>
 }
 
 function SupplierVehicles({ id }: { id: number }) {

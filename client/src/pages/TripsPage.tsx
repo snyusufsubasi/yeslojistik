@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ClipboardCopy, Columns3, Download, List, Pencil, Plus, Truck } from 'lucide-react'
-import { download, get, post } from '../api/client'
-import type { Driver, JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
+import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, StepForward, Truck } from 'lucide-react'
+import { download, errorMessage, get, post } from '../api/client'
+import type { BulkResult, Driver, JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
+import { useRowSelection } from '../lib/selection'
+import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
+import { useBulkResult } from '../lib/useBulkResult'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
@@ -48,6 +51,11 @@ export default function TripsPage() {
 
   const debouncedGroup = useDebounce(group)
   const [page, setPage] = usePage([debounced, status, customerId, from, to, invoiced, preset, debouncedGroup])
+  // Seçim sayfalar arasında korunur, filtre değişince boşalır.
+  const selection = useRowSelection<Trip>((t) => t.id, [debounced, status, customerId, from, to, invoiced, preset, debouncedGroup])
+  const bulkResult = useBulkResult()
+  const [advancing, setAdvancing] = useState<Trip[] | null>(null)
+  const [paying, setPaying] = useState<number[] | null>(null)
   useEffect(() => {
         // Başka sayfadan (ör. tedarikçi detayı) belirli bir seferi açmak için ?id=
     const openId = Number(params.get('id'))
@@ -104,6 +112,40 @@ export default function TripsPage() {
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
+
+  // Toplu işlemler (alttaki seçim çubuğu).
+  const approveMut = useSave((ids: number[]) => post<BulkResult>('/trips/bulk/approve-delivery-documents', { tripIds: ids }), {
+    invalidate: ['trips'], onSuccess: (r) => { selection.clear(); bulkResult.show('Teslim evrakı onayı', 'seferin teslim evrakı onaylandı.', r) },
+  })
+  const advanceMut = useSave((ids: number[]) => post<BulkResult>('/trips/bulk/advance-status', { tripIds: ids }), {
+    invalidate: ['trips', 'vehicles', 'suppliers'],
+    onSuccess: (r) => { setAdvancing(null); selection.clear(); bulkResult.show('Durum güncelleme', 'seferin durumu ilerletildi.', r) },
+  })
+  /** Seçilenlerle fatura: hepsi aynı müşterinin, faturalanmamış ve iptal edilmemiş seferleri olmalı. */
+  const invoiceSelected = (rows: Trip[]) => {
+    if (new Set(rows.map((t) => t.customerId)).size > 1)
+      return toast.error('Seçilen seferler farklı müşterilere ait. Fatura tek müşteriye kesilir; aynı müşterinin seferlerini seçin.')
+    const invoicedCount = rows.filter((t) => t.invoiceId || t.isLegacy).length
+    if (invoicedCount) return toast.error(`${invoicedCount} seferin faturası zaten kesilmiş. Bu seferleri seçimden çıkarın.`)
+    const cancelledCount = rows.filter((t) => t.status === 'Cancelled').length
+    if (cancelledCount) return toast.error(`${cancelledCount} sefer iptal edilmiş; iptal edilen sefer faturalanmaz. Seçimden çıkarın.`)
+    navigate(`/faturalar/yeni?customerId=${rows[0].customerId}&tripIds=${rows.map((t) => t.id).join(',')}`)
+  }
+  const paySelected = (rows: Trip[]) => {
+    if (!rows.some((t) => t.carrierSupplierId)) return toast.error('Seçilen seferlerin hiçbiri kiralık (taşeron) araçla yapılmamış; ödenecek tedarikçi yok.')
+    setPaying(rows.map((t) => t.id))
+  }
+  const exportSelected = (rows: Trip[]) =>
+    download('/trips/export', { ids: rows.map((t) => t.id).join(','), sort: sort.key, desc: sort.desc }, 'secilen-seferler.xlsx')
+      .catch((e) => toast.error(errorMessage(e)))
+  const bulkActions = (rows: Trip[]) => <>
+    {can('operations') && <Button write size="sm" variant="secondary" icon={<FileCheck2 />} loading={approveMut.isPending}
+      onClick={() => approveMut.mutate(rows.map((t) => t.id))}>Teslim evrakını onayla</Button>}
+    {can('operations') && <Button write size="sm" variant="secondary" icon={<StepForward />} onClick={() => setAdvancing(rows)}>Durumu ilerlet</Button>}
+    {can('accounting') && <Button write size="sm" variant="secondary" icon={<FileText />} onClick={() => invoiceSelected(rows)}>Fatura kes</Button>}
+    {can('accounting') && <Button write size="sm" variant="secondary" icon={<HandCoins />} onClick={() => paySelected(rows)}>Toplu ödeme</Button>}
+    <Button size="sm" variant="secondary" icon={<Download />} onClick={() => exportSelected(rows)}>Excel'e aktar</Button>
+  </>
 
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih / No', sortKey: 'loadingDate', render: (t) => <>{date(t.loadingDate)}<span className="block text-sm text-slate-500">No {t.terms?.externalRef ?? t.id}</span></> },
@@ -186,6 +228,7 @@ export default function TripsPage() {
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
+          selectable selection={selection} bulkActions={bulkActions} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}, ${t.customerTitle}`}
           empty={debounced || status || customerId || from || to || invoiced || preset || group
             ? 'Bu filtrelere uyan sefer yok. Filtreleri temizlemeyi deneyin.'
             : 'Henüz sefer yok. Sağ üstteki “Yeni Sefer” ile ilk seferi ekleyin.'}
@@ -228,11 +271,34 @@ export default function TripsPage() {
         onClose={() => { setEditing(null); setCopyOf(null); setSourceRequest(null) }}
         onDelete={(t) => { setEditing(null); setDeleting(t) }}
         onCopy={(t) => { setCopyOf(t); setEditing('new') }} />}
+      {advancing && <ConfirmDialog open title="Durumu ilerlet" danger={false} confirmText="Durumu ilerlet" loading={advanceMut.isPending}
+        message={<AdvanceSummary trips={advancing} />} onClose={() => setAdvancing(null)} onConfirm={() => advanceMut.mutate(advancing.map((t) => t.id))} />}
+      {paying && <BulkSupplierPaymentDialog tripIds={paying} onClose={() => setPaying(null)} onDone={selection.clear} />}
+      {bulkResult.dialog}
       <ConfirmDialog open={!!deleting} title="Seferi sil" loading={deleteMut.isPending}
         message={<>“{deleting?.customerTitle} – {deleting?.loadingAddress} → {deleting?.deliveryAddress}” seferi silinecek. Emin misiniz?</>}
         confirmText="Sil" onClose={() => setDeleting(null)} onConfirm={() => deleting && deleteMut.mutate(deleting.id)} />
     </>
   )
+}
+
+/** Planlandı → Yüklendi → Yolda → Teslim Edildi (sunucudaki TripStatusRules.Forward ile aynı). */
+const forward: Partial<Record<TripStatus, TripStatus>> = { Planned: 'Loaded', Loaded: 'OnRoad', OnRoad: 'Delivered' }
+
+/** Toplu "Durumu ilerlet" onayı: hangi seferin hangi duruma geçeceği. */
+function AdvanceSummary({ trips }: { trips: Trip[] }) {
+  const counts = new Map<TripStatus, number>()
+  for (const t of trips) { const n = forward[t.status]; if (n) counts.set(n, (counts.get(n) ?? 0) + 1) }
+  const stay = trips.filter((t) => !forward[t.status]).length
+  if (counts.size === 0) return <p>Seçilen seferlerin hiçbiri ilerletilemez: hepsi teslim edilmiş ya da iptal.</p>
+  return <>
+    <p>Seçilen seferler bir sonraki aşamaya geçecek:</p>
+    <ul className="mt-2 list-disc space-y-1 pl-5">
+      {[...counts].map(([s, n]) => <li key={s}><b>{n}</b> sefer → {tripStatusLabel[s]}</li>)}
+    </ul>
+    {stay > 0 && <p className="mt-2 text-slate-600">{stay} sefer değişmeyecek (teslim edilmiş ya da iptal).</p>}
+    {counts.has('Delivered') && <p className="mt-2 text-slate-600">Teslim tarihi boş olanlara bugünün tarihi yazılır.</p>}
+  </>
 }
 
 type Preset = 'price' | 'document' | 'commission'

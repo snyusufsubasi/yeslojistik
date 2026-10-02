@@ -22,7 +22,7 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
 
     public async Task<PagedResult<InvoiceDto>> ListAsync(InvoiceQuery q, CancellationToken ct = default, bool export = false)
     {
-        var query = db.Invoices.AsNoTracking();
+        var query = db.Invoices.AsNoTracking().WhereIds(q.Ids);
         if (q.CustomerId is { } c) query = query.Where(i => i.CustomerId == c);
         if (q.Status is { } s) query = query.Where(i => i.Status == s);
         if (q.From is { } from) query = query.Where(i => i.Date >= from);

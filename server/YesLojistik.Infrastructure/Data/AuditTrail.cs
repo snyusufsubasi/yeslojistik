@@ -47,6 +47,7 @@ internal static class AuditTrail
         ["ExpiryDate"] = "Bitiş", ["CashAccountId"] = "Kasa/Banka", ["InstrumentNo"] = "Çek/Senet no", ["Bank"] = "Banka",
         ["InstrumentDueDate"] = "Çek/Senet vadesi", ["InstrumentStatus"] = "Çek/Senet durumu", ["EndorsedSupplierPaymentId"] = "Ciro ödemesi",
         ["EndorsedFromPaymentId"] = "Ciro edilen tahsilat", ["CreditLimit"] = "Risk limiti", ["Name"] = "Ad", ["FromAccountId"] = "Çıkış hesabı", ["ToAccountId"] = "Giriş hesabı", ["Cost"] = "Tutar", ["NextDueKm"] = "Sonraki bakım km", ["NextDueDate"] = "Sonraki bakım tarihi", ["ExpenseId"] = "Gider",
+        ["DeliveryDocumentApproved"] = "Teslim evrakı onayı", ["DeliveryDocumentNo"] = "Teslim evrak no", ["TripIds"] = "Seferler",
     };
 
     public static bool Tracks(EntityEntry e) =>
@@ -151,6 +152,7 @@ internal static class AuditTrail
         DateOnly d => d.ToString("dd.MM.yyyy"),
         DateTime d => d.ToString("dd.MM.yyyy HH:mm"),
         bool b => b ? "evet" : "hayır",
+        IEnumerable<int> ids => Truncate(string.Join(", ", ids.Select(i => $"#{i}")), 120)!,
         _ => Convert.ToString(v, CultureInfo.InvariantCulture) ?? "",
     };
 

@@ -164,7 +164,7 @@ Bu arada GitHub'da iki dal bekliyor:
 **Kolaylaştırma ilkeleri:**
 - Eski panelde 3 sayfa süren iş bizde tek formda yapılır.
 - Listelerde satır sonunda **Düzenle / Kopyala / Sil** menüsü olur. Silmede onay istenir; mümkünse "Geri al" seçeneği olur.
-- Toplu seçim ve toplu işlemler: durum değiştirme, fatura kesme, Excel'e aktarma.
+- Toplu seçim ve toplu işlemler: durum değiştirme, teslim evrakı onayı, fatura kesme, tedarikçi ödemesi, Excel'e aktarma. **(A5'te yapıldı.)**
 - Aranabilir seçimler ve son kullanılanlar, bütün formlarda.
 - Tablo, kullanıcıya bir ekran görüntüsüyle gösterilir ve öncelikleri o belirler. Sonra her grup ayrı bir PR olur: "Eski panel farkları — N".
 

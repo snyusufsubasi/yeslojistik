@@ -77,6 +77,17 @@ public class TripsController(TripService trips) : ControllerBase
     public Task<TripDto> ChangeStatus(int id, TripStatusRequest req, CancellationToken ct) =>
         trips.ChangeStatusAsync(id, req.Status, Core.Entities.TripEventSource.Panel, null, req.Note, ct, req.ReceivedBy);
 
+    /// <summary>Seçilen seferlerin teslim evrakını onaylar (eski paneldeki "Teslim Evrak Onayla", toplu).</summary>
+    [Authorize(Policy = Policies.Operations)]
+    [HttpPost("bulk/approve-delivery-documents")]
+    public Task<BulkResultDto> ApproveDeliveryDocuments(BulkTripRequest req, CancellationToken ct) =>
+        trips.ApproveDeliveryDocumentsAsync(req.TripIds, ct);
+
+    /// <summary>Seçilen seferleri bir sonraki aşamaya geçirir (Yüklendi → Yolda → Teslim Edildi).</summary>
+    [Authorize(Policy = Policies.Operations)]
+    [HttpPost("bulk/advance-status")]
+    public Task<BulkResultDto> AdvanceStatus(BulkTripRequest req, CancellationToken ct) => trips.AdvanceStatusAsync(req.TripIds, ct);
+
     /// <summary>Durum zaman çizelgesi (ne zaman yüklendi, yola çıktı, teslim edildi).</summary>
     [HttpGet("{id:int}/events")]
     public Task<List<TripEventDto>> Events(int id, CancellationToken ct) => trips.EventsAsync(id, ct);

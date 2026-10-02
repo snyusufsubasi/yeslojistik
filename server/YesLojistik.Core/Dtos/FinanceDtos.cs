@@ -81,7 +81,7 @@ public record InvoiceEmailRequest(string? To, string? Message);
 
 public record SupplierPaymentDto(int Id, int SupplierId, string SupplierTitle, DateOnly Date, decimal Amount, PaymentMethod Method,
     int? TripId, string? TripLabel, string? Description, int? CashAccountId = null, string? CashAccountName = null, int? EndorsedFromPaymentId = null,
-    bool IsRefund = false);
+    bool IsRefund = false, IReadOnlyList<int>? TripIds = null);
 
 public record SupplierPaymentSaveRequest(int SupplierId, DateOnly Date, decimal Amount, PaymentMethod Method, int? TripId, string? Description,
     int? CashAccountId = null, bool IsRefund = false);

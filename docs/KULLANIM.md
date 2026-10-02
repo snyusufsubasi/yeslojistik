@@ -93,6 +93,18 @@ Müşteriye tıklayınca: toplam borç (kesilen faturalar), toplam alacak (tahsi
 *Şoför Bazlı* (sefer sayısı, gelir, kâr), *Alacak Yaşlandırma* (0-30 / 31-60 / 61-90 / 90+ gün) ve *Gider Dağılımı*. Her rapor **Excel'e Aktar** ile indirilebilir.
 Seferler, faturalar, tahsilatlar ve giderler listeleri de filtrelenmiş haliyle Excel'e aktarılabilir.
 
+## Toplu işlemler (birden çok kaydı seçme)
+
+Sevkiyatlar, Faturalar, Tahsilatlar ve tedarikçi kartındaki Seferler listesinde satırın başındaki kutuyla kayıt seçilir. Başlıktaki kutu o sayfadakilerin hepsini seçer. Sayfa değiştirince seçim korunur, filtre değişince kalkar. Seçim varken altta bir çubuk çıkar:
+
+- **Teslim evrakını onayla:** Seçilen teslim edilmiş seferlerin evrakı onaylanır. Teslim edilmemiş ya da zaten onaylı olanlar değişmez; nedeni gösterilir.
+- **Durumu ilerlet:** Her sefer bir sonraki aşamaya geçer (Planlandı → Yüklendi → Yolda → Teslim Edildi). Önce özet gösterilir.
+- **Fatura kes:** Aynı müşterinin seferleri seçiliyse fatura ekranı bu seferlerle açılır.
+- **Toplu ödeme:** Seçilen taşeron seferlerinin kalan borcu, her tedarikçiye tek ödeme olarak kaydedilir. Kaydetmeden önce tedarikçi başına toplam gösterilir.
+- **Excel'e aktar:** Yalnızca seçilen kayıtlar Excel'e aktarılır.
+
+Toplu işlemler ya tamamen yapılır ya hiç yapılmaz; yarım kalmaz.
+
 ## Sevk belgesi, sefer kopyalama ve hesap ekstresi
 
 - **Sevk Belgesi:** Sefer penceresinin altındaki düğmeyle açılır. Araçta taşınır, teslimde imzalatılır; fiyat içermez.

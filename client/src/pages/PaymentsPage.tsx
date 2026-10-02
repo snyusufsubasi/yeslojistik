@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Download, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
-import { download } from '../api/client'
+import { download, errorMessage } from '../api/client'
 import type { Payment } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
+import { useRowSelection } from '../lib/selection'
+import { useToast } from '../components/Toast'
 import { PaymentForm } from '../components/PaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
@@ -27,6 +29,8 @@ export default function PaymentsPage() {
   const debounced = useDebounce(search)
   const customers = useLookup('customers')
   const [page, setPage] = usePage([debounced, customerId, from, to])
+  const selection = useRowSelection<Payment>((p) => p.id, [debounced, customerId, from, to])
+  const toast = useToast()
 
   const query = { page, pageSize: 20, search: debounced, customerId, from, to, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Payment>('payments', query)
@@ -70,7 +74,12 @@ export default function PaymentsPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || customerId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz tahsilat yok. Ödeme gelince “Tahsilat Ekle” ile kaydedin."} />
+          page={page} total={data?.total} onPage={setPage}
+          selectable selection={selection} rowLabel={(p) => `Tahsilat ${p.customerTitle} ${tl2(p.amount)}`}
+          bulkActions={(rows) => <Button size="sm" variant="secondary" icon={<Download />}
+            onClick={() => download('/payments/export', { ids: rows.map((p) => p.id).join(','), sort: sort.key, desc: sort.desc }, 'secilen-tahsilatlar.xlsx')
+              .catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>}
+          empty={debounced || customerId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz tahsilat yok. Ödeme gelince “Tahsilat Ekle” ile kaydedin."} />
       </Card>
       {editing && <PaymentForm payment={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Tahsilatı sil" loading={deleteMut.isPending} confirmText="Sil"

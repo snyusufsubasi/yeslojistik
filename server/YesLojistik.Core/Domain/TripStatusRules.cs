@@ -17,6 +17,15 @@ public static class TripStatusRules
 
     public static bool CanTransition(TripStatus from, TripStatus to) => Allowed[from].Contains(to);
 
+    /// <summary>Bir sonraki ileri adım (Planlandı → Yüklendi → Yolda → Teslim Edildi); teslim edilmiş ve iptal seferde yok.</summary>
+    public static TripStatus? Forward(TripStatus current) => current switch
+    {
+        TripStatus.Planned => TripStatus.Loaded,
+        TripStatus.Loaded => TripStatus.OnRoad,
+        TripStatus.OnRoad => TripStatus.Delivered,
+        _ => null,
+    };
+
     /// <summary>Araç bu durumdaki bir sefer tarafından kullanılıyor mu?</summary>
     public static bool OccupiesVehicle(TripStatus status) => status is TripStatus.Loaded or TripStatus.OnRoad;
 

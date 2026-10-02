@@ -11,6 +11,8 @@ public class SupplierPayment : BaseEntity
     /// <summary>Sefere özel ön ödeme / avans.</summary>
     public int? TripId { get; set; }
     public Trip? Trip { get; set; }
+    /// <summary>Toplu ödemede (birden çok sefer) ödenen seferler: ödeme önce bunları sırayla kapatır, artanı en eski borca gider.</summary>
+    public List<int>? TripIds { get; set; }
     public string? Description { get; set; }
     public int? CashAccountId { get; set; }
     public CashAccount? CashAccount { get; set; }

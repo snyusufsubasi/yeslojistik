@@ -53,4 +53,16 @@ public class PaymentAllocatorTests
         buckets.Should().Be(new AgingBuckets(100, 200, 300, 400, 500));
         buckets.Total.Should().Be(1500);
     }
+
+    [Fact]
+    public void Bulk_payment_closes_its_targets_in_order_and_sends_the_rest_to_fifo()
+    {
+        var result = PaymentAllocator.Allocate(
+            [new(1, D, D.AddDays(30), 1000), new(2, D.AddDays(1), D.AddDays(31), 500), new(3, D.AddDays(2), D.AddDays(32), 300)],
+            [new(null, D.AddDays(5), 900, [3, 2, 99])]);
+        result.Single(b => b.InvoiceId == 3).Remaining.Should().Be(0);
+        result.Single(b => b.InvoiceId == 2).Remaining.Should().Be(0);
+        // Hedefler 800 tutuyordu; artan 100 en eski kaleme gider.
+        result.Single(b => b.InvoiceId == 1).Remaining.Should().Be(900);
+    }
 }

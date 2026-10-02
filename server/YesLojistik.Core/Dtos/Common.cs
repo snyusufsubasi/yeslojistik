@@ -9,6 +9,8 @@ public record ListQuery
     public string? Search { get; init; }
     public string? Sort { get; init; }
     public bool Desc { get; init; }
+    /// <summary>Yalnızca bu kayıtlar (virgülle ayrılmış numaralar). Listede seçilenleri Excel'e aktarmak için.</summary>
+    public string? Ids { get; init; }
 }
 
 public record LookupItem(int Id, string Label, string? Extra = null);

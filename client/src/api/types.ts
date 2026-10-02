@@ -723,7 +723,18 @@ export interface SupplierPayment {
   cashAccountName?: string | null
   endorsedFromPaymentId?: number | null
   isRefund?: boolean
+  /** Toplu ödemede ödenen seferler. */
+  tripIds?: number[] | null
 }
+
+/** Toplu işlemde değiştirilmeyen kayıt ve nedeni. */
+export interface BulkSkipped { id: number; label: string; reason: string }
+export interface BulkResult { updated: number; skipped: BulkSkipped[] }
+
+export interface BulkPaymentTrip { tripId: number; label: string; amount: number; note?: string | null }
+export interface BulkPaymentSupplier { supplierId: number; supplierTitle: string; total: number; trips: BulkPaymentTrip[] }
+export interface BulkPaymentPreview { suppliers: BulkPaymentSupplier[]; skipped: BulkSkipped[]; total: number }
+export interface BulkSupplierPaymentResult { payments: SupplierPayment[]; total: number }
 
 export interface SupplierSummary {
   supplier: Supplier

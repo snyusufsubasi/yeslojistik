@@ -65,8 +65,9 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] Her listede "Excel'e aktar" ve filtrenin tamamının toplamı (yalnızca sayfanın değil).
 
 ### A5 — Toplu işlemler (1 hafta)
-- [ ] Listelerde çoklu seçim ve alt işlem çubuğu.
-- [ ] Toplu işlemler: teslim evrakı onayı, fatura kesme, ödeme, Excel'e aktarma.
+- [x] Listelerde çoklu seçim ve alt işlem çubuğu (Sevkiyatlar, tedarikçi kartı → Seferler, Faturalar, Tahsilatlar; telefonda da).
+- [x] Toplu işlemler: teslim evrakı onayı, durumu ilerletme, fatura kesme, tedarikçi ödemesi, Excel'e aktarma.
+- [ ] Kullanıcıyla birlikte bakılır (toplu gösterim).
 
 ### A6 — Eksik ekran ve alanlar (A3'teki sıraya göre)
 - [ ] Her grup ayrı bir adım olarak yapılır. Grup bitince toplu gösterilir.

@@ -36,7 +36,7 @@ public class BalanceService(AppDbContext db)
             var d = c.OpeningBalanceDate ?? DateOnly.FromDateTime(c.CreatedAt);
             return new { CustomerId = c.Id, Inv = new AllocInvoice(OpeningBalanceId(c.Id), d, d, c.OpeningBalance) };
         }));
-        var payments = await payQuery.Select(p => new { p.CustomerId, Pay = new AllocPayment(p.InvoiceId, p.Date, p.Amount) }).ToListAsync(ct);
+        var payments = await payQuery.Select(p => new { p.CustomerId, Pay = new AllocPayment(p.InvoiceId, p.Date, p.Amount, null) }).ToListAsync(ct);
 
         var paymentsByCustomer = payments.ToLookup(p => p.CustomerId, p => p.Pay);
         return invoices.GroupBy(i => i.CustomerId)

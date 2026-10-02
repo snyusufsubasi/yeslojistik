@@ -1,7 +1,8 @@
 namespace YesLojistik.Core.Domain;
 
 public record AllocInvoice(int Id, DateOnly Date, DateOnly DueDate, decimal Total);
-public record AllocPayment(int? InvoiceId, DateOnly Date, decimal Amount);
+/// <param name="Targets">Birden çok kaleme bağlı ödeme (toplu ödeme): kalemler sırayla kapatılır, artan FIFO'ya gider.</param>
+public record AllocPayment(int? InvoiceId, DateOnly Date, decimal Amount, IReadOnlyList<int>? Targets = null);
 public record InvoiceBalance(int InvoiceId, DateOnly DueDate, decimal Total, decimal Paid, decimal Remaining);
 
 public record AgingBuckets(decimal NotDue, decimal Days1To30, decimal Days31To60, decimal Days61To90, decimal Over90)
@@ -23,7 +24,20 @@ public static class PaymentAllocator
 
         foreach (var p in payments)
         {
-            if (p.InvoiceId is { } id && paid.ContainsKey(id))
+            if (p.Targets is { Count: > 0 } targets)
+            {
+                var left = p.Amount;
+                foreach (var target in targets.Distinct().Where(paid.ContainsKey))
+                {
+                    if (left <= 0) break;
+                    var inv = ordered.First(i => i.Id == target);
+                    var apply = Math.Max(0, Math.Min(left, inv.Total - paid[target]));
+                    paid[target] += apply;
+                    left -= apply;
+                }
+                pool += left;
+            }
+            else if (p.InvoiceId is { } id && paid.ContainsKey(id))
             {
                 var inv = ordered.First(i => i.Id == id);
                 var apply = Math.Min(p.Amount, inv.Total - paid[id]);

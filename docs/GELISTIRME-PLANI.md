@@ -142,7 +142,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 9 | Filtre toplamları (sayfa değil, filtrenin tamamı) | "Sayfa toplamı" ay sonu kontrolünde yanıltıyor | Fatura, gider, ödeme ve alış faturası toplam uçları + ortak toplam şeridi | M |
 | 10 | Filtreler adres çubuğunda kalsın | Geri gelince veya sayfayı yenileyince filtreler sıfırlanıyor | Ortak bir adres-durumu yardımcısı, tüm liste sayfaları | M |
 | 11 | Sefer listesine Özet/Detay görünümü, tedarikçi, plaka ve evrak filtresi, PDF/İcmal | Pratikortam'daki liste alışkanlığı | `TripsPage` | M |
-| 12 | Toplu seçim ve toplu işlem | Teslim evrakı onayı tek tek yapılıyor. Toplu ödeme yok | `DataTable` seçim + alt işlem çubuğu | M |
+| 12 | ~~Toplu seçim ve toplu işlem~~ **Yapıldı (A5)** | Teslim evrakı onayı tek tek yapılıyor. Toplu ödeme yok | `DataTable` seçim + alt işlem çubuğu; `/api/trips/bulk/*`, `/api/supplier-payments/bulk` | M |
 | 13 | Cari tablolarında sıralama, Excel/PDF ve sütun toplamları | Pratikortam'da var, burada yok | `CariPage` | S |
 | 14 | Ana listelerde Excel dışa aktarma ve arşiv/pasif görünümü | Müşteri, tedarikçi, şoför ve araç listelerinde sadece içe aktarma var | 4 dışa aktarma ucu + düğmeler | M |
 | 15 | Hata kodu (iz numarası) ve hata kayıtları | "Beklenmeyen hata" mesajının nedeni bulunamıyor | `ExceptionHandler` + mesajda "Hata kodu: …" | S |
@@ -178,8 +178,8 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | Sevkiyatlar Özet/Detay görünümü (yük, açıklama, komisyon, masraf, fatura, giren kişi) | 6 sütun, detay görünümü yok | 2 |
 | Tedarikçi, plaka, evrak var/yok filtreleri | Yok | 2 |
 | Sevkiyat listesi PDF ve İcmal | Yok | 2 |
-| "Teslim Evrak Onayla" satır işlemi | Sadece sefer formunun içinden | 2 |
-| Toplu ödemeler / "Seçilenleri listeye ekle" | Toplu seçim yok | 2 |
+| "Teslim Evrak Onayla" satır işlemi | **Var (A5):** Sevkiyatlar'da seçip "Teslim evrakını onayla" (toplu) | 2 |
+| Toplu ödemeler / "Seçilenleri listeye ekle" | **Var (A5):** Sevkiyatlar ve tedarikçi kartında seferleri seçip "Toplu ödeme" (tedarikçi başına bir ödeme, önizlemeli) | 2 |
 | Cari tablolarında her sütunda sıralama, Excel ve PDF | Sıralama ve dışa aktarma yok | 2 |
 | Cari detay sütunları (alınan fatura, verilen ödeme, iptal) | Sadece bakiye | 2 |
 | Faturalarda filtre toplamı (matrah, KDV, tevkifat, genel toplam) | Sadece sayfa toplamı | 2 |

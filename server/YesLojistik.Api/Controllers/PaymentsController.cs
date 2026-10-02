@@ -32,7 +32,7 @@ public class PaymentsController(AppDbContext db) : ControllerBase
 
     private IQueryable<Payment> Filter(PaymentQuery q)
     {
-        var query = db.Payments.AsNoTracking();
+        var query = db.Payments.AsNoTracking().WhereIds(q.Ids);
         if (q.CustomerId is { } c) query = query.Where(p => p.CustomerId == c);
         if (q.From is { } from) query = query.Where(p => p.Date >= from);
         if (q.To is { } to) query = query.Where(p => p.Date <= to);

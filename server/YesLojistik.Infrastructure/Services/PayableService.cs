@@ -86,7 +86,7 @@ public class PayableService(AppDbContext db)
         var expenses = await db.Expenses.Where(e => e.IsOnCredit && e.SupplierId != null && ids.Contains(e.SupplierId.Value))
             .Select(e => new { e.Id, SupplierId = e.SupplierId!.Value, e.Date, e.Amount, e.Category, e.Description }).ToListAsync(ct);
         var payments = await db.SupplierPayments.Where(p => ids.Contains(p.SupplierId))
-            .Select(p => new { p.SupplierId, p.TripId, p.Date, p.Amount }).ToListAsync(ct);
+            .Select(p => new { p.SupplierId, p.TripId, p.TripIds, p.Date, p.Amount }).ToListAsync(ct);
 
         var result = new List<PayableItem>();
         foreach (var s in terms)
@@ -107,7 +107,8 @@ public class PayableService(AppDbContext db)
             var balances = PaymentAllocator.Allocate(
                     items.Select(i => new AllocInvoice(i.Key, i.Date, i.Due ?? i.Date.AddDays(s.PaymentTermDays), i.Total)),
                     payments.Where(p => p.SupplierId == s.Id).OrderBy(p => p.Date)
-                        .Select(p => new AllocPayment(p.TripId is { } t && tripInvoice.TryGetValue(t, out var inv) ? InvoiceKeyBase + inv : p.TripId, p.Date, p.Amount)))
+                        .Select(p => new AllocPayment(p.TripId is { } t && tripInvoice.TryGetValue(t, out var inv) ? InvoiceKeyBase + inv : p.TripId, p.Date, p.Amount,
+                            p.TripIds?.Select(t => tripInvoice.TryGetValue(t, out var inv) ? InvoiceKeyBase + inv : t).Distinct().ToList())))
                 .ToDictionary(b => b.InvoiceId);
             result.AddRange(items.Select(i =>
             {
@@ -135,7 +136,7 @@ public class PayableService(AppDbContext db)
         if (!await db.Suppliers.AnyAsync(s => s.Id == supplierId, ct)) throw new NotFoundException("Tedarikçi bulunamadı.");
         var items = await ItemsAsync([supplierId], ct);
         var payments = await db.SupplierPayments.AsNoTracking().Where(p => p.SupplierId == supplierId)
-            .Select(p => new { p.Id, p.Date, p.Amount, p.Method, p.Description, p.TripId, p.CreatedAt }).ToListAsync(ct);
+            .Select(p => new { p.Id, p.Date, p.Amount, p.Method, p.Description, p.TripId, p.TripIds, p.CreatedAt }).ToListAsync(ct);
         var today = Clock.Today;
         var rows = items.Select(i => (i.Date, Order: i.Kind == PayableKind.Opening ? 0 : 1, Type: i.Kind switch
             {
@@ -143,7 +144,7 @@ public class PayableService(AppDbContext db)
             }, i.Reference, Desc: (string?)i.Description, Debit: i.Total, Credit: 0m,
             Status: i.Remaining <= 0 ? "Ödendi" : i.Paid > 0 ? "Kısmi ödendi" : i.DueDate < today ? "Vadesi geçti" : $"Vade {Formatters.Date(i.DueDate)}"))
             .Concat(payments.Select(p => (p.Date, Order: 2, Type: p.Amount < 0 ? "Tedarikçiden iade" : "Ödeme", Reference: PaymentRef(p.Id),
-                Desc: p.Description ?? (p.TripId is { } t ? $"{TripRef(t)} için ödeme" : null), Debit: p.Amount < 0 ? -p.Amount : 0m, Credit: Math.Max(p.Amount, 0),
+                Desc: p.Description ?? (p.TripId is { } t ? $"{TripRef(t)} için ödeme" : p.TripIds is { Count: > 0 } ts ? $"{ts.Count} sefer için toplu ödeme" : null), Debit: p.Amount < 0 ? -p.Amount : 0m, Credit: Math.Max(p.Amount, 0),
                 Status: CustomerAccountService.MethodLabel(p.Method))))
             .OrderBy(r => r.Date).ThenBy(r => r.Order);
         var running = 0m;
@@ -192,6 +193,74 @@ public class PayableService(AppDbContext db)
         var missing = await db.Trips.CountAsync(t => !t.IsLegacy && t.CarrierSupplierId != null && t.Status == TripStatus.Delivered && t.CarrierInvoiceNo == null
             && (t.DeliveryDate ?? t.LoadingDate) < cutoff, ct);
         return (items.Where(i => i.Remaining > 0 && i.DueDate < today).Sum(i => i.Remaining), items.Sum(i => i.Remaining), missing);
+    }
+
+    /// <summary>
+    /// Toplu ödeme önizlemesi: seçilen seferler taşeronlarına göre gruplanır, her seferin kalan borcu (ödemeler dağıtıldıktan sonra)
+    /// tutar olur. Alış faturasına bağlanmış seferde borç faturadadır: faturanın kalanı bir kez sayılır.
+    /// Özmal, eski kayıt, borç doğurmamış (planlanmış/iptal) ya da borcu kalmamış seferler atlanır, nedeni yazılır.
+    /// </summary>
+    public async Task<BulkPaymentPreviewDto> BulkPreviewAsync(IReadOnlyList<int> tripIds, CancellationToken ct = default)
+    {
+        var ids = tripIds.Distinct().ToList();
+        if (ids.Count == 0) throw new DomainException("En az bir sefer seçin.");
+        if (ids.Count > BulkLimits.MaxItems) throw new DomainException($"Tek seferde en fazla {BulkLimits.MaxItems} kayıt seçilebilir.");
+        var trips = await db.Trips.AsNoTracking().Where(t => ids.Contains(t.Id)).OrderBy(t => t.LoadingDate).ThenBy(t => t.Id)
+            .Select(t => new
+            {
+                Trip = t, SupplierTitle = t.CarrierSupplier != null ? t.CarrierSupplier.Title : null,
+                InvoiceNo = t.PurchaseInvoice != null ? t.PurchaseInvoice.InvoiceNo : null,
+            }).ToListAsync(ct);
+        if (trips.Count != ids.Count)
+            throw new NotFoundException($"Seçilen seferlerden {ids.Count - trips.Count} tanesi bulunamadı (silinmiş olabilir). Listeyi yenileyip tekrar deneyin.");
+
+        var skipped = new List<BulkSkippedDto>();
+        var eligible = trips.Where(x =>
+        {
+            var t = x.Trip;
+            var reason = t.CarrierSupplierId == null ? "Özmal araçla yapılmış; tedarikçiye borç yok."
+                : t.IsLegacy ? "Eski kayıt: borcu tedarikçinin devir bakiyesinde."
+                : !AccruingStatuses.Contains(t.Status) ? $"{TripStatusRules.Label(t.Status)} durumunda; henüz borç doğmadı."
+                : null;
+            if (reason != null) skipped.Add(new(t.Id, TripService.BulkLabel(t), reason));
+            return reason == null;
+        }).ToList();
+
+        var items = await ItemsAsync(eligible.Select(x => x.Trip.CarrierSupplierId!.Value).Distinct().ToList(), ct);
+        var suppliers = new List<BulkPaymentSupplierDto>();
+        foreach (var group in eligible.GroupBy(x => x.Trip.CarrierSupplierId!.Value))
+        {
+            var lines = new List<BulkPaymentTripDto>();
+            var countedInvoices = new Dictionary<int, decimal>();
+            foreach (var x in group)
+            {
+                var t = x.Trip;
+                decimal amount;
+                string? note = null;
+                if (t.PurchaseInvoiceId is { } inv)
+                {
+                    if (countedInvoices.TryGetValue(inv, out var counted))
+                    {
+                        if (counted > 0) lines.Add(new(t.Id, TripService.BulkLabel(t), 0, $"Alış faturası {x.InvoiceNo} (tutar yukarıda)"));
+                        else skipped.Add(new(t.Id, TripService.BulkLabel(t), "Borcu kalmamış (ödenmiş)."));
+                        continue;
+                    }
+                    amount = items.FirstOrDefault(i => i.Kind == PayableKind.Invoice && i.PurchaseInvoiceId == inv)?.Remaining ?? 0;
+                    countedInvoices[inv] = amount;
+                    note = $"Alış faturası {x.InvoiceNo}: faturanın kalanı";
+                }
+                else
+                {
+                    amount = items.FirstOrDefault(i => i.Kind == PayableKind.Trip && i.TripId == t.Id)?.Remaining ?? 0;
+                }
+                if (amount <= 0) skipped.Add(new(t.Id, TripService.BulkLabel(t), "Borcu kalmamış (ödenmiş)."));
+                else lines.Add(new(t.Id, TripService.BulkLabel(t), amount, note));
+            }
+            if (lines.Count == 0) continue;
+            suppliers.Add(new BulkPaymentSupplierDto(group.Key, group.First().SupplierTitle!, lines.Sum(l => l.Amount), lines));
+        }
+        suppliers = suppliers.OrderBy(s => s.SupplierTitle, StringComparer.Create(Formatters.Tr, true)).ToList();
+        return new BulkPaymentPreviewDto(suppliers, skipped, suppliers.Sum(s => s.Total));
     }
 
     public async Task<bool> IsReferencedAsync(int supplierId, CancellationToken ct = default) =>

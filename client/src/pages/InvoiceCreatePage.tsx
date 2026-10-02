@@ -49,11 +49,21 @@ export default function InvoiceCreatePage() {
     enabled: customerId !== '',
   })
   const available = useMemo(() => trips.data?.items.filter((t) => t.status !== 'Cancelled') ?? [], [trips.data])
+  // Sevkiyatlar'da seçilip "Fatura kes" denildiyse (?tripIds=1,2) o seferler seçili gelir.
+  const [preset] = useState(() => ({
+    customerId: params.get('customerId') ? Number(params.get('customerId')) : '',
+    ids: new Set((params.get('tripIds') ?? '').split(',').map(Number).filter((n) => n > 0)),
+  }))
   // Kullanıcı seçim yapana kadar teslim edilmiş seferler seçili gelir; müşteri değişince seçim sıfırlanır.
   const [selection, setSelection] = useState<{ customerId: number | ''; ids: Set<number> } | null>(null)
+  const fromList = preset.ids.size > 0 && preset.customerId === customerId
   const selected = selection && selection.customerId === customerId
     ? selection.ids
-    : new Set(available.filter((t) => t.status === 'Delivered').map((t) => t.id))
+    : fromList
+      ? new Set(available.filter((t) => preset.ids.has(t.id)).map((t) => t.id))
+      : new Set(available.filter((t) => t.status === 'Delivered').map((t) => t.id))
+  // Listede seçilip burada bulunmayanlar (bu arada faturalanmış ya da iptal edilmiş olabilir).
+  const missingFromList = fromList && trips.data ? [...preset.ids].filter((id) => !available.some((t) => t.id === id)).length : 0
   const setSelected = (update: (s: Set<number>) => Set<number>) => setSelection({ customerId, ids: update(selected) })
 
   const lineAmounts = [
@@ -90,7 +100,10 @@ export default function InvoiceCreatePage() {
             </Field>
             {customerId === '' ? <Empty>Faturalanacak seferleri görmek için müşteri seçin.</Empty>
               : trips.isLoading ? <Spinner />
-              : available.length === 0 ? <Empty>Bu müşterinin faturalanmamış seferi yok. Aşağıdan serbest satır ekleyebilirsiniz.</Empty>
+              : <>
+                {missingFromList > 0 && <p className="mb-3 rounded-lg bg-amber-50 px-4 py-2.5 text-[0.9375rem] text-amber-900">
+                  Sevkiyatlar'da seçilen {missingFromList} sefer burada yok: faturası kesilmiş ya da iptal edilmiş olabilir.</p>}
+                {available.length === 0 ? <Empty>Bu müşterinin faturalanmamış seferi yok. Aşağıdan serbest satır ekleyebilirsiniz.</Empty>
               : (
                 <div className="overflow-x-auto rounded-lg border border-slate-200">
                   <table className="w-full">
@@ -114,6 +127,7 @@ export default function InvoiceCreatePage() {
                   </table>
                 </div>
               )}
+              </>}
           </Card>
           <Card title="Ek Satırlar" actions={<Button write size="sm" variant="secondary" icon={<Plus className="size-3.5" />} disabled={customerId === ''}
             onClick={() => setExtra((x) => [...x, { key: Date.now(), description: '', amount: '' }])}>Satır Ekle</Button>}>

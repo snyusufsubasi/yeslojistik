@@ -53,7 +53,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
 
     public IQueryable<Trip> Filter(TripQuery q)
     {
-        var query = db.Trips.AsNoTracking();
+        var query = db.Trips.AsNoTracking().WhereIds(q.Ids);
         if (q.Status is { } s) query = query.Where(t => t.Status == s);
         if (q.CustomerId is { } c) query = query.Where(t => t.CustomerId == c);
         if (q.VehicleId is { } v) query = query.Where(t => t.VehicleId == v);
@@ -251,15 +251,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (TripStatusRules.OccupiesVehicle(status))
             await EnsureVehicleUsableAsync(trip.VehicleId, ct);
 
-        trip.Status = status;
-        var at = ClampOccurredAt(occurredAt);
-        if (status == TripStatus.Delivered)
-        {
-            trip.DeliveryDate ??= Clock.Today;
-            trip.DeliveredAt = at;
-            if (!string.IsNullOrWhiteSpace(receivedBy)) trip.ReceivedBy = receivedBy.Trim().Length > 150 ? receivedBy.Trim()[..150] : receivedBy.Trim();
-        }
-        AddEvent(trip.Id, status, source, at, note);
+        ApplyStatus(trip, status, source, ClampOccurredAt(occurredAt), note, receivedBy);
         await db.SaveChangesAsync(ct);
         await SyncVehicleStatusAsync(trip.VehicleId, ct);
         await db.SaveChangesAsync(ct);
@@ -268,6 +260,96 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
                 DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate), ct);
         await customerNotifier.StatusChangedAsync(trip.Id, status, ct);
         return await GetAsync(id, ct);
+    }
+
+    private void ApplyStatus(Trip trip, TripStatus status, TripEventSource source, DateTime at, string? note, string? receivedBy)
+    {
+        trip.Status = status;
+        if (status == TripStatus.Delivered)
+        {
+            trip.DeliveryDate ??= Clock.Today;
+            trip.DeliveredAt = at;
+            if (!string.IsNullOrWhiteSpace(receivedBy)) trip.ReceivedBy = receivedBy.Trim().Length > 150 ? receivedBy.Trim()[..150] : receivedBy.Trim();
+        }
+        AddEvent(trip.Id, status, source, at, note);
+    }
+
+    /// <summary>Toplu işlem için seferleri yükler. Biri bile bulunamazsa hiçbir şey yapılmaz.</summary>
+    private async Task<List<Trip>> LoadForBulkAsync(IReadOnlyList<int> tripIds, CancellationToken ct)
+    {
+        var ids = tripIds.Distinct().ToList();
+        if (ids.Count == 0) throw new DomainException("En az bir sefer seçin.");
+        if (ids.Count > BulkLimits.MaxItems) throw new DomainException($"Tek seferde en fazla {BulkLimits.MaxItems} kayıt seçilebilir.");
+        var trips = await db.Trips.Where(t => ids.Contains(t.Id)).OrderBy(t => t.LoadingDate).ThenBy(t => t.Id).ToListAsync(ct);
+        if (trips.Count != ids.Count)
+            throw new NotFoundException($"Seçilen seferlerden {ids.Count - trips.Count} tanesi bulunamadı (silinmiş olabilir). Listeyi yenileyip tekrar deneyin.");
+        return trips;
+    }
+
+    /// <summary>Toplu işlem sonucunda seferi tanıtan kısa ad: "No 978 · Tuzla → Balçova".</summary>
+    public static string BulkLabel(Trip t) => $"No {t.ExternalRef ?? t.Id.ToString()} · {t.LoadingCity ?? t.LoadingAddress} → {t.DeliveryCity ?? t.DeliveryAddress}";
+
+    /// <summary>
+    /// Eski paneldeki "Teslim Evrak Onayla", seçilen seferlerin hepsine birden. Tek işlemde yazılır (ya hepsi ya hiçbiri);
+    /// teslim edilmemiş ya da evrakı zaten onaylı seferler değiştirilmez, nedeniyle bildirilir.
+    /// </summary>
+    public async Task<BulkResultDto> ApproveDeliveryDocumentsAsync(IReadOnlyList<int> tripIds, CancellationToken ct = default)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var trips = await LoadForBulkAsync(tripIds, ct);
+        var skipped = new List<BulkSkippedDto>();
+        var updated = 0;
+        foreach (var t in trips)
+        {
+            if (t.Status != TripStatus.Delivered)
+                skipped.Add(new(t.Id, BulkLabel(t), $"Henüz teslim edilmedi ({TripStatusRules.Label(t.Status)})."));
+            else if (t.DeliveryDocumentApproved)
+                skipped.Add(new(t.Id, BulkLabel(t), "Teslim evrakı zaten onaylı."));
+            else
+            {
+                t.DeliveryDocumentApproved = true;
+                updated++;
+            }
+        }
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return new BulkResultDto(updated, skipped);
+    }
+
+    /// <summary>
+    /// Seçilen seferleri bir sonraki aşamaya geçirir (Planlandı → Yüklendi → Yolda → Teslim Edildi). Tek işlemde yazılır;
+    /// teslim edilmiş, iptal edilmiş ya da aracı bakımda olan seferler değiştirilmez. Müşteri e-postaları kayıttan sonra gider.
+    /// </summary>
+    public async Task<BulkResultDto> AdvanceStatusAsync(IReadOnlyList<int> tripIds, CancellationToken ct = default)
+    {
+        var changed = new List<(int Id, TripStatus Status)>();
+        var skipped = new List<BulkSkippedDto>();
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            var trips = await LoadForBulkAsync(tripIds, ct);
+            var vehicleIds = trips.Select(t => t.VehicleId).Distinct().ToList();
+            var inMaintenance = (await db.Vehicles.Where(v => vehicleIds.Contains(v.Id) && v.Status == VehicleStatus.Maintenance)
+                .Select(v => v.Id).ToListAsync(ct)).ToHashSet();
+            var now = DateTime.UtcNow;
+            foreach (var t in trips)
+            {
+                if (TripStatusRules.Forward(t.Status) is not { } next)
+                    skipped.Add(new(t.Id, BulkLabel(t), t.Status == TripStatus.Delivered ? "Zaten teslim edildi." : "İptal edilmiş sefer ilerletilemez."));
+                else if (TripStatusRules.OccupiesVehicle(next) && inMaintenance.Contains(t.VehicleId))
+                    skipped.Add(new(t.Id, BulkLabel(t), "Araç bakımda. Önce aracın durumunu değiştirin."));
+                else
+                {
+                    ApplyStatus(t, next, TripEventSource.Panel, now, null, null);
+                    changed.Add((t.Id, next));
+                }
+            }
+            await db.SaveChangesAsync(ct);
+            foreach (var vehicleId in vehicleIds) await SyncVehicleStatusAsync(vehicleId, ct);
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        foreach (var (id, status) in changed) await customerNotifier.StatusChangedAsync(id, status, ct);
+        return new BulkResultDto(changed.Count, skipped);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

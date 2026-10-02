@@ -30,6 +30,18 @@ public static class QueryExtensions
         return (items, total, page, pageSize);
     }
 
+    /// <summary>"12,15,20" biçimindeki kayıt numaralarını çözer; boşsa null. Geçersiz parçalar yok sayılır.</summary>
+    public static List<int>? ParseIds(string? ids)
+    {
+        if (string.IsNullOrWhiteSpace(ids)) return null;
+        return ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => int.TryParse(x, out var id) ? id : 0).Where(id => id > 0).Distinct().Take(ExportLimit).ToList();
+    }
+
+    /// <summary><see cref="ListQuery.Ids"/> verildiyse yalnızca o kayıtlar.</summary>
+    public static IQueryable<T> WhereIds<T>(this IQueryable<T> query, string? ids) where T : Core.Entities.BaseEntity =>
+        ParseIds(ids) is { } list ? query.Where(e => list.Contains(e.Id)) : query;
+
     /// <summary>ILIKE için arama metnini hazırlar (%, _ kaçışlanır).</summary>
     public static string? LikePattern(string? search) =>
         string.IsNullOrWhiteSpace(search)

@@ -27,12 +27,12 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
 
     private static readonly Expression<Func<SupplierPayment, SupplierPaymentDto>> Projection = p => new SupplierPaymentDto(p.Id, p.SupplierId,
         p.Supplier.Title, p.Date, p.Amount, p.Method, p.TripId,
-        p.Trip != null ? p.Trip.LoadingAddress + " → " + p.Trip.DeliveryAddress : null, p.Description,
-        p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.EndorsedFromPaymentId, p.Amount < 0);
+        p.Trip != null ? p.Trip.LoadingAddress + " → " + p.Trip.DeliveryAddress : p.TripIds != null ? p.TripIds.Count + " sefer (toplu ödeme)" : null, p.Description,
+        p.CashAccountId, p.CashAccount != null ? p.CashAccount.Name : null, p.EndorsedFromPaymentId, p.Amount < 0, p.TripIds);
 
     private IQueryable<SupplierPayment> Filter(SupplierPaymentQuery q)
     {
-        var query = db.SupplierPayments.AsNoTracking();
+        var query = db.SupplierPayments.AsNoTracking().WhereIds(q.Ids);
         if (q.SupplierId is { } s) query = query.Where(p => p.SupplierId == s);
         if (q.From is { } from) query = query.Where(p => p.Date >= from);
         if (q.To is { } to) query = query.Where(p => p.Date <= to);
@@ -99,6 +99,48 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Toplu ödeme önizlemesi: tedarikçi başına toplam ve ödemeye girmeyen seferler (nedeniyle). Kayıt yazmaz.</summary>
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("bulk/preview")]
+    public Task<BulkPaymentPreviewDto> BulkPreview(BulkTripRequest req, [FromServices] PayableService payables, CancellationToken ct) =>
+        payables.BulkPreviewAsync(req.TripIds, ct);
+
+    /// <summary>
+    /// Seçilen taşeron seferleri için tedarikçi başına bir ödeme yazar; tutar her seferin kalan borcudur. Tek işlemde yazılır:
+    /// ödenemeyecek bir sefer seçildiyse hiçbir ödeme yazılmaz.
+    /// </summary>
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpPost("bulk")]
+    public async Task<BulkSupplierPaymentResultDto> Bulk(BulkSupplierPaymentRequest req, [FromServices] PayableService payables, CancellationToken ct)
+    {
+        if (req.CashAccountId is { } acc && !await db.CashAccounts.AnyAsync(a => a.Id == acc, ct)) throw new DomainException("Hesap bulunamadı.");
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var preview = await payables.BulkPreviewAsync(req.TripIds, ct);
+        if (preview.Skipped.Count > 0)
+            throw new DomainException($"Seçilen seferlerden {preview.Skipped.Count} tanesi ödenemez ({preview.Skipped[0].Label}: {preview.Skipped[0].Reason}) " +
+                "Bu seferleri seçimden çıkarıp tekrar deneyin; hiçbir ödeme kaydedilmedi.");
+        if (preview.Suppliers.Count == 0) throw new DomainException("Seçilen seferlerde ödenecek borç yok.");
+
+        var payments = preview.Suppliers.Select(s =>
+        {
+            var tripIds = s.Trips.Select(t => t.TripId).ToList();
+            var refs = string.Join(", ", s.Trips.Select(t => t.Label.Split(" · ")[0]));
+            var description = CustomersController.NullIfEmpty(req.Description) ?? $"Toplu ödeme: {refs}";
+            return new SupplierPayment
+            {
+                SupplierId = s.SupplierId, Date = req.Date, Amount = Money.Round(s.Total), Method = req.Method, CashAccountId = req.CashAccountId,
+                TripId = tripIds.Count == 1 ? tripIds[0] : null, TripIds = tripIds.Count > 1 ? tripIds : null,
+                Description = description.Length > 500 ? description[..499] + "…" : description,
+            };
+        }).ToList();
+        db.SupplierPayments.AddRange(payments);
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        var ids = payments.Select(p => p.Id).ToList();
+        var dtos = await db.SupplierPayments.AsNoTracking().Where(p => ids.Contains(p.Id)).OrderBy(p => p.Supplier.Title).Select(Projection).ToListAsync(ct);
+        return new BulkSupplierPaymentResultDto(dtos, dtos.Sum(p => p.Amount));
+    }
+
     private async Task ApplyAsync(SupplierPayment p, SupplierPaymentSaveRequest r, CancellationToken ct)
     {
         if (!await db.Suppliers.AnyAsync(s => s.Id == r.SupplierId, ct)) throw new DomainException("Tedarikçi bulunamadı.");
@@ -108,6 +150,8 @@ public class SupplierPaymentsController(AppDbContext db) : ControllerBase
                 ?? throw new DomainException("Sefer bulunamadı.");
             if (carrier.CarrierSupplierId != r.SupplierId) throw new DomainException("Seçilen sefer bu tedarikçinin aracıyla yapılmamış.");
         }
+        // Toplu ödemenin sefer listesi yalnızca aynı tedarikçide ve sefer/iade seçilmediyse korunur.
+        if (p.TripIds != null && (p.SupplierId != r.SupplierId || r.TripId != null || r.IsRefund)) p.TripIds = null;
         p.SupplierId = r.SupplierId;
         p.Date = r.Date;
         // Tedarikçiden gelen iade (eski paneldeki "Tedarikçiden Gelen EFT") eksi tutarla saklanır: borcu artırır, kasaya girer.

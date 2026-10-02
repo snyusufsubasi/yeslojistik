@@ -532,3 +532,27 @@ public class ExpenseDetailsValidator : AbstractValidator<ExpenseDetails>
             .When(x => x.PeriodStart.HasValue && x.PeriodEnd.HasValue);
     }
 }
+
+internal static class BulkRules
+{
+    public static void SelectedTrips<T>(this IRuleBuilder<T, IReadOnlyList<int>> rule) =>
+        rule.NotEmpty().WithMessage("En az bir sefer seçin.")
+            .Must(ids => ids == null || ids.Count <= BulkLimits.MaxItems).WithMessage($"Tek seferde en fazla {BulkLimits.MaxItems} kayıt seçilebilir.")
+            .Must(ids => ids == null || ids.All(id => id > 0)).WithMessage("Geçersiz sefer numarası.");
+}
+
+public class BulkTripRequestValidator : AbstractValidator<BulkTripRequest>
+{
+    public BulkTripRequestValidator() => RuleFor(x => x.TripIds).SelectedTrips();
+}
+
+public class BulkSupplierPaymentRequestValidator : AbstractValidator<BulkSupplierPaymentRequest>
+{
+    public BulkSupplierPaymentRequestValidator()
+    {
+        RuleFor(x => x.TripIds).SelectedTrips();
+        RuleFor(x => x.Date).NotEmpty().WithMessage("Tarih zorunlu.");
+        RuleFor(x => x.Method).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(500);
+    }
+}
