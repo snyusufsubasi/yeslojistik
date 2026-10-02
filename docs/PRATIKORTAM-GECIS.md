@@ -2,7 +2,19 @@
 
 > Bu belgeye veri, şifre veya kişisel bilgi yazılmaz.
 >
-> **Durum (30 Eylül gece) — kalan tek iş: veriyi canlıya yüklemek.**
+> **Durum (2 Ekim) — canlıdaki veri hatalı, yeni ücretli veritabanına düzeltilmiş hâliyle yeniden yüklenecek.**
+> - 30 Eylül gecesi eski kurallarla canlıya yüklendi: 48 araç yanlışlıkla öz araç, cari devirleri ve aktif seferler borç/alacak doğurdu,
+>   yer adlarında yazım hataları vardı. Render kayıtlarına göre o günden beri panelde elle kayıt girilmedi.
+> - Kullanıcı kararı: eski veritabanı silinmez, **yeni ücretli Render veritabanı** açılır (Frankfurt, basic, 5 GB) ve düzeltilmiş veri oraya
+>   yüklenir. Eski ücretsiz veritabanı 28 Ekim'e kadar yedek olarak kalır. Canlıda `Seed__SampleData=false` yapıldı (2 Ekim).
+> - **Bekleyen (kullanıcı):** Render'a ödeme kartı eklemek (dashboard.render.com/billing) ve bulut ortamına
+>   `PANEL_EMAIL`/`PANEL_PASSWORD` eklemek. Yeni veritabanında yönetici, Render'daki `Seed__AdminEmail`/`Seed__AdminPassword` ile kurulur.
+> - **Sonraki oturumda sıra:** 1) `create_postgres` (yeslojistik-db-prod, basic_256mb, frankfurt, 16, 5 GB) → 2) kullanıcı Render panelinde
+>   servisin `DATABASE_URL`'ini yeni veritabanından seçer (bağlantı şifresi sohbete/komuta yazılmaz) → 3) servis açılınca boş şema + yönetici
+>   oluşur → 4) `extract.mjs` → `transform.py` → `prova.py --apply` (sonuç "BORÇ/ALACAK KONTROLÜ: temiz") → 5) firma bilgileri ve
+>   diğer kullanıcılar yeniden girilir → 6) gece yedeği düzeltilir (4 çalışmanın dördü de başarısız; `BACKUP_*` secret'ları eksik görünüyor).
+>
+> **Önceki durum (30 Eylül gece):**
 > - Kod bitti ve canlıda (main `e4784f8`, PR #21 ve #22). Panel eski panele benzer düzende: Sevkiyat / Cari / Listeler / Öz Mal / Banka & Çek menüsü,
 >   Müşteriler Cari ve Tedarikçiler Cari tabloları, Sevkiyatlar'da kazanç şeridi ve Bugün/Gelecek/Geçmiş/Bu ay hapları, Personeller ve Sabit Ödemeler.
 > - Aktarım araçları hazır ve boş veritabanında prova edildi (borç/alacak oluşmuyor, ikinci yükleme çift yazmaz):

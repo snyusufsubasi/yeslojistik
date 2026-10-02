@@ -29,5 +29,6 @@ services:
       # Kurulum sırasında Render sorar: ilk yönetici şifresi.
       - key: Seed__AdminPassword
         sync: false
+      # Canlıda demo veri yüklenmez (gerçek veriye sahte müşteri karışmasın).
       - key: Seed__SampleData
-        value: "true"
+        value: "false"

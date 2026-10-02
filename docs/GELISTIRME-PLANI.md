@@ -115,8 +115,8 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 
 | # | Başlık | Neden önemli | Ne değişecek | Efor |
 |---|---|---|---|---|
-| 1 | Veritabanını ücretli plana geçir | Ücretsiz veritabanı 28 Ekim 2026'da silinir. 1 GB sınırı var, nokta-zaman geri dönüşü yok | `render.yaml` (plan, `region: frankfurt`), yedek anahtarı ayarı, bir kez yedekten geri yükleme denemesi | M |
-| 2 | Canlıda demo veri yüklemeyi kapat | Veritabanı yeniden kurulursa sahte müşteriler gerçek verinin içine karışır | `render.yaml` → `Seed__SampleData: "false"` | S |
+| 1 | Veritabanını ücretli plana geçir (karar: yeni ücretli veritabanı; Render ödeme kartı bekleniyor) | Ücretsiz veritabanı 28 Ekim 2026'da silinir. 1 GB sınırı var, nokta-zaman geri dönüşü yok | `render.yaml` (plan, `region: frankfurt`), yedek anahtarı ayarı, bir kez yedekten geri yükleme denemesi | M |
+| 2 | ✅ Canlıda demo veri yüklemeyi kapat (2 Ekim) | Veritabanı yeniden kurulursa sahte müşteriler gerçek verinin içine karışır | `render.yaml` → `Seed__SampleData: "false"` | S |
 | 3 | Tedarikçi cari bakiyesini düzelt | Alış faturaları cari listesine girmiyor, bakiye yanlış | `CariService.SuppliersAsync` + tutarlılık testi | S |
 | 4 | "Demo verilerini temizle"yi kilitle ve onar | Gerçek veriyi tek kelimeyle silebiliyor. Alış faturası varken hata veriyor | `DataResetService`: sadece demo durumunda çalışsın, eksik tablolar eklensin, kayıt geçmişi silinmesin | S |
 | 5 | Fatura sayfasındaki toplam satırı kaymasını düzelt | Toplam "Kalan" sütununun, kalan tutar "Durum" sütununun altında görünüyor | `InvoicesPage.tsx` alt satırı (colSpan 4 → 3) | S |
