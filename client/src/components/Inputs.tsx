@@ -167,15 +167,17 @@ export function SuggestChips({ values, value, onPick, disabled }: { values: stri
   )
 }
 
-/** Form içinde numaralı bölüm başlığı: "1 · Müşteri ve güzergâh". */
+/** Form grup başlığı (tarif: 11px, BÜYÜK HARF, accent renk); numaralıysa solda küçük kare numara: "1 · Müşteri ve güzergâh". */
+const groupHeading ='text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent'
+
 export function Section({ n, title, hint, children, className }: { n?: number; title: string; hint?: string; children: ReactNode; className?: string }) {
   return (
     <section className={clsx('space-y-4', className)}>
-      <header className="flex items-center gap-3 border-b border-slate-100 pb-2">
-        {n != null && <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[0.9375rem] font-semibold text-white">{n}</span>}
-        <div>
-          <h3 className="text-lg font-semibold text-navy-900">{title}</h3>
-          {hint && <p className="text-sm text-slate-600">{hint}</p>}
+      <header className="flex items-start gap-2 border-b border-line pb-1.5">
+        {n != null && <span className="mt-px flex size-[18px] shrink-0 items-center justify-center rounded-[2px] bg-accent pt-px font-mono text-[0.6875rem] font-semibold leading-none text-white">{n}</span>}
+        <div className="min-w-0">
+          <h3 className={clsx(groupHeading, 'leading-[18px]')}>{title}</h3>
+          {hint && <p className="text-[0.8125rem] text-muted">{hint}</p>}
         </div>
       </header>
       {children}
