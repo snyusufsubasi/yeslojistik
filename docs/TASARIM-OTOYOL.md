@@ -74,3 +74,18 @@ Panelde şu an karanlık tema yok, bu iş için de gerekmez.
   - "Faturası kesilecek" kutusu sağa yaslı ve bill-soft zeminli.
 - **Ana sayfa rakamları:** 4 sütun, aralarında çizgi. Etiket küçük ve BÜYÜK HARF, değer Overpass Mono 22px. Vurgulanan kutu bill-soft zeminli.
 - **Form:** alan etiketi 12.5px, kalın (600), muted renkte. Zorunlu alanda kırmızı yıldız. Grup başlıkları 11px, BÜYÜK HARF, accent renkte.
+
+## Durum (3 Ekim)
+**Yapıldı (temel):**
+- Renkler, yazılar (Overpass, Overpass Mono), köşeler ve gölgeler bütün panelde değişti.
+- Sol menü koyu yeşil, gruplar hep açık; menü daraltma düğmesi kalktı.
+- Ortak parçalar yeni görünümde: düğme, kart, durum etiketi, açılır pencere, tablo, özet kutusu, sayfa başlığı.
+- Plaka rozeti Sevkiyatlar, Araçlar, Ana Sayfa ve Pano'da.
+
+**Sırada (sayfa sayfa düzeltme):**
+- Sevkiyatlar kazanç şeridi ve Ana sayfa rakamları: tarifteki "yan yana kutu, arası çizgi" düzeni ve bill-soft vurgu.
+- Ana sayfadaki renkli kısayol kutuları sade hale gelecek.
+- Sayfalardaki yuvarlak filtre düğmeleri (Bugün / Gelecek / Hepsi gibi) köşeli olacak.
+- Raporlar grafik renkleri yeni renklere uyacak.
+- Plaka rozeti öbür ekranlara (şoförler, giderler, raporlar, harita) yayılacak.
+- Giriş sayfası ve form grup başlıkları (11px, accent renk).
