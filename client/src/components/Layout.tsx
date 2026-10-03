@@ -15,6 +15,7 @@ import { useMirror } from '../lib/hooks'
 import { roleLabel } from '../lib/labels'
 import { quickActions } from '../lib/quickActions'
 import { MirrorContext } from './ui'
+import { Logo } from './Logo'
 import { useTextSize } from '../lib/textSize'
 
 type Badge = { count: number; title: string }
@@ -93,10 +94,7 @@ export function Layout() {
       <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-[236px] flex-col bg-side text-side-fg transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
         open ? 'translate-x-0' : '-translate-x-full')}>
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 pl-4 pr-2">
-          <Link to="/" className="flex items-center gap-2 rounded-[3px]" aria-label="YES Lojistik" title="Ana sayfaya dön">
-            <span className="rounded-[2px] bg-hl px-1.5 pb-0.5 pt-1 text-[0.8125rem] font-extrabold leading-none tracking-[0.04em] text-side">YES</span>
-            <span className="text-[1.0625rem] font-bold tracking-[-0.01em] text-white">Lojistik</span>
-          </Link>
+          <Link to="/" className="rounded-[3px]" aria-label="YES Lojistik" title="Ana sayfaya dön"><Logo /></Link>
           <button className="rounded-[3px] p-2 text-side-muted hover:bg-side-active hover:text-white lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
         </div>
         {/* Gruplar hep açık: katlanmaz, menü daraltılmaz (kullanıcı isteği) */}

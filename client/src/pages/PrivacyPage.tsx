@@ -24,10 +24,10 @@ function useCompany() {
 function Page({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="min-h-full bg-slate-50">
-      <header className="bg-navy-900 px-4 py-4"><div className="mx-auto max-w-3xl"><Logo /></div></header>
+      <header className="border-b-[3px] border-hl bg-side px-4 py-3"><div className="mx-auto max-w-3xl"><Logo /></div></header>
       <main className="mx-auto max-w-3xl px-4 py-6">
-        <h1 className="mb-4 text-2xl font-semibold text-navy-900">{title}</h1>
-        <div className="space-y-4 rounded-xl bg-white p-5 text-[0.9375rem] leading-relaxed text-slate-800 shadow-sm sm:p-7">{children}</div>
+        <h1 className="mb-4 text-[1.5rem] font-extrabold tracking-[-0.01em] text-fg">{title}</h1>
+        <div className="card space-y-4 p-5 text-[0.9375rem] leading-relaxed text-fg sm:p-7">{children}</div>
         <p className="mt-6 text-center text-sm text-slate-500">
           <Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link> · <Link className="hover:underline" to="/hesap-silme">Hesap ve veri silme</Link> · <Link className="hover:underline" to="/giris">Giriş</Link>
         </p>

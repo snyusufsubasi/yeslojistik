@@ -1,18 +1,16 @@
 import clsx from 'clsx'
 
-export function Logo({ dark, className }: { dark?: boolean; className?: string }) {
+/**
+ * Otoyol logosu: sarı zeminli küçük "YES" kutusu ve yanında "Lojistik" (sol menüdekiyle aynı).
+ * `dark`: açık zemin üstünde (yazı koyu); yoksa koyu yeşil zemin üstünde (yazı beyaz). `size="lg"`: giriş sayfası gibi tek başına durduğu yerler.
+ */
+export function Logo({ dark, size = 'md', className }: { dark?: boolean; size?: 'md' | 'lg'; className?: string }) {
+  const lg = size === 'lg'
   return (
-    <div className={clsx('flex items-center gap-2', className)}>
-      <svg viewBox="0 0 64 40" className="h-8 w-12 shrink-0" aria-hidden>
-        <path d="M2 10h6M0 16h8M4 22h4" stroke={dark ? '#1570cd' : '#fff'} strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M12 6h28v22H12zM40 13h10l8 8v7H40z" fill={dark ? '#0b2a55' : '#fff'} />
-        <circle cx="21" cy="31" r="5" fill="#1e88e5" stroke={dark ? '#fff' : '#0b2a55'} strokeWidth="2" />
-        <circle cx="49" cy="31" r="5" fill="#1e88e5" stroke={dark ? '#fff' : '#0b2a55'} strokeWidth="2" />
-      </svg>
-      <div className="leading-tight">
-        <div className={clsx('text-xl font-bold italic tracking-tight', dark ? 'text-navy-900' : 'text-white')}>YES LOJİSTİK</div>
-        <div className={clsx('text-sm italic', dark ? 'text-slate-500' : 'text-blue-100/80')}>Güvenle, Her Yere...</div>
-      </div>
+    <div className={clsx('flex items-center', lg ? 'gap-2.5' : 'gap-2', className)}>
+      <span className={clsx('rounded-[2px] bg-hl font-extrabold leading-none tracking-[0.04em] text-side',
+        lg ? 'px-2 pb-1 pt-1.5 text-[1.125rem]' : 'px-1.5 pb-0.5 pt-1 text-[0.8125rem]')}>YES</span>
+      <span className={clsx('font-bold tracking-[-0.01em]', lg ? 'text-[1.5rem]' : 'text-[1.0625rem]', dark ? 'text-fg' : 'text-white')}>Lojistik</span>
     </div>
   )
 }

@@ -36,10 +36,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-navy-950 via-navy-900 to-navy-700 p-4">
-      <form onSubmit={submit} className="w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl sm:p-10">
-        <Logo dark className="mb-2 justify-center" />
-        <p className="mb-8 text-center text-lg text-slate-600">Nakliye Takip Sistemi</p>
+    <div className="flex min-h-full items-center justify-center bg-side p-4">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-[4px] border-t-[3px] border-hl bg-white p-6 shadow-lg sm:p-8">
+        <Logo dark size="lg" className="mb-1.5 justify-center" />
+        <p className="mb-7 text-center text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-muted">Nakliye Takip Sistemi</p>
         <label className="mb-3 block">
           <span className="label">E-posta</span>
           <div className="relative">
@@ -58,10 +58,10 @@ export default function LoginPage() {
             </button>
           </div>
         </label>
-        {error && <div role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-[0.9375rem] font-medium text-red-700">{error}</div>}
-        <Button type="submit" className="min-h-13 w-full text-lg" loading={loading}>Giriş Yap</Button>
-        <p className="mt-6 text-center text-[0.9375rem]"><Link className="font-medium text-brand-700 hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
-        <p className="mt-3 text-center text-sm text-slate-500"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
+        {error && <div role="alert" className="mb-4 rounded-[3px] bg-bad-soft px-3 py-2.5 text-[0.875rem] font-semibold text-bad">{error}</div>}
+        <Button type="submit" className="min-h-11 w-full text-[0.9375rem]" loading={loading}>Giriş Yap</Button>
+        <p className="mt-5 text-center text-[0.875rem]"><Link className="font-semibold text-accent hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
+        <p className="mt-2 text-center text-[0.8125rem] text-muted"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
       </form>
     </div>
   )

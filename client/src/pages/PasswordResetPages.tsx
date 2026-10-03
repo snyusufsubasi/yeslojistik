@@ -7,11 +7,11 @@ import { usePageTitle } from '../lib/usePageTitle'
 
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-navy-950 via-navy-900 to-navy-700 p-4">
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl sm:p-8">
-        <Logo dark className="mb-4 justify-center" />
+    <div className="flex min-h-full items-center justify-center bg-side p-4">
+      <div className="w-full max-w-sm rounded-[4px] border-t-[3px] border-hl bg-white p-6 shadow-lg sm:p-8">
+        <Logo dark size="lg" className="mb-5 justify-center" />
         {children}
-        <p className="mt-6 text-center text-sm"><Link className="text-brand-600 hover:underline" to="/giris">Girişe dön</Link></p>
+        <p className="mt-6 text-center text-[0.875rem]"><Link className="font-semibold text-accent hover:underline" to="/giris">Girişe dön</Link></p>
       </div>
     </div>
   )
@@ -39,7 +39,7 @@ export function ForgotPasswordPage() {
 
   return (
     <Shell>
-      <h1 className="mb-2 text-lg font-semibold text-navy-900">Şifremi unuttum</h1>
+      <h1 className="mb-2 text-lg font-bold text-fg">Şifremi unuttum</h1>
       {state === 'sent' ? (
         <p className="text-[0.9375rem] text-slate-700">Bu adrese kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi. E-postanızı (gereksiz klasörü dahil) kontrol edin; bağlantı 30 dakika geçerlidir.</p>
       ) : state === 'no-email' ? (
@@ -51,7 +51,7 @@ export function ForgotPasswordPage() {
             <span className="label">E-posta</span>
             <input className="input" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
-          {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error && <div role="alert" className="mb-3 rounded-[3px] bg-bad-soft px-3 py-2 text-sm font-semibold text-bad">{error}</div>}
           <Button type="submit" className="w-full" loading={state === 'loading'}>Bağlantı Gönder</Button>
         </form>
       )}
@@ -87,7 +87,7 @@ export function ResetPasswordPage() {
 
   return (
     <Shell>
-      <h1 className="mb-2 text-lg font-semibold text-navy-900">Yeni şifre belirleyin</h1>
+      <h1 className="mb-2 text-lg font-bold text-fg">Yeni şifre belirleyin</h1>
       {!token ? <p className="text-[0.9375rem] text-slate-700">Bağlantı eksik. E-postadaki bağlantıyı açın ya da yeniden "Şifremi unuttum" deyin.</p>
         : done ? <p className="text-[0.9375rem] text-slate-700">Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz; diğer cihazlardaki oturumlar kapatıldı.</p>
         : (
@@ -101,7 +101,7 @@ export function ResetPasswordPage() {
               <input className="input" type="password" required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             </label>
             <p className="mb-3 text-sm text-slate-500">En az 8 karakter; harf ve rakam içermeli.</p>
-            {error && <div role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+            {error && <div role="alert" className="mb-3 rounded-[3px] bg-bad-soft px-3 py-2 text-sm font-semibold text-bad">{error}</div>}
             <Button type="submit" className="w-full" loading={loading}>Şifreyi Değiştir</Button>
           </form>
         )}
