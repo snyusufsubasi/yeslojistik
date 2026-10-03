@@ -100,7 +100,12 @@ Panelde şu an karanlık tema yok, bu iş için de gerekmez.
 - Form grup başlıkları 11px, BÜYÜK HARF, accent renk: numaralı `Section` (sefer formu dahil), iş talebi formu ve Ayarlar.
 - Tutar hücrelerindeki sözcükler ("Harcırah", "gün", "Ortalamanın üstünde", durum etiketleri) normal yazıyla; yalnız rakamlar mono.
 
+- Sevkiyatlar, Cari ve Faturalar:
+  - Kazanç şeridi ve fatura toplam şeridi yan yana kutu düzeninde (`components/SumStrip.tsx`). "Faturası kesilecek" sağda, bill-soft.
+  - Bugün/Gelecek/Hepsi, Liste/Pano ve Özet/Detay düğmeleri köşeli.
+  - Cari özet kutuları rakam şeridinde; filtreler köşeli çip.
+
 **Sırada:**
-- Sevkiyatlar kazanç şeridi, Cari ve Faturalar sayfaları ayrı çalışmada düzeltiliyor. Uygun yerde `Figures` / `Chip` kullanılabilir.
-- Listelerin üstündeki toplam şeridi (`TotalsStrip`) Sevkiyatlar'la birlikte ele alınacak.
+- Ödemeler, Giderler, Alınan Faturalar, Çekler ve Tedarikçi Ödemeleri hâlâ eski `TotalsStrip`'i kullanıyor; `SumStrip`'e geçirilecek.
 - Personel ve Sabit Ödemeler sayfalarındaki `StatCard` kutuları da rakam şeridine geçirilebilir.
+- "Kiralık" etiketi hâlâ mor; tasarım renklerine çekilecek.

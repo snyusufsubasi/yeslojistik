@@ -40,11 +40,12 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] Seçilen tasarım tek yerde tanımlanır (tasarım sistemi), bütün ekranlar oradan beslenir.
 
 ### A2 — Tasarımı bütün panele uygulama + Türkçe (1-2 hafta)
-- [ ] **Ortak parçalar:** tablo, kart, düğme, pencere ve form alanları. Tablo orta yoğunlukta olur, başlığı kaydırınca sabit kalır.
-- [ ] **Menü ve üst çubuk:** sadeleşir, menüdeki açıklama yazıları kalkar.
-- [ ] **Ana sayfa:** yalnızca önemli rakamlar ve bugünün işleri kalır.
-- [ ] **Sevkiyatlar:** liste, filtreler ve kazanç şeridi yeniden düzenlenir.
-- [ ] **Cari ekranları** ile müşteri, tedarikçi ve araç kartları yeniden düzenlenir.
+*3 Ekim: "Otoyol" tasarımı bütün panele uygulandı. Ayrıntı ve kalan küçük işler: `TASARIM-OTOYOL.md` → Durum.*
+- [x] **Ortak parçalar:** tablo, kart, düğme, pencere ve form alanları. Tablo orta yoğunlukta olur, başlığı kaydırınca sabit kalır.
+- [x] **Menü ve üst çubuk:** sadeleşir, menüdeki açıklama yazıları kalkar.
+- [x] **Ana sayfa:** yalnızca önemli rakamlar ve bugünün işleri kalır.
+- [x] **Sevkiyatlar:** liste, filtreler ve kazanç şeridi yeniden düzenlenir.
+- [x] **Cari ekranları** ile müşteri, tedarikçi ve araç kartları yeniden düzenlenir.
 - [x] **Formlar kısalır:** zorunlu alanlar üstte, gerisi kapalı "Ayrıntılar" bölümünde. Ctrl+Enter ile kaydetme, yanlışlıkla kapanınca uyarı. *(3 Ekim: pencereler ilk alana odaklanır, Ctrl+Enter kaydeder, yazılmış form kapatılırken sorar; sefer formunda referans no, dorse, yük, yetkililer ve not "Ayrıntılar"da. Diğer formlarda isteğe bağlı bölümler zaten vardı.)*
 - [ ] **Ekran yazıları tek tek okunur:**
   - [x] imla ve noktalama (taramada bozuk Türkçe harf bulunmadı; form hata mesajları Türkçeleşti);
