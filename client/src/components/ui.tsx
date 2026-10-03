@@ -306,6 +306,39 @@ export function StatCard({ title, value, sub, icon, color, onClick }:
   )
 }
 
+/**
+ * Ana sayfa rakamları düzeni: yan yana kutular, aralarında ince çizgi (dar ekranda alt alta da çizgiyle ayrılır).
+ * İçine `Figure` konur; sütun sayısı `className` ile verilir (ör. "sm:grid-cols-2 xl:grid-cols-4").
+ */
+export function Figures({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
+  return <div aria-label={label} className={clsx('grid gap-px overflow-hidden rounded-[4px] border border-line bg-line', className)}>{children}</div>
+}
+
+/** Tek rakam kutusu: 10.5px BÜYÜK HARF etiket, Overpass Mono 22px değer. `highlight` sarı (bill-soft) zeminli vurgu. */
+export function Figure({ label, value, sub, tone, highlight, onClick }:
+  { label: ReactNode; value: ReactNode; sub?: ReactNode; tone?: string; highlight?: boolean; onClick?: () => void }) {
+  const body = <>
+    <span className={clsx('block text-[0.65625rem] font-bold uppercase tracking-[0.08em]', highlight ? 'text-bill' : 'text-muted')}>{label}</span>
+    <span className={clsx('mt-1 block truncate font-mono text-[1.375rem] font-semibold leading-tight tracking-[-0.02em]', tone ?? 'text-fg')}>{value}</span>
+    {sub && <span className={clsx('mt-0.5 block text-[0.8125rem]', highlight ? 'text-bill' : 'text-muted')}>{sub}</span>}
+  </>
+  const cls = clsx('block min-w-0 px-4 py-3 text-left', highlight ? 'bg-bill-soft' : 'bg-white')
+  return onClick
+    ? <button type="button" onClick={onClick} className={clsx(cls, 'w-full transition', highlight ? 'hover:bg-[#f8e3a0]' : 'hover:bg-surface-2')}>{body}</button>
+    : <div className={cls}>{body}</div>
+}
+
+/** Köşeli filtre çipi (Bugün / Hepsi gibi): seçiliyken accent zemin, beyaz yazı. Sekme gibi davranıyorsa `role="tab"` verilir. */
+export function Chip({ active, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
+  return (
+    <button type="button" {...rest}
+      className={clsx('inline-flex min-h-8 items-center gap-1.5 whitespace-nowrap rounded-[3px] border px-3 text-[0.8125rem] font-semibold transition [&_svg]:size-4',
+        active ? 'border-accent bg-accent text-white' : 'border-slate-300 bg-white text-fg hover:border-slate-400 hover:bg-surface-2', className)}>
+      {children}
+    </button>
+  )
+}
+
 /** Filtre çubuklarındaki tarih kutusu: etiket kutunun içinde solda ("Başlangıç", "Bitiş"). */
 export function DateFilter({ label, value, onChange, className }: { label: string; value: string; onChange: (v: string) => void; className?: string }) {
   return (

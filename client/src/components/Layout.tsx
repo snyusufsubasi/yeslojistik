@@ -191,7 +191,7 @@ function QuickActionMenu({ items, onPick, className }: { items: typeof quickActi
     <div role="menu" className={clsx('z-50 rounded-[4px] border border-line bg-white p-1 shadow-lg', className)}>
       {items.map((a) => (
         <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-2.5 rounded-[3px] px-2 py-1.5 hover:bg-surface-2" title={a.hint}>
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-[3px] bg-accent-soft text-accent"><a.icon className="size-4" /></span>
+          <span className={clsx('flex size-7 shrink-0 items-center justify-center rounded-[3px]', a.tone)}><a.icon className="size-4" /></span>
           <span className="text-[0.875rem] text-fg">{a.label}</span>
         </Link>
       ))}
