@@ -6,6 +6,19 @@
 
 ---
 
+## 0. Kararlar (3 Ekim, kullanıcı "soruları kendin cevapla" dedi)
+| # | Soru | Karar |
+|---|---|---|
+| 1 | Kim satacak? | Henüz belli değil. Sözleşme şablonlarında satıcı bilgisi boş alan olarak bırakılır; panel ve belgeler ürün/firma adını ayardan alır. |
+| 2 | Ürün adı | Çalışma adı "YES Lojistik" kalır. Ad ve logo ayardan değişir (beyaz etiket), sonradan marka seçilince koda dokunulmaz. |
+| 3 | A mı B mi? | **A: her müşteriye ayrı kurulum.** Lisans anahtarıyla araç sayısı ve süre kontrol edilir. 20+ müşteriden sonra B değerlendirilir. |
+| 4 | Pilot firmalar | Siz bulunca devreye girer. Bu arada pilot paketi hazırlanır (kurulum betiği, sihirbaz, eğitim, sözleşme taslakları). |
+| 5 | Pratikortam geçişi | Ayna yalnızca YES Lojistik'in kendi hesabı için kalır. Başka firmalar için **genel Excel/CSV içe aktarma sihirbazı** yapılır; pratikortam'dan başkasının verisi çekilmez. |
+| 6 | e-Fatura ve UETDS | Entegratör/Bakanlık bilgisi gelene kadar **sağlayıcıdan bağımsız altyapı** ve "UETDS'ye hazır mı?" kontrolü yapılır. Uydurma API yazılmaz. |
+| 7 | Fiyat | Bölüm 4'teki öneri geçerli, pilotta doğrulanır. |
+
+**Bu turda yapılanlar (ajanlarla paralel):** iki adımlı doğrulama + veri indirme, lisans ve abonelik, müşteri kurulum otomasyonu, kurulum sihirbazı ve içe aktarma, hukuk taslakları + tanıtım sayfası, UETDS hazırlık kontrolü.
+
 ## 1. Özet (1 dakikalık okuma)
 
 1. **Pazar var ama kalabalık ve ucuz.** Türkiye'de onlarca nakliye programı var. Bir kısmı tek seferlik lisans (9.000-65.000 TL), bir kısmı aylık bulut aboneliği (aylık birkaç yüz TL'den başlıyor). Fiyatla yarışmak zor; **farkla** yarışmak lazım.
