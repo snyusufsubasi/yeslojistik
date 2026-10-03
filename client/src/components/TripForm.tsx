@@ -28,7 +28,7 @@ import { TripAttachments, TripTracking } from './TripExtras'
 import { AuditLogTable } from './AuditLog'
 import { useAuth } from '../lib/auth'
 import { AmountInput, DateQuick, MoreFields, Section } from './Inputs'
-import { CommissionFields, DocumentFields, MarginSummary, VatFields } from './TripTermsFields'
+import { CommissionFields, DocumentFields, LocationFields, MarginSummary, VatFields } from './TripTermsFields'
 import { emptyTerms, termsSchema, termsToApi, termsToForm, type TermsForm } from '../lib/tripTerms'
 import { vehicleOwnershipIcon } from '../lib/icons'
 
@@ -77,6 +77,25 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 const api = crud<Trip, FormValues>('trips')
+
+/** Hata olunca ilgili katlanır bölümü açmak için: koşul (terms) alanlarının hangi bölümde durduğu. */
+const commissionTermKeys = ['commission', 'commissionAccountId', 'commissionStatus', 'commissionInvoiced', 'commissionVatIncluded',
+  'extraCharge', 'extraChargeInvoiced', 'extraChargeVatIncluded', 'extraChargeTaxNo', 'extraChargeTitle', 'driverBonus'] as const
+const detailTermKeys = ['customerPays', 'customerGroup', 'deliveryDocumentNo', 'deliveryDocumentApproved', 'waybillNo', 'eWaybillNo', 'eWaybillDate',
+  'loadingLatitude', 'loadingLongitude', 'deliveryLatitude', 'deliveryLongitude', 'distanceKm', 'hideCarrierPrice', 'invoiceFooterNote',
+  'showFooterNote', 'deliveredBy', 'paymentTerms', 'externalRef'] as const
+
+/** "Ayrıntılar" bölümünün içindeki küçük ara başlık (Yük, Belgeler…). */
+function SubGroup({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-3 border-t border-line pt-3 first:border-t-0 first:pt-0" role="group" aria-label={title}>
+      <h4 className="text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-muted">
+        {title}{hint && <span className="ml-2 font-normal normal-case tracking-normal">{hint}</span>}
+      </h4>
+      {children}
+    </div>
+  )
+}
 
 export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: {
   trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues>; onDelete?: (trip: Trip) => void
@@ -209,14 +228,36 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const route = hints.data?.route && loadingCity && deliveryCity ? hints.data.route : null
   const busy = vehicle.data && vehicle.data.status !== 'Available' && vehicle.data.id !== trip?.vehicleId ? vehicle.data.status : null
 
+  const defaultDriverOf = (id: number | null | undefined) => {
+    const extra = id == null || Number.isNaN(id) ? null : vehicles.data?.find((x) => x.id === id)?.extra
+    return extra ? Number(extra) : null
+  }
+  /** Şoför boşsa ya da önceki aracın varsayılan şoförüyse yeni aracın varsayılan şoförü gelir; elle seçilen başka şoför korunur. */
+  const fillDriverFor = (nextDriverId: number | null, previousVehicleId: number | null | undefined) => {
+    if (nextDriverId == null) return
+    const current = getValues('driverId')
+    const previousDefault = defaultDriverOf(previousVehicleId)
+    if (current == null || Number.isNaN(current) || (previousDefault != null && current === previousDefault))
+      setValue('driverId', nextDriverId, { shouldValidate: true })
+  }
   const onVehicleChange = (id: number) => {
     // Taşeron ve dorse yeni aracın bilgisinden gelsin (sunucu boş alanları araçtan doldurur).
     setValue('carrierSupplierId', null)
     setValue('trailerPlate', '')
-    const v = vehicles.data?.find((x) => x.id === id)
-    const current = getValues('driverId')
-    if (v?.extra && (current == null || Number.isNaN(current))) setValue('driverId', Number(v.extra))
+    // vehicleId burada henüz önceki çizimin değeri: yani önceki araç.
+    fillDriverFor(defaultDriverOf(id), vehicleId)
   }
+  // Açılıştaki değerler: katlanır bölümler doluysa (düzenleme, kopya, iş talebinden) açık gelir.
+  const [initial] = useState(() => getValues())
+  const commissionOpen = (initial.terms?.commission ?? 0) > 0 || (initial.terms?.driverBonus ?? 0) > 0 || (initial.terms?.extraCharge ?? 0) > 0
+  const detailsOpen = !!trip || !!(initial.customerReference || initial.cargoType || initial.cargoQuantity || initial.cargoWeightKg || initial.trailerPlate
+    || initial.loadingContact || initial.deliveryContact || initial.description || initial.terms?.customerGroup || initial.terms?.paymentTerms || initial.terms?.invoiceFooterNote)
+  const termErrors = (errors.terms ?? {}) as Record<string, unknown>
+  const termHasError = (keys: readonly string[]) => keys.some((k) => !!termErrors[k])
+  const commissionError = termHasError(commissionTermKeys)
+  const detailsError = !!(errors.customerReference || errors.trailerPlate || errors.cargoType || errors.cargoQuantity || errors.cargoUnit || errors.cargoWeightKg
+    || errors.loadingContact || errors.deliveryContact || errors.description || errors.carrierInvoiceNo || errors.carrierInvoiceDate) || termHasError(detailTermKeys)
+  const showCarrier = rented || !!trip?.carrierSupplierId
 
   return (
     <Modal open onClose={onClose} title={trip ? 'Sefer Düzenle' : copyOf ? 'Sefer Oluştur (kopya)' : 'Sefer Oluştur'} size="lg"
@@ -352,32 +393,33 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               ]} />
             </Field>
           </div>
-          {(rented || trip?.carrierSupplierId) && (
+          {showCarrier && (
             <div className="space-y-4 rounded-xl border-2 border-violet-200 bg-violet-50/40 p-4">
               <div className="flex items-center gap-2 font-medium text-navy-900 [&_svg]:size-5">{vehicleOwnershipIcon.Rented} Taşeron (kiralık araç)</div>
-              <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi.">
+              <Field label="Taşeron / Araç sahibi" hint="Araç maliyeti bu tedarikçiye borç olarak yazılır. Boşsa aracın sahibi. Taşeronun fatura no ve tarihi “Ayrıntılar” bölümünde.">
                 <FormSelect control={control} name="carrierSupplierId" placeholder={vehicle.data?.supplierTitle ? `Araç sahibi: ${vehicle.data.supplierTitle}` : 'Aracın sahibi'}
                   options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))}
                   onCreate={(t) => setNewSupplier(t)} createLabel="Yeni taşeron olarak ekle" />
               </Field>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Taşeron Fatura No" error={errors.carrierInvoiceNo?.message}><input className="input" {...register('carrierInvoiceNo')} /></Field>
-                <Field label="Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><DateQuick control={control} name="carrierInvoiceDate" /></Field>
-              </div>
             </div>
           )}
         </Section>
 
         <Section n={3} title="Fiyat">
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} error={errors.vehicleCost?.message}>
-              <AmountInput control={control} name="vehicleCost" />
+            {/* KDV özeti etiketin dışında: tutar kutusunun adı yalnız alan adı olsun. */}
+            <div>
+              <Field label={rented ? 'Taşerona Ödenecek (TL)' : 'Araç Maliyeti (TL)'} required error={errors.vehicleCost?.message}>
+                <AmountInput control={control} name="vehicleCost" />
+              </Field>
               <VatFields control={termsControl} register={termsRegister} prefix="cost" net={Number(cost) || 0} />
-            </Field>
-            <Field label="Müşteri Satış Fiyatı (TL)" error={errors.salePrice?.message}>
-              <AmountInput control={control} name="salePrice" disabled={invoiced} />
+            </div>
+            <div>
+              <Field label="Müşteri Satış Fiyatı (TL)" required error={errors.salePrice?.message}>
+                <AmountInput control={control} name="salePrice" disabled={invoiced} />
+              </Field>
               <VatFields control={termsControl} register={termsRegister} prefix="sale" disabled={invoiced} net={Number(price) || 0} />
-            </Field>
+            </div>
           </div>
           {route && !invoiced && (
             <div className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
@@ -399,52 +441,65 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             )}
             <MarginSummary sale={Number(price) || 0} cost={Number(cost) || 0} terms={terms} expenses={trip?.expenseTotal ?? 0} />
           </div>
-          <CommissionFields control={termsControl} register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
+          <MoreFields title="Komisyon, şoför primi, ek masraf (isteğe bağlı)" defaultOpen={commissionOpen} hasError={commissionError}>
+            <CommissionFields control={termsControl} register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
+          </MoreFields>
         </Section>
 
-        <DocumentFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} groups={customerDetail.data?.customer.groups ?? undefined} />
-
-        <MoreFields title="Ayrıntılar: referans no, dorse, yük, yetkililer ve not (isteğe bağlı)"
-          hasError={!!(errors.customerReference || errors.trailerPlate || errors.cargoType || errors.cargoQuantity || errors.cargoUnit || errors.cargoWeightKg
-            || errors.loadingContact || errors.deliveryContact || errors.description)}
-          defaultOpen={!!trip || !!(copyOf?.customerReference || copyOf?.cargoType || copyOf?.loadingContact || copyOf?.deliveryContact || copyOf?.description)}>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
-              <input className="input" placeholder="4500123" {...register('customerReference')} />
-            </Field>
-            <Field label="Dorse Plakası" error={errors.trailerPlate?.message} hint={vehicle.data?.trailerPlate ? 'Boş bırakılırsa aracın dorsesi yazılır.' : undefined}>
-              <input className="input uppercase" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
-            </Field>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3" role="group" aria-label="Yük (sevk belgesine yazılır)">
-            <Field className="md:col-span-3" label="Yük Cinsi" error={errors.cargoType?.message}>
-              <input className="input" placeholder="Mobilya" {...register('cargoType')} />
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {[...new Set([...(hints.data?.cargoTypes ?? []), ...defaultCargoTypes])].slice(0, 6).map((t) => (
-                  <Chip key={t} active={cargoType === t} onClick={() => setValue('cargoType', t, opts)}>{t}</Chip>
-                ))}
-              </div>
-            </Field>
-            <Field label="Miktar" error={errors.cargoQuantity?.message}>
-              <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('cargoQuantity', { valueAsNumber: true })} />
-            </Field>
-            <Field label="Birim" error={errors.cargoUnit?.message}>
-              <input className="input" placeholder="palet" {...register('cargoUnit')} />
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {cargoUnits.map((u) => <Chip key={u} active={cargoUnit === u} onClick={() => setValue('cargoUnit', u, opts)}>{u}</Chip>)}
-              </div>
-            </Field>
-            <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
-              <input className="input tabular-nums" type="number" min="0" step="1" inputMode="numeric" {...register('cargoWeightKg', { valueAsNumber: true })} />
-            </Field>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
-            <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
-            <Field className="md:col-span-2" label="Açıklama" error={errors.description?.message}>
-              <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
-            </Field>
-          </div>
+        <MoreFields title="Ayrıntılar (isteğe bağlı): yük, belgeler, yetkililer, not" defaultOpen={detailsOpen} hasError={detailsError}>
+          <SubGroup title="Yük" hint="Sevk belgesine yazılır.">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Field className="md:col-span-3" label="Yük Cinsi" error={errors.cargoType?.message}>
+                <input className="input" placeholder="Mobilya" {...register('cargoType')} />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[...new Set([...(hints.data?.cargoTypes ?? []), ...defaultCargoTypes])].slice(0, 6).map((t) => (
+                    <Chip key={t} active={cargoType === t} onClick={() => setValue('cargoType', t, opts)}>{t}</Chip>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Miktar" error={errors.cargoQuantity?.message}>
+                <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('cargoQuantity', { valueAsNumber: true })} />
+              </Field>
+              <Field label="Birim" error={errors.cargoUnit?.message}>
+                <input className="input" placeholder="palet" {...register('cargoUnit')} />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {cargoUnits.map((u) => <Chip key={u} active={cargoUnit === u} onClick={() => setValue('cargoUnit', u, opts)}>{u}</Chip>)}
+                </div>
+              </Field>
+              <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
+                <input className="input tabular-nums" type="number" min="0" step="1" inputMode="numeric" {...register('cargoWeightKg', { valueAsNumber: true })} />
+              </Field>
+              <Field className="md:col-span-3" label="Dorse Plakası" error={errors.trailerPlate?.message} hint={vehicle.data?.trailerPlate ? 'Boş bırakılırsa aracın dorsesi yazılır.' : undefined}>
+                <input className="input uppercase md:max-w-xs" placeholder={vehicle.data?.trailerPlate ?? '34 DRS 01'} {...register('trailerPlate')} />
+              </Field>
+            </div>
+          </SubGroup>
+          <SubGroup title="Belgeler">
+            <DocumentFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} groups={customerDetail.data?.customer.groups ?? undefined}
+              lead={
+                <Field className="sm:col-span-2" label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
+                  <input className="input" placeholder="4500123" {...register('customerReference')} />
+                </Field>
+              }
+              carrier={showCarrier && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Taşeron Fatura No" error={errors.carrierInvoiceNo?.message}><input className="input" {...register('carrierInvoiceNo')} /></Field>
+                  <Field label="Taşeron Fatura Tarihi" error={errors.carrierInvoiceDate?.message}><DateQuick control={control} name="carrierInvoiceDate" /></Field>
+                </div>
+              )} />
+          </SubGroup>
+          <SubGroup title="Yetkililer ve not">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Yüklemede Yetkili" error={errors.loadingContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('loadingContact')} /></Field>
+              <Field label="Teslimde Yetkili" error={errors.deliveryContact?.message}><input className="input" placeholder="Ad Soyad, telefon" {...register('deliveryContact')} /></Field>
+              <Field className="md:col-span-2" label="Açıklama" error={errors.description?.message}>
+                <textarea className="input min-h-16" placeholder="Özel notlar" {...register('description')} />
+              </Field>
+            </div>
+          </SubGroup>
+          <SubGroup title="Konum">
+            <LocationFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
+          </SubGroup>
         </MoreFields>
         <button type="submit" className="hidden" />
       </form>
@@ -461,9 +516,9 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           vehicles.refetch()
           setValue('carrierSupplierId', null)
           setValue('trailerPlate', '')
+          const previousVehicleId = getValues('vehicleId')
           setValue('vehicleId', v.id, { shouldValidate: true })
-          const current = getValues('driverId')
-          if (v.defaultDriverId && (current == null || Number.isNaN(current))) setValue('driverId', v.defaultDriverId)
+          fillDriverFor(v.defaultDriverId ?? null, previousVehicleId)
         }} />}
     </Modal>
   )

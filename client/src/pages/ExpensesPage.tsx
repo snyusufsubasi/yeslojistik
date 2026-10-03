@@ -166,7 +166,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const setD = (k: keyof ExpenseDetails, num = false) => (e: { target: { value: string } }) =>
     setDetails((d) => ({ ...d, [k]: e.target.value === '' ? null : num ? Number(e.target.value) : e.target.value }))
   const categoryNames = useQuery({ queryKey: ['expenses', 'categories'], queryFn: () => get<ExpenseCategoryTotal[]>('/expenses/categories'), staleTime: 60_000 })
-  const { register, handleSubmit, control, setError, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setError, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
       ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
@@ -202,6 +202,22 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
     onError: (e) => applyServerErrors(e, setError),
   })
   const submit = handleSubmit((v) => save.mutate(v))
+  const isEmpty = (v: number | null | undefined) => v == null || Number.isNaN(v)
+  /** Araç seçilince şoför boşsa aracın varsayılan şoförü gelir. */
+  const onVehicleChange = (id: number) => {
+    const driver = Number(vehicles.data?.find((x) => x.id === id)?.extra)
+    if (driver && isEmpty(getValues('driverId'))) setValue('driverId', driver, { shouldValidate: true })
+  }
+  /** Sefer seçilince araç ve şoför boşsa seferinkiler gelir. */
+  const onTripChange = (id: number) => {
+    const t = trips.data?.items.find((x) => x.id === id)
+    if (!t) return
+    if (isEmpty(getValues('vehicleId'))) setValue('vehicleId', t.vehicleId, { shouldValidate: true })
+    if (isEmpty(getValues('driverId'))) setValue('driverId', t.driverId, { shouldValidate: true })
+  }
+  // Katlanır bölümdeki alanlardan biri doluysa (düzenlemede ya da sefer sayfasından gelince) açık gelir.
+  const moreOpen = !!(expense?.tripId || expense?.supplierId || expense?.isOnCredit || defaultTripId
+    || details.title || details.categoryName || details.periodStart || details.periodEnd)
   return (
     <Modal open onClose={onClose} title={expense ? 'Gider Düzenle' : 'Gider Ekle'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
@@ -215,11 +231,11 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
         </Field>
         <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
         <Field label="Araç" error={errors.vehicleId?.message} hint="Boş bırakılırsa genel gider sayılır.">
-          <FormSelect control={control} name="vehicleId" placeholder="— Genel gider —"
+          <FormSelect control={control} name="vehicleId" placeholder="— Genel gider —" onValueChange={onVehicleChange}
             options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
         </Field>
         <Field label="Şoför" error={errors.driverId?.message}
-          hint={forDriver ? 'Avans/harcırahta zorunlu. Sefer seçerseniz seferin şoförü atanır.' : 'İsteğe bağlı: harcamayı yapan şoför.'}>
+          hint={forDriver ? 'Avans/harcırahta zorunlu. Araç ya da sefer seçince şoförü gelir.' : 'İsteğe bağlı. Araç seçince aracın şoförü gelir.'}>
           <FormSelect control={control} name="driverId" placeholder="— Şoför seçilmedi —"
             options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
         </Field>
@@ -236,19 +252,21 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
             <input className="input text-right" type="number" min="0" inputMode="numeric" value={details.previousOdometer ?? ''} onChange={setD('previousOdometer', true)} />
           </Field>
         </>}
-        <Field label="Gider Adı" hint="Ör. Ofis kirası, HGS"><input className="input" value={details.title ?? ''} onChange={setD('title')} /></Field>
-        <Field label="Kategori (kendi listeniz)" hint="Kategori analizinde bu ada göre toplanır.">
-          <input className="input" list="expense-category-names" value={details.categoryName ?? ''} onChange={setD('categoryName')} />
-          <datalist id="expense-category-names">{(categoryNames.data ?? []).map((c) => <option key={c.name} value={c.name} />)}</datalist>
-        </Field>
         <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" placeholder="Ör. Shell Gebze, 34 VES 01 depo" {...register('description')} /></Field>
         <div className="sm:col-span-2">
-          <MoreFields title="Sefer, tedarikçi, ödeme ve fiş (isteğe bağlı)" defaultOpen={!!expense?.tripId || !!expense?.supplierId || !!defaultTripId}
+          <MoreFields title="Sefer, tedarikçi, ödeme, fiş ve diğer bilgiler (isteğe bağlı)" defaultOpen={moreOpen}
             hasError={!!(errors.tripId || errors.supplierId)}>
-            <Field label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür.">
-              <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
+            <Field label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür. Araç ve şoför boşsa seferden gelir.">
+              <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —" onValueChange={onTripChange}
                 options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
             </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Gider Adı" hint="Ör. Ofis kirası, HGS"><input className="input" value={details.title ?? ''} onChange={setD('title')} /></Field>
+              <Field label="Kategori (kendi listeniz)" hint="Kategori analizinde bu ada göre toplanır.">
+                <input className="input" list="expense-category-names" value={details.categoryName ?? ''} onChange={setD('categoryName')} />
+                <datalist id="expense-category-names">{(categoryNames.data ?? []).map((c) => <option key={c.name} value={c.name} />)}</datalist>
+              </Field>
+            </div>
             <Field label="Tedarikçi (servis, istasyon)" error={errors.supplierId?.message}>
               <FormSelect control={control} name="supplierId" placeholder="— Seçilmedi —"
                 options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))}
