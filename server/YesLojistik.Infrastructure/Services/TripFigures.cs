@@ -17,7 +17,8 @@ public sealed record TripFigures(int Id, DateOnly Date, TripStatus Status, int C
         t.Id, t.LoadingDate, t.Status, t.CustomerId, t.Customer.Title, t.VehicleId, t.Vehicle.Plate, t.Vehicle.Type, t.DriverId, t.Driver.FullName,
         t.LoadingCity, t.DeliveryCity, t.LoadingAddress, t.DeliveryAddress, t.CarrierSupplierId != null,
         new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced,
-            t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0));
+            Core.Domain.Money.Round(t.Expenses.AsQueryable().Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Select(ExpenseVat.NetAmount).Sum()),
+            t.CommissionVatIncluded, t.ExtraChargeVatIncluded, t.SaleVatRate));
 
     /// <summary>Sorgudaki iptal edilmemiş seferler (raporlarda iptaller sayılmaz).</summary>
     public static Task<List<TripFigures>> LoadAsync(IQueryable<Trip> query, CancellationToken ct) =>

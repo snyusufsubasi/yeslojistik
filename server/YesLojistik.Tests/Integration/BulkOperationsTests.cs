@@ -32,7 +32,7 @@ public class BulkOperationsTests(ApiFactory factory) : IClassFixture<ApiFactory>
     private static async Task<TripDto> TripAsync(HttpClient c, Setup s, decimal cost, DateOnly date, int? vehicle = null, params TripStatus[] statuses)
     {
         var t = await (await c.PostJsonAsync("/api/trips", new TripSaveRequest(s.Customer, vehicle ?? s.OwnVehicle, s.Driver, "Tuzla", "Balçova", date,
-            null, null, cost, cost + 5_000))).ReadAsync<TripDto>();
+            null, null, cost, cost + 5_000, Terms: new TripTerms(CostVatRate: 0)))).ReadAsync<TripDto>();
         foreach (var st in statuses) t = await (await c.PostJsonAsync($"/api/trips/{t.Id}/status", new TripStatusRequest(st))).ReadAsync<TripDto>();
         return t;
     }

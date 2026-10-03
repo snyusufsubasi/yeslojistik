@@ -28,6 +28,15 @@ public static class EInvoiceCodes
     };
 
     public static string Type(EInvoiceTypeCode t) => t == EInvoiceTypeCode.Tevkifat ? "TEVKIFAT" : "SATIS";
+
+    /// <summary>KDV istisna kodunun açıklaması (GİB kod listesi); bilinmeyen kodda genel metin.</summary>
+    public static string ExemptionReason(string code) => code switch
+    {
+        "311" => "14/1 Uluslararası Taşımacılık",
+        "301" => "11/1-a Mal İhracatı",
+        "302" => "11/1-b Hizmet İhracatı",
+        _ => "KDV istisnası",
+    };
 }
 
 /// <summary>
@@ -115,8 +124,8 @@ public static class UblInvoiceBuilder
                 Cur("TaxAmount", vat),
                 new XElement(Cbc + "Percent", rate.ToString("0.##", Inv0)),
                 new XElement(Cac + "TaxCategory",
-                    rate == 0 ? new XElement(Cbc + "TaxExemptionReasonCode", exemptionCode ?? "301") : null,
-                    rate == 0 ? new XElement(Cbc + "TaxExemptionReason", "KDV istisnası") : null,
+                    rate == 0 ? new XElement(Cbc + "TaxExemptionReasonCode", exemptionCode ?? InvoiceCalculator.DefaultVatExemptionCode) : null,
+                    rate == 0 ? new XElement(Cbc + "TaxExemptionReason", EInvoiceCodes.ExemptionReason(exemptionCode ?? InvoiceCalculator.DefaultVatExemptionCode)) : null,
                     new XElement(Cac + "TaxScheme",
                         new XElement(Cbc + "Name", EInvoiceCodes.VatTaxName),
                         new XElement(Cbc + "TaxTypeCode", EInvoiceCodes.VatTaxTypeCode)))));

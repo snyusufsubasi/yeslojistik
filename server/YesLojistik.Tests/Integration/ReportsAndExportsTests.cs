@@ -41,11 +41,12 @@ public class ReportsAndExportsTests(ApiFactory factory) : IClassFixture<ApiFacto
         var c = await factory.LoginAsync();
         var f = await FleetAsync(c, "Kazanç");
         var lastMonth = new DateOnly(Today.Year, Today.Month, 1).AddMonths(-1);
-        // 10.000 − 6.000 + 500 komisyon − 200 prim − 300 faturalanmayan masraf − 250 sefer gideri = 3.750
-        var t1 = await TripAsync(c, f, lastMonth, 10_000, 6_000, new TripTerms(Commission: 500, DriverBonus: 200, ExtraCharge: 300));
+        // KDV hariç: 10.000 − 6.000 + 500 komisyon (600 KDV dahil) − 200 prim − 300 faturalanmayan masraf (360 KDV dahil)
+        // − 250 sefer gideri (300 otoyol, %20 KDV dahil) = 3.750
+        var t1 = await TripAsync(c, f, lastMonth, 10_000, 6_000, new TripTerms(Commission: 600, DriverBonus: 200, ExtraCharge: 360));
         // 8.000 − 5.000; masraf müşteriye faturalanıyor, kâra yük olmaz = 3.000
         var t2 = await TripAsync(c, f, Today, 8_000, 5_000, new TripTerms(ExtraCharge: 400, ExtraChargeInvoiced: true));
-        await (await c.PostJsonAsync("/api/expenses", new ExpenseSaveRequest(ExpenseCategory.Toll, 250, lastMonth, f.Vehicle.Id, t1.Id, "Otoyol")))
+        await (await c.PostJsonAsync("/api/expenses", new ExpenseSaveRequest(ExpenseCategory.Toll, 300, lastMonth, f.Vehicle.Id, t1.Id, "Otoyol")))
             .ReadAsync<ExpenseDto>();
         t1 = await (await c.GetAsync($"/api/trips/{t1.Id}")).ReadAsync<TripDto>();
         t1.Profit.Should().Be(3_750);

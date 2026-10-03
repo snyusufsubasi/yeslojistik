@@ -53,7 +53,8 @@ public class FleetTests(ApiFactory factory) : IClassFixture<ApiFactory>
         rejected.RejectionReason.Should().Be("Fiş yok");
         factory.Push.Sent.Should().Contain(m => m.Token == "ExponentPushToken[filo601]" && m.Title == "Masrafınız reddedildi" && m.Body.Contains("Fiş yok"));
 
-        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(300);
+        // Onaylanan 700 köprü (%20 KDV dahil) kârdan KDV hariç düşer: 1.000 − 583,33.
+        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(416.67m);
         var mine = await (await s.Driver.GetAsync($"/api/driver/trips/{s.TripId}/expenses")).ReadAsync<List<DriverExpenseDto>>();
         mine.Single(e => e.Id == e2.Id).RejectionReason.Should().Be("Fiş yok");
     }

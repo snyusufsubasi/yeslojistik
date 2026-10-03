@@ -340,6 +340,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.FuelStation).HasMaxLength(100);
             e.Property(x => x.FuelType).HasMaxLength(30);
             e.Property(x => x.UnitPrice).HasPrecision(12, 3);
+            e.Property(x => x.VatRate).HasPrecision(5, 2);
             e.Property(x => x.ExternalRef).HasMaxLength(40);
             e.HasIndex(x => x.CategoryName);
             e.HasOne(x => x.Vehicle).WithMany().OnDelete(DeleteBehavior.SetNull);

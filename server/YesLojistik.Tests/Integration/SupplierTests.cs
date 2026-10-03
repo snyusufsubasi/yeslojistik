@@ -67,7 +67,8 @@ public class SupplierTests(ApiFactory factory) : IClassFixture<ApiFactory>
         // Planlanmış sefer borç doğurmaz; yüklenince doğurur.
         (await (await c.GetAsync($"/api/suppliers/{s.Id}")).ReadAsync<SupplierDto>()).Balance.Should().Be(0);
         await (await c.PostJsonAsync($"/api/trips/{trip.Id}/status", new TripStatusRequest(TripStatus.Loaded))).ReadAsync<TripDto>();
-        (await (await c.GetAsync($"/api/suppliers/{s.Id}")).ReadAsync<SupplierDto>()).Balance.Should().Be(20_000);
+        // Yeni seferde taşeron KDV'si varsayılan %20: 20.000 + 4.000 KDV − 800 (2/10 tevkifat, 24.000 > 12.000).
+        (await (await c.GetAsync($"/api/suppliers/{s.Id}")).ReadAsync<SupplierDto>()).Balance.Should().Be(23_200);
 
         var events = await (await c.GetAsync($"/api/trips/{trip.Id}/events")).ReadAsync<List<TripEventDto>>();
         events.Select(e => e.Status).Should().Equal(TripStatus.Planned, TripStatus.Loaded);

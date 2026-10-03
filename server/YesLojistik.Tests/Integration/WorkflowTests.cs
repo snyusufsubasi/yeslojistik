@@ -43,9 +43,9 @@ public class WorkflowTests(ApiFactory factory) : IClassFixture<ApiFactory>
         trip.DeliveryDate.Should().NotBeNull();
         (await (await c.GetAsync($"/api/vehicles/{vehicleId}")).ReadAsync<VehicleDto>()).Status.Should().Be(VehicleStatus.Available);
 
-        // Gider ekle: kâr düşmeli.
+        // Gider ekle: kâr KDV hariç tutar kadar düşmeli (1.500 mazot, %20 KDV dahil → 1.250).
         await (await c.PostJsonAsync("/api/expenses", new ExpenseSaveRequest(ExpenseCategory.Fuel, 1_500, Today, null, trip.Id, "Mazot"))).ReadAsync<ExpenseDto>();
-        (await (await c.GetAsync($"/api/trips/{trip.Id}")).ReadAsync<TripDto>()).Profit.Should().Be(6_000);
+        (await (await c.GetAsync($"/api/trips/{trip.Id}")).ReadAsync<TripDto>()).Profit.Should().Be(6_250);
 
         // Fatura kes: 25.000 + 5.000 KDV − 1.000 tevkifat = 29.000
         var invoice = await (await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(

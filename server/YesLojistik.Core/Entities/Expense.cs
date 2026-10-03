@@ -3,7 +3,10 @@ namespace YesLojistik.Core.Entities;
 public class Expense : BaseEntity
 {
     public ExpenseCategory Category { get; set; }
+    /// <summary>KDV dahil tutar.</summary>
     public decimal Amount { get; set; }
+    /// <summary>Tutarın içindeki KDV oranı (%). Boşsa kategorinin varsayılanı kullanılır (bkz. <see cref="Domain.ExpenseVat"/>).</summary>
+    public decimal? VatRate { get; set; }
     public DateOnly Date { get; set; }
     public int? VehicleId { get; set; }
     public Vehicle? Vehicle { get; set; }

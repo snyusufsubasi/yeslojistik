@@ -236,7 +236,8 @@ public class DriverAppTests(ApiFactory factory) : IClassFixture<ApiFactory>
         // Onay bekleyen masraf kâra girmez; onaylanınca düşer.
         (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000);
         foreach (var e in office.Items) (await s.Admin.PostAsync($"/api/expenses/{e.Id}/approve", null)).EnsureSuccessStatusCode();
-        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000 - 8_900 - 450);
+        // Giderler kârdan KDV hariç düşer (yakıt ve otoyol %20): 8.900 → 7.416,67; 450 → 375.
+        (await (await s.Admin.GetAsync($"/api/trips/{s.TripId}")).ReadAsync<TripDto>()).Profit.Should().Be(2_000 - 1_000 - 7_416.67m - 375);
     }
 
     [Fact]

@@ -238,7 +238,8 @@ public class TripSaveRequestValidator : AbstractValidator<TripSaveRequest>
 
 public class TripTermsValidator : AbstractValidator<TripTerms>
 {
-    private static readonly decimal[] VatRates = [0, 1, 8, 10, 18, 20];
+    /// <summary>Kabul edilen KDV oranları. 8 ve 18 Temmuz 2023 öncesi kayıtlar için; seçim listesinde 0, 1, 10, 20 var.</summary>
+    public static readonly decimal[] VatRates = [0, 1, 8, 10, 18, 20];
 
     public TripTermsValidator()
     {
@@ -275,7 +276,9 @@ public class InvoiceCreateRequestValidator : AbstractValidator<InvoiceCreateRequ
     {
         RuleFor(x => x.CustomerId).GreaterThan(0).WithMessage("Müşteri seçin.");
         RuleFor(x => x.VatRate).InclusiveBetween(0, 100).WithMessage("KDV oranı 0-100 arasında olmalı.");
-        RuleFor(x => x.WithholdingTenths).InclusiveBetween(0, 10).WithMessage("Tevkifat oranı 0/10 - 10/10 arasında olmalı.");
+        RuleFor(x => x.WithholdingTenths).InclusiveBetween(0, 10).WithMessage("Tevkifat oranı 0/10 - 10/10 arasında olmalı.").When(x => x.WithholdingTenths.HasValue);
+        RuleFor(x => x.VatExemptionCode).Matches("^[0-9]{3}$").WithMessage("İstisna kodu 3 haneli olmalı (ör. 311).")
+            .When(x => !string.IsNullOrWhiteSpace(x.VatExemptionCode));
         RuleFor(x => x.DueDate).GreaterThanOrEqualTo(x => x.Date).WithMessage("Vade tarihi fatura tarihinden önce olamaz.")
             .When(x => x.DueDate.HasValue);
         RuleFor(x => x).Must(x => x.TripIds.Count > 0 || x.ExtraLines is { Count: > 0 })
@@ -315,6 +318,8 @@ public class ExpenseSaveRequestValidator : AbstractValidator<ExpenseSaveRequest>
             .When(x => x.Category == ExpenseCategory.DriverAdvance && x.TripId is null);
         RuleFor(x => x.Liters).GreaterThan(0).LessThan(5_000).WithMessage("Litre 0 ile 5.000 arasında olmalı.").When(x => x.Liters is not null);
         RuleFor(x => x.Odometer).InclusiveBetween(0, 10_000_000).WithMessage("Geçersiz kilometre.").When(x => x.Odometer is not null);
+        RuleFor(x => x.VatRate).Must(v => TripTermsValidator.VatRates.Contains(v!.Value)).WithMessage("KDV oranı 0, 1, 10 veya 20 olmalı.")
+            .When(x => x.VatRate is not null);
     }
 }
 

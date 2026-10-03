@@ -36,21 +36,21 @@ public class TripTermsTests(ApiFactory factory) : IClassFixture<ApiFactory>
         trip.Terms.CostVatRate.Should().Be(10);
         trip.Terms.CustomerGroup.Should().Be("Şantiye-7");
         trip.Terms.ExternalRef.Should().Be("978");
-        // 9.500 − 4.500 + 500 komisyon − 200 prim − 300 masraf (faturalanmıyor)
-        trip.Profit.Should().Be(5_000);
+        // KDV hariç: 9.500 − 4.500 + 416,67 komisyon (500 KDV dahil) − 200 prim − 250 masraf (300 KDV dahil, faturalanmıyor)
+        trip.Profit.Should().Be(4_966.67m);
 
         // Masraf müşteriye faturalanırsa kâra yük olmaz; aktarım numarası formdan silinemez.
         trip = await (await c.PutJsonAsync($"/api/trips/{trip.Id}", new TripSaveRequest(customer.Id, vehicle.Id, driver.Id, "Tuzla", "Çekmeköy", Today, null,
             null, 4_500, 9_500, Terms: terms with { ExtraChargeInvoiced = true, ExternalRef = null }))).ReadAsync<TripDto>();
-        trip.Profit.Should().Be(5_300);
+        trip.Profit.Should().Be(5_216.67m);
         trip.Terms!.ExternalRef.Should().Be("978");
 
         var totals = await (await c.GetAsync($"/api/trips/totals?customerId={customer.Id}")).ReadAsync<TripTotalsDto>();
         totals.Count.Should().Be(1);
         totals.Sale.Should().Be(9_500);
-        totals.Commission.Should().Be(500);
+        totals.Commission.Should().Be(416.67m);
         totals.CommissionBank.Should().Be(0);
-        totals.Profit.Should().Be(5_300);
+        totals.Profit.Should().Be(5_216.67m);
 
         var groups = await (await c.GetAsync($"/api/trips?customerGroup={Uri.EscapeDataString("Şantiye-7")}")).ReadAsync<PagedResult<TripDto>>();
         groups.Items.Should().ContainSingle(t => t.Id == trip.Id);

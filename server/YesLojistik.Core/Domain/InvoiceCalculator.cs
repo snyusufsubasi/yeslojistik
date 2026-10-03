@@ -34,6 +34,19 @@ public static class InvoiceCalculator
         return gross > AutoWithholdingLimit ? FreightWithholdingTenths : 0;
     }
 
+    /// <summary>Alıcı şirket mi: 10 haneli VKN. TCKN (11 hane) ya da vergi numarası yoksa tevkifat uygulanmaz.</summary>
+    public static bool IsCompanyTaxNumber(string? taxNumber) =>
+        taxNumber?.Trim() is { Length: 10 } t && t.All(char.IsAsciiDigit);
+
+    /// <summary>
+    /// Satış faturası tevkifatı. "Otomatik" (null): KDV dahil toplam 12.000 TL'yi aşar ve alıcının 10 haneli VKN'si varsa 2/10, yoksa 0.
+    /// </summary>
+    public static int WithholdingFor(decimal subtotal, decimal vatRate, int? withholdingTenths, string? buyerTaxNumber) =>
+        withholdingTenths ?? (IsCompanyTaxNumber(buyerTaxNumber) ? WithholdingFor(subtotal, vatRate, null) : 0);
+
+    /// <summary>KDV %0 faturada istisna kodu boşsa kullanılan kod: 311, uluslararası taşımacılık (KDVK 14/1).</summary>
+    public const string DefaultVatExemptionCode = "311";
+
     /// <summary>Tek tutar için KDV ve tevkifat (sefer fiyatı, alınan fatura).</summary>
     public static InvoiceTotals ForAmount(decimal subtotal, decimal vatRate, int? withholdingTenths) =>
         Calculate([subtotal], vatRate, WithholdingFor(subtotal, vatRate, withholdingTenths));

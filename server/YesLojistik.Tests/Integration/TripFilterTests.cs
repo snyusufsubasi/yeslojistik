@@ -102,7 +102,8 @@ public class TripFilterTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var totals = await (await s.C.GetAsync($"/api/trips/totals?customerId={s.CustomerId}&ownership=Rented")).ReadAsync<TripTotalsDto>();
         totals.Count.Should().Be(1);
         totals.Sale.Should().Be(4_500);
-        totals.Commission.Should().Be(300);
+        // Kazanç tablosunda komisyon KDV hariç: 300 (KDV dahil) → 250.
+        totals.Commission.Should().Be(250);
         totals = await (await s.C.GetAsync($"/api/trips/totals?customerId={s.CustomerId}&hasDeliveryDocument=true")).ReadAsync<TripTotalsDto>();
         totals.Count.Should().Be(2);
         totals.Sale.Should().Be(2_900);

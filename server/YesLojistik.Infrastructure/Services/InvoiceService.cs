@@ -100,7 +100,8 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         if (trips.Any(t => t.Status == TripStatus.Cancelled)) throw new DomainException("İptal edilmiş sefer faturalanamaz.");
 
         // Sahip olunan tip tek başına izlenmeden sorgulanamaz; müşteriyle birlikte okunur.
-        var template = (await db.Customers.AsNoTracking().FirstAsync(c => c.Id == req.CustomerId, ct)).InvoiceTemplate ?? new InvoiceTemplate();
+        var customer = await db.Customers.AsNoTracking().FirstAsync(c => c.Id == req.CustomerId, ct);
+        var template = customer.InvoiceTemplate ?? new InvoiceTemplate();
         var lines = trips.Select(t => new InvoiceLine
         {
             TripId = t.Id,
@@ -120,7 +121,9 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
             ? trips.Where(t => t.ShowFooterNote && t.InvoiceFooterNote != null).Select(t => t.InvoiceFooterNote!).Distinct().ToList() : [];
         lines.AddRange((req.ExtraLines ?? []).Select(l => new InvoiceLine { Description = l.Description.Trim(), Amount = Money.Round(l.Amount) }));
 
-        var totals = InvoiceCalculator.Calculate(lines.Select(l => l.Amount), req.VatRate, req.WithholdingTenths);
+        // Tevkifat boşsa (otomatik) tutara ve alıcının VKN/TCKN'sine göre belirlenir (docs/KDV-KURALLARI.md).
+        var withholding = InvoiceCalculator.WithholdingFor(Money.Round(lines.Sum(l => Money.Round(l.Amount))), req.VatRate, req.WithholdingTenths, customer.TaxNumber);
+        var totals = InvoiceCalculator.Calculate(lines.Select(l => l.Amount), req.VatRate, withholding);
         var invoice = new Invoice
         {
             InvoiceNo = await NextInvoiceNoAsync(ct),
@@ -128,7 +131,8 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
             Date = req.Date,
             DueDate = req.DueDate ?? req.Date.AddDays(await db.Customers.Where(c => c.Id == req.CustomerId).Select(c => c.PaymentTermDays).FirstAsync(ct) ?? settings.DefaultPaymentTermDays),
             VatRate = req.VatRate,
-            WithholdingTenths = req.WithholdingTenths,
+            WithholdingTenths = withholding,
+            VatExemptionCode = req.VatRate == 0 ? (string.IsNullOrWhiteSpace(req.VatExemptionCode) ? InvoiceCalculator.DefaultVatExemptionCode : req.VatExemptionCode.Trim()) : null,
             Subtotal = totals.Subtotal,
             VatAmount = totals.VatAmount,
             WithholdingAmount = totals.WithholdingAmount,
@@ -231,6 +235,6 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         return new InvoiceDto(i.Id, i.InvoiceNo, i.CustomerId, customerTitle, i.Date, i.DueDate, i.Subtotal, i.VatRate,
             i.VatAmount, i.WithholdingTenths, i.WithholdingAmount, i.Total, paid, remaining, i.Status,
             BalanceService.PaymentStatus(i.Status, b), i.Notes, lines, i.Scenario, i.TypeCode, i.Ettn, i.EInvoiceNo, i.EInvoiceStatus,
-            i.EInvoiceMessage, i.EInvoiceSentAt, i.WithholdingCode);
+            i.EInvoiceMessage, i.EInvoiceSentAt, i.WithholdingCode, i.VatExemptionCode);
     }
 }

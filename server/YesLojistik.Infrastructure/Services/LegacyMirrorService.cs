@@ -99,7 +99,7 @@ public partial class LegacyMirrorService(AppDbContext db)
             x => x.ExternalRef, (x, k) => x.ExternalRef = k,
             // Eski tek seferlik aktarımın seferleri açıklamadaki "Sevkiyat N" ile sahiplenilir.
             new Adopter<Trip, MirrorTrip>(x => SevkiyatNo().Match(x.Description ?? "") is { Success: true } m ? ["S" + m.Groups[1].Value] : [], s => [s.Key]),
-            s => new Trip { IsLegacy = true, Status = TripStatus.Delivered, Events = [new TripEvent { Status = TripStatus.Delivered,
+            s => new Trip { IsLegacy = true, Status = TripStatus.Delivered, CostVatRate = 0, Events = [new TripEvent { Status = TripStatus.Delivered,
                 Source = TripEventSource.Import, OccurredAt = now, RecordedAt = now, Note = "Pratikortam aynası" }] },
             (x, s) =>
             {

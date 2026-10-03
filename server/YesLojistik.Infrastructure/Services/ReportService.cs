@@ -21,13 +21,13 @@ public class ReportService(AppDbContext db, BalanceService balances)
         var carrierPaid = await db.SupplierPayments.Where(p => p.Date >= from && p.Date <= to)
             .GroupBy(p => p.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(p => p.Amount) }).ToListAsync(ct);
         var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.ApprovalStatus == ApprovalStatus.Approved)
-            .GroupBy(e => e.Date.Month).Select(g => new { Month = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
+            .GroupBy(e => e.Date.Month, ExpenseVat.NetAmount).Select(g => new { Month = g.Key, Sum = g.Sum() }).ToListAsync(ct);
 
         return Enumerable.Range(1, 12).Select(m =>
         {
             var t = trips[m].Totals();
-            // Aylık özette o ayın bütün onaylı giderleri (sefere bağlı olsun olmasın) düşülür.
-            var exp = expenses.FirstOrDefault(x => x.Month == m)?.Sum ?? 0;
+            // Aylık özette o ayın bütün onaylı giderleri (sefere bağlı olsun olmasın, KDV hariç) düşülür.
+            var exp = Money.Round(expenses.FirstOrDefault(x => x.Month == m)?.Sum ?? 0);
             return new MonthlySummaryRow(year, m, t.Count, t.Revenue, t.DirectCost,
                 invoiced.FirstOrDefault(x => x.Month == m)?.Sum ?? 0, collected.FirstOrDefault(x => x.Month == m)?.Sum ?? 0,
                 exp, TripProfit.Profit(t.Revenue, t.DirectCost, exp), trips[m].Where(x => x.HasCarrier).Sum(x => x.Money.VehicleCost),
@@ -47,13 +47,13 @@ public class ReportService(AppDbContext db, BalanceService balances)
         var vehicles = await db.Vehicles.AsNoTracking().OrderBy(v => v.Plate).Select(v => new { v.Id, v.Plate, v.Type }).ToListAsync(ct);
         var trips = (await TripFigures.LoadAsync(db.Trips, from, to, ct)).ToLookup(t => t.VehicleId);
         var expenses = await db.Expenses.Where(e => e.Date >= from && e.Date <= to && e.VehicleId != null && e.ApprovalStatus == ApprovalStatus.Approved)
-            .GroupBy(e => e.VehicleId!.Value).Select(g => new { VehicleId = g.Key, Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
+            .GroupBy(e => e.VehicleId!.Value, ExpenseVat.NetAmount).Select(g => new { VehicleId = g.Key, Sum = g.Sum() }).ToListAsync(ct);
 
         return vehicles.Select(v =>
         {
             var t = trips[v.Id].Totals();
-            // Araca yazılan bütün onaylı giderler (yakıt, bakım; sefere bağlı olsun olmasın) düşülür.
-            var e = expenses.FirstOrDefault(x => x.VehicleId == v.Id)?.Sum ?? 0;
+            // Araca yazılan bütün onaylı giderler (yakıt, bakım; sefere bağlı olsun olmasın, KDV hariç) düşülür.
+            var e = Money.Round(expenses.FirstOrDefault(x => x.VehicleId == v.Id)?.Sum ?? 0);
             return new VehicleReportRow(v.Id, v.Plate, v.Type, t.Count, t.Revenue, t.DirectCost, e, TripProfit.Profit(t.Revenue, t.DirectCost, e));
         }).ToList();
     }

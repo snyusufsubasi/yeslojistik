@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using YesLojistik.Core.Domain;
 using YesLojistik.Core.Dtos;
 using YesLojistik.Core.Entities;
 using YesLojistik.Infrastructure.Data;
@@ -40,8 +41,9 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
         var monthTripCount = monthTotals.Count;
         var monthDelivered = monthTrips.Count(t => t.Status == TripStatus.Delivered);
         var monthRevenue = monthTotals.Revenue;
-        var monthExpenses = (await db.Expenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved).SumAsync(e => (decimal?)e.Amount, ct) ?? 0)
-            + monthTotals.DirectCost;
+        // Giderler KDV hariç (kazançla aynı ölçü).
+        var monthExpenses = Money.Round(await db.Expenses.Where(e => e.Date >= monthStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved)
+            .Select(ExpenseVat.NetAmount).SumAsync(ct)) + monthTotals.DirectCost;
 
         var activeCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned || t.Status == TripStatus.Loaded || t.Status == TripStatus.OnRoad, ct);
         var plannedCount = await db.Trips.CountAsync(t => t.Status == TripStatus.Planned, ct);
@@ -61,14 +63,14 @@ public class DashboardService(AppDbContext db, BalanceService balances, TripServ
 
         var tripTrend = trendTrips.ToLookup(t => (t.Date.Year, t.Date.Month));
         var expenseTrend = await db.Expenses.Where(e => e.Date >= trendStart && e.Date <= monthEnd && e.ApprovalStatus == ApprovalStatus.Approved)
-            .GroupBy(e => new { e.Date.Year, e.Date.Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Sum = g.Sum(e => e.Amount) })
+            .GroupBy(e => new { e.Date.Year, e.Date.Month }, ExpenseVat.NetAmount)
+            .Select(g => new { g.Key.Year, g.Key.Month, Sum = g.Sum() })
             .ToListAsync(ct);
         var trend = Enumerable.Range(0, 6).Select(i =>
         {
             var m = trendStart.AddMonths(i);
             var t = tripTrend[(m.Year, m.Month)].Totals();
-            var e = expenseTrend.FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month)?.Sum ?? 0;
+            var e = Money.Round(expenseTrend.FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month)?.Sum ?? 0);
             return new MonthTrendRow(m.Year, m.Month, t.Revenue, t.DirectCost + e);
         }).ToList();
 

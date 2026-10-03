@@ -439,6 +439,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
                 LoadingCity = Cities.Normalize(req.LoadingCity), DeliveryCity = Cities.Normalize(req.DeliveryCity),
                 TrailerPlate = vehicle!.TrailerPlate, CarrierSupplierId = vehicle.Ownership == VehicleOwnership.Rented ? vehicle.SupplierId : null,
                 IsLegacy = legacy,
+                // Excel'deki maliyet olduğu gibi ödenir (taşeron KDV'si eklenmez).
+                CostVatRate = 0,
             };
             trip.Events.Add(new TripEvent { Status = status, Source = TripEventSource.Import, OccurredAt = now, RecordedAt = now, Note = legacy ? "Eski sistemden aktarıldı" : "Excel aktarımı" });
             db.Trips.Add(trip);

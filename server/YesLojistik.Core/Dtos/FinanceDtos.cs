@@ -9,12 +9,15 @@ public record InvoiceDto(int Id, string InvoiceNo, int CustomerId, string Custom
     decimal Paid, decimal Remaining, InvoiceStatus Status, string PaymentStatus, string? Notes,
     IReadOnlyList<InvoiceLineDto> Lines, EInvoiceScenario? Scenario = null, EInvoiceTypeCode? TypeCode = null, Guid? Ettn = null,
     string? EInvoiceNo = null, EInvoiceStatus EInvoiceStatus = EInvoiceStatus.None, string? EInvoiceMessage = null,
-    DateTime? EInvoiceSentAt = null, string? WithholdingCode = null);
+    DateTime? EInvoiceSentAt = null, string? WithholdingCode = null, string? VatExemptionCode = null);
 
 public record InvoiceLineInput(int? TripId, string Description, decimal Amount);
 
+/// <param name="WithholdingTenths">Tevkifat (onda bir). null = otomatik: KDV dahil toplam 12.000 TL'yi aşar ve alıcının 10 haneli VKN'si varsa 2/10.</param>
+/// <param name="VatExemptionCode">KDV %0 ise istisna kodu (boşsa 311: uluslararası taşımacılık).</param>
 public record InvoiceCreateRequest(int CustomerId, DateOnly Date, DateOnly? DueDate, decimal VatRate,
-    int WithholdingTenths, string? Notes, bool AsDraft, IReadOnlyList<int> TripIds, IReadOnlyList<InvoiceLineInput>? ExtraLines);
+    int? WithholdingTenths, string? Notes, bool AsDraft, IReadOnlyList<int> TripIds, IReadOnlyList<InvoiceLineInput>? ExtraLines,
+    string? VatExemptionCode = null);
 
 public record InvoiceQuery : ListQuery
 {
@@ -56,11 +59,11 @@ public record ExpenseDto(int Id, ExpenseCategory Category, decimal Amount, DateO
     int? DriverId = null, string? DriverName = null, decimal? Liters = null, int? Odometer = null,
     int? SupplierId = null, string? SupplierTitle = null, bool IsOnCredit = false, bool HasReceipt = false,
     ExpensePaidBy PaidBy = ExpensePaidBy.Company, ApprovalStatus ApprovalStatus = ApprovalStatus.Approved,
-    string? RejectionReason = null, int? CashAccountId = null, ExpenseDetails? Details = null);
+    string? RejectionReason = null, int? CashAccountId = null, ExpenseDetails? Details = null, decimal? VatRate = null);
 
 public record ExpenseSaveRequest(ExpenseCategory Category, decimal Amount, DateOnly Date, int? VehicleId, int? TripId,
     string? Description, int? DriverId = null, decimal? Liters = null, int? Odometer = null, int? SupplierId = null,
-    bool IsOnCredit = false, int? CashAccountId = null, ExpenseDetails? Details = null);
+    bool IsOnCredit = false, int? CashAccountId = null, ExpenseDetails? Details = null, decimal? VatRate = null);
 
 /// <summary>Giderin eski paneldeki ayrıntıları: kullanıcı kategorisi, gider adı, dönem; yakıtta istasyon, yakıt türü, litre fiyatı, önceki km.</summary>
 public record ExpenseDetails(string? CategoryName = null, string? Title = null, DateOnly? PeriodStart = null, DateOnly? PeriodEnd = null,

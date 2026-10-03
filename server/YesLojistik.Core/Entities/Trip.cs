@@ -59,8 +59,8 @@ public class Trip : BaseEntity
     // Fiyatların vergi bilgisi (tutarlar KDV hariç). Tevkifat onda bir cinsinden; null ise faturada otomatik belirlenir.
     public decimal SaleVatRate { get; set; } = 20;
     public int? SaleWithholdingTenths { get; set; }
-    /// <summary>Taşeron fiyatının KDV oranı. 0: tutar olduğu gibi ödenir (eski kayıtlar ve Excel aktarımı).</summary>
-    public decimal CostVatRate { get; set; }
+    /// <summary>Taşeron fiyatının KDV oranı (yeni seferde %20). 0: tutar olduğu gibi ödenir (eski kayıtlar ve Excel aktarımı).</summary>
+    public decimal CostVatRate { get; set; } = 20;
     public int? CostWithholdingTenths { get; set; }
 
     /// <summary>Taşerondan / şoförden alınan komisyon (aracılık geliri).</summary>
@@ -111,9 +111,9 @@ public class Trip : BaseEntity
     public static decimal CarrierPayable(decimal cost, decimal vatRate, int? withholdingTenths) =>
         Domain.InvoiceCalculator.ForAmount(cost, vatRate, withholdingTenths).Total;
 
-    /// <summary>Kâra katkısı: satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Giderler ayrıca düşülür (bkz. <see cref="Domain.TripProfit"/>).</summary>
-    public static decimal Margin(decimal sale, decimal cost, decimal commission, decimal bonus, decimal extra, bool extraInvoiced) =>
-        new Domain.TripMoney(sale, cost, commission, bonus, extra, extraInvoiced, 0).Margin;
+    /// <summary>Kâra katkısı (KDV hariç): satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Giderler ayrıca düşülür (bkz. <see cref="Domain.TripProfit"/>).</summary>
+    public decimal Margin() => new Domain.TripMoney(SalePrice, VehicleCost, Commission, DriverBonus, ExtraCharge, ExtraChargeInvoiced, 0,
+        CommissionVatIncluded, ExtraChargeVatIncluded, SaleVatRate).Margin;
 
     public List<Expense> Expenses { get; set; } = new();
     public List<TripEvent> Events { get; set; } = new();

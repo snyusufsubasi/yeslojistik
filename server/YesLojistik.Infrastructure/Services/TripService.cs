@@ -22,23 +22,26 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         ["id"] = t => t.Id,
     };
 
+    /// <param name="ExpenseTotal">Sefere bağlı onaylı giderlerin KDV hariç toplamı (yuvarlanmamış).</param>
     private record Row(Trip Trip, string CustomerTitle, string Plate, string VehicleType, string DriverName,
         decimal ExpenseTotal, string? InvoiceNo, string? CarrierTitle, VehicleOwnership Ownership, string? CommissionAccountName,
         DateOnly? InvoiceDate);
 
     private static readonly Expression<Func<Trip, Row>> Projection = t => new Row(
         t, t.Customer.Title, t.Vehicle.Plate, t.Vehicle.Type, t.Driver.FullName,
-        t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null,
+        t.Expenses.AsQueryable().Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Select(ExpenseVat.NetAmount).Sum(), t.Invoice != null ? t.Invoice.InvoiceNo : null,
         t.CarrierSupplier != null ? t.CarrierSupplier.Title : null, t.Vehicle.Ownership,
         t.CommissionAccount != null ? t.CommissionAccount.Name : null, t.Invoice != null ? t.Invoice.Date : null);
 
     private static TripDto ToDto(Row r)
     {
         var t = r.Trip;
+        var expenses = Money.Round(r.ExpenseTotal);
         return new TripDto(t.Id, t.CustomerId, r.CustomerTitle, t.VehicleId, r.Plate, r.VehicleType, t.DriverId,
             r.DriverName, t.LoadingAddress, t.DeliveryAddress, t.LoadingDate, t.DeliveryDate, t.Description,
-            t.VehicleCost, t.SalePrice, r.ExpenseTotal,
-            new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced, r.ExpenseTotal).Profit, t.Status,
+            t.VehicleCost, t.SalePrice, expenses,
+            new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced, expenses,
+                t.CommissionVatIncluded, t.ExtraChargeVatIncluded, t.SaleVatRate).Profit, t.Status,
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
@@ -116,7 +119,8 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled).Select(t => new
         {
             Money = new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced,
-                t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0),
+                Money.Round(t.Expenses.AsQueryable().Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Select(ExpenseVat.NetAmount).Sum()),
+                t.CommissionVatIncluded, t.ExtraChargeVatIncluded, t.SaleVatRate),
             CommissionToBank = t.CommissionAccount != null && t.CommissionAccount.Kind != CashAccountKind.Cash,
             Uninvoiced = t.InvoiceId == null && !t.IsLegacy && t.Status == TripStatus.Delivered,
         }).ToListAsync(ct);

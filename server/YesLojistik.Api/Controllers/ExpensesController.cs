@@ -29,7 +29,8 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         e.DriverId, e.Driver != null ? e.Driver.FullName : null, e.Liters, e.Odometer,
         e.SupplierId, e.Supplier != null ? e.Supplier.Title : null, e.IsOnCredit, e.ReceiptPath != null,
         e.PaidBy, e.ApprovalStatus, e.RejectionReason, e.CashAccountId,
-        new ExpenseDetails(e.CategoryName, e.Title, e.PeriodStart, e.PeriodEnd, e.FuelStation, e.FuelType, e.UnitPrice, e.PreviousOdometer, e.ExternalRef));
+        new ExpenseDetails(e.CategoryName, e.Title, e.PeriodStart, e.PeriodEnd, e.FuelStation, e.FuelType, e.UnitPrice, e.PreviousOdometer, e.ExternalRef),
+        e.VatRate);
 
     private IQueryable<Expense> Filter(ExpenseQuery q)
     {

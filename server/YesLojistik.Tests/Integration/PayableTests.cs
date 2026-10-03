@@ -25,7 +25,9 @@ public class PayableTests(ApiFactory factory) : IClassFixture<ApiFactory>
     private static async Task<TripDto> TripAsync(HttpClient c, int customer, int vehicle, int driver, decimal cost, DateOnly date, params TripStatus[] statuses)
     {
         var t = await (await c.PostJsonAsync("/api/trips", new TripSaveRequest(customer, vehicle, driver, "A", "B", date,
-            statuses.Contains(TripStatus.Delivered) ? date.AddDays(1) : null, null, cost, cost + 5000))).ReadAsync<TripDto>();
+            statuses.Contains(TripStatus.Delivered) ? date.AddDays(1) : null, null, cost, cost + 5000,
+            // Borç hesabı düz tutarlarla denenir (taşeron KDV'si yok).
+            Terms: new TripTerms(CostVatRate: 0)))).ReadAsync<TripDto>();
         foreach (var st in statuses) t = await (await c.PostJsonAsync($"/api/trips/{t.Id}/status", new TripStatusRequest(st))).ReadAsync<TripDto>();
         return t;
     }

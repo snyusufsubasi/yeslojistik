@@ -108,6 +108,8 @@ public class ExpenseService(AppDbContext db, IFileStorage storage, ICurrentUser 
         e.Odometer = isFuel ? r.Odometer : null;
         e.Category = r.Category;
         e.Amount = Money.Round(r.Amount);
+        // Kategorinin varsayılan oranı saklanmaz (boş = varsayılan); yalnız farklı seçilen oran kaydedilir.
+        e.VatRate = r.VatRate is { } vat && vat != ExpenseVat.DefaultFor(r.Category) ? vat : null;
         e.Date = r.Date;
         e.VehicleId = vehicleId;
         e.TripId = r.TripId;

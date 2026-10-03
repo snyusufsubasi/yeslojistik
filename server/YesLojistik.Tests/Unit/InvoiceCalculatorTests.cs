@@ -32,6 +32,23 @@ public class InvoiceCalculatorTests
     }
 
     [Theory]
+    // 10.000 + KDV = 12.000: sınırı aşmaz → tevkifat yok.
+    [InlineData(10_000, 20, "1234567890", 0)]
+    // 10.000,01 + KDV > 12.000 ve alıcı şirket (10 haneli VKN) → 2/10.
+    [InlineData(10_000.01, 20, "1234567890", 2)]
+    // Alıcı şahıs (11 haneli TCKN) ya da vergi numarası yok → tevkifat yok.
+    [InlineData(50_000, 20, "10000000146", 0)]
+    [InlineData(50_000, 20, null, 0)]
+    // KDV %0 (uluslararası taşıma) → tevkifat yok.
+    [InlineData(50_000, 0, "1234567890", 0)]
+    public void Automatic_withholding_depends_on_total_and_buyer(decimal subtotal, decimal vat, string? taxNo, int expected) =>
+        InvoiceCalculator.WithholdingFor(subtotal, vat, null, taxNo).Should().Be(expected);
+
+    [Fact]
+    public void Chosen_withholding_overrides_the_automatic_rule() =>
+        InvoiceCalculator.WithholdingFor(1_000, 20, 5, "10000000146").Should().Be(5);
+
+    [Theory]
     [InlineData(-1, 0)]
     [InlineData(101, 0)]
     [InlineData(20, 11)]
