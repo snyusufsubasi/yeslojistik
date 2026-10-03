@@ -105,13 +105,13 @@ export function Layout() {
             const items = g.items.filter((n) => !n.perm || can(n.perm))
             if (items.length === 0) return null
             return (
-              <div key={gi} className={gi > 0 ? 'mt-3' : ''}>
+              <div key={gi} className={gi > 0 ? 'mt-2.5' : ''}>
                 {g.title && <div className="mb-0.5 px-4 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-side-muted">{g.title}</div>}
                 {items.map((n) => {
                   const b = n.badge?.(dashboard, alerts) ?? null
                   return (
                     <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                      className={({ isActive }) => clsx('flex min-h-[30px] items-center gap-2.5 border-l-[3px] pl-[13px] pr-3 text-[0.84375rem] transition',
+                      className={({ isActive }) => clsx('flex min-h-[28px] items-center gap-2.5 border-l-[3px] pl-[13px] pr-3 text-[0.84375rem] transition',
                         isActive ? 'border-hl bg-side-active font-bold text-white' : 'border-transparent text-side-fg hover:bg-side-active/60 hover:text-white')}>
                       {({ isActive }) => (<>
                         <n.icon className={clsx('size-4 shrink-0', isActive ? 'text-hl' : 'text-side-muted')} />

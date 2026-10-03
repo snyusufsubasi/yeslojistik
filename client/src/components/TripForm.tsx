@@ -39,7 +39,7 @@ const defaultCargoTypes = ['Genel kargo', 'Mobilya', 'Tekstil', 'Gıda', 'İnşa
 function Chip({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: ReactNode; title?: string }) {
   return (
     <button type="button" tabIndex={-1} onClick={onClick} title={title}
-      className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-full border px-3 text-sm transition ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
+      className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-[3px] border px-3 text-sm transition ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
       <span className="truncate">{children}</span>
     </button>
   )

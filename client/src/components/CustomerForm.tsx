@@ -169,7 +169,7 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
             <p className="text-sm text-slate-600">Seferde seçilir; listede ve ekstrede gruba göre süzülür.</p>
             <div className="flex flex-wrap gap-2">
               {groups.map((g) => (
-                <span key={g} className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white py-1 pl-3 pr-1 text-sm">
+                <span key={g} className="inline-flex items-center gap-1 rounded-[3px] border border-slate-300 bg-white py-1 pl-3 pr-1 text-sm">
                   {g}
                   <button type="button" aria-label={`${g} grubunu çıkar`} className="rounded-full px-1.5 text-slate-500 hover:bg-slate-100" onClick={() => setGroups(groups.filter((x) => x !== g))}>×</button>
                 </span>

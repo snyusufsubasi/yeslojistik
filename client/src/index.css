@@ -96,7 +96,7 @@
   /* Rakamlar eşit genişlikte, alt alta hizalı */
   .tabular-nums, td { font-variant-numeric: tabular-nums; }
   /* Tutar ve sayılar Overpass Mono; form alanlarında tutar kutusu da öyle */
-  .tabular-nums { font-family: var(--font-mono); }
+  .tabular-nums { font-family: var(--font-mono); letter-spacing: -0.02em; }
   input, select, textarea, button { font: inherit; }
   /* Klavyeyle gezinirken odak net görünsün */
   a:focus-visible, button:focus-visible, [role="button"]:focus-visible, summary:focus-visible {
@@ -119,5 +119,14 @@
   .th { @apply border-b border-line bg-surface-2 px-3 py-2 text-left text-[0.6875rem] font-bold uppercase tracking-[0.07em] text-muted; }
   .td { @apply break-words border-b border-slate-100 px-3 py-[7px] text-[0.84375rem] text-fg; }
   /* Tablodaki tutar ve sayılar (sağa yaslı sütunlar) Overpass Mono */
-  td.text-right { font-family: var(--font-mono); }
+  td.text-right { font-family: var(--font-mono); letter-spacing: -0.02em; }
+  /* Sayı hücresindeki düğmeler (ör. "Yüklendi yap") normal yazıyla kalır */
+  :is(td.text-right, .tabular-nums) :is(button, a[role="button"]) { font-family: var(--font-sans); letter-spacing: normal; }
+  /* Sıralanabilir başlıklar düğme içinde: büyük harf ve aralık başlıktan gelsin */
+  .th button { text-transform: inherit; letter-spacing: inherit; font-weight: inherit; }
+}
+
+@layer utilities {
+  /* Tablo hücresindeki ikinci satır (ör. "No 6", şoför adı) ana yazıdan küçük kalsın: satırlar sık, dizüstünde 18-20 satır */
+  .td .text-sm { font-size: 0.78125rem; line-height: 1.35; }
 }

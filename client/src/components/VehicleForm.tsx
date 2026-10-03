@@ -97,7 +97,7 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
           <div className="mt-2 flex flex-wrap gap-1.5">
             {vehicleTypes.map((t) => (
               <button key={t} type="button" onClick={() => setValue('type', t, { shouldValidate: true })}
-                className={`min-h-9 rounded-full border px-3 text-sm font-medium transition ${type === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{t}</button>
+                className={`min-h-9 rounded-[3px] border px-3 text-sm font-medium transition ${type === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{t}</button>
             ))}
           </div>
         </Field>
@@ -125,7 +125,7 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {[10000, 15000, 20000].map((k) => (
                   <button key={k} type="button" onClick={() => setValue('nextMaintenanceKm', (Number.isFinite(km) ? km : 0) + k, { shouldValidate: true })}
-                    className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
+                    className="min-h-9 rounded-[3px] border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
                 ))}
               </div>
             </Field>

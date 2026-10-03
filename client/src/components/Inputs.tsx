@@ -94,13 +94,13 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
         <div className="flex flex-wrap gap-1.5">
           {chips.map((c) => (
             <button key={c.label} type="button" tabIndex={-1} onClick={() => onChange(c.v)}
-              className={clsx('min-h-9 rounded-full border px-3 text-sm font-medium transition',
+              className={clsx('min-h-9 rounded-[3px] border px-3 text-sm font-medium transition',
                 value === c.v ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
               {c.label}
             </button>
           ))}
           {value && quick !== 'today' && (
-            <button type="button" tabIndex={-1} onClick={() => onChange('')} className="inline-flex min-h-9 items-center gap-1 rounded-full px-2 text-sm text-slate-600 hover:bg-slate-100">
+            <button type="button" tabIndex={-1} onClick={() => onChange('')} className="inline-flex min-h-9 items-center gap-1 rounded-[3px] px-2 text-sm text-slate-600 hover:bg-slate-100">
               <X className="size-4" /> Temizle
             </button>
           )}
@@ -110,7 +110,7 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
   )
 }
 
-const chip = (active: boolean) => clsx('min-h-9 rounded-full border px-3 text-sm font-semibold transition',
+const chip = (active: boolean) => clsx('min-h-9 rounded-[3px] border px-3 text-sm font-semibold transition',
   active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')
 
 interface DaysProps<F extends FieldValues> {
