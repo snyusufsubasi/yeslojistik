@@ -24,10 +24,14 @@
 
 ### A0 — Ayna canlıda (önkoşul, 1 gün)
 Kod hazır ve canlıda. Bekleyen tek şey şifreler.
-- [ ] **Kullanıcı:** GitHub → Settings → Secrets and variables → Actions sayfasına `PRATIK_USER`, `PRATIK_PASS`, `PANEL_EMAIL` ve `PANEL_PASSWORD` eklenir.
+- [x] **Kullanıcı:** GitHub → Settings → Secrets and variables → Actions → Repository secrets'a giriş bilgileri eklendi (3 Ekim). Tek kayıt: `PASS`, her satırda `AD=değer` (PRATIK_USER, PRATIK_PASS, PANEL_EMAIL, PANEL_PASSWORD). Ayrıntı: `tools/legacy/secrets.sh`.
 - [ ] **Kullanıcı:** Aynı sayfaya gece yedeği için `BACKUP_URL`, `BACKUP_TOKEN` ve `BACKUP_PASSPHRASE` eklenir. Gece yedeği şu ana kadar hiç çalışmadı.
-- [ ] Panelden tam yedek alınır, Ayarlar'dan ayna açılır, ilk senkron elle çalıştırılır (onayla).
-- [ ] Kontrol: 10 öz araç / 127 taşeron aracı olmalı. 5 rastgele carinin bakiyesi pratikortam ile aynı olmalı.
+- [x] Panelden tam yedek alınır, Ayarlar'dan ayna açılır, ilk senkron elle çalıştırılır (onayla). *3 Ekim 12:45: kullanıcı yedek aldı ve aynayı açtı, ilk senkron onayla uygulandı.*
+  - Yeni gelenler: 5 tedarikçi, 4 şoför, 5 araç, 25 sevkiyat.
+  - Pratikortam'daki hâline getirilenler: 155 müşteri, 140 tedarikçi, 134 şoför, 133 araç, 211 sevkiyat.
+  - 150 gider yenisiyle değiştirildi, eski aktarımdan kalan 25 tedarikçi ödemesi kaldırıldı.
+  - Hemen ardından yapılan deneme senkronunda her türde "aynı" çıktı.
+- [ ] Kontrol: 10 öz araç / 127 taşeron aracı olmalı. 5 rastgele carinin bakiyesi pratikortam ile aynı olmalı. *(Panelde göz kontrolü kullanıcıda. Veritabanı dışarıdan sorgulanamıyor.)*
 
 ### A1 — Tasarım seçimi (2-3 gün)
 - [ ] 3 farklı tasarım hazırlanır, her biri aynı 3 ekranla: Sevkiyatlar listesi, Yeni Sevkiyat formu, Ana sayfa. Gerçek görünümle, paylaşılabilir bir sayfada sunulur.
