@@ -98,6 +98,9 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] 5 rastgele cari pratikortam ile yan yana karşılaştırılır. Tam yedek alınır.
 - [ ] Pratikortam salt okunur arşiv olarak kalır. Şifreler ortamlardan silinir.
 
+## Satışa hazırlık
+Panel başka firmalara satılacak ürün olarak da düşünülüyor. Rakipler, eksikler, fiyat ve aşamalar: `docs/SATIS-PLANI.md`.
+
 ## Kaldığımız yer (3 Ekim, kullanım limiti yüzünden ara)
 1. `claude/wip-backup-test-fix` dalı: ara sıra düşen `BackupTests` için düzeltme var.
    - Sebep: geri yükleme testi sunucuyu kapatıyor, aynı sınıftaki sonraki test kapanmış sunucuya istek atıyor.

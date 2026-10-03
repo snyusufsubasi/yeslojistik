@@ -88,9 +88,9 @@
 @layer base {
   html, body, #root { height: 100%; }
   /* Yazı boyutu ayarı (Normal / Büyük / Çok büyük): her şey rem ile birlikte büyür */
-  html { font-size: 16px; }
-  html[data-text="lg"] { font-size: 17.5px; }
-  html[data-text="xl"] { font-size: 19px; }
+  html { font-size: 17.5px; }
+  html[data-text="lg"] { font-size: 19px; }
+  html[data-text="xl"] { font-size: 21px; }
   body { @apply bg-canvas font-sans text-[0.9375rem] leading-normal text-fg antialiased; }
   h1, h2, h3 { font-family: var(--font-sans); font-weight: 650; letter-spacing: -0.01em; }
   /* Rakamlar eşit genişlikte, alt alta hizalı */
