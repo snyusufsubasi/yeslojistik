@@ -1,32 +1,88 @@
 @import "tailwindcss";
 
+/*
+ * "Otoyol" görünümü (docs/TASARIM-OTOYOL.md): koyu çam yeşili sol menü, açık gri-yeşil zemin, beyaz tablolar,
+ * sarı yalnızca dikkat isteyen yerde. Sayfalar slate/brand/navy adlarını kullanır; burada yeniden eşlenince bütün ekranlar birlikte değişir.
+ */
 @theme {
-  /* Claude'un görünümü: arayüzde sade yazı (Mac'te Apple'ın kendi fontu), başlıklarda tırnaklı (serif) yazı */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Source Serif 4 Variable", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --color-canvas: #faf9f5;
-  --color-sidebar: #f3f1ea;
-  /* Gri tonları sıcak (kırık beyaz / taş) tonlarla değiştirildi; bütün sayfalar birlikte yumuşar */
-  --color-slate-50: #f8f7f3;
-  --color-slate-100: #f1efe8;
-  --color-slate-200: #e6e3da;
-  --color-slate-300: #d5d1c5;
-  --color-slate-400: #a9a497;
-  --color-slate-500: #6f6b62;
-  --color-slate-600: #5a5750;
-  --color-slate-700: #45433d;
-  --color-slate-800: #302e2a;
-  --color-slate-900: #1f1e1b;
-  --color-navy-950: #141412;
-  --color-navy-900: #1f1e1b;
-  --color-navy-800: #302e2a;
-  --color-navy-700: #45433d;
-  --color-brand-50: #eef4fc;
-  --color-brand-100: #dbe8f8;
-  --color-brand-500: #2f7fd6;
-  --color-brand-600: #2268b8;
-  --color-brand-700: #1b5596;
-  --color-brand-800: #17467a;
+  --font-sans: "Overpass", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* Eskiden başlıklar tırnaklıydı; artık her yerde Overpass */
+  --font-serif: var(--font-sans);
+
+  /* Otoyol jetonları */
+  --color-canvas: #f2f5f4;
+  --color-surface: #ffffff;
+  --color-surface-2: #e8eeec;
+  --color-line: #d3ddd9;
+  --color-fg: #14231e;
+  --color-muted: #56685f;
+  --color-accent: #0d6a51;
+  --color-accent-soft: #dbeee7;
+  --color-side: #0f3a31;
+  --color-side-fg: #e4efeb;
+  --color-side-muted: #8db1a6;
+  --color-side-active: #1a5145;
+  --color-sidebar: #0f3a31;
+  --color-hl: #f0c02c;
+  --color-plate: #1d4f9e;
+  --color-good: #1b7442;
+  --color-good-soft: #def2e5;
+  --color-warn: #9a5d00;
+  --color-warn-soft: #fbeed6;
+  --color-bad: #b2302a;
+  --color-bad-soft: #fae2df;
+  --color-info: #2b5c99;
+  --color-info-soft: #e2ecf8;
+  --color-bill: #6e5100;
+  --color-bill-soft: #fcefc4;
+
+  /* Gri tonları yeşil-gri: zemin, çizgi, ikincil yazı, ana yazı */
+  --color-slate-50: #f2f5f4;
+  --color-slate-100: #e8eeec;
+  --color-slate-200: #d3ddd9;
+  --color-slate-300: #bccac4;
+  --color-slate-400: #8a9c94;
+  --color-slate-500: #617369;
+  --color-slate-600: #56685f;
+  --color-slate-700: #3a4b43;
+  --color-slate-800: #23332c;
+  --color-slate-900: #14231e;
+  --color-slate-950: #0b1612;
+  --color-navy-950: #0a2621;
+  --color-navy-900: #0f3a31;
+  --color-navy-800: #14473c;
+  --color-navy-700: #1a5145;
+  /* Vurgu rengi: #0d6a51 çevresinde yeşil */
+  --color-brand-50: #edf6f2;
+  --color-brand-100: #dbeee7;
+  --color-brand-200: #b5dccd;
+  --color-brand-300: #84c3ab;
+  --color-brand-400: #4fa486;
+  --color-brand-500: #1f8565;
+  --color-brand-600: #0d6a51;
+  --color-brand-700: #0a5642;
+  --color-brand-800: #084434;
+  --color-brand-900: #063328;
+  --color-brand-950: #04241c;
+
+  /* Köşeler neredeyse keskin: kart 4px, düğme/alan 3px, etiket 2px */
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 6px;
+
+  /* Gölge yok; yalnız açılır pencere ve açılır menüde */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 8px 24px rgb(10 40 30 / 0.14);
+  --shadow-xl: 0 8px 24px rgb(10 40 30 / 0.14);
+  --shadow-2xl: 0 8px 24px rgb(10 40 30 / 0.14);
 }
 
 @layer base {
@@ -35,28 +91,33 @@
   html { font-size: 16px; }
   html[data-text="lg"] { font-size: 17.5px; }
   html[data-text="xl"] { font-size: 19px; }
-  body { @apply bg-canvas text-[0.9375rem] leading-relaxed text-slate-800 antialiased; font-feature-settings: "cv11"; }
-  h1, h2, h3 { font-family: var(--font-serif); font-weight: 560; letter-spacing: -0.01em; }
+  body { @apply bg-canvas font-sans text-[0.875rem] leading-normal text-fg antialiased; }
+  h1, h2, h3 { font-family: var(--font-sans); font-weight: 700; letter-spacing: -0.005em; }
+  /* Rakamlar eşit genişlikte, alt alta hizalı */
   .tabular-nums, td { font-variant-numeric: tabular-nums; }
+  /* Tutar ve sayılar Overpass Mono; form alanlarında tutar kutusu da öyle */
+  .tabular-nums { font-family: var(--font-mono); }
   input, select, textarea, button { font: inherit; }
   /* Klavyeyle gezinirken odak net görünsün */
   a:focus-visible, button:focus-visible, [role="button"]:focus-visible, summary:focus-visible {
     outline: 3px solid var(--color-brand-500);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 3px;
   }
 }
 
 @layer components {
   .input {
-    @apply min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-[0.9375rem] text-slate-900 outline-none transition
-      placeholder:text-slate-500 hover:border-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600;
+    @apply min-h-10 w-full rounded-[3px] border border-slate-300 bg-white px-3 py-1.5 text-[0.875rem] text-slate-900 outline-none transition
+      placeholder:text-slate-500 hover:border-slate-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600;
   }
   /* Telefonda 16px: iPhone form kutusuna dokununca sayfayı büyütmesin */
   @media (pointer: coarse) { .input { font-size: max(16px, 1rem); } }
   .input-error { @apply border-red-500 focus:border-red-500 focus:ring-red-100; }
-  .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
-  .card { @apply min-w-0 rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(31,30,27,0.03)]; }
-  .th { @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-600; }
-  .td { @apply break-words border-b border-slate-100 px-4 py-3.5 text-[0.9375rem] text-slate-800; }
+  .label { @apply mb-1 block text-[0.78125rem] font-semibold text-muted; }
+  .card { @apply min-w-0 rounded-[4px] border border-line bg-white; }
+  .th { @apply border-b border-line bg-surface-2 px-3 py-2 text-left text-[0.6875rem] font-bold uppercase tracking-[0.07em] text-muted; }
+  .td { @apply break-words border-b border-slate-100 px-3 py-[7px] text-[0.84375rem] text-fg; }
+  /* Tablodaki tutar ve sayılar (sağa yaslı sütunlar) Overpass Mono */
+  td.text-right { font-family: var(--font-mono); }
 }
