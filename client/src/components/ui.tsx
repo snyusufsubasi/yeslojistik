@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type SyntheticEvent } from 'react'
 import clsx from 'clsx'
 import { AlertTriangle, ChevronLeft, Loader2, RefreshCw, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
@@ -125,14 +125,51 @@ export function Field({ label, error, required, children, className, hint, group
 
 const modalStack: object[] = []
 
-export function Modal({ open, onClose, title, children, footer, size = 'md' }:
-  { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
+export function Modal({ open, onClose, title, children, footer, size = 'md', guard = true }:
+  { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl'
+    /** Alanlara bir şey yazıldıysa Esc, dışarı tıklama ve X kapatmadan önce sorar. Arama gibi pencerelerde kapatılır. */
+    guard?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [dirty, setDirty] = useState(false)
+  const [asking, setAsking] = useState(false)
+  // Yalnızca kullanıcının kapatma yolları (Esc, dışarı tıklama, X) sorar; kaydedince ya da "Vazgeç" ile kapanış doğrudan olur.
+  const requestClose = useCallback(() => {
+    if (guard && dirty) setAsking(true)
+    else onClose()
+  }, [guard, dirty, onClose])
+
+  // Pencere kapanınca "değişti" bilgisi sıfırlanır (aynı bileşen açık kalıp tekrar açıldığında).
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (!open) { setDirty(false); setAsking(false) }
+  }
+
+  useEffect(() => {
+    if (!open) return
+    // Pencere açılınca ilk alana odaklan (alan kendi autoFocus'unu kullandıysa ona dokunma).
+    const box = ref.current
+    if (box && !box.contains(document.activeElement)) {
+      const first = box.querySelector<HTMLElement>('[data-modal-body] :is(input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea):not([disabled]):not([readonly])')
+      // Arama kutusu (combobox) odaklanınca listeyi açar ve seçili değeri gizler; ilk alan oysa odaklanma.
+      if (first && first.getAttribute('role') !== 'combobox') first.focus()
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     // Üst üste açılan pencerelerde (ör. sefer formundan "yeni müşteri") Esc yalnızca en üsttekini kapatır.
     const token = {}
     modalStack.push(token)
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && modalStack[modalStack.length - 1] === token && onClose()
+    const onKey = (e: KeyboardEvent) => {
+      if (modalStack[modalStack.length - 1] !== token) return
+      if (e.key === 'Escape') { e.preventDefault(); requestClose() }
+      // Ctrl+Enter (Mac'te Cmd+Enter): penceredeki formu kaydeder.
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        const form = ref.current?.querySelector('form')
+        if (form) { e.preventDefault(); form.requestSubmit() }
+      }
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
@@ -140,20 +177,30 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }:
       modalStack.splice(modalStack.indexOf(token), 1)
       if (modalStack.length === 0) document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open, requestClose])
   if (!open) return null
   const width = { sm: 'sm:max-w-md', md: 'sm:max-w-2xl', lg: 'sm:max-w-4xl', xl: 'sm:max-w-6xl' }[size]
+  // İç içe pencerelerde (ör. fatura içinden "Tahsilat Ekle") yalnızca bu pencerenin kendi alanları sayılır.
+  const own = (e: SyntheticEvent) => (e.target as HTMLElement).closest('[role=dialog]') === ref.current
+  const touch = (e: SyntheticEvent) => { if (!dirty && own(e)) setDirty(true) }
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title}
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onMouseDown={requestClose}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={title}
         className={clsx('flex max-h-[95vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl', width)}
         onMouseDown={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-xl text-slate-900">{title}</h2>
-          <IconButton label="Kapat" onClick={onClose}><X className="size-5" /></IconButton>
+          <IconButton label="Kapat" onClick={requestClose}><X className="size-5" /></IconButton>
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
-        {footer && <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:rounded-b-2xl">{footer}</footer>}
+        <div data-modal-body className="flex-1 overflow-y-auto px-6 py-6" onInputCapture={touch} onChangeCapture={touch}
+          onSubmitCapture={(e) => { if (own(e)) setDirty(false) }}>{children}</div>
+        {asking ? (
+          <footer role="alert" className="flex flex-wrap items-center justify-end gap-3 border-t border-amber-200 bg-amber-50 px-6 py-4 sm:rounded-b-2xl">
+            <span className="mr-auto text-[0.9375rem] text-amber-900">Kaydedilmemiş değişiklikler var. Kapatılsın mı?</span>
+            <Button variant="secondary" onClick={() => setAsking(false)}>Forma dön</Button>
+            <Button variant="danger" onClick={() => { setAsking(false); onClose() }}>Kaydetmeden kapat</Button>
+          </footer>
+        ) : footer && <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:rounded-b-2xl">{footer}</footer>}
       </div>
     </div>
   )

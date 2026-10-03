@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { login } from './helpers'
+import { login, unique } from './helpers'
 
 test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab vurgulananı seçer', async ({ page }) => {
   await login(page)
@@ -32,4 +32,38 @@ test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab v
   for (const name of ['Bugün', 'Yarın', '+1 gün', 'Mobilya', 'palet']) {
     await expect(dialog.getByRole('button', { name, exact: true }).first()).toHaveAttribute('tabindex', '-1')
   }
+})
+
+test('pencere: ilk alana odak, yazılmışsa kapatmadan önce sorar, Ctrl+Enter kaydeder', async ({ page }) => {
+  await login(page)
+  await page.getByRole('link', { name: 'Müşteriler', exact: true }).first().click()
+  await page.getByRole('button', { name: 'Yeni Müşteri' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Yeni Müşteri' })
+  const title = dialog.getByLabel('Ünvan')
+  await expect(title).toBeFocused()
+
+  // Boş formu Esc hemen kapatır.
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+
+  // Yazılmış formda Esc sorar; "Forma dön" yazılanı korur.
+  await page.getByRole('button', { name: 'Yeni Müşteri' }).click()
+  const name = `E2E Pencere ${unique()}`
+  await title.fill(name)
+  await page.keyboard.press('Escape')
+  await expect(dialog.getByText('Kaydedilmemiş değişiklikler var. Kapatılsın mı?')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Forma dön' }).click()
+  await expect(title).toHaveValue(name)
+
+  // X da sorar; "Kaydetmeden kapat" kapatır.
+  await dialog.getByRole('button', { name: 'Kapat' }).click()
+  await dialog.getByRole('button', { name: 'Kaydetmeden kapat' }).click()
+  await expect(dialog).toBeHidden()
+
+  // Ctrl+Enter kaydeder.
+  await page.getByRole('button', { name: 'Yeni Müşteri' }).click()
+  await title.fill(name)
+  await page.keyboard.press('Control+Enter')
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText(name).first()).toBeVisible()
 })

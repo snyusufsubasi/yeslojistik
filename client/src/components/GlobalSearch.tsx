@@ -57,7 +57,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   const go = (r: SearchResult) => { onClose(); navigate(r.link) }
 
   return (
-    <Modal open onClose={onClose} title="Ara" size="md">
+    <Modal open onClose={onClose} title="Ara" size="md" guard={false}>
       <div className="relative mb-3">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
         <input ref={input} autoFocus className="input pl-9" placeholder="Plaka, müşteri, referans no, fatura no, şoför…" aria-label="Arama"
