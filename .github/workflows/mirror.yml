@@ -1,5 +1,6 @@
 # Pratikortam aynası: pratikortam.com'dan verileri SALT OKUMA ile çeker, düzeltir ve panele uygular (yan yana kullanım dönemi).
-# Gerekli secret'lar: PRATIK_USER, PRATIK_PASS (pratikortam girişi), PANEL_EMAIL, PANEL_PASSWORD (panel yönetici hesabı).
+# Gerekli secret: PASS (her satırda AD=değer: PRATIK_USER, PRATIK_PASS, PANEL_EMAIL, PANEL_PASSWORD)
+# ya da bu dört adla ayrı secret'lar. Ayrıntı: tools/legacy/secrets.sh
 # Panelde Ayarlar → "Pratikortam aynası" açık değilse yalnız deneme yapılır, hiçbir şey yazılmaz.
 # Loga yalnız sayılar yazılır; indirilen veri iş bitince silinir, artifact olarak saklanmaz.
 name: Pratikortam aynası
@@ -30,18 +31,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PRATIK_USER: ${{ secrets.PRATIK_USER }}
-      PRATIK_PASS: ${{ secrets.PRATIK_PASS }}
-      PANEL_EMAIL: ${{ secrets.PANEL_EMAIL }}
-      PANEL_PASSWORD: ${{ secrets.PANEL_PASSWORD }}
       PANEL_URL: https://yeslojistik.onrender.com
     steps:
-      - name: Ayarları kontrol et
-        run: |
-          for v in PRATIK_USER PRATIK_PASS PANEL_EMAIL PANEL_PASSWORD; do
-            if [ -z "${!v}" ]; then echo "::error::$v secret'ı tanımlanmalı (Settings → Secrets and variables → Actions)."; exit 1; fi
-          done
       - uses: actions/checkout@v4
+      - name: Giriş bilgilerini hazırla
+        env:
+          S_PASS: ${{ secrets.PASS }}
+          S_PRATIK_USER: ${{ secrets.PRATIK_USER }}
+          S_PRATIK_PASS: ${{ secrets.PRATIK_PASS }}
+          S_PANEL_EMAIL: ${{ secrets.PANEL_EMAIL }}
+          S_PANEL_PASSWORD: ${{ secrets.PANEL_PASSWORD }}
+        run: bash tools/legacy/secrets.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 22
