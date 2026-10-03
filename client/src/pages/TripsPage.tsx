@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, StepForward, Truck } from 'lucide-react'
+import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, StepForward, Truck } from 'lucide-react'
 import { download, errorMessage, get, post } from '../api/client'
+import { ExportButton, PdfButton } from '../components/Exports'
 import type { BulkResult, Driver, JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
@@ -176,7 +177,9 @@ export default function TripsPage() {
     <>
       <PageHeader title="Sevkiyatlar" subtitle="Seferlerin takibi, durum güncelleme, fatura ve kazanç"
         actions={<>
-          <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/trips/export', query, 'seferler.xlsx')}>Excel</Button>
+          <ExportButton url="/trips/export" params={query} fileName="seferler.xlsx" />
+          <PdfButton url="/trips/pdf" params={filters} fileName="sevkiyat-listesi.pdf" label="Sevkiyat PDF" icon={<Printer className="size-4" />} />
+          <PdfButton url="/trips/summary" params={{ ...filters, format: 'pdf' }} fileName="icmal.pdf" label="İcmal" icon={<FileText className="size-4" />} />
           {can('operations') && <ImportButton entity="trips" />}
           {can('accounting') && <Button write variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
           {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sefer</Button>}

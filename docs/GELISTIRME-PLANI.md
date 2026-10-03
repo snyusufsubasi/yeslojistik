@@ -139,12 +139,12 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 6 | Faturada seferin KDV ve tevkifatını kullan | Tevkifatlı sefer tevkifatsız faturalanabiliyor. Metin: "Seçilen seferlerin KDV oranları farklı. Ayrı fatura kesin." | `InvoiceService.CreateAsync` | M |
 | 7 | Faturalı seferde kritik alanları kilitle | Faturası kesilmiş seferin taşeronu veya maliyeti değişince iki cari birden bozulur | `TripService.UpdateAsync` | S |
 | 8 | Aynı anda düzenleme koruması | Çift tıklama veya iki kullanıcı aynı seferi iki kez faturalayabiliyor | Sürüm alanı + uyarı: "Bu kayıt siz düzenlerken değiştirildi" | M |
-| 9 | Filtre toplamları (sayfa değil, filtrenin tamamı) | "Sayfa toplamı" ay sonu kontrolünde yanıltıyor | Fatura, gider, ödeme ve alış faturası toplam uçları + ortak toplam şeridi | M |
+| 9 | Filtre toplamları (sayfa değil, filtrenin tamamı) | "Sayfa toplamı" ay sonu kontrolünde yanıltıyor | Fatura, gider, ödeme ve alış faturası toplam uçları + ortak toplam şeridi | M — **yapıldı (A4)** |
 | 10 | Filtreler adres çubuğunda kalsın | Geri gelince veya sayfayı yenileyince filtreler sıfırlanıyor | Ortak bir adres-durumu yardımcısı, tüm liste sayfaları | M |
 | 11 | Sefer listesine Özet/Detay görünümü, tedarikçi, plaka ve evrak filtresi, PDF/İcmal | Pratikortam'daki liste alışkanlığı | `TripsPage` | M |
 | 12 | ~~Toplu seçim ve toplu işlem~~ **Yapıldı (A5)** | Teslim evrakı onayı tek tek yapılıyor. Toplu ödeme yok | `DataTable` seçim + alt işlem çubuğu; `/api/trips/bulk/*`, `/api/supplier-payments/bulk` | M |
 | 13 | Cari tablolarında sıralama, Excel/PDF ve sütun toplamları | Pratikortam'da var, burada yok | `CariPage` | S |
-| 14 | Ana listelerde Excel dışa aktarma ve arşiv/pasif görünümü | Müşteri, tedarikçi, şoför ve araç listelerinde sadece içe aktarma var | 4 dışa aktarma ucu + düğmeler | M |
+| 14 | Ana listelerde Excel dışa aktarma ve arşiv/pasif görünümü | Müşteri, tedarikçi, şoför ve araç listelerinde sadece içe aktarma var | 4 dışa aktarma ucu + düğmeler | M — **Excel yapıldı (A4)**, arşiv görünümü bekliyor |
 | 15 | Hata kodu (iz numarası) ve hata kayıtları | "Beklenmeyen hata" mesajının nedeni bulunamıyor | `ExceptionHandler` + mesajda "Hata kodu: …" | S |
 | 16 | Arka plan işleri zamanlayıcıyla çalışsın | Sabah özeti ve e-fatura durumu uyuyan sunucuda çalışmıyor | GitHub Actions zamanlayıcısı + "Son çalışma" bilgisi | S |
 | 17 | ✅ .NET 10'a yükseltme (2 Ekim) | .NET 8 desteği 10 Kasım'da bitiyor | Tüm `.csproj`, Docker, CI | M |
@@ -156,7 +156,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 |---|---|---|---|---|
 | 1 | Ayrıntılı kullanıcı yetkileri | Bugün her ofis kullanıcısı müşteri, gider ve belge silebiliyor, kârı görebiliyor | Yetki tablosu (Görüntüle / Ekle / Düzenle / Sil), "Kârı görebilir" yetkisi | L |
 | 2 | Dosyaları veritabanından harici depoya taşı | PDF ve fotoğraflar veritabanını ve yedekleri şişiriyor | S3 uyumlu depo (AB bölgesi) + "Depolama" göstergesi | M |
-| 3 | Kâr hesabını tek formüle indir, komisyonda KDV'yi doğru hesapla | Kâr, komisyonun KDV'si kadar fazla görünüyor. Formül 8 yerde tekrar ediyor | Ortak bir kâr ifadesi + testler. Etiket: "Kâr (KDV hariç)" | M |
+| 3 | Kâr hesabını tek formüle indir, komisyonda KDV'yi doğru hesapla | Kâr, komisyonun KDV'si kadar fazla görünüyor. Formül 8 yerde tekrar ediyor | Ortak bir kâr ifadesi + testler. Etiket: "Kâr (KDV hariç)" | M — **tek formül yapıldı (A4, `TripProfit`)**; komisyon KDV düzeltmesi bekliyor |
 | 4 | Şoför primi, masraf ve bekleyen komisyon cariye işlensin | Kâr düşüyor ama borç ya da alacak görünmüyor | Şoför cari, borçlar, "Bekleyen komisyonlar" raporu | M |
 | 5 | Cari tutarlılık testleri | Tedarikçi hatası testlerle yakalanamadı | Ortak bir "tüm bakiyeler aynı mı" kontrolü | M |
 | 6 | Sıkı görünüm ve sabit tablo başlığı | Bir ekrana az satır sığıyor, başlık kayboluyor | `DataTable` + "Görünüm: Normal / Sıkı" | M |

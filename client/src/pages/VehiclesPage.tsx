@@ -6,6 +6,7 @@ import type { Vehicle, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select } from '../components/ui'
 import { ImportButton } from '../components/ImportDialog'
+import { ExportButton } from '../components/Exports'
 import { useAuth } from '../lib/auth'
 import { date, daysUntil } from '../lib/format'
 import { crud, useDebounce, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -36,7 +37,8 @@ export default function VehiclesPage() {
     setParams(params, { replace: true })
   }, [params, setParams])
 
-  const { data, isFetching } = usePaged<Vehicle>('vehicles', { page, pageSize: 20, search: debounced, status, sort: sort.key, desc: sort.desc })
+  const query = { page, pageSize: 20, search: debounced, status, sort: sort.key, desc: sort.desc }
+  const { data, isFetching } = usePaged<Vehicle>('vehicles', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['vehicles'], success: 'Araç silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Vehicle>[] = [
@@ -66,9 +68,12 @@ export default function VehiclesPage() {
   return (
     <>
       <PageHeader title="Araçlar" subtitle="Filo, bakım ve belge takibi"
-        actions={can('operations') && <>
-          <ImportButton entity="vehicles" />
-          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>
+        actions={<>
+          <ExportButton url="/vehicles/export" params={query} fileName="araclar.xlsx" />
+          {can('operations') && <>
+            <ImportButton entity="vehicles" />
+            <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>
+          </>}
         </>} />
       <Card title="Araç Listesi" icon={<Truck className="size-4" />} bodyClassName="p-0"
         actions={<>

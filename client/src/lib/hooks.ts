@@ -31,6 +31,23 @@ export function usePaged<T>(resource: string, params: ListParams) {
   })
 }
 
+/** Liste sorgusundan sayfa ve sıralama bilgisini çıkarır: Excel ve toplamlar filtrenin tamamını kullanır. */
+export function listFilters(query: object) {
+  const { page: _p, pageSize: _s, sort: _o, desc: _d, ...filters } = query as Record<string, unknown>
+  return filters
+}
+
+/** Filtre toplamı (yalnızca görünen sayfanın değil): /{resource}/totals ucundan. */
+export function useListTotals<T>(resource: string, query: object, enabled = true) {
+  const filters = listFilters(query)
+  return useQuery({
+    queryKey: [resource, 'totals', filters],
+    queryFn: () => get<T>(`/${resource}/totals`, filters),
+    placeholderData: keepPreviousData,
+    enabled,
+  })
+}
+
 export function useLookup(resource: 'customers' | 'vehicles' | 'drivers' | 'suppliers' | 'cash-accounts') {
   return useQuery({
     queryKey: [resource, 'lookup'],

@@ -59,10 +59,12 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] **Kullanıcı** aklına gelenleri ekler ve önem sırasını seçer. A4–A6 bu sıraya göre yapılır.
 
 ### A4 — Raporlar ve çıktılar (1 hafta)
-- [ ] Sevkiyat listesi PDF ve İcmal: seçili tarih ve müşteri için, müşteriye gönderilebilir.
-- [ ] Kazanç/kâr raporu: ay, müşteri ve araç bazında; kâr tek formülle hesaplanır.
-- [ ] Cari ekstre: müşteri ve tedarikçi için, PDF ve Excel.
-- [ ] Her listede "Excel'e aktar" ve filtrenin tamamının toplamı (yalnızca sayfanın değil).
+- [x] Sevkiyat listesi PDF ve İcmal: seçili tarih ve müşteri için, müşteriye gönderilebilir.
+- [x] Kazanç/kâr raporu: ay, müşteri ve araç bazında; kâr tek formülle hesaplanır.
+- [x] Cari ekstre: müşteri ve tedarikçi için, PDF ve Excel.
+- [x] Her listede "Excel'e aktar" ve filtrenin tamamının toplamı (yalnızca sayfanın değil).
+  - Yapıldı: Sevkiyatlar'da "Sevkiyat PDF" ve "İcmal" (filtredeki seferler), Raporlar → "Kazanç" sekmesi (ay/müşteri/araç/şoför), ekstrede Excel, bütün ana listelerde Excel, fatura/gider/tahsilat/ödeme/alınan fatura/çek-senet listelerinde filtre toplamı şeridi.
+  - Kalan: komisyonun KDV'si kâr hesabında hâlâ brüt. Formül artık tek yerde (`TripProfit`); düzeltme kullanıcı onayıyla yapılacak.
 
 ### A5 — Toplu işlemler (1 hafta)
 - [x] Listelerde çoklu seçim ve alt işlem çubuğu (Sevkiyatlar, tedarikçi kartı → Seferler, Faturalar, Tahsilatlar; telefonda da).

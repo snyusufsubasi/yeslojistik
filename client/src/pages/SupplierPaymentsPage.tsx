@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { Download, HandCoins, Pencil, Plus, Trash2 } from 'lucide-react'
-import { download } from '../api/client'
-import type { SupplierPayment } from '../api/types'
+import { HandCoins, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ExportButton, TotalsStrip } from '../components/Exports'
+import type { PaymentTotals, SupplierPayment } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
+import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 
 const api = crud<SupplierPayment, unknown>('supplier-payments')
@@ -30,6 +30,7 @@ export default function SupplierPaymentsPage() {
 
   const query = { page, pageSize: 20, search: debounced, supplierId, from, to, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<SupplierPayment>('supplier-payments', query)
+  const { data: totals } = useListTotals<PaymentTotals>('supplier-payments', query)
   const deleteMut = useSave((id: number) => api.remove(id), {
     invalidate: ['supplier-payments', 'suppliers'], success: 'Ödeme silindi.', onSuccess: () => setDeleting(null),
   })
@@ -55,7 +56,7 @@ export default function SupplierPaymentsPage() {
     <>
       <PageHeader title="Ödemeler" subtitle="Taşeronlara, servislere ve istasyonlara yapılan ödemeler"
         actions={<>
-          <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/supplier-payments/export', query, 'odemeler.xlsx')}>Excel</Button>
+          <ExportButton url="/supplier-payments/export" params={query} fileName="odemeler.xlsx" />
           {can('accounting') && <ImportButton entity="supplier-payments" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Ödeme Yap</Button>}
         </>} />
@@ -67,6 +68,11 @@ export default function SupplierPaymentsPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
+        {totals && totals.count > 0 && <TotalsStrip items={[
+          { label: 'Ödeme', value: totals.count },
+          { label: 'Toplam', value: tl2(totals.total), tone: 'text-red-700' },
+          ...(totals.refunds > 0 ? [{ label: 'Gelen iadeler (düşüldü)', value: tl2(totals.refunds) }] : []),
+        ]} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}

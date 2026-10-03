@@ -10,6 +10,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Tabs } from '../components/ui'
 import { DocumentsPanel, DriverLedgerPanel } from '../components/FleetPanels'
 import { ImportButton } from '../components/ImportDialog'
+import { ExportButton } from '../components/Exports'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -60,9 +61,8 @@ export default function DriversPage() {
     setParams(params, { replace: true })
   }, [params, setParams])
 
-  const { data, isFetching } = usePaged<Driver>('drivers', {
-    page, pageSize: 20, search: debounced, active: showPassive ? undefined : true, sort: sort.key, desc: sort.desc,
-  })
+  const query = { page, pageSize: 20, search: debounced, active: showPassive ? undefined : true, sort: sort.key, desc: sort.desc }
+  const { data, isFetching } = usePaged<Driver>('drivers', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['drivers', 'vehicles'], success: 'Şoför silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Driver>[] = [
@@ -90,9 +90,12 @@ export default function DriversPage() {
   return (
     <>
       <PageHeader title="Şoförler" subtitle="Şoför bilgileri ve belge süreleri"
-        actions={can('operations') && <>
-          <ImportButton entity="drivers" />
-          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Şoför</Button>
+        actions={<>
+          <ExportButton url="/drivers/export" params={query} fileName="soforler.xlsx" />
+          {can('operations') && <>
+            <ImportButton entity="drivers" />
+            <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Şoför</Button>
+          </>}
         </>} />
       <Card title="Şoför Listesi" icon={<IdCard className="size-4" />} bodyClassName="p-0"
         actions={<>

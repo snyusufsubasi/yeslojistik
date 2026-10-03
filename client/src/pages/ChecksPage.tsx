@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Download, ScrollText } from 'lucide-react'
-import { download, post } from '../api/client'
-import type { InstrumentStatus, Payment } from '../api/types'
+import { ScrollText } from 'lucide-react'
+import { post } from '../api/client'
+import { ExportButton, TotalsStrip } from '../components/Exports'
+import type { InstrumentStatus, Payment, PaymentTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, DateFilter, Field, Modal, PageHeader, Select } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { daysUntil, date, tl2, todayIso } from '../lib/format'
-import { useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { instrumentStatusLabel, instrumentStatusTone, options, paymentMethodLabel } from '../lib/labels'
 
 type Action = { payment: Payment; status: InstrumentStatus }
@@ -68,12 +69,12 @@ export default function ChecksPage() {
       </div>
     ),
   })
-  const total = data?.items.reduce((s, p) => s + p.amount, 0) ?? 0
+  const { data: totals } = useListTotals<PaymentTotals>('payments', query)
 
   return (
     <>
       <PageHeader title="Çek / Senet" subtitle="Müşteriden alınan çek ve senetlerin vade ve durum takibi"
-        actions={<Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/payments/export', query, 'cek-senet.xlsx')}>Excel</Button>} />
+        actions={<ExportButton url="/payments/export" params={query} fileName="cek-senet.xlsx" />} />
       <p className="mb-3 text-sm text-slate-600">Yeni çek/senet, Tahsilatlar'da ödeme yöntemi “Çek” ya da “Senet” seçilerek girilir. Karşılıksız ya da iade edilen çek müşterinin bakiyesinden düşmez.</p>
       <Card title="Portföy" icon={<ScrollText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, açıklama..." />}>
@@ -81,13 +82,14 @@ export default function ChecksPage() {
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(instrumentStatusLabel)} placeholder="Tüm durumlar" />
           <DateFilter label="Vadesi şu tarihe kadar" value={dueTo} onChange={setDueTo} />
         </div>
+        {totals && totals.count > 0 && <TotalsStrip items={[
+          { label: 'Çek / senet', value: totals.count },
+          { label: 'Toplam', value: tl2(totals.total) },
+        ]} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
-          empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'}
-          footer={data && data.items.length > 0 ? (
-            <tr className="bg-slate-50 text-sm font-medium"><td className="td" colSpan={4}>Sayfa toplamı</td><td className="td text-right">{tl2(total)}</td>{can('accounting') && <td className="td" />}</tr>
-          ) : undefined} />
+          empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'} />
       </Card>
       {action && <InstrumentActionDialog action={action} onClose={() => setAction(null)} />}
     </>

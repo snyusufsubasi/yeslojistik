@@ -4,11 +4,12 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Check, Download, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
-import { api as apiClient, download, errorMessage, get, openPdf, post } from '../api/client'
+import { Check, Pencil, Plus, Receipt, Trash2, X } from 'lucide-react'
+import { api as apiClient, errorMessage, get, openPdf, post } from '../api/client'
 import { useToast } from '../components/Toast'
 import { compressImage } from '../lib/image'
-import type { ApprovalStatus, Expense, ExpenseCategory, ExpenseCategoryTotal, ExpenseDetails, PagedResult, Trip } from '../api/types'
+import type { ApprovalStatus, Expense, ExpenseCategory, ExpenseCategoryTotal, ExpenseDetails, ExpenseTotals, PagedResult, Trip } from '../api/types'
+import { ExportButton, TotalsStrip } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
@@ -19,7 +20,7 @@ import { AmountInput, DateQuick, MoreFields } from '../components/Inputs'
 import { choices } from '../lib/choices'
 import { expenseCategoryIcon } from '../lib/icons'
 import { date, tl2, todayIso } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
+import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { approvalStatusLabel, expenseCategoryLabel, options } from '../lib/labels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
@@ -91,13 +92,13 @@ export default function ExpensesPage() {
       ),
     },
   ]
-  const pageTotal = data?.items.reduce((s, e) => s + e.amount, 0) ?? 0
+  const { data: totals } = useListTotals<ExpenseTotals>('expenses', query)
 
   return (
     <>
       <PageHeader title="Giderler" subtitle="Yakıt, bakım, otoyol ve diğer masraflar"
         actions={<>
-          <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/expenses/export', query, 'giderler.xlsx')}>Excel</Button>
+          <ExportButton url="/expenses/export" params={query} fileName="giderler.xlsx" />
           <ImportButton entity="expenses" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Gider Ekle</Button>
         </>} />
@@ -117,12 +118,14 @@ export default function ExpensesPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
+        {totals && totals.count > 0 && <TotalsStrip items={[
+          { label: 'Kayıt', value: totals.count },
+          { label: 'Toplam', value: tl2(totals.total) },
+          ...(totals.pending > 0 ? [{ label: 'Onaylı', value: tl2(totals.approved) }, { label: 'Onay bekleyen', value: tl2(totals.pending), tone: 'text-amber-700' }] : []),
+        ]} note={approvalStatus ? undefined : 'Reddedilen giderler toplama girmez.'} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(e) => e.id} onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to || approvalStatus ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."}
-          footer={data && data.items.length > 0 ? (
-            <tr className="bg-slate-50 text-sm font-medium"><td className="td" colSpan={5}>Sayfa toplamı</td><td className="td text-right">{tl2(pageTotal)}</td><td className="td" /></tr>
-          ) : undefined} />
+          page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to || approvalStatus ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."} />
       </Card>
       {editing && <ExpenseForm expense={editing === 'new' ? null : editing} defaultTripId={tripId} onClose={() => setEditing(null)} />}
       {rejecting && <RejectDialog expense={rejecting} onClose={() => setRejecting(null)} />}

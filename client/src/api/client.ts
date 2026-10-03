@@ -61,6 +61,13 @@ function cleanParams(params?: object) {
   return Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''))
 }
 
+/** Adrese boş olmayan parametreleri ekler (ör. PDF'i yeni sekmede açarken filtreleri taşımak için). */
+export function withQuery(url: string, params?: object) {
+  const clean = cleanParams(params)
+  const query = clean ? new URLSearchParams(Object.entries(clean).map(([k, v]) => [k, String(v)])).toString() : ''
+  return query ? `${url}${url.includes('?') ? '&' : '?'}${query}` : url
+}
+
 export async function get<T>(url: string, params?: object): Promise<T> {
   return (await api.get<T>(url, { params: cleanParams(params) })).data
 }

@@ -5,6 +5,7 @@ import { Plus, Users } from 'lucide-react'
 import type { Customer } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
 import { ImportButton } from '../components/ImportDialog'
+import { ExportButton } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader } from '../components/ui'
 import { tl } from '../lib/format'
@@ -20,7 +21,8 @@ export default function CustomersPage() {
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced])
 
-  const { data, isFetching } = usePaged<Customer>('customers', { page, pageSize: 20, search: debounced, sort: sort.key, desc: sort.desc })
+  const query = { page, pageSize: 20, search: debounced, sort: sort.key, desc: sort.desc }
+  const { data, isFetching } = usePaged<Customer>('customers', query)
 
   const columns: Column<Customer>[] = [
     { key: 'no', header: 'No', sortKey: 'id', render: (c) => <span className="text-slate-500">{c.customerNo}</span> },
@@ -42,6 +44,7 @@ export default function CustomersPage() {
       <PageHeader title="Müşteriler" subtitle="Müşteri kartları. Bütün bakiyeleri tek tabloda görmek için “Cari Tablosu”."
         actions={<>
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/musteriler')}>Cari Tablosu</Button>}
+          <ExportButton url="/customers/export" params={query} fileName="musteriler.xlsx" />
           <ImportButton entity="customers" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>
         </>} />

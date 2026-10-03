@@ -8,6 +8,7 @@ import { CustomerForm } from '../components/CustomerForm'
 import { DataTable, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
 import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Spinner, Tabs } from '../components/ui'
+import { ExportButton } from '../components/Exports'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../lib/auth'
 import { date, tl, tl2 } from '../lib/format'
@@ -200,6 +201,7 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
         {whatsapp && <a className="btn inline-flex items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-[0.9375rem] font-medium text-emerald-800 hover:bg-emerald-100"
           href={whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>}
         {canMail && <Button variant="secondary" icon={<Mail className="size-4" />} disabled={!recipient} loading={send.isPending} onClick={() => send.mutate(undefined)}>E-postayla Gönder</Button>}
+        <ExportButton url={`/customers/${customerId}/statement`} params={{ ...range, format: 'xlsx' }} fileName="ekstre.xlsx" />
         <Button icon={<FileText className="size-4" />}
           onClick={() => openPdf(`/customers/${customerId}/statement${query ? `?${query}` : ''}`, 'ekstre.pdf').catch((e) => toast.error(errorMessage(e)))}>PDF Aç</Button>
       </>}>

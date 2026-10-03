@@ -12,6 +12,7 @@ import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { useAuth } from '../lib/auth'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, PageHeader, Spinner, Tabs } from '../components/ui'
+import { ExportButton } from '../components/Exports'
 import { date, tl, tl2 } from '../lib/format'
 import { crud, usePaged, usePage, useSave } from '../lib/hooks'
 import { paymentMethodLabel, supplierKindLabel, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
@@ -48,6 +49,7 @@ export default function SupplierDetailPage() {
           <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>Düzenle</Button>
           <Button variant="secondary" icon={<FileSpreadsheet className="size-4" />}
             onClick={() => openPdf(`/suppliers/${id}/statement`, `tedarikci-ekstre-${s.supplierNo}.pdf`).catch((e) => toast.error(errorMessage(e)))}>Hesap Ekstresi</Button>
+          <ExportButton url={`/suppliers/${id}/statement`} params={{ format: 'xlsx' }} fileName={`tedarikci-ekstre-${s.supplierNo}.xlsx`} label="Ekstre Excel" />
           {sum.tripCount === 0 && sum.totalDebit === 0 && sum.totalCredit === 0 &&
             <Button variant="secondary" icon={<Trash2 className="size-4" />} onClick={() => setDeleting(true)}>Sil</Button>}
           {can('accounting') && <Button write variant="success" icon={<HandCoins className="size-4" />} onClick={() => setPaying(true)}>Ödeme Yap</Button>}

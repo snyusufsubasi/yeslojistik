@@ -5,13 +5,14 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { BarChart3, Download } from 'lucide-react'
 import { download, errorMessage, get } from '../api/client'
 import { useToast } from '../components/Toast'
-import type { CustomerAgingRow, CustomerProfitRow, RouteProfitRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
+import type { CustomerAgingRow, CustomerProfitRow, RouteProfitRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, ProfitGroupBy, ProfitReportRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
+import { ExportButton } from '../components/Exports'
 import { Button, Card, PageHeader, Select, Spinner, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
 
-type Tab = 'monthly' | 'customers' | 'routes' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses' | 'accounting'
+type Tab = 'monthly' | 'profit' | 'customers' | 'routes' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses' | 'accounting'
 
 // Kategorik palet (sabit sıra): 1 mavi, 2 turuncu.
 const SERIES_1 = '#2a78d6'
@@ -23,19 +24,20 @@ export default function ReportsPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [from, setFrom] = useState(yearStartIso())
   const [to, setTo] = useState(todayIso())
-  const usesRange = tab === 'customers' || tab === 'routes' || tab === 'trips' || tab === 'vehicles' || tab === 'drivers' || tab === 'fuel' || tab === 'expenses'
-  const params = tab === 'monthly' ? { year } : usesRange ? { from, to } : {}
+  const [groupBy, setGroupBy] = useState<ProfitGroupBy>('Month')
+  const usesRange = tab === 'profit' || tab === 'customers' || tab === 'routes' || tab === 'trips' || tab === 'vehicles' || tab === 'drivers' || tab === 'fuel' || tab === 'expenses'
+  const params = tab === 'monthly' ? { year } : tab === 'profit' ? { from, to, groupBy } : usesRange ? { from, to } : {}
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
   return (
     <>
       <PageHeader title="Raporlar" subtitle="Ciro, kârlılık, alacak ve gider analizleri"
-        actions={tab !== 'accounting' && <Button variant="secondary" icon={<Download className="size-4" />}
-          onClick={() => download(`/reports/${tab}`, { ...params, format: 'xlsx' }, `${tab}.xlsx`)}>Excel'e Aktar</Button>} />
+        actions={tab !== 'accounting' && <ExportButton url={`/reports/${tab}`} params={{ ...params, format: 'xlsx' }} fileName={`${tab}.xlsx`} label="Excel'e Aktar" />} />
       <Card bodyClassName="p-0">
         <div className="flex flex-wrap items-end justify-between gap-3 px-4 pt-2">
           <Tabs value={tab} onChange={setTab} tabs={[
             { value: 'monthly', label: 'Aylık Özet' },
+            { value: 'profit', label: 'Kazanç' },
             { value: 'customers', label: 'Müşteri Kârlılığı' },
             { value: 'routes', label: 'Güzergâh' },
             { value: 'trips', label: 'Sefer Kârlılığı' },
@@ -50,6 +52,7 @@ export default function ReportsPage() {
           ]} />
           <div className="flex gap-2 pb-2">
             {tab === 'monthly' && <Select aria-label="Yıl" className="w-28" value={year} onChange={(v) => v && setYear(v)} options={years.map((y) => ({ value: y, label: String(y) }))} />}
+            {tab === 'profit' && <Select aria-label="Kırılım" className="w-36" value={groupBy} onChange={(v) => v && setGroupBy(v)} options={groupByOptions} />}
             {usesRange && <>
               <DateFilter label="Başlangıç" className="w-40" value={from} onChange={setFrom} />
               <DateFilter label="Bitiş" className="w-40" value={to} onChange={setTo} />
@@ -57,6 +60,7 @@ export default function ReportsPage() {
           </div>
         </div>
         {tab === 'monthly' && <Monthly year={year} />}
+        {tab === 'profit' && <Profit from={from} to={to} groupBy={groupBy} />}
         {tab === 'customers' && <CustomerProfit from={from} to={to} />}
         {tab === 'routes' && <RouteProfit from={from} to={to} />}
         {tab === 'trips' && <Trips from={from} to={to} />}
@@ -132,6 +136,46 @@ function Monthly({ year }: { year: number }) {
       <DataTable columns={cols} rows={data} rowKey={(r) => r.month} />
     </div>
   )
+}
+
+const groupByOptions: { value: ProfitGroupBy; label: string }[] = [
+  { value: 'Month', label: 'Aylara göre' },
+  { value: 'Customer', label: 'Müşterilere göre' },
+  { value: 'Vehicle', label: 'Araçlara göre' },
+  { value: 'Driver', label: 'Şoförlere göre' },
+]
+const groupByCaption: Record<ProfitGroupBy, string> = { Month: 'Ay', Customer: 'Müşteri', Vehicle: 'Plaka', Driver: 'Şoför' }
+
+/** Kazanç raporu: satış, komisyon, maliyet, prim, masraf ve kâr; ay, müşteri, araç ya da şoför bazında (tek kâr formülü). */
+function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: ProfitGroupBy }) {
+  const { data, isLoading } = useReport<ProfitReportRow[]>('profit', { from, to, groupBy })
+  const money = (k: keyof ProfitReportRow) => (r: ProfitReportRow) => tl2(r[k] as number)
+  const cols: Column<ProfitReportRow>[] = [
+    { key: 'l', header: groupByCaption[groupBy], className: 'whitespace-normal! min-w-32', render: (r) => groupBy === 'Customer'
+      ? <Link className="font-medium text-blue-700 hover:underline" to={`/musteriler/${r.key}`}>{r.label}</Link> : <span className="font-medium">{r.label}</span> },
+    { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
+    { key: 's', header: 'Satış', align: 'right', render: money('sale') },
+    { key: 'k', header: 'Komisyon', align: 'right', render: money('commission') },
+    { key: 'c', header: 'Araç / taşeron', align: 'right', render: money('vehicleCost') },
+    { key: 'b', header: 'Şoför primi', align: 'right', render: money('driverBonus') },
+    { key: 'x', header: 'Ek masraf', align: 'right', render: money('extraCost') },
+    { key: 'e', header: 'Sefer giderleri', align: 'right', render: money('expenses') },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium text-emerald-700'}>{tl2(r.profit)}</span> },
+    { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
+  ]
+  const sum = (k: keyof ProfitReportRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
+  const revenue = sum('sale') + sum('commission')
+  return <>
+    <p className="px-4 pb-2 text-sm text-slate-500">Tutarlar KDV hariç. Kâr = satış + komisyon − araç/taşeron maliyeti − şoför primi − müşteriye faturalanmayan ek masraf − sefere bağlı onaylı giderler. Seferle ilgisi olmayan genel giderler (kira, maaş vb.) Aylık Özet'te düşülür.</p>
+    <DataTable columns={cols} rows={data} loading={isLoading} rowKey={(r) => r.key} empty="Bu dönemde sefer yok."
+      footer={data && data.length > 0 ? (
+        <tr className="bg-slate-50 text-sm font-medium">
+          <td className="td">Toplam</td>
+          <td className="td text-right">{sum('tripCount')}</td>
+          {(['sale', 'commission', 'vehicleCost', 'driverBonus', 'extraCost', 'expenses', 'profit'] as const).map((k) => <td key={k} className="td text-right">{tl2(sum(k))}</td>)}
+          <td className="td text-right">{margin(revenue > 0 ? Math.round(sum('profit') / revenue * 1000) / 10 : null)}</td>
+        </tr>) : undefined} />
+  </>
 }
 
 function Kpi({ label, value, tone }: { label: string; value: string; tone?: string }) {

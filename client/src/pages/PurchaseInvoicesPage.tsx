@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { Ban, Download, FileInput, Paperclip, Pencil, Plus } from 'lucide-react'
-import { api as apiClient, download, errorMessage, get, openPdf, post } from '../api/client'
-import type { PurchaseInvoice, PurchaseInvoiceKind, UninvoicedCarrierTrip } from '../api/types'
+import { Ban, FileInput, Paperclip, Pencil, Plus } from 'lucide-react'
+import { api as apiClient, errorMessage, get, openPdf, post } from '../api/client'
+import type { PurchaseInvoice, PurchaseInvoiceKind, PurchaseInvoiceTotals, UninvoicedCarrierTrip } from '../api/types'
+import { ExportButton, TotalsStrip } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
 import { FormSelect } from '../components/FormSelect'
@@ -15,7 +16,7 @@ import { useToast } from '../components/Toast'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, idField, money, optStr, req } from '../lib/forms'
 import { date, tl2, todayIso } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
+import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, purchaseInvoiceKindLabel, vatRates } from '../lib/labels'
 
 const api = crud<PurchaseInvoice, unknown>('purchase-invoices')
@@ -61,14 +62,13 @@ export default function PurchaseInvoicesPage() {
       </div>
     ),
   })
-  const totals = useMemo(() => (data?.items ?? []).reduce((a, p) => ({ subtotal: a.subtotal + p.subtotal, vat: a.vat + p.vatAmount, total: a.total + p.total }),
-    { subtotal: 0, vat: 0, total: 0 }), [data])
+  const { data: totals } = useListTotals<PurchaseInvoiceTotals>('purchase-invoices', query)
 
   return (
     <>
       <PageHeader title="Alınan Faturalar" subtitle="Taşerondan ve tedarikçilerden gelen faturalar; bağlanan seferler fatura bekleyenlerden düşer"
         actions={<>
-          <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/purchase-invoices/export', query, 'alinan-faturalar.xlsx')}>Excel</Button>
+          <ExportButton url="/purchase-invoices/export" params={query} fileName="alinan-faturalar.xlsx" />
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button>}
         </>} />
       <Card title="Fatura Listesi" icon={<FileInput className="size-4" />} bodyClassName="p-0"
@@ -80,13 +80,13 @@ export default function PurchaseInvoicesPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
-        {!!data?.items.length && (
-          <div className="flex flex-wrap gap-x-8 gap-y-1 border-b border-slate-100 bg-slate-50/60 px-6 py-2.5 text-sm">
-            <span>Bu sayfada matrah <b className="font-medium">{tl2(totals.subtotal)}</b></span>
-            <span>KDV <b className="font-medium">{tl2(totals.vat)}</b></span>
-            <span>Genel tutar <b className="font-medium">{tl2(totals.total)}</b></span>
-          </div>
-        )}
+        {totals && totals.count > 0 && <TotalsStrip items={[
+          { label: 'Fatura', value: totals.count },
+          { label: 'Matrah', value: tl2(totals.subtotal) },
+          { label: 'KDV', value: tl2(totals.vatAmount) },
+          { label: 'Tevkifat', value: tl2(totals.withholdingAmount) },
+          { label: 'Genel tutar', value: tl2(totals.total) },
+        ]} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           page={page} total={data?.total} onPage={setPage}

@@ -935,6 +935,23 @@ export interface TripTotals {
   commission: number; commissionBank: number; extraCharge: number; driverBonus: number
 }
 
+/** Kazanç raporu satırı (ay, müşteri, araç ya da şoför). Tutarlar KDV hariç. */
+export type ProfitGroupBy = 'Month' | 'Customer' | 'Vehicle' | 'Driver'
+export interface ProfitReportRow {
+  key: string; label: string; tripCount: number; sale: number; commission: number; vehicleCost: number
+  driverBonus: number; extraCost: number; expenses: number; profit: number; marginPercent: number | null
+}
+/** İcmal satırı: müşteri ve ay bazında. Toplam = matrah + KDV − tevkifat. */
+export interface TripSummaryRow {
+  customerId: number; customer: string; year: number; month: number; tripCount: number
+  subtotal: number; vatAmount: number; withholdingAmount: number; total: number
+}
+/** Liste filtrelerinin tamamının toplamları (yalnızca sayfanın değil). */
+export interface InvoiceTotals { count: number; subtotal: number; vatAmount: number; withholdingAmount: number; total: number; remaining: number }
+export interface PurchaseInvoiceTotals { count: number; subtotal: number; vatAmount: number; withholdingAmount: number; total: number }
+export interface ExpenseTotals { count: number; total: number; approved: number; pending: number }
+export interface PaymentTotals { count: number; total: number; refunds: number }
+
 export type StaffTransactionKind = 'Advance' | 'Bonus' | 'SalaryPayment'
 export interface Staff {
   id: number; fullName: string; nationalId: string | null; phone: string | null; startDate: string | null; monthlySalary: number

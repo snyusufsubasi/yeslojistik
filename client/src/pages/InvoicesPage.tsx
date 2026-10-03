@@ -3,9 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet } from 'lucide-react'
 import { download, errorMessage, get, openPdf, post } from '../api/client'
-import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus } from '../api/types'
+import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus, InvoiceTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
+import { ExportButton, TotalsStrip } from '../components/Exports'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Select, Spinner, DateFilter } from '../components/ui'
@@ -13,7 +14,7 @@ import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { useDebounce, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
+import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { invoiceStatusLabel, options, paymentStatusTone } from '../lib/labels'
 
 export default function InvoicesPage() {
@@ -60,14 +61,13 @@ export default function InvoicesPage() {
     },
   ]
 
-  const total = data?.items.reduce((s, i) => s + (i.status === 'Issued' ? i.total : 0), 0) ?? 0
-  const remaining = data?.items.reduce((s, i) => s + i.remaining, 0) ?? 0
+  const { data: totals } = useListTotals<InvoiceTotals>('invoices', query)
 
   return (
     <>
       <PageHeader title="Faturalar" subtitle="Kesilen faturalar ve tahsilat durumu"
         actions={<>
-          <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/invoices/export', query, 'faturalar.xlsx')}>Excel</Button>
+          <ExportButton url="/invoices/export" params={query} fileName="faturalar.xlsx" />
           {can('accounting') && <ImportButton entity="invoices" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
         </>} />
@@ -83,6 +83,14 @@ export default function InvoicesPage() {
             <input type="checkbox" checked={unpaid} onChange={(e) => setUnpaid(e.target.checked)} /> Sadece ödenmemiş
           </label>
         </div>
+        {totals && totals.count > 0 && <TotalsStrip items={[
+          { label: 'Fatura', value: totals.count },
+          { label: 'Matrah', value: tl2(totals.subtotal) },
+          { label: 'KDV', value: tl2(totals.vatAmount) },
+          { label: 'Tevkifat', value: tl2(totals.withholdingAmount) },
+          { label: 'Genel toplam', value: tl2(totals.total) },
+          { label: 'Kalan', value: tl2(totals.remaining), tone: totals.remaining > 0 ? 'text-red-600' : 'text-emerald-700' },
+        ]} note={status ? undefined : 'Tutarlar kesilen faturalardan; taslak ve iptaller hariç.'} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
@@ -106,15 +114,7 @@ export default function InvoicesPage() {
               </div>
               {i.remaining > 0 && <div className="text-right text-sm text-red-600">Kalan {tl2(i.remaining)}</div>}
             </div>
-          )}
-          footer={data && data.items.length > 0 ? (
-            <tr className="bg-slate-50 text-sm font-medium">
-              <td className="td" colSpan={4}>Sayfa toplamı</td>
-              <td className="td text-right">{tl2(total)}</td>
-              <td className="td text-right text-red-600">{tl2(remaining)}</td>
-              <td className="td" colSpan={2} />
-            </tr>
-          ) : undefined} />
+          )} />
       </Card>
       {viewing && <InvoiceDetail id={viewing} onClose={() => setViewing(null)} onPdf={pdf} />}
     </>

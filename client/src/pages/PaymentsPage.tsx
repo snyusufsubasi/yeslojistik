@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Download, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
 import { download, errorMessage } from '../api/client'
-import type { Payment } from '../api/types'
+import { ExportButton, TotalsStrip } from '../components/Exports'
+import type { Payment, PaymentTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { useToast } from '../components/Toast'
@@ -11,7 +12,7 @@ import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
-import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
+import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
 
 const api = crud<Payment, unknown>('payments')
@@ -34,6 +35,7 @@ export default function PaymentsPage() {
 
   const query = { page, pageSize: 20, search: debounced, customerId, from, to, sort: sort.key, desc: sort.desc }
   const { data, isFetching } = usePaged<Payment>('payments', query)
+  const { data: totals } = useListTotals<PaymentTotals>('payments', query)
   const deleteMut = useSave((id: number) => api.remove(id), {
     invalidate: ['payments', 'invoices', 'customers'], success: 'Tahsilat silindi.', onSuccess: () => setDeleting(null),
   })
@@ -59,7 +61,7 @@ export default function PaymentsPage() {
     <>
       <PageHeader title="Tahsilatlar" subtitle="Müşterilerden alınan ödemeler"
         actions={<>
-          <Button variant="secondary" icon={<Download className="size-4" />} onClick={() => download('/payments/export', query, 'tahsilatlar.xlsx')}>Excel</Button>
+          <ExportButton url="/payments/export" params={query} fileName="tahsilatlar.xlsx" />
           {can('accounting') && <ImportButton entity="payments" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Tahsilat Ekle</Button>}
         </>} />
@@ -71,6 +73,11 @@ export default function PaymentsPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
+        {totals && totals.count > 0 && <TotalsStrip items={[
+          { label: 'Tahsilat', value: totals.count },
+          { label: 'Toplam', value: tl2(totals.total), tone: 'text-emerald-700' },
+          ...(totals.refunds > 0 ? [{ label: 'İadeler (düşüldü)', value: tl2(totals.refunds) }] : []),
+        ]} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}

@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { Plus, Truck } from 'lucide-react'
 import type { Supplier, SupplierKind } from '../api/types'
 import { ImportButton } from '../components/ImportDialog'
+import { ExportButton } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SupplierForm } from '../components/SupplierForm'
 import { Badge, Button, Card, PageHeader } from '../components/ui'
@@ -20,7 +21,8 @@ export default function SuppliersPage() {
   const [creating, setCreating] = useState(false)
   const debounced = useDebounce(search)
   const [page, setPage] = usePage([debounced, kind])
-  const { data, isFetching } = usePaged<Supplier>('suppliers', { page, pageSize: 20, search: debounced, kind: kind || undefined, sort: sort.key, desc: sort.desc })
+  const query = { page, pageSize: 20, search: debounced, kind: kind || undefined, sort: sort.key, desc: sort.desc }
+  const { data, isFetching } = usePaged<Supplier>('suppliers', query)
 
   const columns: Column<Supplier>[] = [
     { key: 'no', header: 'No', sortKey: 'id', render: (s) => <span className="text-slate-500">{s.supplierNo}</span> },
@@ -42,6 +44,7 @@ export default function SuppliersPage() {
       <PageHeader title="Tedarikçiler" subtitle="Taşeron araç sahipleri, servisler ve akaryakıt istasyonları · firmanın borçlu olduğu taraflar"
         actions={<>
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/tedarikciler')}>Cari Tablosu</Button>}
+          <ExportButton url="/suppliers/export" params={query} fileName="tedarikciler.xlsx" />
           <ImportButton entity="suppliers" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Tedarikçi</Button>
         </>} />
