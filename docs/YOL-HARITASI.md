@@ -41,17 +41,16 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] **Ana sayfa:** yalnızca önemli rakamlar ve bugünün işleri kalır.
 - [ ] **Sevkiyatlar:** liste, filtreler ve kazanç şeridi yeniden düzenlenir.
 - [ ] **Cari ekranları** ile müşteri, tedarikçi ve araç kartları yeniden düzenlenir.
-- [ ] **Formlar kısalır:** zorunlu alanlar üstte, gerisi kapalı "Ayrıntılar" bölümünde. Ctrl+Enter ile kaydetme, yanlışlıkla kapanınca uyarı.
+- [x] **Formlar kısalır:** zorunlu alanlar üstte, gerisi kapalı "Ayrıntılar" bölümünde. Ctrl+Enter ile kaydetme, yanlışlıkla kapanınca uyarı. *(3 Ekim: pencereler ilk alana odaklanır, Ctrl+Enter kaydeder, yazılmış form kapatılırken sorar; sefer formunda referans no, dorse, yük, yetkililer ve not "Ayrıntılar"da. Diğer formlarda isteğe bağlı bölümler zaten vardı.)*
 - [ ] **Ekran yazıları tek tek okunur:**
-  - imla ve noktalama;
-  - aynı şeye tek ad (ör. Sefer mi Sevkiyat mı, kullanıcıya tablo hâlinde sorulur);
-  - tutarlar hep 2 kuruş basamağıyla.
-- [ ] Bekleyen küçük işler de burada biter:
+  - [x] imla ve noktalama (taramada bozuk Türkçe harf bulunmadı; form hata mesajları Türkçeleşti);
+  - [ ] aynı şeye tek ad: tablo hazır, `docs/TERIMLER.md`. **Kullanıcı onayı bekleniyor**, onaydan sonra bütün panelde uygulanır;
+  - [x] tutarlar hep 2 kuruş basamağıyla.
+- [x] Bekleyen küçük işler de burada biter:
   - sunucu uyanırken "Tekrar dene" ekranı;
   - ana sayfanın hızlı açılması;
   - fatura toplam satırının kayması.
-
-  Bunların bir kısmı `claude/wip-asama1` dalında başlanmış; tekrar yazılmaz, oradan alınır.
+  - Ayrıca klavye akışı: öneri düğmeleri Tab sırasından çıktı, aranabilir kutuda Tab vurgulananı seçer.
 - [ ] Sonunda bütün ekranların yeni hâli ekran görüntüleriyle **toplu gösterilir**.
 
 ### A3 — Eksik listesi (2-3 gün, A2 ile paralel)
