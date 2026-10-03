@@ -33,6 +33,8 @@ test('sevkiyatlarda 2 sefer seçip teslim evrakını toplu onaylama', async ({ p
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
   await page.getByPlaceholder('Müşteri, plaka, şoför, adres...').fill(`E2E Toplu ${id}`)
   const boxes = page.getByRole('checkbox', { name: new RegExp(`^Seç: Sefer \\d+, E2E Toplu ${id}`) })
+  // Arama sunucuda süzülene kadar bekle: listede yalnız bu iki sefer kalmalı ("tümünü seç" sayfadakilerin hepsini seçer).
+  await expect(page.getByRole('checkbox', { name: /^Seç: Sefer / })).toHaveCount(2)
   await expect(boxes).toHaveCount(2)
 
   // Tek tek seçim → alt çubuk
