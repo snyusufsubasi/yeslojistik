@@ -5,7 +5,7 @@ import { MapPin, Navigation } from 'lucide-react'
 import { get } from '../api/client'
 import type { RoutePoint, VehicleLocation } from '../api/types'
 import { MapView, type MapMarker } from '../components/MapView'
-import { Badge, Card, Empty, PageHeader } from '../components/ui'
+import { Badge, Card, Empty, PageHeader, PlateBadge } from '../components/ui'
 import { ago, dateTime } from '../lib/format'
 import { vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 
@@ -51,9 +51,9 @@ export default function MapPage() {
             {data?.map((v) => (
               <li key={v.vehicleId}>
                 <button onClick={() => setSelected(v.vehicleId === selected ? null : v.vehicleId)}
-                  className={clsx('w-full px-4 py-2.5 text-left hover:bg-slate-50', v.vehicleId === selected && 'bg-brand-50')}>
+                  className={clsx('w-full border-l-[3px] px-4 py-2.5 text-left hover:bg-surface-2', v.vehicleId === selected ? 'border-accent bg-accent-soft' : 'border-transparent')}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{v.plate}</span>
+                    <PlateBadge plate={v.plate} />
                     <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge>
                   </div>
                   {v.activeTripLabel && <div className="truncate text-sm text-slate-600">{v.activeTripLabel}</div>}

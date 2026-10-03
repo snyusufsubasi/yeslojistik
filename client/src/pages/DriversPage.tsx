@@ -7,7 +7,7 @@ import { IdCard, Pencil, Plus, Trash2 } from 'lucide-react'
 import { get } from '../api/client'
 import type { Driver } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, PlateBadge, Tabs } from '../components/ui'
 import { DocumentsPanel, DriverLedgerPanel } from '../components/FleetPanels'
 import { ImportButton } from '../components/ImportDialog'
 import { ExportButton } from '../components/Exports'
@@ -68,7 +68,7 @@ export default function DriversPage() {
   const columns: Column<Driver>[] = [
     { key: 'name', header: 'Ad Soyad', sortKey: 'fullName', render: (d) => <span className="font-medium">{d.fullName}{d.supplierTitle && <span className="block text-sm font-normal text-slate-500">Taşeron: {d.supplierTitle}</span>}</span> },
     { key: 'phone', header: 'Telefon', render: (d) => d.phone ? <a className="text-brand-600" href={`tel:${d.phone.replace(/\s/g, '')}`} onClick={(e) => e.stopPropagation()}>{d.phone}</a> : '—' },
-    { key: 'plate', header: 'Plaka', render: (d) => d.plate ?? '—' },
+    { key: 'plate', header: 'Plaka', render: (d) => d.plate ? <PlateBadge plate={d.plate} /> : '—' },
     { key: 'rating', header: 'Değerlendirme', render: (d) => d.rating ? <span title={d.note ?? undefined}><Badge tone={driverRatingTone[d.rating]}>{driverRatingLabel[d.rating]}</Badge></span> : <span className="text-slate-500">—</span> },
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
     { key: 'license', header: 'Ehliyet Bitiş', sortKey: 'licenseExpiry', render: (d) => <DueDate value={d.licenseExpiry} warn={30} /> },

@@ -7,7 +7,7 @@ import type { AccountMovement, CompanySettings, CustomerSummary, Invoice, Paymen
 import { CustomerForm } from '../components/CustomerForm'
 import { DataTable, type Column } from '../components/DataTable'
 import { PaymentForm } from '../components/PaymentForm'
-import { Badge, Button, Card, ConfirmDialog, Modal, PageHeader, Loading, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Figure, Figures, Modal, PageHeader, PlateBadge, Loading, Tabs } from '../components/ui'
 import { ExportButton } from '../components/Exports'
 import { useToast } from '../components/Toast'
 import { useAuth } from '../lib/auth'
@@ -60,13 +60,13 @@ export default function CustomerDetailPage() {
             {c.openingBalance > 0 && <Info label="Devir Bakiyesi" value={<>{tl2(c.openingBalance)} ({date(c.openingBalanceDate)})</>} />}
           </dl>
         </Card>
-        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
-          <Amount label="Toplam Borç (Faturalanan)" value={s.totalDebit} tone="text-red-600" />
-          <Amount label="Toplam Alacak (Tahsil Edilen)" value={s.totalCredit} tone="text-emerald-700" />
-          <Amount label="Cari Bakiye" value={s.balance} tone={s.balance > 0 ? 'text-red-600' : 'text-emerald-700'} big
+        <Figures label="Cari özeti" className="self-start sm:grid-cols-2 lg:col-span-2">
+          <Figure label="Toplam Borç (Faturalanan)" value={tl2(s.totalDebit)} tone="text-bad" />
+          <Figure label="Toplam Alacak (Tahsil Edilen)" value={tl2(s.totalCredit)} tone="text-good" />
+          <Figure label="Cari Bakiye" value={tl2(s.balance)} tone={s.balance > 0 ? 'text-bad' : 'text-good'}
             sub={s.balance < 0 ? 'Müşteri fazla ödeme yapmış (avans)' : undefined} />
-          <Amount label="Vadesi Geçen" value={s.overdueAmount} tone={s.overdueAmount > 0 ? 'text-red-600' : 'text-slate-700'} />
-        </div>
+          <Figure label="Vadesi Geçen" value={tl2(s.overdueAmount)} tone={s.overdueAmount > 0 ? 'text-bad' : undefined} />
+        </Figures>
       </div>
 
       <Card className="mt-4" bodyClassName="p-0">
@@ -103,16 +103,6 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function Amount({ label, value, tone, big, sub }: { label: string; value: number; tone: string; big?: boolean; sub?: string }) {
-  return (
-    <div className="card p-4">
-      <div className="text-sm font-medium text-slate-500">{label}</div>
-      <div className={`${big ? 'text-3xl' : 'text-2xl'} font-semibold ${tone}`}>{tl2(value)}</div>
-      {sub && <div className="text-sm text-slate-500">{sub}</div>}
-    </div>
-  )
-}
-
 function Movements({ id }: { id: number }) {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['customers', 'movements', id], queryFn: () => get<AccountMovement[]>(`/customers/${id}/movements`) })
   const cols: Column<AccountMovement>[] = [
@@ -134,10 +124,10 @@ function CustomerTrips({ id }: { id: number }) {
   const cols: Column<Trip>[] = [
     { key: 'date', header: 'Tarih', render: (t) => date(t.loadingDate) },
     { key: 'route', header: 'Güzergah', render: (t) => `${t.loadingAddress} → ${t.deliveryAddress}` },
-    { key: 'plate', header: 'Plaka', render: (t) => t.vehiclePlate },
+    { key: 'plate', header: 'Plaka', render: (t) => <PlateBadge plate={t.vehiclePlate} /> },
     { key: 'status', header: 'Durum', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'price', header: 'Tutar', align: 'right', render: (t) => tl(t.salePrice) },
-    { key: 'inv', header: 'Fatura', render: (t) => t.invoiceNo ?? <span className="text-amber-600">Faturalanmadı</span> },
+    { key: 'inv', header: 'Fatura', render: (t) => t.invoiceNo ?? <span className="font-semibold text-bill">Faturalanmadı</span> },
   ]
   return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id} page={page} pageSize={15} total={data?.total} onPage={setPage} />
 }

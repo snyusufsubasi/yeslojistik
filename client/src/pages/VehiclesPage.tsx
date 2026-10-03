@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import clsx from 'clsx'
 import { useSearchParams } from 'react-router-dom'
 import { Pencil, Plus, Trash2, Truck } from 'lucide-react'
 import { get } from '../api/client'
 import type { Vehicle, VehicleOwnership, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, PlateBadge, Select } from '../components/ui'
+import { Badge, Button, Card, Chip, ConfirmDialog, IconButton, PageHeader, PlateBadge, Select } from '../components/ui'
 import { ImportButton } from '../components/ImportDialog'
 import { ExportButton } from '../components/Exports'
 import { useAuth } from '../lib/auth'
@@ -94,13 +93,11 @@ export default function VehiclesPage() {
           <Select aria-label="Durum" className="sm:w-40" value={status} onChange={setStatus} options={options(vehicleStatusLabel)} placeholder="Tüm durumlar" />
           <SearchBox value={search} onChange={setSearch} placeholder="Plaka, marka, tip..." />
         </>}>
-        <div role="tablist" aria-label="Araç sahipliği" className="flex flex-wrap gap-2 border-b border-slate-100 px-6 py-3">
+        <div role="tablist" aria-label="Araç sahipliği" className="flex flex-wrap gap-1.5 border-b border-line px-4 py-2.5">
           {tabs.map((t) => (
-            <button key={t.key} role="tab" aria-selected={tab.key === t.key} onClick={() => setTab(t.key)}
-              className={clsx('min-h-9 rounded-full border px-4 text-[0.9375rem] font-medium transition',
-                tab.key === t.key ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}>
+            <Chip key={t.key} role="tab" aria-selected={tab.key === t.key} active={tab.key === t.key} onClick={() => setTab(t.key)}>
               {t.label}
-            </button>
+            </Chip>
           ))}
         </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id}

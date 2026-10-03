@@ -66,7 +66,8 @@ const tones: Record<Tone, string> = {
 
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-[2px] px-1.5 py-[3px] text-[0.75rem] font-semibold leading-none', tones[tone])}>
+    // font-sans: tutar hücresinin (mono) içinde de durum etiketi normal yazıyla kalır
+    <span className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-[2px] px-1.5 py-[3px] font-sans text-[0.75rem] font-semibold leading-none tracking-normal', tones[tone])}>
       <span aria-hidden className="size-1.5 shrink-0 bg-current" />{children}
     </span>
   )

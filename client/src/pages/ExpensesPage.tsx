@@ -11,7 +11,7 @@ import { compressImage } from '../lib/image'
 import type { ApprovalStatus, Expense, ExpenseCategory, ExpenseCategoryTotal, ExpenseDetails, ExpenseTotals, PagedResult, Trip } from '../api/types'
 import { ExportButton, TotalsStrip } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, Select, DateFilter } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, PlateBadge, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
 import { SupplierForm } from '../components/SupplierForm'
@@ -74,7 +74,7 @@ export default function ExpensesPage() {
       {e.approvalStatus === 'Rejected' && <span className="mt-1 block" title={e.rejectionReason ?? ''}><Badge tone="red">Reddedildi</Badge></span>}
       {e.approvalStatus === 'Rejected' && e.rejectionReason && <span className="mt-0.5 block max-w-48 truncate text-sm text-red-600">{e.rejectionReason}</span>}
       {e.paidBy === 'Driver' && <span className="mt-0.5 block text-sm text-slate-500">Şoför ödedi</span>}</> },
-    { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ?? (e.driverName ? '' : '—')}{e.driverName && <span className="block text-sm text-slate-500">{e.driverName}</span>}</> },
+    { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ? <PlateBadge plate={e.vehiclePlate} /> : (e.driverName ? '' : '—')}{e.driverName && <span className="block text-sm text-slate-500">{e.driverName}</span>}</> },
     { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
     { key: 'desc', header: 'Açıklama', render: (e) => <>{e.description ?? ''}{e.supplierTitle && <span className="block text-sm text-slate-500">{e.supplierTitle}{e.isOnCredit && ' · vadeli'}</span>}
       {e.hasReceipt && <button className="block text-sm font-medium text-brand-700 underline" onClick={(ev) => { ev.stopPropagation(); openPdf(`/expenses/${e.id}/receipt`, `fis-${e.id}`).catch(() => undefined) }}>Fişi gör</button>}</> },

@@ -6,7 +6,7 @@ import axios from 'axios'
 import type { PublicTracking, TripStatus } from '../api/types'
 import { Logo } from '../components/Logo'
 import { MapView } from '../components/MapView'
-import { Spinner } from '../components/ui'
+import { PlateBadge, Spinner } from '../components/ui'
 import { ago, date, dateTime } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
 
@@ -63,7 +63,7 @@ export default function PublicTrackingPage() {
               <div><dt className="text-sm text-slate-600">Nereye</dt><dd className="font-medium text-navy-900">{data.deliveryAddress}</dd></div>
               <div><dt className="text-sm text-slate-600">Yükleme tarihi</dt><dd className="text-slate-800">{date(data.loadingDate)}</dd></div>
               <div><dt className="text-sm text-slate-600">{data.status === 'Delivered' ? 'Teslim tarihi' : 'Tahmini teslim'}</dt><dd className="text-slate-800">{data.deliveryDate ? date(data.deliveryDate) : '—'}</dd></div>
-              <div><dt className="text-sm text-slate-600">Araç plakası</dt><dd className="text-slate-800">{data.vehiclePlate}</dd></div>
+              <div><dt className="text-sm text-slate-600">Araç plakası</dt><dd className="mt-0.5 text-slate-800"><PlateBadge plate={data.vehiclePlate} /></dd></div>
               {data.customerReference && <div><dt className="text-sm text-slate-600">Sipariş / referans no</dt><dd className="text-slate-800">{data.customerReference}</dd></div>}
             </dl>
             {data.status !== 'Cancelled' && <ol className="card space-y-4 p-5" aria-label="Sevkiyat aşamaları">
@@ -71,7 +71,7 @@ export default function PublicTrackingPage() {
                 <li key={s.status} className="flex items-center gap-3">
                   {i <= current ? <CheckCircle2 className="size-7 shrink-0 text-emerald-600" /> : <Circle className="size-7 shrink-0 text-slate-500" />}
                   <span className={clsx('text-[0.9375rem]', i === current ? 'font-medium text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>
-                    {s.label}{i === current && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700">şu an</span>}
+                    {s.label}{i === current && <span className="ml-2 rounded-[2px] bg-accent-soft px-1.5 py-0.5 text-[0.75rem] font-semibold text-accent">şu an</span>}
                     {i <= current && eventAt(s.status) && <span className="block text-sm font-normal text-slate-500">{dateTime(eventAt(s.status)!)}</span>}
                   </span>
                 </li>

@@ -8,7 +8,7 @@ import { api as apiClient, errorMessage, get, openPdf, post } from '../api/clien
 import type { PurchaseInvoice, PurchaseInvoiceKind, PurchaseInvoiceTotals, UninvoicedCarrierTrip } from '../api/types'
 import { ExportButton, TotalsStrip } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, IconButton, Modal, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, IconButton, Modal, PageHeader, PlateBadge, Select } from '../components/ui'
 import { FormSelect } from '../components/FormSelect'
 import { ControlledChoice } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
@@ -222,10 +222,10 @@ function PurchaseInvoiceForm({ invoice, onClose, supplierId: fixedSupplier }: { 
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50">
                   <input type="checkbox" className="mt-1 size-4" checked={tripIds.includes(t.tripId)} onChange={() => toggle(t.tripId)} />
                   <span className="min-w-0 flex-1 text-sm">
-                    <span className="font-medium text-slate-900">No {t.externalRef ?? t.tripId} · {date(t.loadingDate)} · {t.plate}</span>
+                    <span className="font-medium text-slate-900">No {t.externalRef ?? t.tripId} · {date(t.loadingDate)}{t.plate && <> · <PlateBadge plate={t.plate} /></>}</span>
                     <span className="block truncate text-slate-600">{t.route}</span>
                   </span>
-                  <span className="text-right text-sm">{tl2(t.vehicleCost)}<span className="block text-slate-500">KDV'li {tl2(t.payable)}</span></span>
+                  <span className="text-right text-sm"><span className="font-mono">{tl2(t.vehicleCost)}</span><span className="block text-slate-500">KDV'li <span className="font-mono">{tl2(t.payable)}</span></span></span>
                 </label>
               </li>
             ))}

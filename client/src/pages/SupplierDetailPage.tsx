@@ -11,7 +11,7 @@ import { SupplierForm } from '../components/SupplierForm'
 import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { useAuth } from '../lib/auth'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, PageHeader, Loading, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Figure, Figures, PageHeader, PlateBadge, Loading, Tabs } from '../components/ui'
 import { ExportButton } from '../components/Exports'
 import { date, tl, tl2 } from '../lib/format'
 import { crud, usePaged, usePage, useSave } from '../lib/hooks'
@@ -69,14 +69,14 @@ export default function SupplierDetailPage() {
             {s.openingBalance > 0 && <Info label="Devir Borcu" value={<>{tl2(s.openingBalance)} ({date(s.openingBalanceDate)})</>} />}
           </dl>
         </Card>
-        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-          <Amount label="Toplam Borçlanma" value={sum.totalDebit} tone="text-slate-800" sub="Devir + sefer maliyetleri + vadeli giderler" />
-          <Amount label="Toplam Ödenen" value={sum.totalCredit} tone="text-emerald-700" />
-          <Amount label="Kalan Borcumuz" value={sum.balance} tone={sum.balance > 0 ? 'text-red-600' : 'text-emerald-700'} big
+        <Figures label="Cari özeti" className="self-start sm:grid-cols-2 lg:col-span-2">
+          <Figure label="Toplam Borçlanma" value={tl2(sum.totalDebit)} sub="Devir + sefer maliyetleri + vadeli giderler" />
+          <Figure label="Toplam Ödenen" value={tl2(sum.totalCredit)} tone="text-good" />
+          <Figure label="Kalan Borcumuz" value={tl2(sum.balance)} tone={sum.balance > 0 ? 'text-bad' : 'text-good'}
             sub={sum.balance < 0 ? 'Fazla ödeme yapılmış (avans)' : undefined} />
-          <Amount label="Vadesi Geçen" value={sum.overdueAmount} tone={sum.overdueAmount > 0 ? 'text-red-600' : 'text-slate-700'}
+          <Figure label="Vadesi Geçen" value={tl2(sum.overdueAmount)} tone={sum.overdueAmount > 0 ? 'text-bad' : undefined}
             sub={sum.missingInvoiceCount > 0 ? `${sum.missingInvoiceCount} teslim edilmiş seferin faturası gelmedi` : undefined} />
-        </div>
+        </Figures>
       </div>
 
       <Card className="mt-4" bodyClassName="p-0">
@@ -125,7 +125,7 @@ function SupplierTrips({ id }: { id: number }) {
     { key: 'date', header: 'Yükleme', render: (t) => date(t.loadingDate) },
     { key: 'customer', header: 'Müşteri', render: (t) => t.customerTitle },
     { key: 'route', header: 'Güzergâh', className: 'whitespace-normal! min-w-40', render: (t) => `${t.loadingCity ?? t.loadingAddress} → ${t.deliveryCity ?? t.deliveryAddress}` },
-    { key: 'plate', header: 'Araç', render: (t) => t.vehiclePlate },
+    { key: 'plate', header: 'Araç', render: (t) => <PlateBadge plate={t.vehiclePlate} /> },
     { key: 'status', header: 'Durum', render: (t) => <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge> },
     { key: 'inv', header: 'Taşeron Faturası', render: (t) => t.carrierInvoiceNo ?? (t.status === 'Delivered' ? <span className="text-amber-700">Gelmedi</span> : '—') },
     { key: 'cost', header: 'Araç Maliyeti', align: 'right', render: (t) => tl(t.vehicleCost) },
@@ -146,9 +146,9 @@ function SupplierTrips({ id }: { id: number }) {
 function SupplierVehicles({ id }: { id: number }) {
   const { data, isFetching, error, refetch } = usePaged<Vehicle>('vehicles', { supplierId: id, pageSize: 100 })
   const cols: Column<Vehicle>[] = [
-    { key: 'plate', header: 'Plaka', render: (v) => <span className="font-medium">{v.plate}</span> },
+    { key: 'plate', header: 'Plaka', render: (v) => <PlateBadge plate={v.plate} /> },
     { key: 'type', header: 'Tip', render: (v) => [v.type, v.brand, v.model].filter(Boolean).join(' ') },
-    { key: 'trailer', header: 'Dorse', render: (v) => v.trailerPlate ?? '—' },
+    { key: 'trailer', header: 'Dorse', render: (v) => v.trailerPlate ? <PlateBadge plate={v.trailerPlate} /> : '—' },
     { key: 'status', header: 'Durum', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },
   ]
   return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id} empty="Bu tedarikçiye bağlı araç yok. Araçlar sayfasında aracı “Kiralık” yapıp sahibini seçin." />
@@ -162,16 +162,6 @@ function SupplierDrivers({ id }: { id: number }) {
     { key: 'class', header: 'Ehliyet', render: (d) => d.licenseClass ?? '—' },
   ]
   return <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(d) => d.id} empty="Bu tedarikçiye bağlı şoför yok." />
-}
-
-function Amount({ label, value, tone, big, sub }: { label: string; value: number; tone: string; big?: boolean; sub?: string }) {
-  return (
-    <div className="card p-4">
-      <div className="text-sm font-medium text-slate-500">{label}</div>
-      <div className={`${big ? 'text-3xl' : 'text-2xl'} font-semibold ${tone}`}>{tl2(value)}</div>
-      {sub && <div className="text-sm text-slate-500">{sub}</div>}
-    </div>
-  )
 }
 
 function Movements({ id }: { id: number }) {

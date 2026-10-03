@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, FileText, Plus, Trash2 } from 'lucide-react'
 import { get, post } from '../api/client'
 import type { CompanySettings, CustomerInvoiceDefaults, Invoice, PagedResult, Trip } from '../api/types'
-import { Badge, Button, Card, Empty, Field, IconButton, PageHeader, Spinner } from '../components/ui'
+import { Badge, Button, Card, Chip, Empty, Field, IconButton, PageHeader, PlateBadge, Spinner } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { addDaysIso, date, tl2, todayIso } from '../lib/format'
 import { useLookup, useSave } from '../lib/hooks'
@@ -118,7 +118,7 @@ export default function InvoiceCreatePage() {
                           <td className="td"><input type="checkbox" aria-label={`Sefer ${t.id}`} checked={selected.has(t.id)} onChange={() => toggle(t.id)} onClick={(e) => e.stopPropagation()} /></td>
                           <td className="td">{date(t.loadingDate)}</td>
                           <td className="td">{t.loadingAddress} → {t.deliveryAddress}</td>
-                          <td className="td">{t.vehiclePlate}</td>
+                          <td className="td"><PlateBadge plate={t.vehiclePlate} /></td>
                           <td className="td"><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge></td>
                           <td className="td whitespace-nowrap text-right tabular-nums">{tl2(t.salePrice)}</td>
                         </tr>
@@ -135,8 +135,8 @@ export default function InvoiceCreatePage() {
               <div className="mb-3 flex flex-wrap items-center gap-1.5">
                 <span className="text-sm text-slate-600">Hızlı ekle:</span>
                 {quickLines.map((d) => (
-                  <button key={d} type="button" tabIndex={-1} className="min-h-9 rounded-full border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                    onClick={() => setExtra((x) => [...x, { key: Date.now(), description: d, amount: '' }])}>+ {d}</button>
+                  <Chip key={d} tabIndex={-1}
+                    onClick={() => setExtra((x) => [...x, { key: Date.now(), description: d, amount: '' }])}>+ {d}</Chip>
                 ))}
               </div>
             )}

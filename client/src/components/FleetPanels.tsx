@@ -7,7 +7,7 @@ import { Download, Pencil, Plus, Trash2 } from 'lucide-react'
 import { api as apiClient, del, download, errorMessage, get, openPdf, post, put } from '../api/client'
 import type { DocumentOwnerType, DocumentType, DriverLedger, FleetDocument, MaintenanceRecord } from '../api/types'
 import { useToast } from './Toast'
-import { Badge, Button, ConfirmDialog, Empty, Field, IconButton, Loading, Modal, Spinner } from './ui'
+import { Badge, Button, ConfirmDialog, Empty, Field, Figure, Figures, IconButton, Loading, Modal, Spinner } from './ui'
 import { FormSelect } from './FormSelect'
 import { ControlledChoice, ControlledToggle } from './Choice'
 import { AmountInput, DateQuick, SuggestChips } from './Inputs'
@@ -264,12 +264,12 @@ export function DriverLedgerPanel({ driverId }: { driverId: number }) {
   return (
     <div>
       {!l ? <Loading error={ledger.error} onRetry={ledger.refetch} /> : <>
-        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label="Verilen avans + ödeme" value={tl2(l.advances + l.paidToDriver)} />
-          <Stat label="Onaylı masraf + iade" value={tl2(l.driverExpenses + l.receivedFromDriver)} />
-          <Stat label={l.balance >= 0 ? 'Şoförde kalan (firmanın)' : 'Şoföre borcumuz'} value={tl2(Math.abs(l.balance))} strong tone={l.balance >= 0 ? 'text-navy-900' : 'text-red-600'} />
-          <Stat label="Onay bekleyen masraf" value={tl2(l.pendingExpenses)} tone={l.pendingExpenses > 0 ? 'text-amber-600' : undefined} />
-        </div>
+        <Figures label="Şoför hesabı özeti" className="mb-3 grid-cols-2">
+          <Figure label="Verilen avans + ödeme" value={tl2(l.advances + l.paidToDriver)} />
+          <Figure label="Onaylı masraf + iade" value={tl2(l.driverExpenses + l.receivedFromDriver)} />
+          <Figure label={l.balance >= 0 ? 'Şoförde kalan (firmanın)' : 'Şoföre borcumuz'} value={tl2(Math.abs(l.balance))} tone={l.balance >= 0 ? undefined : 'text-bad'} />
+          <Figure label="Onay bekleyen masraf" value={tl2(l.pendingExpenses)} tone={l.pendingExpenses > 0 ? 'text-warn' : undefined} />
+        </Figures>
         <div className="mb-2 flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="secondary" icon={<Download className="size-4" />} onClick={() => download(`/drivers/${driverId}/ledger/export`, undefined, 'sofor-hesabi.xlsx')}>Excel</Button>
           {can('accounting') && <Button size="sm" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>Ödeme / İade Gir</Button>}
@@ -301,15 +301,6 @@ export function DriverLedgerPanel({ driverId }: { driverId: number }) {
       {adding && <SettlementForm driverId={driverId} onClose={() => setAdding(false)} />}
       <ConfirmDialog open={deleting != null} title="Kaydı sil" confirmText="Sil" loading={remove.isPending} message="Bu ödeme/iade kaydı silinecek. Emin misiniz?"
         onClose={() => setDeleting(null)} onConfirm={() => deleting != null && remove.mutate(deleting)} />
-    </div>
-  )
-}
-
-function Stat({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200 px-3 py-2">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className={`${strong ? 'text-lg font-semibold' : 'font-medium'} ${tone ?? 'text-slate-800'}`}>{value}</div>
     </div>
   )
 }
