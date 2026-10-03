@@ -32,7 +32,7 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 ### A1 — Tasarım seçimi (2-3 gün)
 - [ ] 3 farklı tasarım hazırlanır, her biri aynı 3 ekranla: Sevkiyatlar listesi, Yeni Sevkiyat formu, Ana sayfa. Gerçek görünümle, paylaşılabilir bir sayfada sunulur.
 - [ ] Her tasarımda belirlenenler: renkler, yazı tipi, boşluklar, tablo, düğme ve form görünümü.
-- [ ] **Kullanıcı** birini seçer ya da karıştırır ("şunun rengi, bunun tablosu").
+- [x] **Kullanıcı** birini seçer ya da karıştırır ("şunun rengi, bunun tablosu"). **3 Ekim kararı: "Otoyol" tasarımı.** Önce "Ferah" (B) dedi, sonra "Otoyol daha iyi" diye değiştirdi. Ek istek: soldaki menü listeleri hep görünür olsun, açılıp kapanan gruplar olmasın.
 - [ ] Seçilen tasarım tek yerde tanımlanır (tasarım sistemi), bütün ekranlar oradan beslenir.
 
 ### A2 — Tasarımı bütün panele uygulama + Türkçe (1-2 hafta)
@@ -93,9 +93,17 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] 5 rastgele cari pratikortam ile yan yana karşılaştırılır. Tam yedek alınır.
 - [ ] Pratikortam salt okunur arşiv olarak kalır. Şifreler ortamlardan silinir.
 
+## Kaldığımız yer (3 Ekim, kullanım limiti yüzünden ara)
+1. `claude/wip-backup-test-fix` dalı: ara sıra düşen `BackupTests` için düzeltme var.
+   - Sebep: geri yükleme testi sunucuyu kapatıyor, aynı sınıftaki sonraki test kapanmış sunucuya istek atıyor.
+   - Çözüm: `Backup:RestartAfterRestore=false` ayarı.
+   - Yedek testleri geçti. Tam `dotnet test` çalıştırılıp ana dala alınacak.
+2. A2 başlar: "Otoyol" tasarımı önce ortak parçalara uygulanır (`index.css` renkleri, `ui.tsx`, `DataTable`, `Layout`). Sol menü grupları sabit açık. Sonra ekran ekran.
+3. Bekleyen kullanıcı kararları aşağıda (terimler, secret'lar, komisyon KDV'si, eksik sıralaması).
+
 ## Kullanıcıdan gerekenler (özet)
 1. A0: GitHub secret'ları (4 + 3 yedek).
-2. A1: Tasarım seçimi.
+2. ~~A1: Tasarım seçimi.~~ Yapıldı: Otoyol, sol menü hep açık.
 3. A2: Terim tablosu onayı (Sefer/Sevkiyat vb.).
 4. A3: Eksik listesine ekleme ve sıralama.
 5. A7: e-Fatura programının adı ve entegrasyon bilgisi.
