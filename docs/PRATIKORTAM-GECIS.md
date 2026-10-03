@@ -148,8 +148,8 @@ Bu arada GitHub'da iki dal bekliyor:
 | Menü: Sevkiyat · Raporlar · Listeler · Öz Mal · Banka & Çek · Yönetici | Aynı gruplar: Sevkiyat, Cari, Listeler, Öz Mal, Banka & Çek, Rapor ve Yönetim | — | Her maddenin altında ne işe yaradığı yazar; bekleyen işler menüde sayaçla görünür |
 | Sevkiyatlar (`gecmis_new.php`) | Sevkiyatlar (`/seferler`) | Evrak onay adımları, komisyon/prim sütunları | Bugün / Gelecek / Geçmiş / Bu ay hapları; listenin üstünde kazanç tablosu; fatura durumu satırda; tek tıkla durum ilerletme; pano görünümü |
 | Kazanç Tablosu | Sevkiyatlar'daki kazanç şeridi | — | Süzgeçle birlikte değişir; "Faturası kesilecek"e tıklayınca liste süzülür |
-| Müşteriler Cari (`alck_mstr.php`) | Müşteriler Cari (`/cari/musteriler`) | İptal fatura sütunu | Az ve anlaşılır sütun; vadesi geçen satırda kırmızı; tek tıkla ekstre PDF; "Bakiyesi olanlar / Vadesi geçenler / Hepsi" |
-| Tedarikçiler Cari (`alck_tdrkc.php`) | Tedarikçiler Cari (`/cari/tedarikciler`) | — | Faturası gelmeyen seferler sayıyla; ekstre ve ödeme tek tıkla |
+| Müşteriler Cari (`alck_mstr.php`) | Müşteriler Cari (`/cari/musteriler`) | — | Kesilen / İptal Fatura, Faturasız Sevkiyatlar; başlıkla sıralama; süzgeçle Excel ve PDF; vadesi geçen satırda kırmızı; tek tıkla ekstre PDF; "Bakiyesi olanlar / Vadesi geçenler / Hepsi" |
+| Tedarikçiler Cari (`alck_tdrkc.php`) | Tedarikçiler Cari (`/cari/tedarikciler`) | Seçilenlerden ödeme listesi | Alınan / İptal Fatura, Faturasız Sevkiyatlar sayıyla; sıralama, Excel ve PDF; ekstre ve ödeme tek tıkla |
 | Tedarikçi Ödemeleri | Tedarikçi Ödemeleri (`/odemeler`) | — | Ödeme seferle ya da eski borçla kendiliğinden eşleşir |
 | Müşteri / Tedarikçi / Şoför Listesi | Listeler → Müşteriler, Tedarikçiler, Şoförler | Firma grupları, e-Fatura şablonu | Kartta tüm hareketler ve belgeler |
 | Öz Mal: Araçlar, Mazotlar, Giderler, Araç Masrafları | Öz Mal → Araçlar, Giderler | Sabit ödemeler, personel maaş/avans | Mazot ve masraf tek gider formunda (kategori kartlarıyla); belge ve bakım uyarıları |

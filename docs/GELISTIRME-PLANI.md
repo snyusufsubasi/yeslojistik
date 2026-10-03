@@ -40,6 +40,14 @@
    - kısa sefer formu ("Ayrıntılar");
    - tutarlar 2 kuruş basamağıyla;
    - Türkçe form hataları.
+10. ✅ **Cari, ekstre ve fatura çıktıları (3 Ekim):**
+   - Müşteriler/Tedarikçiler Cari: İptal Fatura, Alınan Fatura (tedarikçi), Faturasız Sevkiyatlar (tutar ve sefer sayısı) sütunları;
+     başlığa tıklayınca sıralama; ekrandaki süzgeç, arama ve sıralamayla Excel ve PDF. Aynada bakiye yine pratikortam'ın;
+     panelde verisi olan fatura/sefer sütunları gösterilir, devir ve ödeme sütunları gizlenir.
+   - Müşteri ekstresinde "Faturasız seferleri de göster" (PDF, Excel ve e-posta): teslim edilmiş, faturası kesilmemiş seferler
+     ayrı bölümde bilgi olarak listelenir, bakiyeye girmez.
+   - Faturalar: "Fatura İcmali" PDF'i (süzgeçteki ya da seçilen faturalar: no, tarih, vade, matrah, KDV, tevkifat, toplam, kalan)
+     ve sevkiyat no ile arama (S öneksiz de yazılabilir).
 
    Bekleyen kararlar `YOL-HARITASI.md` → "Kullanıcıdan gerekenler" bölümünde.
 8. ✅ **.NET 10'a geçildi (2 Ekim).** .NET 8 desteği 10 Kasım 2026'da bitiyordu. Sunucu, Docker imajları ve CI artık .NET 10 kullanıyor.
@@ -151,7 +159,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 10 | Filtreler adres çubuğunda kalsın | Geri gelince veya sayfayı yenileyince filtreler sıfırlanıyor | Ortak bir adres-durumu yardımcısı, tüm liste sayfaları | M — **Sevkiyatlar'da yapıldı (3 Ekim)**, diğer listeler bekliyor |
 | 11 | ~~Sefer listesine Özet/Detay görünümü, tedarikçi, plaka ve evrak filtresi, PDF/İcmal~~ **Yapıldı (3 Ekim)** | Pratikortam'daki liste alışkanlığı | `TripsPage`, `TripQuery` | M |
 | 12 | ~~Toplu seçim ve toplu işlem~~ **Yapıldı (A5)** | Teslim evrakı onayı tek tek yapılıyor. Toplu ödeme yok | `DataTable` seçim + alt işlem çubuğu; `/api/trips/bulk/*`, `/api/supplier-payments/bulk` | M |
-| 13 | Cari tablolarında sıralama, Excel/PDF ve sütun toplamları | Pratikortam'da var, burada yok | `CariPage` | S |
+| 13 | Cari tablolarında sıralama, Excel/PDF ve sütun toplamları | Pratikortam'da var, burada yok | `CariPage` | S — **yapıldı (3 Ekim)** |
 | 14 | Ana listelerde Excel dışa aktarma ve arşiv/pasif görünümü | Müşteri, tedarikçi, şoför ve araç listelerinde sadece içe aktarma var | 4 dışa aktarma ucu + düğmeler | M — **Excel yapıldı (A4)**, arşiv görünümü bekliyor |
 | 15 | Hata kodu (iz numarası) ve hata kayıtları | "Beklenmeyen hata" mesajının nedeni bulunamıyor | `ExceptionHandler` + mesajda "Hata kodu: …" | S |
 | 16 | Arka plan işleri zamanlayıcıyla çalışsın | Sabah özeti ve e-fatura durumu uyuyan sunucuda çalışmıyor | GitHub Actions zamanlayıcısı + "Son çalışma" bilgisi | S |
@@ -188,8 +196,8 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | Sevkiyat listesi PDF ve İcmal | **Var:** Sevkiyatlar → "Sevkiyat PDF" ve "İcmal" | 2 |
 | "Teslim Evrak Onayla" satır işlemi | **Var (A5):** Sevkiyatlar'da seçip "Teslim evrakını onayla" (toplu) | 2 |
 | Toplu ödemeler / "Seçilenleri listeye ekle" | **Var (A5):** Sevkiyatlar ve tedarikçi kartında seferleri seçip "Toplu ödeme" (tedarikçi başına bir ödeme, önizlemeli) | 2 |
-| Cari tablolarında her sütunda sıralama, Excel ve PDF | Sıralama ve dışa aktarma yok | 2 |
-| Cari detay sütunları (alınan fatura, verilen ödeme, iptal) | Sadece bakiye | 2 |
+| Cari tablolarında her sütunda sıralama, Excel ve PDF | **Var (3 Ekim)** | 2 |
+| Cari detay sütunları (alınan fatura, verilen ödeme, iptal) | **Var (3 Ekim):** iptal fatura, alınan fatura, faturasız sevkiyatlar | 2 |
 | Faturalarda filtre toplamı (matrah, KDV, tevkifat, genel toplam) | Sadece sayfa toplamı | 2 |
 | Müşteri, tedarikçi ve şoför listelerinde Excel dışa aktarma | Sadece içe aktarma | 2 |
 | Arşiv firmaları / arşiv tedarikçileri | Sadece şoförde pasif filtresi var | 2 |

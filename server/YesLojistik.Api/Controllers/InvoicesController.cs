@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using YesLojistik.Api.Auth;
 using YesLojistik.Api.Infrastructure;
 using YesLojistik.Core.Dtos;
+using YesLojistik.Core.Entities;
 using YesLojistik.Infrastructure.Services;
 
 namespace YesLojistik.Api.Controllers;
@@ -38,6 +39,20 @@ public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf
             new("Tahsil Edilen", i => i.Paid, ExcelExporter.MoneyFormat),
             new("Kalan", i => i.Remaining, ExcelExporter.MoneyFormat),
             new("Durum", i => i.PaymentStatus)), "faturalar");
+    }
+
+    /// <summary>
+    /// Fatura İcmali (PDF): süzgeçteki ya da seçilen (ids) faturaların listesi; müşteriye fatura ekinde gönderilir.
+    /// Durum seçilmediyse yalnızca kesilen faturalar yazılır (taslak ve iptaller müşteriye gitmez).
+    /// </summary>
+    [HttpGet("summary-pdf")]
+    public async Task<IActionResult> SummaryPdf([FromQuery] InvoiceQuery q, [FromQuery] bool download, [FromServices] TripStatementService statements,
+        CancellationToken ct)
+    {
+        var filter = q with { Page = 1, PageSize = QueryExtensions.ExportLimit, Status = q.Status ?? InvoiceStatus.Issued };
+        var rows = (await invoices.ListAsync(filter, ct, export: true)).Items;
+        var (content, name) = await statements.InvoiceSummaryPdfAsync(rows, q.From, q.To, ct);
+        return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
     }
 
     [HttpGet("{id:int}")]

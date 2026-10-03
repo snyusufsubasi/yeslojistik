@@ -28,6 +28,41 @@ test('cari tabloları ve sevkiyat kazanç tablosu (eski panele benzeyen düzen)'
   await expect(page.getByRole('radio', { name: 'Bugün' })).toHaveAttribute('aria-checked', 'true')
 })
 
+test('cari tablosunda sıralama, Excel/PDF çıktısı ve faturalarda icmal', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'masaüstü tablo')
+  await login(page)
+
+  await page.getByRole('link', { name: 'Müşteriler Cari', exact: true }).click()
+  await page.getByRole('radio', { name: 'Hepsi' }).click()
+  await expect(page.getByRole('columnheader', { name: 'Faturasız Sevkiyatlar' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'İptal Fatura' })).toBeVisible()
+  const titles = page.locator('tbody tr td:first-child span.font-medium')
+  await expect(titles.first()).toBeVisible()
+  const sortBy = page.getByRole('columnheader', { name: 'Müşteri' }).getByRole('button')
+  const az = (list: string[]) => [...list].sort((a, b) => a.localeCompare(b, 'tr'))
+  await sortBy.click()
+  await expect.poll(async () => { const t = await titles.allTextContents(); return t.join('|') === az(t).join('|') }).toBe(true)
+  await sortBy.click()
+  await expect.poll(async () => { const t = await titles.allTextContents(); return t.join('|') === az(t).reverse().join('|') }).toBe(true)
+
+  // Çıktılar ekrandaki süzgeç ve sıralamayla iner.
+  const [excel] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Excel', exact: true }).click()])
+  expect(excel.suggestedFilename()).toMatch(/^musteriler-cari.*\.xlsx$/)
+  await expectPdfOpens(page, () => page.getByRole('button', { name: 'PDF', exact: true }).click(),
+    /\/api\/cari\/customers\/export\?(?=.*format=pdf)(?=.*filter=all)(?=.*sort=title)(?=.*desc=true)/)
+
+  await page.getByRole('link', { name: 'Tedarikçiler Cari', exact: true }).click()
+  await expect(page.getByRole('columnheader', { name: 'Alınan Fatura' })).toBeVisible()
+  await expectPdfOpens(page, () => page.getByRole('button', { name: 'PDF', exact: true }).click(), /\/api\/cari\/suppliers\/export\?.*format=pdf/)
+
+  await page.getByRole('link', { name: 'Faturalar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Faturalar' })).toBeVisible()
+  await expect(page.getByLabel('Filtre toplamı')).toContainText('Genel toplam')
+  await expectPdfOpens(page, () => page.getByRole('button', { name: 'Fatura İcmali' }).click(), /\/api\/invoices\/summary-pdf/)
+  await page.getByLabel('Sevkiyat no').fill('999999999')
+  await expect(page.getByText('Bu filtrelere uyan fatura yok.')).toBeVisible()
+})
+
 test('personeller ve sabit ödemeler', async ({ page, isMobile }) => {
   test.skip(isMobile, 'masaüstü menüsü')
   await login(page)

@@ -157,42 +157,62 @@ public class WaybillPdfGenerator(AppDbContext db)
     }
 }
 
-/// <summary>Müşteri hesap ekstresi: seçilen dönemdeki fatura ve tahsilatlar, devreden ve kapanış bakiyesiyle.</summary>
+/// <summary>
+/// Müşteri hesap ekstresi: seçilen dönemdeki fatura ve tahsilatlar, devreden ve kapanış bakiyesiyle.
+/// İstenirse (uninvoiced) dönemde teslim edilmiş ama faturası kesilmemiş seferler ayrı bir bölümde bilgi olarak listelenir
+/// (pratikortam'daki "Sevkiyat Alacak"); bakiyeye girmezler.
+/// </summary>
 public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accounts, IEmailSender email)
 {
     public async Task<(byte[] Content, string FileName, Customer Customer, decimal Closing)> GenerateAsync(
-        int customerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        int customerId, DateOnly? from, DateOnly? to, bool uninvoiced = false, CancellationToken ct = default)
     {
         if (from is { } f && to is { } t && f > t) throw new DomainException("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
         var customer = await db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId, ct)
             ?? throw new NotFoundException("Müşteri bulunamadı.");
         var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
         var all = await accounts.MovementsAsync(customerId, ct);
+        var trips = uninvoiced ? await UninvoicedTripsAsync(customerId, from, to, ct) : null;
         var (pdf, closing) = Render(company, "HESAP EKSTRESİ", $"Cari No: {customer.CustomerNo}", "SAYIN",
             [customer.Title, customer.Address, string.IsNullOrWhiteSpace(customer.TaxNumber) ? null : $"{customer.TaxOffice} V.D. — {customer.TaxNumber}"],
-            all, from, to, supplier: false);
+            all, from, to, supplier: false, trips);
 
         var slug = new string(customer.Title.Where(char.IsLetterOrDigit).Take(30).ToArray());
         return (pdf, $"ekstre-{customer.CustomerNo}-{slug}.pdf", customer, closing);
     }
 
     /// <summary>Müşteri ekstresinin Excel'i (PDF ile aynı satır ve toplamlar).</summary>
-    public async Task<(byte[] Content, string FileName)> ExcelAsync(int customerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    public async Task<(byte[] Content, string FileName)> ExcelAsync(int customerId, DateOnly? from, DateOnly? to, bool uninvoiced = false,
+        CancellationToken ct = default)
     {
         var customer = await db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId, ct)
             ?? throw new NotFoundException("Müşteri bulunamadı.");
         var all = await accounts.MovementsAsync(customerId, ct);
+        var trips = uninvoiced ? await UninvoicedTripsAsync(customerId, from, to, ct) : null;
         var xlsx = Excel("Hesap Ekstresi", $"Cari No: {customer.CustomerNo}",
             [customer.Title, customer.Address, string.IsNullOrWhiteSpace(customer.TaxNumber) ? null : $"{customer.TaxOffice} V.D. — {customer.TaxNumber}"],
-            all, from, to, supplier: false);
+            all, from, to, supplier: false, trips);
         var slug = new string(customer.Title.Where(char.IsLetterOrDigit).Take(30).ToArray());
         return (xlsx, $"ekstre-{customer.CustomerNo}-{slug}.xlsx");
     }
 
     /// <summary>
-    /// Ekstre PDF'i (müşteri ve tedarikçi için ortak). Tedarikçide "Borç" = firmanın tedarikçiye borçlandığı tutar,
-    /// "Alacak" = tedarikçiye yapılan ödeme; pozitif bakiye tedarikçinin alacağıdır.
+    /// Teslim edilmiş, faturası kesilmemiş seferler (eski kayıtlar ve iptaller hariç); yükleme tarihi ekstrenin dönemine göre süzülür.
+    /// Tutarlar Sevkiyat listesiyle aynı kuralla hesaplanır (KDV ve tevkifat dahil toplam).
     /// </summary>
+    public async Task<List<TripStatementLine>> UninvoicedTripsAsync(int customerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var query = db.Trips.AsNoTracking().Where(t => t.CustomerId == customerId && !t.IsLegacy && t.Status == TripStatus.Delivered && t.InvoiceId == null);
+        if (from is { } f) query = query.Where(t => t.LoadingDate >= f);
+        if (to is { } t0) query = query.Where(t => t.LoadingDate <= t0);
+        var trips = await query.Include(t => t.Customer).Include(t => t.Vehicle).Include(t => t.Driver)
+            .OrderBy(t => t.LoadingDate).ThenBy(t => t.Id).Take(TripStatementService.MaxTrips).ToListAsync(ct);
+        return trips.Select(TripStatementService.Line).ToList();
+    }
+
+    public const string UninvoicedTitle = "Faturası kesilmemiş seferler (bilgi için)";
+    public const string UninvoicedNote = "Bu seferler bakiyeye dahil değildir; fatura kesildiğinde ekstreye borç olarak yansır.";
+
     /// <summary>Ekstrenin dönemi: devreden bakiye, dönem hareketleri ve kapanış bakiyesi (PDF ve Excel aynı rakamları kullanır).</summary>
     public sealed record StatementPeriod(decimal Opening, IReadOnlyList<AccountMovementDto> Rows, decimal Closing, string Period, bool HasOpening)
     {
@@ -224,7 +244,7 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
 
     /// <summary>Ekstrenin Excel'i: PDF ile aynı satırlar, devreden bakiye, dönem toplamları ve kapanış bakiyesi.</summary>
     public static byte[] Excel(string title, string partyNo, string?[] partyLines, IReadOnlyList<AccountMovementDto> all,
-        DateOnly? from, DateOnly? to, bool supplier)
+        DateOnly? from, DateOnly? to, bool supplier, IReadOnlyList<TripStatementLine>? uninvoiced = null)
     {
         var s = Slice(all, from, to);
         var rows = new List<AccountMovementDto>();
@@ -244,11 +264,33 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
             new("Borç", m => m.Debit == 0 ? null : m.Debit, ExcelExporter.MoneyFormat),
             new("Alacak", m => m.Credit == 0 ? null : m.Credit, ExcelExporter.MoneyFormat),
             new("Bakiye", m => m.RunningBalance, ExcelExporter.MoneyFormat));
+        if (uninvoiced != null)
+        {
+            TripStatementLine[] tripTotal = uninvoiced.Count == 0 ? [] :
+                [new(0, "", default, 0, "", $"Toplam ({uninvoiced.Count} sefer)", "", "", "", null, null, null,
+                    uninvoiced.Sum(l => l.Subtotal), uninvoiced.Sum(l => l.VatAmount), uninvoiced.Sum(l => l.WithholdingAmount), uninvoiced.Sum(l => l.Total))];
+            wb.AddSheet("Faturasız Seferler", uninvoiced, tripTotal,
+                [UninvoicedTitle, $"{partyLines[0]} · {partyNo}", UninvoicedNote, $"Dönem: {s.Period}"],
+                new ExcelColumn<TripStatementLine>("Tarih", l => l.Date == default ? null : l.Date, ExcelExporter.DateFormat),
+                new("Sevkiyat No", l => l.No),
+                new("Güzergâh", l => l.TripId == 0 ? l.From : $"{l.From} → {l.To}"),
+                new("Plaka", l => l.Plate),
+                new("Evrak No", l => l.DocumentNo),
+                new("Matrah", l => l.Subtotal, ExcelExporter.MoneyFormat),
+                new("KDV", l => l.VatAmount, ExcelExporter.MoneyFormat),
+                new("Tevkifat", l => l.WithholdingAmount, ExcelExporter.MoneyFormat),
+                new("Toplam", l => l.Total, ExcelExporter.MoneyFormat));
+        }
         return wb.Build();
     }
 
+    /// <summary>
+    /// Ekstre PDF'i (müşteri ve tedarikçi için ortak). Tedarikçide "Borç" = firmanın tedarikçiye borçlandığı tutar,
+    /// "Alacak" = tedarikçiye yapılan ödeme; pozitif bakiye tedarikçinin alacağıdır.
+    /// </summary>
     public static (byte[] Pdf, decimal Closing) Render(CompanySettings company, string title, string partyNo, string partyCaption,
-        string?[] partyLines, IReadOnlyList<AccountMovementDto> all, DateOnly? from, DateOnly? to, bool supplier)
+        string?[] partyLines, IReadOnlyList<AccountMovementDto> all, DateOnly? from, DateOnly? to, bool supplier,
+        IReadOnlyList<TripStatementLine>? uninvoiced = null)
     {
         var s = Slice(all, from, to);
         var (opening, rows, closing, period) = (s.Opening, s.Rows, s.Closing, s.Period);
@@ -322,6 +364,7 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
                     tot.Item().LineHorizontal(1).LineColor(PdfKit.Navy);
                     Row(s.ClosingLabel(supplier), Math.Abs(closing), bold: true);
                 });
+                if (uninvoiced != null) col.Item().PaddingTop(6).Element(c => UninvoicedSection(c, uninvoiced));
                 if (!supplier && !string.IsNullOrWhiteSpace(company.Iban))
                     col.Item().Text(x => { x.Span("IBAN: ").Bold(); x.Span(company.Iban); });
                 col.Item().Text("Mutabık olmadığınız kalemler için lütfen bizimle iletişime geçiniz.").FontSize(9).FontColor(Colors.Grey.Darken2);
@@ -333,9 +376,51 @@ public class StatementPdfGenerator(AppDbContext db, CustomerAccountService accou
 
     }
 
-    public async Task<string> SendAsync(int customerId, DateOnly? from, DateOnly? to, string? recipient, string? note, CancellationToken ct = default)
+    /// <summary>Faturası kesilmemiş seferler bölümü: tarih, sevkiyat no, güzergâh, plaka, matrah ve toplam; bakiyeye girmez.</summary>
+    private static void UninvoicedSection(IContainer container, IReadOnlyList<TripStatementLine> trips) => container.Column(col =>
     {
-        var (content, fileName, customer, closing) = await GenerateAsync(customerId, from, to, ct);
+        col.Spacing(4);
+        col.Item().Text(UninvoicedTitle).Bold().FontColor(PdfKit.Navy);
+        col.Item().Text(UninvoicedNote).FontSize(8.5f).FontColor(Colors.Grey.Darken1);
+        col.Item().Table(table =>
+        {
+            table.ColumnsDefinition(c =>
+            {
+                c.ConstantColumn(62); c.ConstantColumn(72); c.RelativeColumn(); c.ConstantColumn(70); c.ConstantColumn(74); c.ConstantColumn(80);
+            });
+            table.Header(h =>
+            {
+                foreach (var (text, right) in new[] { ("Tarih", false), ("Sevkiyat No", false), ("Güzergâh", false), ("Plaka", false), ("Matrah", true), ("Toplam", true) })
+                {
+                    var cell = h.Cell().Background(Colors.Grey.Darken2).Padding(4);
+                    (right ? cell.AlignRight() : cell).Text(text).FontColor(Colors.White).Bold();
+                }
+            });
+            IContainer Cell(IContainer c) => c.BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4);
+            foreach (var l in trips)
+            {
+                table.Cell().Element(Cell).Text(Formatters.Date(l.Date));
+                table.Cell().Element(Cell).Text(l.No);
+                table.Cell().Element(Cell).Text($"{l.From} → {l.To}");
+                table.Cell().Element(Cell).Text(l.Plate);
+                table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(l.Subtotal));
+                table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(l.Total));
+            }
+            if (trips.Count == 0)
+                table.Cell().ColumnSpan(6).Element(Cell).AlignCenter().Text("Bu dönemde faturası kesilmemiş sefer yok.").FontColor(Colors.Grey.Darken1);
+            else
+            {
+                table.Cell().ColumnSpan(4).Element(Cell).Text($"Toplam ({trips.Count} sefer)").Bold();
+                table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(trips.Sum(l => l.Subtotal))).Bold();
+                table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(trips.Sum(l => l.Total))).Bold();
+            }
+        });
+    });
+
+    public async Task<string> SendAsync(int customerId, DateOnly? from, DateOnly? to, string? recipient, string? note, bool uninvoiced = false,
+        CancellationToken ct = default)
+    {
+        var (content, fileName, customer, closing) = await GenerateAsync(customerId, from, to, uninvoiced, ct);
         var target = string.IsNullOrWhiteSpace(recipient) ? customer.Email : recipient.Trim();
         if (string.IsNullOrWhiteSpace(target)) throw new DomainException("Müşterinin e-posta adresi yok. Alıcı adresini yazın.");
         var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);

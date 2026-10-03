@@ -181,15 +181,17 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
   const [from, setFrom] = useState(firstOfYear())
   const [to, setTo] = useState('')
   const [recipient, setRecipient] = useState(email ?? '')
+  // Pratikortam'daki "Sevkiyat Alacak": teslim edilmiş ama faturası kesilmemiş seferler ekstrenin altında bilgi olarak listelenir.
+  const [uninvoiced, setUninvoiced] = useState(false)
   const reminderText = reminder
     ? `Sayın ${title} yetkilisi, cari hesabınızda vadesi geçmiş ${tl2(reminder.overdue)} tutarında bakiye bulunmaktadır (toplam bakiye ${tl2(reminder.balance)}). Hesap ekstresi ektedir. Ödemenizi rica eder, mutabakat için dönüşünüzü bekleriz.`
     : ''
   const [message, setMessage] = useState(reminderText)
   const waPhone = phone?.replace(/\D/g, '').replace(/^0/, '90')
   const whatsapp = reminder && waPhone ? `https://wa.me/${waPhone.startsWith('90') ? waPhone : `90${waPhone}`}?text=${encodeURIComponent(reminderText)}` : null
-  const range = { from: from || null, to: to || null }
+  const range = { from: from || null, to: to || null, ...(uninvoiced ? { uninvoiced: 'true' } : {}) }
   const query = new URLSearchParams(Object.entries(range).filter(([, v]) => v) as [string, string][]).toString()
-  const send = useSave(() => post<{ sentTo: string }>(`/customers/${customerId}/statement/email`, { ...range, recipient: recipient || null, message: message || null }), {
+  const send = useSave(() => post<{ sentTo: string }>(`/customers/${customerId}/statement/email`, { from: range.from, to: range.to, uninvoiced, recipient: recipient || null, message: message || null }), {
     invalidate: [], success: reminder ? 'Vade hatırlatması e-postayla gönderildi.' : 'Hesap ekstresi e-postayla gönderildi.', onSuccess: onClose,
   })
   const canMail = can('accounting') && !!settings.data?.emailEnabled
@@ -216,6 +218,11 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
             <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
         </div>
         <p className="text-sm text-slate-600">Tarihleri boş bırakırsanız bütün hareketler alınır.</p>
+        <label className="flex items-start gap-2 text-[0.9375rem] text-slate-700">
+          <input type="checkbox" className="mt-1" checked={uninvoiced} onChange={(e) => setUninvoiced(e.target.checked)} />
+          <span>Faturasız seferleri de göster
+            <span className="block text-sm text-slate-500">Teslim edilmiş, faturası kesilmemiş seferler ayrı bölümde listelenir; bakiyeye eklenmez.</span></span>
+        </label>
         {canMail && <>
           <label className="block"><span className="label">Alıcı e-posta</span>
             <input className="input" type="email" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="muhasebe@musteri.com" /></label>

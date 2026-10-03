@@ -204,6 +204,78 @@ public class TripStatementService(AppDbContext db, TripService trips)
         return (pdf, $"icmal{FileSlug(customer)}.pdf");
     }
 
+    /// <summary>
+    /// Fatura İcmali: faturaların listesi (fatura no, tarih, vade, matrah, KDV, tevkifat, toplam, kalan) ve toplamları.
+    /// Müşteriye fatura ekinde gönderilir; tek müşterinin faturalarıysa "Sayın ..." kutusu çıkar, değilse müşteri sütunu eklenir.
+    /// </summary>
+    public async Task<(byte[] Content, string FileName)> InvoiceSummaryPdfAsync(IReadOnlyList<InvoiceDto> invoices, DateOnly? from, DateOnly? to,
+        CancellationToken ct = default)
+    {
+        var rows = invoices.OrderBy(i => i.Date).ThenBy(i => i.InvoiceNo, StringComparer.Ordinal).ToList();
+        var company = await db.CompanySettings.AsNoTracking().FirstAsync(ct);
+        var customerIds = rows.Select(i => i.CustomerId).Distinct().ToList();
+        var customer = customerIds.Count == 1 ? await db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerIds[0], ct) : null;
+        var pdf = Document.Create(doc => doc.Page(page =>
+        {
+            // Tek müşteride dikey A4 (müşteriye giden belge); birden çok müşteride müşteri sütunu sığsın diye yatay.
+            page.Size(customer == null ? PageSizes.A4.Landscape() : PageSizes.A4);
+            page.Margin(30);
+            page.DefaultTextStyle(x => x.FontSize(8.5f));
+            page.Header().Element(c => PdfKit.Header(c, company, "FATURA İCMALİ",
+                $"Dönem: {Period(from ?? rows.FirstOrDefault()?.Date, to ?? rows.LastOrDefault()?.Date)}", $"Fatura sayısı: {rows.Count}",
+                $"Düzenleme: {Formatters.Date(Clock.Today)}"));
+
+            page.Content().PaddingVertical(16).Column(col =>
+            {
+                col.Spacing(12);
+                if (customer != null) col.Item().Element(c => PartyBox(c, customer));
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        if (customer == null) c.RelativeColumn(1.6f);
+                        c.ConstantColumn(66); c.ConstantColumn(54); c.ConstantColumn(54);
+                        c.RelativeColumn(); c.RelativeColumn(); c.RelativeColumn(); c.RelativeColumn(); c.RelativeColumn();
+                    });
+                    var headers = new List<(string, bool)> { ("Fatura No", false), ("Tarih", false), ("Vade", false), ("Matrah", true), ("KDV", true),
+                        ("Tevkifat", true), ("Toplam", true), ("Kalan", true) };
+                    if (customer == null) headers.Insert(0, ("Müşteri", false));
+                    table.Header(h =>
+                    {
+                        foreach (var (text, right) in headers)
+                        {
+                            var cell = h.Cell().Background(PdfKit.Navy).Padding(4);
+                            (right ? cell.AlignRight() : cell).Text(text).FontColor(Colors.White).Bold();
+                        }
+                    });
+                    IContainer Cell(IContainer c) => c.BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).PaddingVertical(3).PaddingHorizontal(4);
+                    foreach (var i in rows)
+                    {
+                        if (customer == null) table.Cell().Element(Cell).Text(i.CustomerTitle);
+                        table.Cell().Element(Cell).Text(i.InvoiceNo);
+                        table.Cell().Element(Cell).Text(Formatters.Date(i.Date));
+                        table.Cell().Element(Cell).Text(Formatters.Date(i.DueDate));
+                        table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(i.Subtotal));
+                        table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(i.VatAmount));
+                        table.Cell().Element(Cell).AlignRight().Text(i.WithholdingAmount > 0 ? Formatters.Currency(i.WithholdingAmount) : "");
+                        table.Cell().Element(Cell).AlignRight().Text(Formatters.Currency(i.Total));
+                        table.Cell().Element(Cell).AlignRight().Text(i.Remaining > 0 ? Formatters.Currency(i.Remaining) : "—");
+                    }
+                    if (rows.Count == 0)
+                        table.Cell().ColumnSpan((uint)headers.Count).Element(Cell).AlignCenter().Text("Bu süzgeçte fatura yok.").FontColor(Colors.Grey.Darken1);
+                });
+                col.Item().ShowEntire().AlignRight().Width(260).Element(c => Totals(c, "Fatura sayısı", rows.Count, rows.Sum(i => i.Subtotal), rows.Sum(i => i.VatAmount),
+                    rows.Sum(i => i.WithholdingAmount), rows.Sum(i => i.Total), rows.Sum(i => i.Remaining)));
+                if (!string.IsNullOrWhiteSpace(company.Iban) && rows.Any(i => i.Remaining > 0))
+                    col.Item().Text(x => { x.Span("IBAN: ").Bold(); x.Span(company.Iban); });
+            });
+
+            page.Footer().Element(c => PdfKit.Footer(c,
+                "Kalan: tahsilatlar düşüldükten sonra ödenmesi gereken tutar. Faturaların asılları e-Fatura / e-Arşiv olarak ayrıca iletilir."));
+        })).GeneratePdf();
+        return (pdf, $"fatura-icmali{FileSlug(customer)}.pdf");
+    }
+
     private static void PartyBox(IContainer container, Customer c) => PdfKit.Box(container, "SAYIN", b =>
     {
         b.Item().Text(c.Title).Bold();
@@ -212,6 +284,10 @@ public class TripStatementService(AppDbContext db, TripService trips)
     });
 
     private static void Totals(IContainer container, int count, decimal subtotal, decimal vat, decimal withholding, decimal total) =>
+        Totals(container, "Sefer sayısı", count, subtotal, vat, withholding, total);
+
+    private static void Totals(IContainer container, string countLabel, int count, decimal subtotal, decimal vat, decimal withholding, decimal total,
+        decimal? remaining = null) =>
         container.Column(tot =>
         {
             void Row(string label, string value, bool bold = false) => tot.Item().Row(r =>
@@ -220,11 +296,12 @@ public class TripStatementService(AppDbContext db, TripService trips)
                 var v = r.ConstantItem(110).Padding(3).AlignRight().Text(value);
                 if (bold) { l.Bold(); v.Bold(); }
             });
-            Row("Sefer sayısı", count.ToString(Formatters.Tr));
+            Row(countLabel, count.ToString(Formatters.Tr));
             Row("Matrah (KDV hariç)", Formatters.Currency(subtotal));
             Row("KDV", Formatters.Currency(vat));
             if (withholding > 0) Row("Tevkifat", "− " + Formatters.Currency(withholding));
             tot.Item().LineHorizontal(1).LineColor(PdfKit.Navy);
             Row("Genel toplam", Formatters.Currency(total), bold: true);
+            if (remaining is { } rem) Row("Kalan", Formatters.Currency(rem), bold: true);
         });
 }

@@ -68,14 +68,14 @@ Bizim menü aynı grupları izliyor: Sevkiyat · Cari · Listeler · Öz Mal · 
 
 | Pratikortam ekranı | Ne işe yarıyor | Bizdeki karşılığı | Durum | Eksik olan alanlar/işlemler | Öneri |
 |---|---|---|---|---|---|
-| Müşteriler Cari | Her müşterinin bakiyesi. Sütunlar: Müşteri VKN, Firma, Kesilen Fatura, Alınan Fatura, İptal Fatura, Fatura Bekleyen Sevkiyat Alacak, Faturasız Sevkiyatlar, Alınan Ödeme, Verilen Ödeme, Bakiye; her sütunda sıralama, A-Z, Excel, PDF | Müşteriler Cari (`/cari/musteriler`): Devir, Kesilen Fatura, Alınan Ödeme, Sefer Borcu, Verilen Ödeme, Bakiye; ayna modunda "Bakiye (pratikortam)" | Kısmen | Alınan Fatura, İptal Fatura, Faturasız Sevkiyatlar sütunları; her sütunda sıralama; listenin Excel ve PDF çıktısı | Yüksek: kuzen bu tabloya her gün bakıyor |
+| Müşteriler Cari | Her müşterinin bakiyesi. Sütunlar: Müşteri VKN, Firma, Kesilen Fatura, Alınan Fatura, İptal Fatura, Fatura Bekleyen Sevkiyat Alacak, Faturasız Sevkiyatlar, Alınan Ödeme, Verilen Ödeme, Bakiye; her sütunda sıralama, A-Z, Excel, PDF | Müşteriler Cari (`/cari/musteriler`): Devir, Kesilen Fatura, İptal Fatura, Faturasız Sevkiyatlar, Alınan Ödeme, Bakiye; başlıkla sıralama; süzgeçle Excel ve PDF; ayna modunda "Bakiye (pratikortam)" ve verisi olan fatura/sefer sütunları | Var (3 Ekim) | Müşteriden alınan fatura (bizde yok) | — |
 | Vadesi Geçen / Açık Faturalar | Cari tablosundan açılan vadesi geçmiş faturalar | Cari'de "Vadesi geçenler" seçeneği, uyarılar | Var | — | — |
-| Müşteri Ekstre | İşlem dökümü (Tarih, İşlem, Açıklama, Fatura No, Borç, Alacak, Bakiye, önceden devreden); süzgeç: firma, para türü, tarih, "Fatura Alacak" / "Sevkiyat Alacak" işaretleri; Excel, PDF | Müşteri kartı → Hesap Ekstresi (PDF, e-posta, tarih aralığı) | Kısmen | Ekstrenin Excel çıktısı; faturasız sevkiyat alacağını ekstreye katma seçeneği; para türü | Ekstreye Excel ve "faturasız seferleri de göster" seçeneği |
+| Müşteri Ekstre | İşlem dökümü (Tarih, İşlem, Açıklama, Fatura No, Borç, Alacak, Bakiye, önceden devreden); süzgeç: firma, para türü, tarih, "Fatura Alacak" / "Sevkiyat Alacak" işaretleri; Excel, PDF | Müşteri kartı → Hesap Ekstresi (PDF, Excel, e-posta, tarih aralığı, "Faturasız seferleri de göster": ayrı bölümde, bakiyeye girmez) | Kısmen | Para türü | — |
 | Ekstreden Tahsilat Ekle | Tahsilat girip açık faturaları tek tek işaretleyerek kapatma; banka, tarih, sevkiyat no, açıklama | Tahsilatlar formu (tek fatura ya da otomatik en eskiden dağıtım) | Kısmen | Birden çok faturayı işaretleyerek kapatma; ekstre ekranından doğrudan tahsilat; müşteriye ödeme (iade) girişi | Ayna kapanınca (kayıt girişi başlayınca) |
 | Çek ile Tahsilat Yap | Müşteriden çek alma (çek no, tutar, alış tarihi, vade, banka, açıklama) | Tahsilat formu → yöntem Çek / Senet | Var | — | — |
-| Fatura İcmali | Seçilen faturanın/dönemin sevkiyat dökümü: No, Tarih, Plaka, Yükleme Yeri, İndirme Yeri, Yük Cinsi, Yük Miktar, KM, Açıklama, Mal Hizmet Tutar, Genel Toplam; firma adres/VD/VKN başlığıyla yazdırılır | — | Eksik | İcmal belgesi (PDF) | Yüksek: müşteriye fatura ekinde gidiyor |
+| Fatura İcmali | Seçilen faturanın/dönemin sevkiyat dökümü: No, Tarih, Plaka, Yükleme Yeri, İndirme Yeri, Yük Cinsi, Yük Miktar, KM, Açıklama, Mal Hizmet Tutar, Genel Toplam; firma adres/VD/VKN başlığıyla yazdırılır | Faturalar → "Fatura İcmali" PDF (süzgeçteki ya da seçilen faturalar: no, tarih, vade, matrah, KDV, tevkifat, toplam, kalan); sefer dökümü için Sevkiyatlar → Sevkiyat PDF / İcmal | Var (3 Ekim) | — | — |
 | Fatura Sil (nedenli) | Faturayı silme nedeni yazarak siler | Fatura → İptal et | Kısmen | İptal/silme nedeni alanı | Düşük |
-| Tedarikçiler Cari | Tedarikçi bakiyeleri; müşteri cari ile aynı sütunlar; "Seçilenleri Listeye Ekle" (ödeme listesi), satır/sayfa seçimi, Excel, PDF | Tedarikçiler Cari (`/cari/tedarikciler`) | Kısmen | Aynı eksik sütunlar; seçilenlerden ödeme listesi; Excel/PDF; sıralama | Müşteri carisiyle birlikte yapılır |
+| Tedarikçiler Cari | Tedarikçi bakiyeleri; müşteri cari ile aynı sütunlar; "Seçilenleri Listeye Ekle" (ödeme listesi), satır/sayfa seçimi, Excel, PDF | Tedarikçiler Cari (`/cari/tedarikciler`): Alınan / İptal Fatura, Faturasız Sevkiyatlar, sıralama, Excel ve PDF | Kısmen | Seçilenlerden ödeme listesi | Orta (ayna kapanınca) |
 | Tedarikçi Ekstre | Tedarikçi işlem dökümü (Borç / Alacak / Bakiye), süzgeç: tarih, para türü, "Fatura Alacak" / "Fatura Bekleyen" | Tedarikçi kartı → ekstre PDF | Kısmen | Excel; "fatura bekleyen seferleri göster" seçeneği | Müşteri ekstresiyle birlikte |
 | Ekstreden Ödeme Ekle / Gidere Ekle | Tedarikçiye ödeme; istenirse aynı anda gider kaydı (gider kategorisiyle) | Tedarikçi Ödemeleri formu | Kısmen | "Gidere de yaz" seçeneği | Düşük; bizde taşeron maliyeti zaten seferden geliyor |
 | Çek ile Ödeme Yap | Tedarikçiye yeni çek yazma ya da portföydeki çeki verme | Çek / Senet → Ciro et (müşteri çekini tedarikçiye verme) | Kısmen | Kendi çekimizi yazma (verilen çek) ve vadesini izleme | Orta |
@@ -195,10 +195,10 @@ Yalnız alan adları yazıldı; değer yok.
 | Sevkiyat listesi | Excel "Özet" ve "Detay" | Sevkiyatlar → Excel (tek tür) | Kısmen |
 | Sevkiyat listesi | PDF İndir | — | Eksik |
 | Sevkiyat **İcmal** | Yazdırılabilir döküm | — | Eksik |
-| **Fatura İcmali** (ekstreden) | Firma başlıklı sevkiyat dökümü, yazdır/PDF | — | Eksik |
+| **Fatura İcmali** (ekstreden) | Firma başlıklı sevkiyat dökümü, yazdır/PDF | Faturalar → Fatura İcmali (PDF) | Var |
 | Müşteri / Tedarikçi ekstresi | PDF | Müşteri ve tedarikçi ekstresi PDF (müşteride e-postayla gönderme de var) | Var |
-| Müşteri / Tedarikçi ekstresi | Excel | — | Eksik |
-| Müşteriler Cari / Tedarikçiler Cari tablosu | Excel ve PDF | — | Eksik |
+| Müşteri / Tedarikçi ekstresi | Excel | Ekstre → Excel (müşteride faturasız seferler ayrı sayfada) | Var |
+| Müşteriler Cari / Tedarikçiler Cari tablosu | Excel ve PDF | Cari → Excel, PDF (süzgeç ve sıralamayla) | Var |
 | Tedarikçi Ödemeleri | Excel ve PDF | Excel | Kısmen |
 | Faturalar listesi | Excel, toplu XML (imzalı UBL), toplu PDF | Faturalar → Excel; fatura başına PDF; aylık e-Fatura XML ZIP | Kısmen |
 | Analiz | "Tüm Rapor Excel", "Tüm Rapor PDF", "Eski Excel" | Raporlar → her sekme Excel | Kısmen (PDF yok) |
@@ -217,11 +217,11 @@ Yalnız alan adları yazıldı; değer yok.
 
 ### Yüksek
 1. **Listelere Excel çıktısı** (Müşteri, Tedarikçi, Şoför, Araç, Sabit Ödeme, İş Talepleri, Cari tabloları): pratikortam'da her listede var, kuzen alışkın; bizde altyapı hazır, iş kolay.
-2. **Cari tablolarına eksik sütunlar + sıralama + Excel/PDF:** Alınan Fatura, İptal Fatura, Faturasız Sevkiyatlar; her gün bakılan ekran, ayna modunda da işe yarar.
-3. **Fatura İcmali ve Sevkiyat İcmali (PDF):** müşteriye fatura ekinde gidiyor, bizde hiç yok.
-4. **Yapıldı (3 Ekim).** **Sevkiyat süzgeçleri:** tedarikçi, plaka, Piyasa / Öz Araç, Komisyon işi, yükleme/indirme yeri, sevkiyat/teslim evrak/fatura no, evrak var/yok; pratikortam'da en çok kullanılan ekran bu.
-5. **Yapıldı (3 Ekim).** **Sevkiyatlarda "Detay" görünümü:** fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi, kaydı giren kişi sütunları; listeye bakarak iş görülüyor.
-6. **Ekstreye Excel ve "faturasız seferleri de göster" seçeneği:** mutabakatta Excel isteniyor; pratikortam'daki "Sevkiyat Alacak" işareti bunu yapıyor.
+2. ✅ *(3 Ekim)* **Cari tablolarına eksik sütunlar + sıralama + Excel/PDF:** Alınan Fatura, İptal Fatura, Faturasız Sevkiyatlar; her gün bakılan ekran, ayna modunda da işe yarar.
+3. ✅ *(3 Ekim)* **Fatura İcmali ve Sevkiyat İcmali (PDF):** müşteriye fatura ekinde gidiyor, bizde hiç yok.
+4. ✅ *(3 Ekim)* **Sevkiyat süzgeçleri:** tedarikçi, plaka, Piyasa / Öz Araç, Komisyon işi, yükleme/indirme yeri, sevkiyat/teslim evrak/fatura no, evrak var/yok; pratikortam'da en çok kullanılan ekran bu.
+5. ✅ *(3 Ekim)* **Sevkiyatlarda "Detay" görünümü:** fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi, kaydı giren kişi sütunları; listeye bakarak iş görülüyor.
+6. ✅ *(3 Ekim)* **Ekstreye Excel ve "faturasız seferleri de göster" seçeneği:** mutabakatta Excel isteniyor; pratikortam'daki "Sevkiyat Alacak" işareti bunu yapıyor.
 
 ### Orta
 7. **Sefer dosyalarında evrak türü** (yükleme evrakı, teslim evrakı, yükleme/boşaltma fotoğrafı, irsaliye) ve satırdan "Teslim evrakını onayla": evrak takibi ve süzgeçler buna dayanıyor.
@@ -229,7 +229,7 @@ Yalnız alan adları yazıldı; değer yok.
 9. **Tedarikçi ödemelerinde fatura no/tarih/tutar sütunları ve toplu ödeme listesi:** "Seçilenleri listeye ekle" alışkanlığı var.
 10. **İş talebinde kopya sayısı ve "formu açık tut":** aynı işten birden çok araç açılıyor.
 11. **Analiz benzeri tek sayfa özet + rapor PDF:** gider, personel ve ödemeleri de içeren net kazanç; pratikortam'da "Tüm Rapor PDF" var.
-12. **Faturalar listesinde süzgeç toplamları ve sevkiyat no ile arama:** matrah, KDV, tevkifat, genel toplam.
+12. ✅ *(3 Ekim)* **Faturalar listesinde süzgeç toplamları ve sevkiyat no ile arama:** matrah, KDV, tevkifat, genel toplam.
 13. **Yakıt görünümü:** Fark KM, KM başı maliyet, yakıt yüzdesi sütunları.
 14. **Sevk fişine taşıma sözleşmesi metni:** pratikortam fişinde var.
 15. **Kullanıcı yetkilerine birkaç ek anahtar** (fiyatları gör, sil, onay): 4 rol çoğu işi görüyor, ince ayar eksik.

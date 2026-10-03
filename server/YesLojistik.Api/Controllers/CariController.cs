@@ -17,4 +17,18 @@ public class CariController(CariService cari) : ControllerBase
 
     [HttpGet("suppliers")]
     public Task<List<SupplierCariRow>> Suppliers(CancellationToken ct) => cari.SuppliersAsync(ct);
+
+    /// <summary>Müşteriler cari tablosu, ekrandaki süzgeç/arama/sıralamayla: format=pdf ya da Excel (varsayılan).</summary>
+    [HttpGet("customers/export")]
+    public async Task<IActionResult> ExportCustomers([FromQuery] CariExportQuery q, [FromQuery] string? format, [FromQuery] bool download, CancellationToken ct) =>
+        Result(await cari.ExportCustomersAsync(q, format, ct), download);
+
+    /// <summary>Tedarikçiler cari tablosu, ekrandaki süzgeç/arama/sıralamayla: format=pdf ya da Excel (varsayılan).</summary>
+    [HttpGet("suppliers/export")]
+    public async Task<IActionResult> ExportSuppliers([FromQuery] CariExportQuery q, [FromQuery] string? format, [FromQuery] bool download, CancellationToken ct) =>
+        Result(await cari.ExportSuppliersAsync(q, format, ct), download);
+
+    // PDF yeni sekmede açılır (download=true ise iner); Excel her zaman iner.
+    private FileContentResult Result((byte[] Content, string FileName, string ContentType) f, bool download) =>
+        f.ContentType == "application/pdf" && !download ? File(f.Content, f.ContentType) : File(f.Content, f.ContentType, f.FileName);
 }

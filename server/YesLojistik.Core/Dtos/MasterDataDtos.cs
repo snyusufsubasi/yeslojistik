@@ -63,7 +63,8 @@ public record DriverSaveRequest(string FullName, string? Phone, string? National
     string? LicenseNo = null, int? BirthYear = null, string? Address = null, bool IsForeign = false, string? Plate = null,
     DriverRating? Rating = null, string? Note = null);
 
-public record StatementEmailRequest(DateOnly? From, DateOnly? To, string? Recipient, string? Message);
+/// <summary>Uninvoiced: faturası kesilmemiş seferler de ekstrede bilgi olarak listelenir.</summary>
+public record StatementEmailRequest(DateOnly? From, DateOnly? To, string? Recipient, string? Message, bool Uninvoiced = false);
 
 public record SupplierDto(int Id, string SupplierNo, string Title, SupplierKind Kind, string? TaxNumber, string? TaxOffice,
     string? Phone, string? Email, string? Address, string? City, string? District, string? Iban, string? ContactName,

@@ -79,24 +79,27 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
     [HttpGet("{id:int}/movements")]
     public Task<List<AccountMovementDto>> Movements(int id, CancellationToken ct) => accounts.MovementsAsync(id, ct);
 
-    /// <summary>Hesap ekstresi PDF'i (isteğe bağlı tarih aralığıyla); format=xlsx ile aynı ekstre Excel olarak iner.</summary>
+    /// <summary>
+    /// Hesap ekstresi PDF'i (isteğe bağlı tarih aralığıyla); format=xlsx ile aynı ekstre Excel olarak iner.
+    /// uninvoiced=true: dönemde teslim edilmiş, faturası kesilmemiş seferler de bilgi olarak listelenir (bakiyeye girmez).
+    /// </summary>
     [HttpGet("{id:int}/statement")]
     public async Task<IActionResult> Statement(int id, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] bool download,
-        [FromQuery] string? format, [FromServices] StatementPdfGenerator pdf, CancellationToken ct)
+        [FromQuery] string? format, [FromQuery] bool uninvoiced, [FromServices] StatementPdfGenerator pdf, CancellationToken ct)
     {
         if (format == "xlsx")
         {
-            var (xlsx, xlsxName) = await pdf.ExcelAsync(id, from, to, ct);
+            var (xlsx, xlsxName) = await pdf.ExcelAsync(id, from, to, uninvoiced, ct);
             return File(xlsx, YesLojistik.Api.Infrastructure.FileResults.Xlsx, xlsxName);
         }
-        var (content, name, _, _) = await pdf.GenerateAsync(id, from, to, ct);
+        var (content, name, _, _) = await pdf.GenerateAsync(id, from, to, uninvoiced, ct);
         return download ? File(content, "application/pdf", name) : File(content, "application/pdf");
     }
 
     [Authorize(Policy = Policies.Accounting)]
     [HttpPost("{id:int}/statement/email")]
     public async Task<object> EmailStatement(int id, StatementEmailRequest req, [FromServices] StatementPdfGenerator pdf, CancellationToken ct) =>
-        new { sentTo = await pdf.SendAsync(id, req.From, req.To, req.Recipient, req.Message, ct) };
+        new { sentTo = await pdf.SendAsync(id, req.From, req.To, req.Recipient, req.Message, req.Uninvoiced, ct) };
 
     [HttpPost]
     public async Task<ActionResult<CustomerSummaryDto>> Create(CustomerSaveRequest req, CancellationToken ct)

@@ -924,7 +924,10 @@ export interface TripHints {
 export interface CustomerCariRow {
   id: number; customerNo: string; title: string; taxNumber: string | null; phone: string | null
   opening: number; invoiced: number; collected: number; balance: number; overdue: number
+  /** Teslim edilmiş, faturası kesilmemiş seferler (KDV hariç); bakiyeye girmez. */
   uninvoicedTripCount: number; uninvoicedTrips: number
+  /** İptal edilen faturalar; bakiyeye girmez. */
+  cancelledInvoiceCount: number; cancelledInvoices: number
   /** Pratikortam aynası: pratikortam carisindeki bakiye. */
   legacyBalance: number | null; legacyBalanceAt: string | null
 }
@@ -932,6 +935,11 @@ export interface SupplierCariRow {
   id: number; supplierNo: string; title: string; taxNumber: string | null; phone: string | null
   opening: number; tripCost: number; creditExpenses: number; paid: number; balance: number; overdue: number
   tripCount: number; missingInvoiceCount: number
+  /** Alınan (iptal edilmemiş) faturalar; tripCost = receivedInvoices + uninvoicedTrips. */
+  receivedInvoices: number; receivedInvoiceCount: number
+  cancelledInvoiceCount: number; cancelledInvoices: number
+  /** Faturası gelmemiş taşeron seferleri (KDV dahil borç). */
+  uninvoicedTripCount: number; uninvoicedTrips: number
   legacyBalance: number | null; legacyBalanceAt: string | null
 }
 export interface TripTotals {

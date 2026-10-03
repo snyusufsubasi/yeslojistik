@@ -23,6 +23,8 @@ public record InvoiceQuery : ListQuery
     public DateOnly? From { get; init; }
     public DateOnly? To { get; init; }
     public bool? Unpaid { get; init; }
+    /// <summary>Sevkiyat numarası (seferin eski/dış numarası, ör. 978 ya da S978; yoksa sefer no): o sefere ait faturalar.</summary>
+    public string? TripNo { get; init; }
 }
 
 public record PaymentDto(int Id, int CustomerId, string CustomerTitle, int? InvoiceId, string? InvoiceNo, DateOnly Date,

@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet } from 'lucide-react'
-import { download, errorMessage, get, openPdf, post } from '../api/client'
+import { download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
 import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus, InvoiceTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
-import { ExportButton, TotalsStrip } from '../components/Exports'
+import { ExportButton, PdfButton, TotalsStrip } from '../components/Exports'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Loading, Modal, PageHeader, Select, DateFilter } from '../components/ui'
@@ -28,17 +28,21 @@ export default function InvoicesPage() {
   const [unpaid, setUnpaid] = useState(!!params.get('unpaid'))
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [tripNo, setTripNo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [viewing, setViewing] = useState<number | null>(params.get('id') ? Number(params.get('id')) : null)
   const debounced = useDebounce(search)
+  const debouncedTripNo = useDebounce(tripNo.trim())
   const customers = useLookup('customers')
-  const [page, setPage] = usePage([debounced, status, customerId, unpaid, from, to])
-  const selection = useRowSelection<Invoice>((i) => i.id, [debounced, status, customerId, unpaid, from, to])
+  const [page, setPage] = usePage([debounced, status, customerId, unpaid, from, to, debouncedTripNo])
+  const selection = useRowSelection<Invoice>((i) => i.id, [debounced, status, customerId, unpaid, from, to, debouncedTripNo])
   useEffect(() => {
     if (params.get('id') || params.get('unpaid')) { params.delete('id'); params.delete('unpaid'); setParams(params, { replace: true }) }
   }, [params, setParams])
 
-  const query = { page, pageSize: 20, search: debounced, status, customerId, unpaid: unpaid || undefined, from, to, sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, search: debounced, status, customerId, unpaid: unpaid || undefined, from, to, tripNo: debouncedTripNo, sort: sort.key, desc: sort.desc }
+  // Fatura İcmali: süzgeçteki ya da seçilen faturaların listesi (PDF), müşteriye fatura ekinde gönderilir.
+  const icmal = (params: object) => openPdf(withQuery('/invoices/summary-pdf', params), 'fatura-icmali.pdf').catch((e) => toast.error(errorMessage(e)))
   const { data, isFetching, error, refetch } = usePaged<Invoice>('invoices', query)
 
   const pdf = (i: Invoice) => openPdf(`/invoices/${i.id}/pdf`, `${i.invoiceNo}.pdf`).catch((e) => toast.error(errorMessage(e)))
@@ -68,6 +72,8 @@ export default function InvoicesPage() {
       <PageHeader title="Faturalar" subtitle="Kesilen faturalar ve tahsilat durumu"
         actions={<>
           <ExportButton url="/invoices/export" params={query} fileName="faturalar.xlsx" />
+          <PdfButton url="/invoices/summary-pdf" params={{ ...query, page: undefined, pageSize: undefined }} fileName="fatura-icmali.pdf" label="Fatura İcmali"
+            icon={<FileText className="size-4" />} />
           {can('accounting') && <ImportButton entity="invoices" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
         </>} />
@@ -79,6 +85,7 @@ export default function InvoicesPage() {
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" />
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
+          <input className="input" type="search" aria-label="Sevkiyat no" placeholder="Sevkiyat no" value={tripNo} onChange={(e) => setTripNo(e.target.value)} />
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <input type="checkbox" checked={unpaid} onChange={(e) => setUnpaid(e.target.checked)} /> Sadece ödenmemiş
           </label>
@@ -95,10 +102,14 @@ export default function InvoicesPage() {
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
           selectable selection={selection} rowLabel={(i) => `Fatura ${i.invoiceNo}`}
-          bulkActions={(rows) => <Button size="sm" variant="secondary" icon={<Download />}
-            onClick={() => download('/invoices/export', { ids: rows.map((i) => i.id).join(','), sort: sort.key, desc: sort.desc }, 'secilen-faturalar.xlsx')
-              .catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>}
-          empty={debounced || status || customerId || unpaid || from || to
+          bulkActions={(rows) => <>
+            <Button size="sm" variant="secondary" icon={<Download />}
+              onClick={() => download('/invoices/export', { ids: rows.map((i) => i.id).join(','), sort: sort.key, desc: sort.desc }, 'secilen-faturalar.xlsx')
+                .catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>
+            <Button size="sm" variant="secondary" icon={<FileText />}
+              onClick={() => icmal({ ids: rows.map((i) => i.id).join(','), status: status || undefined })}>Fatura İcmali</Button>
+          </>}
+          empty={debounced || status || customerId || unpaid || from || to || debouncedTripNo
             ? 'Bu filtrelere uyan fatura yok.'
             : 'Henüz fatura yok. Seferler teslim edilince “Yeni Fatura” ile faturalayın.'}
           mobileCard={(i) => (

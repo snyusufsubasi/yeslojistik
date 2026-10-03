@@ -55,6 +55,18 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         if (q.To is { } to) query = query.Where(i => i.Date <= to);
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(i => EF.Functions.ILike(i.InvoiceNo, like) || EF.Functions.ILike(i.Customer.Title, like));
+        if (!string.IsNullOrWhiteSpace(q.TripNo))
+        {
+            // Sevkiyat no ekranda "No {eski no ?? sefer no}" diye görünür; pratikortam numaraları S öneksiz de yazılabilir.
+            var no = q.TripNo.Trim().ToUpperInvariant();
+            var withPrefix = no.StartsWith('S') ? no : "S" + no;
+            var id = int.TryParse(no, out var n) ? n : 0;
+            var tripIds = db.Trips.Where(t => t.ExternalRef != null
+                    ? t.ExternalRef.ToUpper() == no || t.ExternalRef.ToUpper() == withPrefix
+                    : t.Id == id)
+                .Select(t => t.Id);
+            query = query.Where(i => i.Trips.Any(t => tripIds.Contains(t.Id)) || i.Lines.Any(l => l.TripId != null && tripIds.Contains(l.TripId.Value)));
+        }
         if (q.Unpaid == true)
         {
             var open = (await balances.InvoiceBalancesAsync(q.CustomerId is { } cid ? [cid] : null, ct))
