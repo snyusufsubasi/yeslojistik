@@ -8,7 +8,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { get } from '../api/client'
 import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { Badge, Button, Card, Loading, StatCard } from '../components/ui'
+import { Badge, Button, Card, Loading, PlateBadge, StatCard } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useAuth } from '../lib/auth'
 import { quickActions } from '../lib/quickActions'
@@ -32,7 +32,7 @@ export default function DashboardPage() {
     { key: 'price', header: 'Tutar', align: 'right', render: (t) => tl(t.salePrice) },
   ]
   const vehicleCols: Column<Vehicle>[] = [
-    { key: 'plate', header: 'Plaka', render: (v) => <><span className="font-medium">{v.plate}</span><span className="block text-sm text-slate-500">{v.km.toLocaleString('tr-TR')} km</span></> },
+    { key: 'plate', header: 'Plaka', render: (v) => <><PlateBadge plate={v.plate} /><span className="block text-sm text-slate-500">{v.km.toLocaleString('tr-TR')} km</span></> },
     { key: 'type', header: 'Araç Tipi', render: (v) => [v.brand, v.model].filter(Boolean).join(' ') || v.type },
     { key: 'driver', header: 'Şoför', render: (v) => v.defaultDriverName ?? '—' },
     { key: 'status', header: 'Durum', render: (v) => <Badge tone={vehicleStatusTone[v.status]}>{vehicleStatusLabel[v.status]}</Badge> },

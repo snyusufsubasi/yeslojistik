@@ -5,7 +5,7 @@ import { Pencil, Plus, Trash2, Truck } from 'lucide-react'
 import { get } from '../api/client'
 import type { Vehicle, VehicleOwnership, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, PlateBadge, Select } from '../components/ui'
 import { ImportButton } from '../components/ImportDialog'
 import { ExportButton } from '../components/Exports'
 import { useAuth } from '../lib/auth'
@@ -57,7 +57,7 @@ export default function VehiclesPage() {
 
   const columns: Column<Vehicle>[] = [
     {
-      key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-medium">{v.plate}
+      key: 'plate', header: 'Plaka', sortKey: 'plate', render: (v) => <span className="font-medium"><PlateBadge plate={v.plate} />
         {v.ownership === 'Rented' && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}
         {(v.supplierTitle || v.trailerPlate) && <span className="block text-sm font-normal text-slate-500">{[v.supplierTitle, v.trailerPlate && `Dorse ${v.trailerPlate}`].filter(Boolean).join(' · ')}</span>}</span>,
     },

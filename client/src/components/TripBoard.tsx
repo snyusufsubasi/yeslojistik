@@ -5,7 +5,7 @@ import type { Trip, TripStatus } from '../api/types'
 import { date, tl, todayIso } from '../lib/format'
 import { usePaged, useSave } from '../lib/hooks'
 import { tripStatusAction, tripStatusLabel } from '../lib/labels'
-import { Button, Spinner } from './ui'
+import { Button, PlateBadge, Spinner } from './ui'
 
 const columns: { status: TripStatus; dot: string; hint: string }[] = [
   { status: 'Planned', dot: 'bg-slate-400', hint: 'Araç ve şoför atanmış, yükleme bekliyor' },
@@ -73,7 +73,7 @@ function Column({ status, dot, hint, search, customerId, onOpen, canEdit, busyId
               <div className="mt-0.5 break-words text-[0.9375rem] text-slate-700">
                 {place(t.loadingCity, t.loadingAddress)} <ArrowRight aria-label="→" className="inline size-4 text-slate-400" /> {place(t.deliveryCity, t.deliveryAddress)}
               </div>
-              <div className="mt-1 text-sm text-slate-500"><span className="whitespace-nowrap">{t.vehiclePlate}</span> · {t.carrierSupplierTitle ?? t.driverName}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500"><PlateBadge plate={t.vehiclePlate} /> {t.carrierSupplierTitle ?? t.driverName}</div>
               {canEdit && next && !delivered && (
                 <Button size="sm" variant="secondary" className="mt-2.5 w-full" loading={busyId === t.id}
                   onClick={(e) => { e.stopPropagation(); onAdvance(t, next) }}>
