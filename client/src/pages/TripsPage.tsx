@@ -349,8 +349,8 @@ function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals
       </>}
       {totals.uninvoicedCount > 0
         ? <button onClick={onUninvoiced} className="min-w-0 rounded-lg text-left hover:bg-violet-50">
-            <div className="text-sm text-violet-700">Faturası kesilecek</div>
-            <div className="truncate text-lg font-semibold tabular-nums text-violet-800">{totals.uninvoicedCount} · {tl(totals.uninvoicedTotal)}</div>
+            <div className="text-sm text-violet-700">Faturası kesilecek ({totals.uninvoicedCount} sefer)</div>
+            <div className="truncate text-lg font-semibold tabular-nums text-violet-800">{tl(totals.uninvoicedTotal)}</div>
           </button>
         : cell('Faturası kesilecek', 'Yok', 'text-slate-400')}
     </div>

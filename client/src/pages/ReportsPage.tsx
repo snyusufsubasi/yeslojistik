@@ -171,9 +171,9 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
       footer={data && data.length > 0 ? (
         <tr className="bg-slate-50 text-sm font-medium">
           <td className="td">Toplam</td>
-          <td className="td text-right">{sum('tripCount')}</td>
-          {(['sale', 'commission', 'vehicleCost', 'driverBonus', 'extraCost', 'expenses', 'profit'] as const).map((k) => <td key={k} className="td text-right">{tl2(sum(k))}</td>)}
-          <td className="td text-right">{margin(revenue > 0 ? Math.round(sum('profit') / revenue * 1000) / 10 : null)}</td>
+          <td className="td whitespace-nowrap text-right tabular-nums">{sum('tripCount')}</td>
+          {(['sale', 'commission', 'vehicleCost', 'driverBonus', 'extraCost', 'expenses', 'profit'] as const).map((k) => <td key={k} className="td whitespace-nowrap text-right tabular-nums">{tl2(sum(k))}</td>)}
+          <td className="td whitespace-nowrap text-right tabular-nums">{margin(revenue > 0 ? Math.round(sum('profit') / revenue * 1000) / 10 : null)}</td>
         </tr>) : undefined} />
   </>
 }
@@ -206,8 +206,8 @@ function Trips({ from, to }: { from: string; to: string }) {
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td" colSpan={5}>Toplam ({data.length} sefer)</td>
-        <td className="td text-right">{tl(total('salePrice'))}</td><td className="td text-right">{tl(total('vehicleCost'))}</td>
-        <td className="td text-right">{tl(total('expenses'))}</td><td className="td text-right">{tl(total('profit'))}</td><td className="td" />
+        <td className="td whitespace-nowrap text-right tabular-nums">{tl(total('salePrice'))}</td><td className="td whitespace-nowrap text-right tabular-nums">{tl(total('vehicleCost'))}</td>
+        <td className="td whitespace-nowrap text-right tabular-nums">{tl(total('expenses'))}</td><td className="td whitespace-nowrap text-right tabular-nums">{tl(total('profit'))}</td><td className="td" />
       </tr>) : undefined} />
 }
 
@@ -285,7 +285,7 @@ function Aging() {
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
-        {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td text-right">{tl2(s(k))}</td>)}
+        {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td whitespace-nowrap text-right tabular-nums">{tl2(s(k))}</td>)}
       </tr>) : undefined} />
 }
 
@@ -315,10 +315,10 @@ function Expenses({ from, to }: { from: string; to: string }) {
           <tbody>
             {data.map((r) => (
               <tr key={r.category}><td className="td">{expenseCategoryLabel[r.category] ?? r.category}</td>
-                <td className="td text-right">{tl2(r.amount)}</td><td className="td text-right">%{total ? Math.round(r.amount / total * 100) : 0}</td></tr>
+                <td className="td whitespace-nowrap text-right tabular-nums">{tl2(r.amount)}</td><td className="td whitespace-nowrap text-right tabular-nums">%{total ? Math.round(r.amount / total * 100) : 0}</td></tr>
             ))}
           </tbody>
-          <tfoot><tr className="bg-slate-50 font-medium"><td className="td">Toplam</td><td className="td text-right">{tl2(total)}</td><td className="td" /></tr></tfoot>
+          <tfoot><tr className="bg-slate-50 font-medium"><td className="td">Toplam</td><td className="td whitespace-nowrap text-right tabular-nums">{tl2(total)}</td><td className="td" /></tr></tfoot>
         </table>
       </div>
       <div className="flex items-center gap-2 text-sm text-slate-500 lg:col-span-2"><BarChart3 className="size-3.5" /> Araç maliyetleri sefer kârlılığı raporunda ayrıca gösterilir.</div>
@@ -342,7 +342,7 @@ function Payables() {
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
-        {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td text-right">{tl2(s(k))}</td>)}
+        {(['notDue', 'days1To30', 'days31To60', 'days61To90', 'over90', 'total'] as const).map((k) => <td key={k} className="td whitespace-nowrap text-right tabular-nums">{tl2(s(k))}</td>)}
       </tr>) : undefined} />
 }
 

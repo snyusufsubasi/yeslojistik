@@ -154,7 +154,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
           <div className="overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full">
               <thead><tr><th className="th">Açıklama</th><th className="th text-right">Tutar</th></tr></thead>
-              <tbody>{inv.lines.map((l) => <tr key={l.id}><td className="td whitespace-normal">{l.description}</td><td className="td text-right">{tl2(l.amount)}</td></tr>)}</tbody>
+              <tbody>{inv.lines.map((l) => <tr key={l.id}><td className="td whitespace-normal">{l.description}</td><td className="td whitespace-nowrap text-right tabular-nums">{tl2(l.amount)}</td></tr>)}</tbody>
             </table>
           </div>
           <div className="ml-auto max-w-xs space-y-1 text-sm">

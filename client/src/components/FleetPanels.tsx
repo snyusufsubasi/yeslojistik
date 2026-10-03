@@ -70,7 +70,7 @@ export function DocumentsPanel({ ownerType, ownerId }: { ownerType: DocumentOwne
                   <td className="td">{d.hasFile
                     ? <button className="font-medium text-brand-700 underline" onClick={() => openPdf(`/documents/${d.id}/file`, `belge-${d.id}`).catch(() => undefined)}>Aç</button>
                     : <span className="text-slate-500">—</span>}</td>
-                  <td className="td text-right">{edit && <div className="flex justify-end gap-1">
+                  <td className="td whitespace-nowrap text-right tabular-nums">{edit && <div className="flex justify-end gap-1">
                     <IconButton label="Düzenle" onClick={() => setEditing(d)}><Pencil className="size-4" /></IconButton>
                     <IconButton label="Sil" onClick={() => setDeleting(d)}><Trash2 className="size-4" /></IconButton>
                   </div>}</td>
@@ -175,10 +175,10 @@ export function MaintenancePanel({ vehicleId, currentKm }: { vehicleId: number; 
                   <td className="td">{date(m.date)}</td>
                   <td className="td"><span className="font-medium">{maintenanceTypeLabel[m.type]}</span>
                     {(m.description || m.supplierTitle) && <span className="block text-sm text-slate-500">{[m.description, m.supplierTitle].filter(Boolean).join(' · ')}</span>}</td>
-                  <td className="td text-right">{m.km?.toLocaleString('tr-TR') ?? '—'}</td>
-                  <td className="td text-right">{tl2(m.cost)}</td>
+                  <td className="td whitespace-nowrap text-right tabular-nums">{m.km?.toLocaleString('tr-TR') ?? '—'}</td>
+                  <td className="td whitespace-nowrap text-right tabular-nums">{tl2(m.cost)}</td>
                   <td className="td">{[m.nextDueKm && `${m.nextDueKm.toLocaleString('tr-TR')} km`, m.nextDueDate && date(m.nextDueDate)].filter(Boolean).join(' · ') || '—'}</td>
-                  <td className="td text-right">{edit && <div className="flex justify-end gap-1">
+                  <td className="td whitespace-nowrap text-right tabular-nums">{edit && <div className="flex justify-end gap-1">
                     <IconButton label="Düzenle" onClick={() => setEditing(m)}><Pencil className="size-4" /></IconButton>
                     <IconButton label="Sil" onClick={() => setDeleting(m)}><Trash2 className="size-4" /></IconButton>
                   </div>}</td>
@@ -286,10 +286,10 @@ export function DriverLedgerPanel({ driverId }: { driverId: number }) {
                       {r.approvalStatus === 'Pending' && <span className="ml-1"><Badge tone="yellow">Onay bekliyor</Badge></span>}
                       {r.approvalStatus === 'Rejected' && <span className="ml-1"><Badge tone="red">Reddedildi</Badge></span>}
                       {r.description && <span className="block text-sm text-slate-500">{r.description}</span>}</td>
-                    <td className="td text-right">{r.debit ? tl2(r.debit) : ''}</td>
-                    <td className="td text-right">{r.credit ? tl2(r.credit) : ''}</td>
+                    <td className="td whitespace-nowrap text-right tabular-nums">{r.debit ? tl2(r.debit) : ''}</td>
+                    <td className="td whitespace-nowrap text-right tabular-nums">{r.credit ? tl2(r.credit) : ''}</td>
                     <td className="td text-right font-medium">{tl2(r.balance)}</td>
-                    <td className="td text-right">{r.settlementId && can('accounting') &&
+                    <td className="td whitespace-nowrap text-right tabular-nums">{r.settlementId && can('accounting') &&
                       <IconButton label="Sil" onClick={() => setDeleting(r.settlementId!)}><Trash2 className="size-4" /></IconButton>}</td>
                   </tr>
                 ))}

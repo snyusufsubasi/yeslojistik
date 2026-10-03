@@ -120,7 +120,7 @@ export default function InvoiceCreatePage() {
                           <td className="td">{t.loadingAddress} → {t.deliveryAddress}</td>
                           <td className="td">{t.vehiclePlate}</td>
                           <td className="td"><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge></td>
-                          <td className="td text-right">{tl2(t.salePrice)}</td>
+                          <td className="td whitespace-nowrap text-right tabular-nums">{tl2(t.salePrice)}</td>
                         </tr>
                       ))}
                     </tbody>

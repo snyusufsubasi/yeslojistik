@@ -263,8 +263,8 @@ function CashFlowCard() {
         <table className="w-full">
           <thead><tr><th className="th" />{b.map((x) => <th key={x.label} className="th text-right">{x.label}</th>)}</tr></thead>
           <tbody>
-            <tr><td className="td">Beklenen tahsilat</td>{b.map((x, i) => <td key={i} className="td text-right">{tl(x.expectedIn)}</td>)}</tr>
-            <tr><td className="td">Çek / senet vadesi</td>{b.map((x, i) => <td key={i} className="td text-right">{tl(x.instrumentsIn)}</td>)}</tr>
+            <tr><td className="td">Beklenen tahsilat</td>{b.map((x, i) => <td key={i} className="td whitespace-nowrap text-right tabular-nums">{tl(x.expectedIn)}</td>)}</tr>
+            <tr><td className="td">Çek / senet vadesi</td>{b.map((x, i) => <td key={i} className="td whitespace-nowrap text-right tabular-nums">{tl(x.instrumentsIn)}</td>)}</tr>
             <tr><td className="td">Ödenecek (taşeron/tedarikçi)</td>{b.map((x, i) => <td key={i} className="td text-right text-orange-700">{tl(x.expectedOut)}</td>)}</tr>
             <tr className="font-medium"><td className="td">Net</td>{b.map((_, i) => <td key={i} className={clsx('td text-right', net(i) < 0 ? 'text-red-600' : 'text-emerald-700')}>{tl(net(i))}</td>)}</tr>
           </tbody>

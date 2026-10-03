@@ -652,8 +652,8 @@ function MigrationCheckCard() {
                 return (
                   <tr key={r.label} className={bad ? 'bg-red-50' : ''}>
                     <td className="td">{r.label}</td>
-                    <td className="td text-right">{r.money ? tl2(r.here) : r.here.toLocaleString('tr-TR')}</td>
-                    {parsed && <td className="td text-right">{r.there === undefined ? '—' : r.money ? tl2(r.there) : r.there.toLocaleString('tr-TR')}</td>}
+                    <td className="td whitespace-nowrap text-right tabular-nums">{r.money ? tl2(r.here) : r.here.toLocaleString('tr-TR')}</td>
+                    {parsed && <td className="td whitespace-nowrap text-right tabular-nums">{r.there === undefined ? '—' : r.money ? tl2(r.there) : r.there.toLocaleString('tr-TR')}</td>}
                   </tr>
                 )
               })}
