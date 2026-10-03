@@ -31,9 +31,17 @@
 6. **Günlük iş hızı için en büyük kazanç:**
    - "Kaydet ve Yeni" düğmesi,
    - kopya sayısı alanı (pratikortam'daki gibi),
-   - klavyeyle hızlı giriş,
-   - yanlışlıkla kapanınca kaybolmayan formlar.
-7. **Sunucu uykudayken ekran donmuş gibi görünüyor.** Ücretsiz sunucu uykudan uyanırken ekranlar sonsuz dönen simgede kalıyor ya da sizi oturumdan atıyor. Hata ve "Tekrar dene" ekranları yok.
+   - klavyeyle hızlı giriş (✅ 3 Ekim: Tab akışı, Ctrl+Enter ile kaydetme),
+   - yanlışlıkla kapanınca kaybolmayan formlar (✅ 3 Ekim: kapatmadan önce sorar).
+7. ✅ *(3 Ekim: "Sunucu açılıyor" şeridi, hata ve "Tekrar dene" ekranları eklendi.)* **Sunucu uykudayken ekran donmuş gibi görünüyor.** Ücretsiz sunucu uykudan uyanırken ekranlar sonsuz dönen simgede kalıyor ya da sizi oturumdan atıyor. Hata ve "Tekrar dene" ekranları yok.
+9. ✅ **3 Ekim'de canlıya gidenler:**
+   - raporlar (Sevkiyat PDF/İcmal, Kazanç raporu, ekstre Excel, liste Excel'leri, filtre toplamları);
+   - toplu işlemler (çoklu seçim ve alt çubuk);
+   - kısa sefer formu ("Ayrıntılar");
+   - tutarlar 2 kuruş basamağıyla;
+   - Türkçe form hataları.
+
+   Bekleyen kararlar `YOL-HARITASI.md` → "Kullanıcıdan gerekenler" bölümünde.
 8. ✅ **.NET 10'a geçildi (2 Ekim).** .NET 8 desteği 10 Kasım 2026'da bitiyordu. Sunucu, Docker imajları ve CI artık .NET 10 kullanıyor.
 
 ---

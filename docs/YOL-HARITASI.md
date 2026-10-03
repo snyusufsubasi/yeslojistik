@@ -68,7 +68,7 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 ### A5 — Toplu işlemler (1 hafta)
 - [x] Listelerde çoklu seçim ve alt işlem çubuğu (Sevkiyatlar, tedarikçi kartı → Seferler, Faturalar, Tahsilatlar; telefonda da).
 - [x] Toplu işlemler: teslim evrakı onayı, durumu ilerletme, fatura kesme, tedarikçi ödemesi, Excel'e aktarma.
-- [ ] Kullanıcıyla birlikte bakılır (toplu gösterim).
+- [ ] Kullanıcıyla birlikte bakılır (toplu gösterim). 3 Ekim: ekran görüntülü gösterim sayfası paylaşıldı, kullanıcının bakması bekleniyor.
 
 ### A6 — Eksik ekran ve alanlar (A3'teki sıraya göre)
 - [ ] Her grup ayrı bir adım olarak yapılır. Grup bitince toplu gösterilir.
