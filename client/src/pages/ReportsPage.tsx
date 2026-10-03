@@ -8,15 +8,15 @@ import { useToast } from '../components/Toast'
 import type { CustomerAgingRow, CustomerProfitRow, RouteProfitRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, ProfitGroupBy, ProfitReportRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { ExportButton } from '../components/Exports'
-import { Button, Card, PageHeader, Select, Loading, Tabs, DateFilter } from '../components/ui'
+import { Button, Card, Figure, Figures, PageHeader, PlateBadge, Select, Loading, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
 import { expenseCategoryLabel } from '../lib/labels'
+import { chart as palette, chartTick } from '../lib/chart'
 
 type Tab = 'monthly' | 'profit' | 'customers' | 'routes' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses' | 'accounting'
 
-// Kategorik palet (sabit sıra): 1 mavi, 2 turuncu.
-const SERIES_1 = '#2a78d6'
-const SERIES_2 = '#eb6834'
+/** Tutar hücresindeki açıklama sözcükleri (ör. "Harcırah") Overpass Mono olmasın; yalnız rakamlar mono. */
+const word = 'font-sans tracking-normal'
 const compact = new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 })
 
 export default function ReportsPage() {
@@ -84,13 +84,13 @@ function useReport<T>(name: string, params: object) {
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
-      <div className="mb-1 font-medium text-slate-800">{label}</div>
+    <div className="rounded-[4px] border border-line bg-white px-3 py-2 text-[0.8125rem] shadow-lg">
+      <div className="mb-1 font-semibold text-fg">{label}</div>
       {payload.map((p) => (
-        <div key={p.name} className="flex items-center gap-2 text-slate-600">
-          <span className="size-2.5 rounded-sm" style={{ background: p.color }} />
+        <div key={p.name} className="flex items-center gap-2 text-muted">
+          <span className="size-2.5" style={{ background: p.color }} />
           <span>{p.name}</span>
-          <span className="ml-auto pl-3 font-medium text-slate-800">{tl(p.value)}</span>
+          <span className="ml-auto pl-3 font-mono font-semibold text-fg">{tl(p.value)}</span>
         </div>
       ))}
     </div>
@@ -108,28 +108,29 @@ function Monthly({ year }: { year: number }) {
     { key: 'rev', header: 'Sefer Cirosu', align: 'right', render: (r) => tl(r.tripRevenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'exp', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'cc', header: <>Taşeron Maliyeti<span className="block font-normal text-slate-500">ödenen</span></>, align: 'right', render: (r) => <>{tl(r.carrierCost)}<span className="block text-sm text-slate-500">{tl(r.carrierPaid)}</span></> },
-    { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-red-600' : r.netProfit > 0 ? 'font-medium text-emerald-700' : 'text-slate-500'}>{tl(r.netProfit)}</span> },
-    { key: 'inv', header: <>Faturalanan<span className="block font-normal text-slate-500">tahsil edilen</span></>, align: 'right', render: (r) => <>{tl(r.invoiced)}<span className="block text-sm text-slate-500">{tl(r.collected)}</span></> },
+    { key: 'cc', header: <>Taşeron Maliyeti<span className="block font-normal text-slate-500">ödenen</span></>, align: 'right', render: (r) => <>{tl(r.carrierCost)}<span className="block text-sm text-muted">{tl(r.carrierPaid)}</span></> },
+    { key: 'net', header: 'Net Kâr', align: 'right', render: (r) => <span className={r.netProfit < 0 ? 'text-bad' : r.netProfit > 0 ? 'font-semibold text-good' : 'text-muted'}>{tl(r.netProfit)}</span> },
+    { key: 'inv', header: <>Faturalanan<span className="block font-normal text-slate-500">tahsil edilen</span></>, align: 'right', render: (r) => <>{tl(r.invoiced)}<span className="block text-sm text-muted">{tl(r.collected)}</span></> },
   ]
+  const net = sum('netProfit')
   return (
     <div>
-      <div className="grid gap-3 p-4 sm:grid-cols-4">
-        <Kpi label="Yıllık sefer" value={String(sum('tripCount'))} />
-        <Kpi label="Sefer cirosu" value={tl(sum('tripRevenue'))} />
-        <Kpi label="Toplam maliyet" value={tl(sum('vehicleCost') + sum('expenses'))} />
-        <Kpi label="Net kâr" value={tl(sum('netProfit'))} tone={sum('netProfit') < 0 ? 'text-red-600' : 'text-emerald-700'} />
-      </div>
+      <Figures label="Yıl toplamı" className="m-4 grid-cols-2 lg:grid-cols-4">
+        <Figure label="Yıllık sefer" value={sum('tripCount')} />
+        <Figure label="Sefer cirosu" value={tl(sum('tripRevenue'))} />
+        <Figure label="Toplam maliyet" value={tl(sum('vehicleCost') + sum('expenses'))} />
+        <Figure label="Net kâr" value={tl(net)} tone={net < 0 ? 'text-bad' : net > 0 ? 'text-good' : undefined} />
+      </Figures>
       <div className="h-72 px-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chart} barGap={2} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} tick={{ fill: '#64748b', fontSize: 14 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 14 }} tickFormatter={(v: number) => compact.format(v)} width={56} />
-            <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
-            <Legend iconType="square" wrapperStyle={{ fontSize: 14 }} formatter={(v: string) => <span style={{ color: '#475569' }}>{v}</span>} />
-            <Bar dataKey="Ciro" fill={SERIES_1} radius={[4, 4, 0, 0]} maxBarSize={28} />
-            <Bar dataKey="Maliyet" name="Maliyet (araç + gider)" fill={SERIES_2} radius={[4, 4, 0, 0]} maxBarSize={28} />
+            <CartesianGrid vertical={false} stroke={palette.grid} />
+            <XAxis dataKey="name" tickLine={false} axisLine={{ stroke: palette.grid }} tick={chartTick} />
+            <YAxis tickLine={false} axisLine={false} tick={chartTick} tickFormatter={(v: number) => compact.format(v)} width={56} />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: palette.cursor }} />
+            <Legend iconType="square" wrapperStyle={{ fontSize: 13 }} formatter={(v: string) => <span style={{ color: palette.tick }}>{v}</span>} />
+            <Bar dataKey="Ciro" fill={palette.accent} radius={[2, 2, 0, 0]} maxBarSize={28} />
+            <Bar dataKey="Maliyet" name="Maliyet (araç + gider)" fill={palette.hl} radius={[2, 2, 0, 0]} maxBarSize={28} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -152,7 +153,7 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
   const money = (k: keyof ProfitReportRow) => (r: ProfitReportRow) => tl2(r[k] as number)
   const cols: Column<ProfitReportRow>[] = [
     { key: 'l', header: groupByCaption[groupBy], className: 'whitespace-normal! min-w-32', render: (r) => groupBy === 'Customer'
-      ? <Link className="font-medium text-blue-700 hover:underline" to={`/musteriler/${r.key}`}>{r.label}</Link> : <span className="font-medium">{r.label}</span> },
+      ? <Link className="font-medium text-accent hover:underline" to={`/musteriler/${r.key}`}>{r.label}</Link> : <span className="font-medium">{r.label}</span> },
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 's', header: 'Satış', align: 'right', render: money('sale') },
     { key: 'k', header: 'Komisyon', align: 'right', render: money('commission') },
@@ -160,7 +161,7 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
     { key: 'b', header: 'Şoför primi', align: 'right', render: money('driverBonus') },
     { key: 'x', header: 'Ek masraf', align: 'right', render: money('extraCost') },
     { key: 'e', header: 'Sefer giderleri', align: 'right', render: money('expenses') },
-    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium text-emerald-700'}>{tl2(r.profit)}</span> },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-semibold text-bad' : 'font-semibold text-good'}>{tl2(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
   ]
   const sum = (k: keyof ProfitReportRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
@@ -178,27 +179,18 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
   </>
 }
 
-function Kpi({ label, value, tone }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className={`text-xl font-semibold ${tone ?? 'text-navy-900'}`}>{value}</div>
-    </div>
-  )
-}
-
 function Trips({ from, to }: { from: string; to: string }) {
   const { data, isLoading, error, refetch } = useReport<TripProfitRow[]>('trips', { from, to })
   const cols: Column<TripProfitRow>[] = [
     { key: 'd', header: 'Tarih', render: (r) => date(r.loadingDate) },
     { key: 'c', header: 'Müşteri', render: (r) => r.customer },
-    { key: 'v', header: 'Plaka', render: (r) => r.vehicle },
+    { key: 'v', header: 'Plaka', render: (r) => <PlateBadge plate={r.vehicle} /> },
     { key: 'r', header: 'Güzergah', render: (r) => r.route },
     { key: 's', header: 'Durum', render: (r) => r.status },
     { key: 'sp', header: 'Satış', align: 'right', render: (r) => tl(r.salePrice) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'e', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(r.profit)}</span> },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'text-bad' : 'text-good'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => r.salePrice ? `%${Math.round(r.profit / r.salePrice * 100)}` : '—' },
   ]
   const total = (k: 'salePrice' | 'vehicleCost' | 'expenses' | 'profit') => data?.reduce((s, r) => s + r[k], 0) ?? 0
@@ -214,13 +206,13 @@ function Trips({ from, to }: { from: string; to: string }) {
 function Vehicles({ from, to }: { from: string; to: string }) {
   const { data, isLoading, error, refetch } = useReport<VehicleReportRow[]>('vehicles', { from, to })
   const cols: Column<VehicleReportRow>[] = [
-    { key: 'p', header: 'Plaka', render: (r) => <span className="font-medium">{r.plate}</span> },
+    { key: 'p', header: 'Plaka', render: (r) => <PlateBadge plate={r.plate} /> },
     { key: 't', header: 'Tip', render: (r) => r.type },
     { key: 'c', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 'r', header: 'Gelir', align: 'right', render: (r) => tl(r.revenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'e', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'n', header: 'Net', align: 'right', render: (r) => <span className={r.net < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.net)}</span> },
+    { key: 'n', header: 'Net', align: 'right', render: (r) => <span className={r.net < 0 ? 'text-bad' : 'font-semibold text-good'}>{tl(r.net)}</span> },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} />
 }
@@ -234,9 +226,9 @@ function Drivers({ from, to }: { from: string; to: string }) {
     { key: 'r', header: 'Gelir', align: 'right', render: (r) => tl(r.revenue) },
     { key: 'vc', header: 'Araç Maliyeti', align: 'right', render: (r) => tl(r.vehicleCost) },
     { key: 'e', header: 'Sefer Giderleri', align: 'right', render: (r) => tl(r.expenses) },
-    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'text-red-600' : 'font-medium text-emerald-700'}>{tl(r.profit)}</span> },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'text-bad' : 'font-semibold text-good'}>{tl(r.profit)}</span> },
     { key: 'adv', header: 'Avans / Harcırah', align: 'right', render: (r) => r.advances || r.allowances
-      ? <>{tl(r.advances)}<span className="block text-sm text-slate-500">Harcırah {tl(r.allowances)}</span></> : '—' },
+      ? <>{tl(r.advances)}<span className="block text-sm text-muted"><span className={word}>Harcırah</span> {tl(r.allowances)}</span></> : '—' },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.driverId} empty="Bu aralıkta sefer yok." />
 }
@@ -249,14 +241,14 @@ function Fuel({ from, to }: { from: string; to: string }) {
   const high = (r: FuelReportRow) => fleet != null && r.litersPer100Km != null && r.litersPer100Km > fleet * 1.15
   const num = (v: number, d = 0) => v.toLocaleString('tr-TR', { maximumFractionDigits: d })
   const cols: Column<FuelReportRow>[] = [
-    { key: 'p', header: 'Plaka', render: (r) => <span className="font-medium">{r.plate}</span> },
+    { key: 'p', header: 'Plaka', render: (r) => <PlateBadge plate={r.plate} /> },
     { key: 'n', header: 'Alım', align: 'right', render: (r) => r.fillCount },
     { key: 'l', header: 'Litre', align: 'right', render: (r) => r.liters ? num(r.liters) : '—' },
     { key: 'c', header: 'Tutar', align: 'right', render: (r) => tl2(r.cost) },
     { key: 'pl', header: 'Ort. Litre Fiyatı', align: 'right', render: (r) => r.pricePerLiter ? tl2(r.pricePerLiter) : '—' },
     { key: 'km', header: 'Km', align: 'right', render: (r) => r.km ? num(r.km) : '—' },
-    { key: 'c100', header: 'L / 100 km', align: 'right', render: (r) => r.litersPer100Km == null ? <span className="text-slate-500">—</span>
-      : <span className={high(r) ? 'font-medium text-red-600' : 'font-medium'}>{num(r.litersPer100Km, 1)}{high(r) && <span className="block text-sm font-normal">Ortalamanın üstünde</span>}</span> },
+    { key: 'c100', header: 'L / 100 km', align: 'right', render: (r) => r.litersPer100Km == null ? <span className="text-muted">—</span>
+      : <span className={high(r) ? 'font-semibold text-bad' : 'font-medium'}>{num(r.litersPer100Km, 1)}{high(r) && <span className={`block text-sm font-normal ${word}`}>Ortalamanın üstünde</span>}</span> },
   ]
   return (
     <>
@@ -277,7 +269,7 @@ function Aging() {
     { key: 'a', header: '1-30 Gün', align: 'right', render: (r) => tl2(r.days1To30) },
     { key: 'b', header: '31-60 Gün', align: 'right', render: (r) => tl2(r.days31To60) },
     { key: 'c2', header: '61-90 Gün', align: 'right', render: (r) => tl2(r.days61To90) },
-    { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-medium text-red-600' : ''}>{tl2(r.over90)}</span> },
+    { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-semibold text-bad' : ''}>{tl2(r.over90)}</span> },
     { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof CustomerAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
@@ -300,11 +292,11 @@ function Expenses({ from, to }: { from: string; to: string }) {
         {chart.length === 0 ? <p className="py-10 text-center text-sm text-slate-500">Bu aralıkta gider yok.</p> : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chart} layout="vertical" margin={{ left: 8, right: 24 }}>
-              <CartesianGrid horizontal={false} stroke="#e2e8f0" />
-              <XAxis type="number" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 14 }} tickFormatter={(v: number) => compact.format(v)} />
-              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#334155', fontSize: 14 }} width={110} />
-              <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
-              <Bar dataKey="Tutar" fill={SERIES_1} radius={[0, 4, 4, 0]} maxBarSize={22} />
+              <CartesianGrid horizontal={false} stroke={palette.grid} />
+              <XAxis type="number" tickLine={false} axisLine={false} tick={chartTick} tickFormatter={(v: number) => compact.format(v)} />
+              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#14231e', fontSize: 13 }} width={110} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: palette.cursor }} />
+              <Bar dataKey="Tutar" fill={palette.info} radius={[0, 2, 2, 0]} maxBarSize={22} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -329,12 +321,12 @@ function Expenses({ from, to }: { from: string; to: string }) {
 function Payables() {
   const { data, isLoading, error, refetch } = useReport<PayableAgingRow[]>('payables', {})
   const cols: Column<PayableAgingRow>[] = [
-    { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
+    { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-accent hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
     { key: 'nd', header: 'Vadesi Gelmemiş', align: 'right', render: (r) => tl2(r.notDue) },
     { key: 'a', header: '1-30 Gün', align: 'right', render: (r) => tl2(r.days1To30) },
     { key: 'b', header: '31-60 Gün', align: 'right', render: (r) => tl2(r.days31To60) },
     { key: 'c2', header: '61-90 Gün', align: 'right', render: (r) => tl2(r.days61To90) },
-    { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-medium text-red-600' : ''}>{tl2(r.over90)}</span> },
+    { key: 'd', header: '90+ Gün', align: 'right', render: (r) => <span className={r.over90 > 0 ? 'font-semibold text-bad' : ''}>{tl2(r.over90)}</span> },
     { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof PayableAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
@@ -346,19 +338,19 @@ function Payables() {
       </tr>) : undefined} />
 }
 
-const margin = (m?: number | null) => m == null ? '—' : <span className={m < 0 ? 'font-medium text-red-600' : m < 10 ? 'text-amber-700' : 'text-emerald-700'}>%{m.toLocaleString('tr-TR')}</span>
+const margin = (m?: number | null) => m == null ? '—' : <span className={m < 0 ? 'font-semibold text-bad' : m < 10 ? 'text-warn' : 'text-good'}>%{m.toLocaleString('tr-TR')}</span>
 
 function CustomerProfit({ from, to }: { from: string; to: string }) {
   const { data, isLoading, error, refetch } = useReport<CustomerProfitRow[]>('customers', { from, to })
   const cols: Column<CustomerProfitRow>[] = [
-    { key: 'c', header: 'Müşteri', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/musteriler/${r.customerId}`}>{r.customer}</Link> },
+    { key: 'c', header: 'Müşteri', render: (r) => <Link className="font-medium text-accent hover:underline" to={`/musteriler/${r.customerId}`}>{r.customer}</Link> },
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 'r', header: 'Ciro', align: 'right', render: (r) => tl(r.revenue) },
     { key: 'k', header: 'Maliyet', align: 'right', render: (r) => tl(r.cost) },
-    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium'}>{tl(r.profit)}</span> },
+    { key: 'p', header: 'Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-semibold text-bad' : 'font-semibold'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
     { key: 'o', header: 'Açık Alacak', align: 'right', render: (r) => tl(r.openReceivable) },
-    { key: 'd', header: 'Tahsil Süresi', align: 'right', render: (r) => r.collectionDays == null ? '—' : `~${r.collectionDays} gün` },
+    { key: 'd', header: 'Tahsil Süresi', align: 'right', render: (r) => r.collectionDays == null ? '—' : <>~{r.collectionDays} <span className={word}>gün</span></> },
   ]
   return <>
     <p className="px-4 pb-2 text-sm text-slate-500">Maliyet: araç/taşeron maliyeti + sefere bağlı onaylı giderler. Tahsil süresi yaklaşıktır (açık alacak ÷ dönemdeki günlük KDV'li ciro).</p>
@@ -373,7 +365,7 @@ function RouteProfit({ from, to }: { from: string; to: string }) {
     { key: 'n', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 's', header: 'Ort. Satış', align: 'right', render: (r) => tl(r.avgRevenue) },
     { key: 'c', header: 'Ort. Maliyet', align: 'right', render: (r) => tl(r.avgCost) },
-    { key: 'p', header: 'Toplam Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-medium text-red-600' : 'font-medium'}>{tl(r.profit)}</span> },
+    { key: 'p', header: 'Toplam Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-semibold text-bad' : 'font-semibold'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => `${r.from}-${r.to}`} empty="Bu dönemde sefer yok. Güzergâh için seferlerde yükleme ve teslim ilini girin." />
@@ -382,12 +374,12 @@ function RouteProfit({ from, to }: { from: string; to: string }) {
 function Suppliers() {
   const { data, isLoading, error, refetch } = useReport<SupplierReportRow[]>('suppliers', {})
   const cols: Column<SupplierReportRow>[] = [
-    { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-blue-700 hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
+    { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-accent hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
     { key: 'c', header: 'Sefer', align: 'right', render: (r) => r.tripCount },
     { key: 'tc', header: 'Sefer Maliyeti', align: 'right', render: (r) => tl2(r.tripCost) },
     { key: 'ce', header: 'Vadeli Gider', align: 'right', render: (r) => tl2(r.creditExpenses) },
     { key: 'p', header: 'Ödenen', align: 'right', render: (r) => tl2(r.paid) },
-    { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-medium text-orange-600' : 'font-medium'}>{tl2(r.balance)}</span> },
+    { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-semibold text-warn' : 'font-semibold'}>{tl2(r.balance)}</span> },
   ]
   return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
 }
