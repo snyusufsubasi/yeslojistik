@@ -2,18 +2,17 @@ import { useState, type ReactNode } from 'react'
 import { useController, useFormState, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import type { CommissionStatus } from '../api/types'
 import { useLookup } from '../lib/hooks'
-import { commissionStatusLabel, options, vatRates, withholdingOptions } from '../lib/labels'
+import { commissionStatusLabel, options, vatRateChoices, withholdingOptions } from '../lib/labels'
 import { tl } from '../lib/format'
 import { ControlledChoice } from './Choice'
 import { Field } from './ui'
 import { AmountInput } from './Inputs'
-import { emptyTerms, grossAmount, margin, type TermsForm, type TermsValues } from '../lib/tripTerms'
+import { commissionNet, emptyTerms, extraCost, grossAmount, margin, type TermsForm, type TermsValues } from '../lib/tripTerms'
 
 type AnyControl = Control<TermsForm>
 type AnyRegister = UseFormRegister<TermsForm>
 type AnyErrors = FieldErrors<TermsForm>
 
-const vatOptions = vatRates.map((r) => ({ value: r, label: `%${r}` }))
 const autoWithholding = [{ value: -1, label: 'Otomatik' }, ...withholdingOptions]
 
 /**
@@ -49,7 +48,7 @@ export function VatFields({ control, register, prefix, disabled, net }: { contro
       <div hidden={!show} className="grid grid-cols-2 gap-2">
         <label className="text-sm text-slate-600">KDV
           <select className="input mt-1" aria-label={`${side} KDV oranı`} disabled={disabled} {...register(rateName, { valueAsNumber: true })}>
-            {vatOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {vatRateChoices(rate).map((r) => <option key={r} value={r}>%{r}</option>)}
           </select>
         </label>
         <label className="text-sm text-slate-600">Tevkifat
@@ -191,8 +190,8 @@ export function MarginSummary({ sale, cost, terms, expenses }: { sale: number; c
   return (
     <div className="mt-2 space-y-1 border-t border-slate-100 pt-2 text-sm">
       {row('Ara kazanç (satış − maliyet)', gross)}
-      {terms.commission > 0 && row('Komisyon', terms.commission, '+ ')}
-      {terms.extraCharge > 0 && !terms.extraChargeInvoiced && row('Masraf', terms.extraCharge, '− ')}
+      {terms.commission > 0 && row('Komisyon (KDV hariç)', commissionNet(terms), '+ ')}
+      {terms.extraCharge > 0 && !terms.extraChargeInvoiced && row('Masraf (KDV hariç)', extraCost(terms), '− ')}
       {terms.driverBonus > 0 && row('Şoför primi', terms.driverBonus, '− ')}
       {expenses > 0 && row('Sefere bağlı giderler', expenses, '− ')}
       <div className="flex justify-between border-t border-slate-100 pt-1 font-medium">

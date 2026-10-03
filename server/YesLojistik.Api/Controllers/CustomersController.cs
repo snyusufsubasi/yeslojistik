@@ -212,7 +212,8 @@ public class CustomersController(AppDbContext db, CustomerAccountService account
             note == null ? null : string.Join(" ", new[] { note.Text, note.AccountName, note.Iban is { } iban ? $"IBAN: {iban}" : null }.Where(s => !string.IsNullOrWhiteSpace(s))),
         }.Where(s => !string.IsNullOrWhiteSpace(s));
         var text = string.Join("\n", parts);
-        return new CustomerInvoiceDefaultsDto(text.Length == 0 ? null : text, c.InvoiceTemplate.Scenario, c.PaymentTermDays);
+        return new CustomerInvoiceDefaultsDto(text.Length == 0 ? null : text, c.InvoiceTemplate.Scenario, c.PaymentTermDays,
+            Core.Domain.InvoiceCalculator.IsCompanyTaxNumber(c.TaxNumber));
     }
 
     internal static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

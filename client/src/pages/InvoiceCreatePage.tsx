@@ -8,10 +8,14 @@ import { Badge, Button, Card, Chip, Empty, Field, IconButton, PageHeader, PlateB
 import { SearchSelect } from '../components/FormSelect'
 import { addDaysIso, date, tl2, todayIso } from '../lib/format'
 import { useLookup, useSave } from '../lib/hooks'
-import { tripStatusLabel, tripStatusTone, withholdingOptions } from '../lib/labels'
+import { tripStatusLabel, tripStatusTone, vatExemptionOptions, vatRateChoices, withholdingOptions } from '../lib/labels'
+import { autoWithholding } from '../lib/tripTerms'
 import { ChoiceChips } from '../components/Choice'
 
 const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100
+/** Tevkifat seçiminde "Otomatik" (sunucuya boş gider, tutara ve müşteriye göre belirlenir). */
+const AUTO = -1
+const OTHER = 'other'
 const dueDays = [0, 15, 30, 60, 90]
 /** Faturaya sık eklenen ek kalemler: tıklayınca açıklaması dolu satır eklenir, tutar girilir. */
 const quickLines = ['Bekleme ücreti', 'Hamaliye', 'Ek teslim noktası', 'Ardiye']
@@ -29,18 +33,11 @@ export default function InvoiceCreatePage() {
   const [invDate, setInvDate] = useState(todayIso())
   // Not: kullanıcı yazana kadar müşterinin fatura şablonundaki not (ve seçili hazır not) önerilir.
   const [notesOverride, setNotes] = useState<string | null>(null)
-  // Kullanıcı değiştirmediği sürece varsayılanlar firma ayarlarından gelir.
+  // Kullanıcı değiştirmediği sürece KDV seçili seferlerden (yoksa firma ayarından), tevkifat "Otomatik" gelir.
   const [vatOverride, setVatRate] = useState<number | null>(null)
   const [withholdingOverride, setWithholding] = useState<number | null>(null)
+  const [exemption, setExemption] = useState('311')
   const [dueOverride, setDueDate] = useState<string | null>(null)
-  const vatRate = vatOverride ?? settings.data?.defaultVatRate ?? 20
-  const withholding = withholdingOverride ?? settings.data?.defaultWithholdingTenths ?? 0
-  const defaults = useQuery({
-    queryKey: ['customers', customerId, 'invoice-defaults', withholding > 0],
-    queryFn: () => get<CustomerInvoiceDefaults>(`/customers/${customerId}/invoice-defaults`, { withholding: withholding > 0 }),
-    enabled: customerId !== '',
-  })
-  const notes = notesOverride ?? defaults.data?.notes ?? ''
   const dueDate = dueOverride ?? (settings.data ? addDaysIso(invDate, settings.data.defaultPaymentTermDays) : '')
 
   const trips = useQuery({
@@ -66,17 +63,40 @@ export default function InvoiceCreatePage() {
   const missingFromList = fromList && trips.data ? [...preset.ids].filter((id) => !available.some((t) => t.id === id)).length : 0
   const setSelected = (update: (s: Set<number>) => Set<number>) => setSelection({ customerId, ids: update(selected) })
 
+  const chosen = available.filter((t) => selected.has(t.id))
+  // Seçili seferlerin hepsi aynı KDV oranındaysa o oran (ör. uluslararası taşımada %0) önerilir.
+  const tripRates = [...new Set(chosen.map((t) => t.terms?.saleVatRate ?? 20))]
+  const vatRate = vatOverride ?? (tripRates.length === 1 ? tripRates[0] : settings.data?.defaultVatRate ?? 20)
   const lineAmounts = [
-    ...available.filter((t) => selected.has(t.id)).map((t) => t.salePrice),
+    ...chosen.map((t) => t.salePrice),
+    // Müşteriye faturalanan ek masraf ayrı satır olur (KDV dahil girildiyse KDV hariç yazılır; sunucuyla aynı).
+    ...chosen.filter((t) => t.terms?.extraChargeInvoiced && t.terms.extraCharge > 0)
+      .map((t) => t.terms!.extraChargeVatIncluded && vatRate > 0 ? round2(t.terms!.extraCharge * 100 / (100 + vatRate)) : t.terms!.extraCharge),
     ...extra.map((l) => Number(l.amount) || 0),
   ]
   const subtotal = round2(lineAmounts.reduce((s, a) => s + round2(a), 0))
+  // Otomatik tevkifat için müşterinin şirket (10 haneli VKN) olup olmadığı.
+  const buyer = useQuery({
+    queryKey: ['customers', customerId, 'invoice-defaults', false],
+    queryFn: () => get<CustomerInvoiceDefaults>(`/customers/${customerId}/invoice-defaults`, { withholding: false }),
+    enabled: customerId !== '',
+  })
+  const autoTenths = autoWithholding(subtotal, vatRate, buyer.data?.isCompany ?? false)
+  const withholdingChoice = withholdingOverride ?? AUTO
+  const withholding = withholdingChoice === AUTO ? autoTenths : withholdingChoice
   const vat = round2(subtotal * vatRate / 100)
   const withheld = round2(vat * withholding / 10)
   const total = round2(subtotal + vat - withheld)
+  const defaults = useQuery({
+    queryKey: ['customers', customerId, 'invoice-defaults', withholding > 0],
+    queryFn: () => get<CustomerInvoiceDefaults>(`/customers/${customerId}/invoice-defaults`, { withholding: withholding > 0 }),
+    enabled: customerId !== '',
+  })
+  const notes = notesOverride ?? defaults.data?.notes ?? ''
 
   const create = useSave((asDraft: boolean) => post<Invoice>('/invoices', {
-    customerId, date: invDate, dueDate: dueDate || null, vatRate, withholdingTenths: withholding, notes: notes || null, asDraft,
+    customerId, date: invDate, dueDate: dueDate || null, vatRate, withholdingTenths: withholdingChoice === AUTO ? null : withholdingChoice,
+    vatExemptionCode: vatRate === 0 ? exemption.trim() || null : null, notes: notes || null, asDraft,
     tripIds: [...selected], extraLines: extra.filter((l) => l.description.trim()).map((l) => ({ description: l.description, amount: Number(l.amount) || 0 })),
   }), {
     invalidate: ['invoices', 'trips', 'customers'], success: 'Fatura oluşturuldu.',
@@ -86,6 +106,7 @@ export default function InvoiceCreatePage() {
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const allSelected = available.length > 0 && available.every((t) => selected.has(t.id))
   const canSave = customerId !== '' && lineAmounts.length > 0 && extra.every((l) => !l.description.trim() || Number(l.amount) >= 0)
+    && (vatRate !== 0 || /^\d{3}$/.test(exemption.trim()))
 
   return (
     <>
@@ -168,10 +189,26 @@ export default function InvoiceCreatePage() {
               </div>
             </Field>
             <Field group label="KDV oranı">
-              <ChoiceChips label="KDV oranı" value={vatRate} onChange={setVatRate} options={[0, 1, 10, 20].map((v) => ({ value: v, label: `%${v}` }))} />
+              <ChoiceChips label="KDV oranı" value={vatRate} onChange={setVatRate} options={vatRateChoices(vatRate).map((v) => ({ value: v, label: `%${v}` }))} />
             </Field>
-            <Field group label="KDV tevkifatı" hint="Nakliyede genelde 2/10.">
-              <ChoiceChips label="KDV tevkifatı" value={withholding} onChange={setWithholding} options={withholdingOptions} />
+            {vatRate === 0 && (
+              <Field label="İstisna kodu" hint="Yurt dışı taşımada 311.">
+                <select className="input" value={vatExemptionOptions.some((o) => o.value === exemption) ? exemption : OTHER}
+                  onChange={(e) => setExemption(e.target.value === OTHER ? '' : e.target.value)}>
+                  {vatExemptionOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  <option value={OTHER}>Diğer</option>
+                </select>
+                {!vatExemptionOptions.some((o) => o.value === exemption) && (
+                  <input className="input mt-2" inputMode="numeric" maxLength={3} placeholder="Kod (3 hane)" aria-label="İstisna kodu (diğer)"
+                    value={exemption} onChange={(e) => setExemption(e.target.value.replace(/\D/g, ''))} />
+                )}
+              </Field>
+            )}
+            <Field group label="KDV tevkifatı" hint={withholdingChoice === AUTO
+              ? `Otomatik: ${autoTenths > 0 ? `${autoTenths}/10 uygulanıyor` : 'tevkifat yok'} (KDV dahil 12.000 TL üstü ve VKN'li müşteride 2/10).`
+              : undefined}>
+              <ChoiceChips label="KDV tevkifatı" value={withholdingChoice} onChange={setWithholding}
+                options={[{ value: AUTO, label: 'Otomatik' }, ...withholdingOptions]} />
             </Field>
             <Field label="Not"><textarea className="input min-h-16" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
             <div className="space-y-1 rounded-lg bg-slate-50 p-3 text-sm">

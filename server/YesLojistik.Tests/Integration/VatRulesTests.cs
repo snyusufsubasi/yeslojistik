@@ -38,6 +38,9 @@ public class VatRulesTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var (c, vehicle, driver) = await FleetAsync("34 KD");
         var company = await CustomerAsync(c, "KDV Şirket", "1234567890");
         var person = await CustomerAsync(c, "KDV Şahıs", "10000000146");
+        // Fatura formu otomatik tevkifatı önizlemek için müşterinin şirket olup olmadığını öğrenir.
+        (await (await c.GetAsync($"/api/customers/{company}/invoice-defaults")).ReadAsync<CustomerInvoiceDefaultsDto>()).IsCompany.Should().BeTrue();
+        (await (await c.GetAsync($"/api/customers/{person}/invoice-defaults")).ReadAsync<CustomerInvoiceDefaultsDto>()).IsCompany.Should().BeFalse();
 
         // 10.000 + 2.000 KDV = 12.000: sınırı aşmıyor → tevkifat yok.
         var small = await InvoiceAsync(c, company, (await TripAsync(c, company, vehicle, driver, 10_000)).Id, 20, null);

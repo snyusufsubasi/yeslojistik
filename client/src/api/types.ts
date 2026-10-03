@@ -123,6 +123,8 @@ export interface CustomerInvoiceDefaults {
   notes?: string | null
   scenario?: EInvoiceScenario | null
   paymentTermDays?: number | null
+  /** 10 haneli VKN'si var: otomatik tevkifat uygulanabilir. */
+  isCompany?: boolean
 }
 
 export interface Supplier {
@@ -392,6 +394,7 @@ export interface Invoice {
   eInvoiceMessage?: string | null
   eInvoiceSentAt?: string | null
   withholdingCode?: string | null
+  vatExemptionCode?: string | null
 }
 
 export type EInvoiceScenario = 'EArsiv' | 'Temel' | 'Ticari'
@@ -449,6 +452,8 @@ export interface Expense {
   rejectionReason?: string | null
   cashAccountId?: number | null
   details?: ExpenseDetails | null
+  /** Tutarın içindeki KDV oranı; boşsa kategorinin varsayılanı. */
+  vatRate?: number | null
 }
 
 /** Giderin eski paneldeki ayrıntıları. */

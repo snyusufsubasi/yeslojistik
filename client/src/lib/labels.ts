@@ -49,6 +49,19 @@ export const expenseCategoryLabel: Record<ExpenseCategory, string> = {
   Other: 'Diğer',
 }
 
+/** Gider kategorisinin varsayılan KDV oranı (sunucudaki ExpenseVat.DefaultFor ile aynı). Yemek/konaklama için "Diğer"de %10 seçilir. */
+export const expenseVatDefault: Record<ExpenseCategory, number> = {
+  Fuel: 20,
+  Maintenance: 20,
+  Toll: 20,
+  Tire: 20,
+  Other: 20,
+  Insurance: 0,
+  Tax: 0,
+  DriverAllowance: 0,
+  DriverAdvance: 0,
+}
+
 export const roleLabel: Record<UserRole, string> = {
   Admin: 'Yönetici',
   Operations: 'Operasyon',
@@ -215,7 +228,19 @@ export const driverRatingTone: Record<DriverRating, Tone> = {
   QuitsJobs: 'red',
 }
 
-export const vatRates = [0, 1, 8, 10, 18, 20]
+/** Seçilebilen KDV oranları (Temmuz 2023'ten beri). Eski kayıtlardaki %8 / %18 sunucuda geçerli kalır. */
+export const vatRates = [0, 1, 10, 20]
+
+/** Seçim listesi: güncel oranlar + kayıtta eski bir oran (%8, %18) varsa o da. */
+export const vatRateChoices = (current?: number | null) =>
+  current != null && !vatRates.includes(current) ? [...vatRates, current].sort((a, b) => a - b) : vatRates
+
+/** KDV %0 faturada istisna kodları (GİB listesi). Nakliyede genelde 311. */
+export const vatExemptionOptions = [
+  { value: '311', label: '311 · 14/1 Uluslararası taşımacılık' },
+  { value: '301', label: '301 · 11/1-a Mal ihracatı' },
+  { value: '302', label: '302 · 11/1-b Hizmet ihracatı' },
+]
 
 export const purchaseInvoiceKindLabel: Record<PurchaseInvoiceKind, string> = {
   EInvoice: 'e-Fatura',

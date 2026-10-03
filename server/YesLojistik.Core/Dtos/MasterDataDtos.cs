@@ -29,7 +29,8 @@ public record InvoiceNoteDto(int Id, InvoiceNoteKind Kind, string Title, string?
 public record InvoiceNoteSaveRequest(InvoiceNoteKind Kind, string Title, string? AccountName, string? Iban, string? Text);
 
 /// <summary>Yeni fatura formu için müşteriye özel öneriler.</summary>
-public record CustomerInvoiceDefaultsDto(string? Notes, EInvoiceScenario? Scenario, int? PaymentTermDays);
+/// <param name="IsCompany">Müşterinin 10 haneli VKN'si var (otomatik tevkifat yalnız şirkete uygulanır).</param>
+public record CustomerInvoiceDefaultsDto(string? Notes, EInvoiceScenario? Scenario, int? PaymentTermDays, bool IsCompany = false);
 
 public record CustomerSummaryDto(CustomerDto Customer, decimal TotalDebit, decimal TotalCredit, decimal Balance,
     decimal OverdueAmount, int TripCount);

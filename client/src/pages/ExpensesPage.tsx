@@ -21,7 +21,7 @@ import { choices } from '../lib/choices'
 import { expenseCategoryIcon } from '../lib/icons'
 import { date, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
-import { approvalStatusLabel, expenseCategoryLabel, options } from '../lib/labels'
+import { approvalStatusLabel, expenseCategoryLabel, expenseVatDefault, options, vatRateChoices } from '../lib/labels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 
@@ -177,6 +177,9 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   })
   const amount = useWatch({ control, name: 'amount' })
   const category = useWatch({ control, name: 'category' })
+  // KDV oranı: kullanıcı seçmedikçe kategoriden gelir (yakıt %20, sigorta %0…); yemek/konaklama için %10 seçilebilir.
+  const [vatChoice, setVatChoice] = useState<number | null>(expense?.vatRate ?? null)
+  const vatRate = vatChoice ?? expenseVatDefault[category]
   const liters = useWatch({ control, name: 'liters' })
   const odometer = useWatch({ control, name: 'odometer' })
   const kmDiff = details.previousOdometer && odometer ? odometer - details.previousOdometer : null
@@ -189,7 +192,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
     queryFn: () => get<PagedResult<Trip>>('/trips', { vehicleId: vehicleId || undefined, pageSize: 100, sort: 'loadingDate', desc: true }),
   })
   const save = useSave(async (v: FormValues) => {
-    const body = { ...nullify(v), details } as unknown as FormValues
+    const body = { ...nullify(v), details, vatRate } as unknown as FormValues
     const saved = expense ? await api.update(expense.id, body) : await api.create(body)
     if (receipt) {
       const form = new FormData()
@@ -226,9 +229,16 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
           <ControlledChoice control={control} name="category" label="Kategori" columns={3}
             options={choices(expenseCategoryLabel, expenseCategoryIcon)} />
         </Field>
-        <Field label="Tutar (TL)" required error={errors.amount?.message}>
-          <AmountInput control={control} name="amount" />
-        </Field>
+        <div className="grid grid-cols-[1fr_7rem] gap-2">
+          <Field label="Tutar (TL)" required error={errors.amount?.message}>
+            <AmountInput control={control} name="amount" />
+          </Field>
+          <Field label="KDV" hint="Tutar KDV dahil girilir">
+            <select className="input" value={vatRate} onChange={(e) => setVatChoice(Number(e.target.value))}>
+              {vatRateChoices(vatRate).map((r) => <option key={r} value={r}>%{r}</option>)}
+            </select>
+          </Field>
+        </div>
         <Field label="Tarih" required error={errors.date?.message}><DateQuick control={control} name="date" /></Field>
         <Field label="Araç" error={errors.vehicleId?.message} hint="Boş bırakılırsa genel gider sayılır.">
           <FormSelect control={control} name="vehicleId" placeholder="— Genel gider —" onValueChange={onVehicleChange}

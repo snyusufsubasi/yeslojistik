@@ -18,6 +18,7 @@ import { applyServerErrors, idField, money, optStr, req } from '../lib/forms'
 import { date, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, purchaseInvoiceKindLabel, vatRates } from '../lib/labels'
+import { grossAmount } from '../lib/tripTerms'
 
 const api = crud<PurchaseInvoice, unknown>('purchase-invoices')
 
@@ -138,17 +139,28 @@ function PurchaseInvoiceForm({ invoice, onClose, supplierId: fixedSupplier }: { 
     enabled: validSupplier,
   })
 
+  // KDV ve tevkifat, kullanıcı bu kutulara elle yazana kadar matrahtan hesaplanır (kayıtlı faturada elle girilmiş sayılır).
+  const [taxEdited, setTaxEdited] = useState(!!invoice)
+  /** Matrahtan KDV ve otomatik tevkifat: KDV dahil 12.000 TL'yi aşarsa 2/10 (alıcı biziz, şirket). */
+  const fillTax = (base: number, rate: number) => {
+    const g = grossAmount(base, rate, null)
+    const opts = { shouldDirty: true, shouldValidate: true }
+    setValue('vatAmount', g.vat, opts)
+    setValue('withholdingAmount', g.withholding, opts)
+  }
   /** Seçilen seferlerden matrah, KDV ve (tutar 12.000'i aşarsa) 2/10 tevkifat önerir. */
   const fillFromTrips = (ids: number[], rate = vatRate) => {
     const selected = (trips.data ?? []).filter((t) => ids.includes(t.tripId))
     if (!selected.length) return
     const base = selected.reduce((a, t) => a + t.vehicleCost, 0)
-    const v = Math.round(base * rate) / 100
-    const w = rate > 0 && base + v > 12_000 ? Math.round(v * 20) / 100 : 0
-    const opts = { shouldDirty: true, shouldValidate: true }
-    setValue('subtotal', base, opts)
-    setValue('vatAmount', v, opts)
-    setValue('withholdingAmount', w, opts)
+    setValue('subtotal', base, { shouldDirty: true, shouldValidate: true })
+    fillTax(base, rate)
+  }
+  const changeRate = (rate: number) => {
+    setVatRate(rate)
+    setTaxEdited(false)
+    if (tripIds.length) fillFromTrips(tripIds, rate)
+    else fillTax(subtotal, rate)
   }
   const toggle = (id: number) => {
     const next = tripIds.includes(id) ? tripIds.filter((x) => x !== id) : [...tripIds, id]
@@ -193,15 +205,21 @@ function PurchaseInvoiceForm({ invoice, onClose, supplierId: fixedSupplier }: { 
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-navy-900">Tutarlar</span>
               <label className="text-sm text-slate-600">KDV
-                <select className="input ml-2 inline-block w-24 py-1" value={vatRate} onChange={(e) => { const r = Number(e.target.value); setVatRate(r); fillFromTrips(tripIds, r) }}>
+                <select className="input ml-2 inline-block w-24 py-1" value={vatRate} onChange={(e) => changeRate(Number(e.target.value))}>
                   {vatRates.map((r) => <option key={r} value={r}>%{r}</option>)}
                 </select>
               </label>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <Field label="Matrah" error={errors.subtotal?.message}><AmountInput control={control} name="subtotal" words={false} /></Field>
-              <Field label="KDV" error={errors.vatAmount?.message}><AmountInput control={control} name="vatAmount" words={false} /></Field>
-              <Field label="Tevkifat" error={errors.withholdingAmount?.message}><AmountInput control={control} name="withholdingAmount" words={false} /></Field>
+              <Field label="Matrah" error={errors.subtotal?.message}>
+                <AmountInput control={control} name="subtotal" words={false} onValueChange={(v) => { if (!taxEdited) fillTax(v, vatRate) }} />
+              </Field>
+              <Field label="KDV" error={errors.vatAmount?.message}>
+                <AmountInput control={control} name="vatAmount" words={false} onValueChange={() => setTaxEdited(true)} />
+              </Field>
+              <Field label="Tevkifat" error={errors.withholdingAmount?.message}>
+                <AmountInput control={control} name="withholdingAmount" words={false} onValueChange={() => setTaxEdited(true)} />
+              </Field>
             </div>
             <div className="mt-2 flex justify-between border-t border-slate-100 pt-2 text-sm font-medium">
               <span>Ödenecek (genel tutar)</span><span>{tl2(subtotal + vat - withholding)}</span>

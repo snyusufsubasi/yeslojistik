@@ -82,9 +82,27 @@ export function termsToApi(v: TermsValues): TripTerms {
   } as TripTerms
 }
 
-/** Kâra katkı: satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Sunucudaki Trip.Margin ile aynı. */
-export function margin(sale: number, cost: number, t: Pick<TermsValues, 'commission' | 'driverBonus' | 'extraCharge' | 'extraChargeInvoiced'>) {
-  return (sale || 0) - (cost || 0) + (t.commission || 0) - (t.driverBonus || 0) - (t.extraChargeInvoiced ? 0 : t.extraCharge || 0)
+const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100
+
+/** Komisyon KDV oranı (aracılık hizmeti). */
+export const COMMISSION_VAT_RATE = 20
+
+/** KDV dahil tutarın KDV hariç karşılığı (sunucudaki TripProfit.NetOf ile aynı). */
+export const netOf = (gross: number, vatRate: number) => (vatRate > 0 ? round2((gross || 0) * 100 / (100 + vatRate)) : gross || 0)
+
+type MarginTerms = Pick<TermsValues, 'commission' | 'commissionVatIncluded' | 'driverBonus' | 'extraCharge' | 'extraChargeInvoiced' | 'extraChargeVatIncluded' | 'saleVatRate'>
+
+/** Kâra giren komisyon (KDV hariç). */
+export const commissionNet = (t: Pick<TermsValues, 'commission' | 'commissionVatIncluded'>) =>
+  t.commissionVatIncluded ? netOf(t.commission, COMMISSION_VAT_RATE) : t.commission || 0
+
+/** Kâra yük olan ek masraf (faturalanmıyorsa, KDV hariç). */
+export const extraCost = (t: Pick<TermsValues, 'extraCharge' | 'extraChargeInvoiced' | 'extraChargeVatIncluded' | 'saleVatRate'>) =>
+  t.extraChargeInvoiced ? 0 : t.extraChargeVatIncluded ? netOf(t.extraCharge, Number(t.saleVatRate) || 0) : t.extraCharge || 0
+
+/** Kâra katkı (KDV hariç): satış − maliyet + komisyon − prim − (faturalanmayan) masraf. Sunucudaki TripProfit ile aynı. */
+export function margin(sale: number, cost: number, t: MarginTerms) {
+  return round2((sale || 0) - (cost || 0) + commissionNet(t) - (t.driverBonus || 0) - extraCost(t))
 }
 
 /** Koşul alanlarını içeren herhangi bir form (sefer ya da iş talebi). Çağıran taraf kendi kontrolünü bu tipe daraltır. */
@@ -93,11 +111,21 @@ export type TermsForm = { terms: TermsValues }
 /** Tevkifat "otomatik" ise KDV dahil tutar bu sınırı aşınca 2/10 uygulanır (sunucudaki InvoiceCalculator ile aynı). */
 export const AUTO_WITHHOLDING_LIMIT = 12_000
 
+/**
+ * "Otomatik" tevkifat: KDV dahil tutar 12.000 TL'yi aşarsa 2/10; alıcı şahıssa (TCKN) ya da KDV %0 ise yok.
+ * Sunucudaki InvoiceCalculator.WithholdingFor ile aynı.
+ */
+export function autoWithholding(net: number, vatRate: number, buyerIsCompany = true) {
+  const base = Math.round((net || 0) * 100) / 100
+  const vat = Math.round(base * vatRate) / 100
+  return buyerIsCompany && vatRate > 0 && base + vat > AUTO_WITHHOLDING_LIMIT ? 2 : 0
+}
+
 /** Tutar + KDV − tevkifat. withholdingTenths null ise otomatik. */
 export function grossAmount(net: number, vatRate: number, withholdingTenths?: number | null) {
   const base = Math.round((net || 0) * 100) / 100
   const vat = Math.round(base * vatRate) / 100
-  const tenths = withholdingTenths ?? (vatRate > 0 && base + vat > AUTO_WITHHOLDING_LIMIT ? 2 : 0)
+  const tenths = withholdingTenths ?? autoWithholding(base, vatRate)
   const withholding = Math.round(vat * tenths * 10) / 100
   return { vat, withholding, total: base + vat - withholding }
 }
