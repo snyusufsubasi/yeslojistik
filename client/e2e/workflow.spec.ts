@@ -259,6 +259,7 @@ test('tedarikçi → kiralık araç → taşeronlu sefer; zaman çizelgesi ve ca
   await qd.getByLabel(/^Ad Soyad/).fill(`Taşeron Şoför ${u}`)
   await qd.getByRole('button', { name: 'Ekle' }).click()
   await expect(page.getByText('Şoför eklendi.')).toBeVisible()
+  await td.getByRole('button', { name: /^Ayrıntılar/ }).click()
   await td.getByLabel('Müşteri Referans No').fill(`PO-${u}`)
   await pick(td.locator('input[name=loadingCity]'), 'Kocaeli')
   await td.getByLabel(/^Yükleme Adresi/).fill('Gebze OSB')

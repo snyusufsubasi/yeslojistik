@@ -28,6 +28,7 @@ test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab v
   await page.keyboard.press('Tab')
   await expect(city).toHaveValue('İzmir')
 
+  await dialog.getByRole('button', { name: /^Ayrıntılar/ }).click()
   // "Bugün / Dün / Yarın", "+1 gün" ve yük cinsi önerileri Tab sırasına girmez (fareyle tıklanır).
   for (const name of ['Bugün', 'Yarın', '+1 gün', 'Mobilya', 'palet']) {
     await expect(dialog.getByRole('button', { name, exact: true }).first()).toHaveAttribute('tabindex', '-1')

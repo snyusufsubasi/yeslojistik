@@ -194,7 +194,8 @@ export function MoreFields({ title = 'Diğer bilgiler (isteğe bağlı)', childr
         {title}
         <ChevronDown className={clsx('size-5 transition', isOpen && 'rotate-180')} />
       </button>
-      {isOpen && <div className="space-y-4 border-t border-dashed border-slate-300 p-4">{children}</div>}
+      {/* Kapalıyken de yerinde kalır (gizli): içindeki alanlar formdan düşmez, değerleri ve doğrulaması korunur. */}
+      <div hidden={!isOpen} className="space-y-4 border-t border-dashed border-slate-300 p-4">{children}</div>
     </div>
   )
 }
