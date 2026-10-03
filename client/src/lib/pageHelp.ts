@@ -5,6 +5,8 @@ export const pageHelp: Record<string, string[]> = {
     'Satırdaki "Yüklendi yap", "Yola çıktı yap" düğmeleriyle seferin durumunu ilerletin.',
     'Teslim edilen seferler "Faturalar" sayfasında fatura kesilmeyi bekler.',
     '"Bugün / Gelecek / Geçmiş / Bu ay" ile dönemi seçin; listenin üstündeki kazanç tablosu o döneme göre hesaplanır.',
+    'Tedarikçi, plaka, Piyasa / Öz Araç ile süzün; yer, numara, komisyon ve teslim evrakı süzgeçleri "Ayrıntılı süzgeç" altındadır. Kazanç tablosu, Excel, PDF ve İcmal süzgece uyar.',
+    '"Detay" düğmesi fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunlarını açar.',
   ],
   personel: [
     'Ofis ve depo personelini aylık maaşıyla ekleyin; şoförler Şoförler sayfasında durur.',

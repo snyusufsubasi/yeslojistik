@@ -23,13 +23,14 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     };
 
     private record Row(Trip Trip, string CustomerTitle, string Plate, string VehicleType, string DriverName,
-        decimal ExpenseTotal, string? InvoiceNo, string? CarrierTitle, VehicleOwnership Ownership, string? CommissionAccountName);
+        decimal ExpenseTotal, string? InvoiceNo, string? CarrierTitle, VehicleOwnership Ownership, string? CommissionAccountName,
+        DateOnly? InvoiceDate);
 
     private static readonly Expression<Func<Trip, Row>> Projection = t => new Row(
         t, t.Customer.Title, t.Vehicle.Plate, t.Vehicle.Type, t.Driver.FullName,
         t.Expenses.Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Sum(e => (decimal?)e.Amount) ?? 0, t.Invoice != null ? t.Invoice.InvoiceNo : null,
         t.CarrierSupplier != null ? t.CarrierSupplier.Title : null, t.Vehicle.Ownership,
-        t.CommissionAccount != null ? t.CommissionAccount.Name : null);
+        t.CommissionAccount != null ? t.CommissionAccount.Name : null, t.Invoice != null ? t.Invoice.Date : null);
 
     private static TripDto ToDto(Row r)
     {
@@ -41,7 +42,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
-            t.JobRequestId, t.IsLegacy, TermsOf(t), r.CommissionAccountName);
+            t.JobRequestId, t.IsLegacy, TermsOf(t), r.CommissionAccountName, r.InvoiceDate, t.CreatedBy);
     }
 
     private static TripTerms TermsOf(Trip t) => new(t.SaleVatRate, t.SaleWithholdingTenths, t.CostVatRate, t.CostWithholdingTenths,
@@ -72,6 +73,32 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (!string.IsNullOrWhiteSpace(q.CustomerGroup)) query = query.Where(t => t.CustomerGroup == q.CustomerGroup.Trim());
         if (q.CarrierInvoiced is { } ci)
             query = ci ? query.Where(t => t.CarrierInvoiceNo != null) : query.Where(t => t.CarrierSupplierId != null && t.CarrierInvoiceNo == null);
+        if (q.Ownership is { } own)
+            query = own == VehicleOwnership.Rented
+                ? query.Where(t => t.CarrierSupplierId != null || t.Vehicle.Ownership == VehicleOwnership.Rented)
+                : query.Where(t => t.CarrierSupplierId == null && t.Vehicle.Ownership == VehicleOwnership.Own);
+        if (q.HasCommission is { } hc) query = hc ? query.Where(t => t.Commission > 0) : query.Where(t => t.Commission <= 0);
+        if (QueryExtensions.LikePattern(q.LoadingPlace) is { } lp)
+            query = query.Where(t => EF.Functions.ILike(t.LoadingAddress, lp) || EF.Functions.ILike(t.LoadingCity ?? "", lp));
+        if (QueryExtensions.LikePattern(q.DeliveryPlace) is { } dp)
+            query = query.Where(t => EF.Functions.ILike(t.DeliveryAddress, dp) || EF.Functions.ILike(t.DeliveryCity ?? "", dp));
+        if (!string.IsNullOrWhiteSpace(q.TripNo))
+        {
+            // Listede görünen no: aktarılan kayıtta ExternalRef (pratikortam "S123"), yoksa kayıt numarası.
+            var no = q.TripNo.Trim().ToUpperInvariant();
+            var prefixed = "S" + no;
+            var id = int.TryParse(no, out var n) ? n : 0;
+            query = query.Where(t => t.ExternalRef != null ? t.ExternalRef.ToUpper() == no || t.ExternalRef.ToUpper() == prefixed : t.Id == id);
+        }
+        if (QueryExtensions.LikePattern(q.DeliveryDocumentNo) is { } ddn)
+            query = query.Where(t => EF.Functions.ILike(t.DeliveryDocumentNo ?? "", ddn));
+        if (QueryExtensions.LikePattern(q.InvoiceNo) is { } ino)
+            query = query.Where(t => (t.Invoice != null && EF.Functions.ILike(t.Invoice.InvoiceNo, ino)) || EF.Functions.ILike(t.CarrierInvoiceNo ?? "", ino));
+        // Teslim evrakı: evrak no girilmiş ya da sefere belge (Document) yüklenmiş.
+        if (q.HasDeliveryDocument is { } hd)
+            query = hd
+                ? query.Where(t => (t.DeliveryDocumentNo ?? "") != "" || t.Attachments.Any(a => a.Kind == AttachmentKind.Document))
+                : query.Where(t => (t.DeliveryDocumentNo ?? "") == "" && !t.Attachments.Any(a => a.Kind == AttachmentKind.Document));
         if (QueryExtensions.LikePattern(q.Search) is { } like)
             query = query.Where(t => EF.Functions.ILike(t.Customer.Title, like) || EF.Functions.ILike(t.Vehicle.Plate, like)
                 || EF.Functions.ILike(t.Driver.FullName, like) || EF.Functions.ILike(t.LoadingAddress, like)

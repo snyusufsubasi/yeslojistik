@@ -11,7 +11,7 @@ public record TripDto(int Id, int CustomerId, string CustomerTitle, int VehicleI
     string? LoadingContact = null, string? DeliveryContact = null, int? CarrierSupplierId = null, string? CarrierSupplierTitle = null,
     string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, string? ReceivedBy = null, DateTime? DeliveredAt = null,
     VehicleOwnership VehicleOwnership = VehicleOwnership.Own, int? JobRequestId = null, bool IsLegacy = false, TripTerms? Terms = null,
-    string? CommissionAccountName = null);
+    string? CommissionAccountName = null, DateOnly? InvoiceDate = null, string? CreatedBy = null);
 
 public record TripSaveRequest(int CustomerId, int VehicleId, int DriverId, string LoadingAddress, string DeliveryAddress,
     DateOnly LoadingDate, DateOnly? DeliveryDate, string? Description, decimal VehicleCost, decimal SalePrice,
@@ -65,6 +65,22 @@ public record TripQuery : ListQuery
     public string? CustomerGroup { get; init; }
     /// <summary>Taşeron faturası girildi mi (fatura alındı).</summary>
     public bool? CarrierInvoiced { get; init; }
+    /// <summary>Eski paneldeki "Piyasa / Öz Araç": Rented = kiralık araç ya da taşeronlu sefer, Own = kendi aracımız.</summary>
+    public VehicleOwnership? Ownership { get; init; }
+    /// <summary>Komisyon işi: komisyonu olan (true) ya da olmayan (false) seferler.</summary>
+    public bool? HasCommission { get; init; }
+    /// <summary>Yükleme yeri: il ya da adres bu metni içerir.</summary>
+    public string? LoadingPlace { get; init; }
+    /// <summary>İndirme (teslim) yeri: il ya da adres bu metni içerir.</summary>
+    public string? DeliveryPlace { get; init; }
+    /// <summary>Sevkiyat no: listede görünen numara (aktarılan kayıtta eski sistemin numarası, "S" öneki yazılmasa da olur).</summary>
+    public string? TripNo { get; init; }
+    /// <summary>Teslim evrak no bu metni içerir.</summary>
+    public string? DeliveryDocumentNo { get; init; }
+    /// <summary>Satış faturası ya da taşeron faturası numarası bu metni içerir.</summary>
+    public string? InvoiceNo { get; init; }
+    /// <summary>Teslim evrakı var (teslim evrak no girilmiş ya da sefere belge yüklenmiş) / yok.</summary>
+    public bool? HasDeliveryDocument { get; init; }
 }
 
 /// <summary>Müşterinin daha önce kullanılmış bir yükleme / teslim adresi (kaç seferde geçtiğiyle).</summary>

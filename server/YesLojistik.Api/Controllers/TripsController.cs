@@ -33,6 +33,8 @@ public class TripsController(TripService trips) : ControllerBase
             new("Durum", t => TripStatusRules.Label(t.Status)),
             new("Satış", t => t.SalePrice, ExcelExporter.MoneyFormat),
             new("Araç Maliyeti", t => t.VehicleCost, ExcelExporter.MoneyFormat),
+            new("Ürün", t => t.CargoType),
+            new("Açıklama", t => t.Description),
             new("Taşeron", t => t.CarrierSupplierTitle),
             new("Komisyon", t => t.Terms?.Commission ?? 0, ExcelExporter.MoneyFormat),
             new("Masraf", t => t.Terms?.ExtraCharge ?? 0, ExcelExporter.MoneyFormat),
@@ -40,11 +42,13 @@ public class TripsController(TripService trips) : ControllerBase
             new("Giderler", t => t.ExpenseTotal, ExcelExporter.MoneyFormat),
             new("Kâr", t => t.Profit, ExcelExporter.MoneyFormat),
             new("Fatura", t => t.InvoiceNo),
+            new("Fatura Tarihi", t => t.InvoiceDate, ExcelExporter.DateFormat),
             new("Taşeron Fatura", t => t.CarrierInvoiceNo),
             new("Teslim Evrak No", t => t.Terms?.DeliveryDocumentNo),
             new("İrsaliye No", t => t.Terms?.WaybillNo),
             new("Grup", t => t.Terms?.CustomerGroup),
-            new("Eski No", t => t.Terms?.ExternalRef)), "seferler");
+            new("Eski No", t => t.Terms?.ExternalRef),
+            new("Kaydı Giren", t => t.CreatedBy)), "seferler");
     }
 
 

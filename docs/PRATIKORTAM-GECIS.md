@@ -23,6 +23,8 @@
 >   çalıştır → kontrol: 10/127 araç, bakiyeler pratikortam ile aynı, 5 rastgele cari yan yana.
 > - **Harita (2 Ekim):** pratikortam'ın bütün ekranları salt okuma robotuyla tarandı (83 sayfa, 48 ekran şablonu);
 >   ekran ekran karşılaştırma, eksik alanlar, çıktılar ve öncelikli öneri listesi `docs/PRATIKORTAM-HARITA.md`'de.
+> - **Sevkiyatlar (3 Ekim):** pratikortam'daki süzgeçler (tedarikçi, plaka, Piyasa / Öz Araç, komisyon işi, yükleme/indirme yeri,
+>   sevkiyat/teslim evrak/fatura no, teslim evrakı var/yok) ve "Detay" görünümü eklendi; ayna modunda da çalışır (yalnız okuma).
 > - Not: gerçek veriyi toptan silen geçici bir "sıfırlama izni" denendi, güvenlik denetiminde reddedildi ve gönderilmedi; aynanın
 >   geri alınabilir eşleştirmesi bunun yerini aldı.
 >

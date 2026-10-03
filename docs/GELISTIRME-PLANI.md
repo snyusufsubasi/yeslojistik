@@ -148,8 +148,8 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 7 | Faturalı seferde kritik alanları kilitle | Faturası kesilmiş seferin taşeronu veya maliyeti değişince iki cari birden bozulur | `TripService.UpdateAsync` | S |
 | 8 | Aynı anda düzenleme koruması | Çift tıklama veya iki kullanıcı aynı seferi iki kez faturalayabiliyor | Sürüm alanı + uyarı: "Bu kayıt siz düzenlerken değiştirildi" | M |
 | 9 | Filtre toplamları (sayfa değil, filtrenin tamamı) | "Sayfa toplamı" ay sonu kontrolünde yanıltıyor | Fatura, gider, ödeme ve alış faturası toplam uçları + ortak toplam şeridi | M — **yapıldı (A4)** |
-| 10 | Filtreler adres çubuğunda kalsın | Geri gelince veya sayfayı yenileyince filtreler sıfırlanıyor | Ortak bir adres-durumu yardımcısı, tüm liste sayfaları | M |
-| 11 | Sefer listesine Özet/Detay görünümü, tedarikçi, plaka ve evrak filtresi, PDF/İcmal | Pratikortam'daki liste alışkanlığı | `TripsPage` | M |
+| 10 | Filtreler adres çubuğunda kalsın | Geri gelince veya sayfayı yenileyince filtreler sıfırlanıyor | Ortak bir adres-durumu yardımcısı, tüm liste sayfaları | M — **Sevkiyatlar'da yapıldı (3 Ekim)**, diğer listeler bekliyor |
+| 11 | ~~Sefer listesine Özet/Detay görünümü, tedarikçi, plaka ve evrak filtresi, PDF/İcmal~~ **Yapıldı (3 Ekim)** | Pratikortam'daki liste alışkanlığı | `TripsPage`, `TripQuery` | M |
 | 12 | ~~Toplu seçim ve toplu işlem~~ **Yapıldı (A5)** | Teslim evrakı onayı tek tek yapılıyor. Toplu ödeme yok | `DataTable` seçim + alt işlem çubuğu; `/api/trips/bulk/*`, `/api/supplier-payments/bulk` | M |
 | 13 | Cari tablolarında sıralama, Excel/PDF ve sütun toplamları | Pratikortam'da var, burada yok | `CariPage` | S |
 | 14 | Ana listelerde Excel dışa aktarma ve arşiv/pasif görünümü | Müşteri, tedarikçi, şoför ve araç listelerinde sadece içe aktarma var | 4 dışa aktarma ucu + düğmeler | M — **Excel yapıldı (A4)**, arşiv görünümü bekliyor |
@@ -183,9 +183,9 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | Özellik (pratikortam) | YES Lojistik'te durum | Aşama |
 |---|---|---|
 | İş ekle → "Formu açık tut" ve kopya sayısı (1–19) | Yok, her kayıtta form kapanıyor | 2 |
-| Sevkiyatlar Özet/Detay görünümü (yük, açıklama, komisyon, masraf, fatura, giren kişi) | 6 sütun, detay görünümü yok | 2 |
-| Tedarikçi, plaka, evrak var/yok filtreleri | Yok | 2 |
-| Sevkiyat listesi PDF ve İcmal | Yok | 2 |
+| Sevkiyatlar Özet/Detay görünümü (yük, açıklama, komisyon, masraf, fatura, giren kişi) | **Var (3 Ekim):** "Özet / Detay" düğmesi; tercih tarayıcıda hatırlanır | 2 |
+| Tedarikçi, plaka, evrak var/yok filtreleri | **Var (3 Ekim):** tedarikçi, plaka, Piyasa / Öz Araç, komisyon işi, yükleme/indirme yeri, sevkiyat/teslim evrak/fatura no, teslim evrakı var/yok; adreste kalır, toplamlar ve Excel/PDF/İcmal süzgece uyar | 2 |
+| Sevkiyat listesi PDF ve İcmal | **Var:** Sevkiyatlar → "Sevkiyat PDF" ve "İcmal" | 2 |
 | "Teslim Evrak Onayla" satır işlemi | **Var (A5):** Sevkiyatlar'da seçip "Teslim evrakını onayla" (toplu) | 2 |
 | Toplu ödemeler / "Seçilenleri listeye ekle" | **Var (A5):** Sevkiyatlar ve tedarikçi kartında seferleri seçip "Toplu ödeme" (tedarikçi başına bir ödeme, önizlemeli) | 2 |
 | Cari tablolarında her sütunda sıralama, Excel ve PDF | Sıralama ve dışa aktarma yok | 2 |

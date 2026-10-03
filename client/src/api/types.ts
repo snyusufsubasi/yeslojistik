@@ -274,6 +274,10 @@ export interface Trip {
   isLegacy?: boolean
   terms?: TripTerms | null
   commissionAccountName?: string | null
+  /** Kesilen satış faturasının tarihi (Detay görünümü). */
+  invoiceDate?: string | null
+  /** Kaydı giren kullanıcı. */
+  createdBy?: string | null
 }
 
 export type CommissionStatus = 'Pending' | 'Received' | 'DeductFromInvoice'

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, StepForward, Truck } from 'lucide-react'
+import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, Rows3, SlidersHorizontal, StepForward, TableProperties, Truck, X } from 'lucide-react'
 import { download, errorMessage, get, post } from '../api/client'
 import { ExportButton, PdfButton } from '../components/Exports'
-import type { BulkResult, Driver, JobRequest, Trip, TripStatus, TripTotals } from '../api/types'
+import type { BulkResult, Driver, JobRequest, Trip, TripStatus, TripTotals, VehicleOwnership } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
@@ -29,32 +29,82 @@ export default function TripsPage() {
   const { can } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<TripStatus | ''>((params.get('status') as TripStatus) ?? '')
-  const [customerId, setCustomerId] = useState<number | ''>(params.get('customerId') ? Number(params.get('customerId')) : '')
-  const [from, setFrom] = useState(params.get('from') ?? '')
-  const [to, setTo] = useState(params.get('to') ?? '')
-  const [invoiced, setInvoiced] = useState<'yes' | 'no' | 'carrier' | ''>(params.get('carrierInvoice') === 'missing' ? 'carrier' : '')
+  // Süzgeçler adreste durur (?status=...&ownership=...): sayfa yenilenince, geri gelince ya da link paylaşılınca kaybolmaz.
+  const textParam = (k: string) => params.get(k) ?? ''
+  const idParam = (k: string) => (Number(params.get(k)) || '') as number | ''
+  const [search, setSearch] = useState(textParam('q'))
+  const [status, setStatus] = useState<TripStatus | ''>(oneOf(params.get('status'), Object.keys(tripStatusLabel) as TripStatus[]))
+  const [customerId, setCustomerId] = useState<number | ''>(idParam('customerId'))
+  const [from, setFrom] = useState(textParam('from'))
+  const [to, setTo] = useState(textParam('to'))
+  const [invoiced, setInvoiced] = useState<Invoiced | ''>(params.get('carrierInvoice') === 'missing' ? 'carrier' : oneOf<Invoiced>(params.get('invoiced'), ['yes', 'no', 'carrier']))
   // Eski paneldeki hazır listeler: fiyat girilmeyenler, onay bekleyen teslim evrakları, komisyonu beklenenler.
-  const [preset, setPreset] = useState<Preset | ''>((params.get('list') as Preset) ?? '')
-  const [group, setGroup] = useState('')
+  const [preset, setPreset] = useState<Preset | ''>(oneOf(params.get('list'), presetOptions.map((o) => o.value)))
+  const [group, setGroup] = useState(textParam('group'))
+  // Eski paneldeki "Filtrele" alanları: tedarikçi, plaka, Piyasa / Öz Araç, komisyon işi, yer, numaralar, teslim evrakı.
+  const [supplierId, setSupplierId] = useState<number | ''>(idParam('supplierId'))
+  const [vehicleId, setVehicleId] = useState<number | ''>(idParam('vehicleId'))
+  const [ownership, setOwnership] = useState<VehicleOwnership | ''>(oneOf<VehicleOwnership>(params.get('ownership'), ['Own', 'Rented']))
+  const [commission, setCommission] = useState<YesNo | ''>(oneOf<YesNo>(params.get('commission'), ['yes', 'no']))
+  const [documentState, setDocumentState] = useState<YesNo | ''>(oneOf<YesNo>(params.get('document'), ['yes', 'no']))
+  const [loadingPlace, setLoadingPlace] = useState(textParam('loading'))
+  const [deliveryPlace, setDeliveryPlace] = useState(textParam('delivery'))
+  const [tripNo, setTripNo] = useState(textParam('tripNo'))
+  const [docNo, setDocNo] = useState(textParam('docNo'))
+  const [invoiceNo, setInvoiceNo] = useState(textParam('invoiceNo'))
+  const advancedCount = [preset, group, commission, documentState, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo].filter(Boolean).length
+  // Seyrek kullanılan süzgeçler "Ayrıntılı süzgeç" altında; adreste dolu bir tanesi varsa açık gelir.
+  const [showMore, setShowMore] = useState(advancedCount > 0)
   const toast = useToast()
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(null)
   // Görünüm: liste ya da pano (tercih tarayıcıda hatırlanır).
   const [view, setViewState] = useState<'list' | 'board'>(() => { try { return localStorage.getItem('yes.tripView') === 'board' ? 'board' : 'list' } catch { return 'list' } })
   const setView = (v: 'list' | 'board') => { setViewState(v); try { localStorage.setItem('yes.tripView', v) } catch { /* gizli pencere */ } }
+  // Sütunlar: Özet ya da Detay (eski paneldeki geniş liste; tercih tarayıcıda hatırlanır).
+  const [detail, setDetailState] = useState(() => { try { return localStorage.getItem('yes.tripColumns') === 'detail' } catch { return false } })
+  const setDetail = (on: boolean) => { setDetailState(on); try { localStorage.setItem('yes.tripColumns', on ? 'detail' : 'summary') } catch { /* gizli pencere */ } }
   useOpenNewFromUrl(() => setEditing('new'))
   const [copyOf, setCopyOf] = useState<Trip | null>(null)
   const [sourceRequest, setSourceRequest] = useState<JobRequest | null>(null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
-  const debounced = useDebounce(search)
   const customers = useLookup('customers')
+  const suppliers = useLookup('suppliers')
+  const vehicles = useLookup('vehicles')
 
-  const debouncedGroup = useDebounce(group)
-  const [page, setPage] = usePage([debounced, status, customerId, from, to, invoiced, preset, debouncedGroup])
+  // Yazılan süzgeçler (arama, yer, numaralar) yazmayı bitirince uygulanır.
+  const [debounced, debouncedGroup, dLoading, dDelivery, dTripNo, dDocNo, dInvoiceNo] = JSON.parse(
+    useDebounce(JSON.stringify([search, group, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo]))) as string[]
+  const yesNo = (v: YesNo | '') => (v === 'yes' ? true : v === 'no' ? false : undefined)
+  const filters = { search: debounced, status, customerId, from, to,
+    invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined,
+    customerGroup: debouncedGroup || undefined, missingPrice: preset === 'price' || undefined, pendingDeliveryDocument: preset === 'document' || undefined,
+    commissionStatus: preset === 'commission' ? 'Pending' : undefined,
+    carrierSupplierId: supplierId, vehicleId, ownership, hasCommission: yesNo(commission), hasDeliveryDocument: yesNo(documentState),
+    loadingPlace: dLoading || undefined, deliveryPlace: dDelivery || undefined, tripNo: dTripNo || undefined,
+    deliveryDocumentNo: dDocNo || undefined, invoiceNo: dInvoiceNo || undefined }
+  const [page, setPage] = usePage([filters])
   // Seçim sayfalar arasında korunur, filtre değişince boşalır.
-  const selection = useRowSelection<Trip>((t) => t.id, [debounced, status, customerId, from, to, invoiced, preset, debouncedGroup])
+  const selection = useRowSelection<Trip>((t) => t.id, [filters])
+
+  // Süzgeçleri adrese yaz (yalnızca değişince; diğer parametrelere dokunmadan).
+  const urlState = JSON.stringify({ q: debounced, status, customerId, from, to, invoiced, list: preset, group: debouncedGroup, supplierId, vehicleId,
+    ownership, commission, document: documentState, loading: dLoading, delivery: dDelivery, tripNo: dTripNo, docNo: dDocNo, invoiceNo: dInvoiceNo })
+  useEffect(() => {
+    const next = new URLSearchParams(params)
+    next.delete('carrierInvoice')
+    for (const [k, v] of Object.entries(JSON.parse(urlState) as Record<string, string | number>)) {
+      if (v === '' || v == null) next.delete(k)
+      else next.set(k, String(v))
+    }
+    if (next.toString() !== params.toString()) setParams(next, { replace: true })
+  }, [urlState, params, setParams])
+  const clearFilters = () => {
+    setSearch(''); setStatus(''); setCustomerId(''); setFrom(''); setTo(''); setInvoiced(''); setPreset(''); setGroup('')
+    setSupplierId(''); setVehicleId(''); setOwnership(''); setCommission(''); setDocumentState('')
+    setLoadingPlace(''); setDeliveryPlace(''); setTripNo(''); setDocNo(''); setInvoiceNo('')
+  }
+  const anyFilter = !!(search || status || customerId || from || to || invoiced || supplierId || vehicleId || ownership) || advancedCount > 0
   const bulkResult = useBulkResult()
   const [advancing, setAdvancing] = useState<Trip[] | null>(null)
   const [paying, setPaying] = useState<number[] | null>(null)
@@ -80,11 +130,8 @@ export default function TripsPage() {
     }).catch(() => undefined)
   }, [params, setParams])
 
-  const query = { page, pageSize: 20, search: debounced, status, customerId, from, to, invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined,
-    customerGroup: debouncedGroup || undefined, missingPrice: preset === 'price' || undefined, pendingDeliveryDocument: preset === 'document' || undefined,
-    commissionStatus: preset === 'commission' ? 'Pending' : undefined, sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, ...filters, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Trip>('trips', query)
-  const { page: _p, pageSize: _s, sort: _o, desc: _d, ...filters } = query
   const { data: totals } = useQuery({ queryKey: ['trips', 'totals', filters], queryFn: () => get<TripTotals>('/trips/totals', filters) })
   const today = todayIso()
   const periods = [
@@ -152,11 +199,14 @@ export default function TripsPage() {
   const columns: Column<Trip>[] = [
     { key: 'date', header: 'Tarih / No', sortKey: 'loadingDate', render: (t) => <>{date(t.loadingDate)}<span className="block text-sm text-slate-500">No {t.terms?.externalRef ?? t.id}</span></> },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-32', render: (t) => <span className="font-medium">{t.customerTitle}</span> },
+    ...(detail ? [groupColumn] : []),
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><PlateBadge plate={t.vehiclePlate} />{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge><InvoiceInfo t={t} />{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
+    ...(detail ? detailColumns : []),
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{!detail && <InvoiceInfo t={t} />}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
     { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span>
-      {t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500">Kom. {tl(t.terms.commission)} · {commissionStatusLabel[t.terms.commissionStatus]}</span>}</> },
+      {!detail && t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500">Kom. {tl(t.terms.commission)} · {commissionStatusLabel[t.terms.commissionStatus]}</span>}</> },
+    ...(detail ? detailMoneyColumns : []),
   ]
   if (can('operations')) {
     columns.push({
@@ -193,6 +243,15 @@ export default function TripsPage() {
           </button>
         ))}
       </div>
+      {view === 'list' && <div role="radiogroup" aria-label="Sütunlar" className="mb-4 ml-2 hidden rounded-xl sm:inline-flex border border-slate-200 bg-white p-1">
+        {([[false, 'Özet', Rows3], [true, 'Detay', TableProperties]] as const).map(([on, label, Icon]) => (
+          <button key={label} role="radio" aria-checked={detail === on} onClick={() => setDetail(on)}
+            title={on ? 'Fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunları' : 'Kısa liste'}
+            className={clsx('inline-flex min-h-9 items-center gap-2 rounded-lg px-4 text-[0.9375rem] font-medium transition', detail === on ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100')}>
+            <Icon className="size-4" />{label}
+          </button>
+        ))}
+      </div>}
       {view === 'board' && <>
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-3xl">
           <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />
@@ -215,17 +274,40 @@ export default function TripsPage() {
             )
           })}
         </div>
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
           <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
+          <SearchSelect ariaLabel="Tedarikçi" value={supplierId === '' ? null : supplierId} onChange={(v) => setSupplierId(v ?? '')} placeholder="Tüm tedarikçiler"
+            options={(suppliers.data ?? []).map((x) => ({ value: x.id, label: x.label }))} />
+          <SearchSelect ariaLabel="Plaka" value={vehicleId === '' ? null : vehicleId} onChange={(v) => setVehicleId(v ?? '')} placeholder="Tüm araçlar (plaka)"
+            options={(vehicles.data ?? []).map((x) => ({ value: x.id, label: x.label }))} />
+          <Select aria-label="Araç durumu" value={ownership} onChange={setOwnership} placeholder="Araç: Piyasa ve Öz Araç"
+            options={[{ value: 'Rented' as const, label: 'Piyasa (kiralık araç)' }, { value: 'Own' as const, label: 'Öz Araç' }]} />
           <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
             options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }, { value: 'carrier' as const, label: 'Taşeron faturası gelmedi' }]} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-6 py-2">
+          <Button size="sm" variant="ghost" icon={<SlidersHorizontal />} aria-expanded={showMore} aria-controls="trip-more-filters" onClick={() => setShowMore(!showMore)}>
+            Ayrıntılı süzgeç{advancedCount > 0 && ` (${advancedCount})`}
+          </Button>
+          {anyFilter && <Button size="sm" variant="ghost" icon={<X />} onClick={clearFilters}>Süzgeci temizle</Button>}
+        </div>
+        {showMore && <div id="trip-more-filters" className="grid grid-cols-1 gap-3 border-b border-slate-100 bg-slate-50/50 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Select aria-label="Komisyon işi" value={commission} onChange={setCommission} placeholder="Komisyon: tümü"
+            options={[{ value: 'yes' as const, label: 'Komisyon işi' }, { value: 'no' as const, label: 'Komisyonsuz' }]} />
+          <Select aria-label="Teslim evrakı" value={documentState} onChange={setDocumentState} placeholder="Teslim evrakı: tümü"
+            options={[{ value: 'yes' as const, label: 'Teslim evrakı eklenenler' }, { value: 'no' as const, label: 'Teslim evrakı beklenenler' }]} />
           <Select aria-label="Hazır liste" value={preset} onChange={setPreset} placeholder="Liste: tüm seferler" options={presetOptions} />
           <input className="input" aria-label="Firma grubu" placeholder="Firma grubu / şantiye" value={group} onChange={(e) => setGroup(e.target.value)} />
-        </div>
+          <input className="input" aria-label="Yükleme yeri" placeholder="Yükleme yeri (il ya da adres)" value={loadingPlace} onChange={(e) => setLoadingPlace(e.target.value)} />
+          <input className="input" aria-label="İndirme yeri" placeholder="İndirme yeri (il ya da adres)" value={deliveryPlace} onChange={(e) => setDeliveryPlace(e.target.value)} />
+          <input className="input" aria-label="Sevkiyat no" placeholder="Sevkiyat no" value={tripNo} onChange={(e) => setTripNo(e.target.value)} />
+          <input className="input" aria-label="Teslim evrak no" placeholder="Teslim evrak no" value={docNo} onChange={(e) => setDocNo(e.target.value)} />
+          <input className="input" aria-label="Fatura no" placeholder="Fatura no (satış ya da taşeron)" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
+        </div>}
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
           onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id}
@@ -233,7 +315,7 @@ export default function TripsPage() {
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
           selectable selection={selection} bulkActions={bulkActions} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}, ${t.customerTitle}`}
-          empty={debounced || status || customerId || from || to || invoiced || preset || group
+          empty={anyFilter
             ? 'Bu filtrelere uyan sefer yok. Filtreleri temizlemeyi deneyin.'
             : 'Henüz sefer yok. Sağ üstteki “Yeni Sefer” ile ilk seferi ekleyin.'}
           mobileCard={(t) => (
@@ -306,6 +388,55 @@ function AdvanceSummary({ trips }: { trips: Trip[] }) {
 }
 
 type Preset = 'price' | 'document' | 'commission'
+type Invoiced = 'yes' | 'no' | 'carrier'
+type YesNo = 'yes' | 'no'
+
+/** Adresteki değer izin verilenlerden biriyse onu, değilse boş döndürür (elle bozulmuş adres API hatasına yol açmasın). */
+function oneOf<T extends string>(value: string | null, allowed: readonly T[]): T | '' {
+  return allowed.includes(value as T) ? (value as T) : ''
+}
+
+const Empty = () => <span className="text-slate-400">—</span>
+
+/** Detay görünümü: müşteriden sonra fatura başlığı (firma grubu / şantiye). */
+const groupColumn: Column<Trip> = { key: 'group', header: 'Fatura başlığı', className: 'whitespace-normal! min-w-28', render: (t) => t.terms?.customerGroup || <Empty /> }
+
+/** Detay görünümünde araçtan sonra gelen sütunlar: ürün ve açıklama. */
+const detailColumns: Column<Trip>[] = [
+  { key: 'cargo', header: 'Ürün', className: 'whitespace-normal! min-w-28', render: (t) => {
+    const amount = [t.cargoQuantity != null && `${t.cargoQuantity.toLocaleString('tr-TR')} ${t.cargoUnit ?? ''}`.trim(),
+      t.cargoWeightKg != null && `${t.cargoWeightKg.toLocaleString('tr-TR')} kg`].filter(Boolean).join(' · ')
+    return t.cargoType || amount ? <>{t.cargoType ?? ''}{amount && <span className="block text-sm text-slate-500">{amount}</span>}</> : <Empty />
+  } },
+  { key: 'description', header: 'Açıklama', className: 'whitespace-normal! min-w-40 max-w-64', render: (t) => t.description
+    ? <span className="line-clamp-3 text-sm" title={t.description}>{t.description}</span> : <Empty /> },
+]
+
+/** Detay görünümünde tutardan sonra gelen sütunlar: komisyon, masraf, fatura bilgisi ve kaydı giren. */
+const detailMoneyColumns: Column<Trip>[] = [
+  { key: 'commission', header: 'Komisyon', align: 'right', render: (t) => t.terms && t.terms.commission > 0
+    ? <>{tl(t.terms.commission)}<span className="block text-sm text-slate-500">{commissionStatusLabel[t.terms.commissionStatus]}{t.commissionAccountName && ` · ${t.commissionAccountName}`}</span></>
+    : <Empty /> },
+  { key: 'extra', header: 'Masraf', align: 'right', render: (t) => {
+    const extra = t.terms?.extraCharge ?? 0
+    if (extra <= 0 && t.expenseTotal <= 0) return <Empty />
+    return <>
+      {extra > 0 && <span className="block">{tl(extra)}{t.terms?.extraChargeInvoiced && <span className="text-sm text-slate-500"> (faturalı)</span>}</span>}
+      {t.expenseTotal > 0 && <span className="block text-sm text-slate-500">Gider {tl(t.expenseTotal)}</span>}
+    </>
+  } },
+  { key: 'invoice', header: 'Fatura bilgisi', className: 'whitespace-normal! min-w-36', render: (t) => {
+    const open = t.status === 'Delivered' && !t.isLegacy
+    return <>
+      {t.invoiceNo ? <span className="block">{t.invoiceNo}<span className="block text-sm text-slate-500">{date(t.invoiceDate)}</span></span>
+        : open ? <span className="block text-sm font-medium text-violet-700">Fatura kesilecek</span> : <Empty />}
+      {t.carrierSupplierId && (t.carrierInvoiceNo
+        ? <span className="block text-sm text-slate-500">Taşeron: {t.carrierInvoiceNo}{t.carrierInvoiceDate && ` · ${date(t.carrierInvoiceDate)}`}</span>
+        : open && <span className="block text-sm font-medium text-amber-700">Taşeron faturası gelmedi</span>)}
+    </>
+  } },
+  { key: 'createdBy', header: 'Kaydı giren', render: (t) => t.createdBy || <Empty /> },
+]
 const presetOptions: { value: Preset; label: string }[] = [
   { value: 'price', label: 'Fiyat girilmeyenler' },
   { value: 'document', label: 'Onay bekleyen teslim evrakları' },
