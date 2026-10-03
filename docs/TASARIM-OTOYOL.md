@@ -82,10 +82,25 @@ Panelde şu an karanlık tema yok, bu iş için de gerekmez.
 - Ortak parçalar yeni görünümde: düğme, kart, durum etiketi, açılır pencere, tablo, özet kutusu, sayfa başlığı.
 - Plaka rozeti Sevkiyatlar, Araçlar, Ana Sayfa ve Pano'da.
 
-**Sırada (sayfa sayfa düzeltme):**
-- Sevkiyatlar kazanç şeridi ve Ana sayfa rakamları: tarifteki "yan yana kutu, arası çizgi" düzeni ve bill-soft vurgu.
-- Ana sayfadaki renkli kısayol kutuları sade hale gelecek.
-- Sayfalardaki yuvarlak filtre düğmeleri (Bugün / Gelecek / Hepsi gibi) köşeli olacak.
-- Raporlar grafik renkleri yeni renklere uyacak.
-- Plaka rozeti öbür ekranlara (şoförler, giderler, raporlar, harita) yayılacak.
-- Giriş sayfası ve form grup başlıkları (11px, accent renk).
+**Yapıldı (sayfa düzeltmeleri):**
+- Yeni ortak parçalar (`components/ui.tsx`):
+  - `Figures` / `Figure`: "yan yana kutu, arası çizgi" rakam şeridi. Etiket 10.5px BÜYÜK HARF, değer Overpass Mono 22px, vurgulu kutu bill-soft.
+  - `Chip`: köşeli filtre çipi, seçiliyken accent zemin.
+- Ana Sayfa:
+  - 4 rakam bu şeritte; "Tahsilat Bekleyen" bill-soft vurgulu.
+  - "Faturalanmadı" uyarısı bill-soft, "masraf onay bekliyor" warn-soft.
+  - Kısayol kutuları sade: renkli degrade yok, açık zemin + koyu ikon. Renkler `lib/quickActions` içinde; "+ Yeni" menüsü de aynısını kullanır.
+- Raporlar:
+  - Grafik renkleri `lib/chart`: ciro accent yeşil, maliyet sarı, gider dağılımı mavi.
+  - Yıl toplamları ana sayfadaki şerit düzeninde.
+- Plaka rozeti her yerde: şoförler, giderler, raporlar, harita, müşteri/tedarikçi detayı, alınan fatura, fatura kesme, müşteri takip sayfası.
+- Müşteri/tedarikçi detayındaki özet kutuları ve şoför hesabı özeti aynı rakam şeridinde.
+- Araçlar sekmeleri ve fatura "hızlı ekle" düğmeleri köşeli çip. Öbür sayfalardaki filtreler zaten açılır kutu ya da tarih kutusu; yuvarlak filtre kalmadı.
+- Giriş, şifre sıfırlama, takip ve gizlilik sayfaları yeni logoyla: sarı "YES" kutusu + "Lojistik". Sol menü de aynı `Logo` parçasını kullanır.
+- Form grup başlıkları 11px, BÜYÜK HARF, accent renk: numaralı `Section` (sefer formu dahil), iş talebi formu ve Ayarlar.
+- Tutar hücrelerindeki sözcükler ("Harcırah", "gün", "Ortalamanın üstünde", durum etiketleri) normal yazıyla; yalnız rakamlar mono.
+
+**Sırada:**
+- Sevkiyatlar kazanç şeridi, Cari ve Faturalar sayfaları ayrı çalışmada düzeltiliyor. Uygun yerde `Figures` / `Chip` kullanılabilir.
+- Listelerin üstündeki toplam şeridi (`TotalsStrip`) Sevkiyatlar'la birlikte ele alınacak.
+- Personel ve Sabit Ödemeler sayfalarındaki `StatCard` kutuları da rakam şeridine geçirilebilir.
