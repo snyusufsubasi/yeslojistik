@@ -66,8 +66,8 @@ export type Tone = 'yellow' | 'green' | 'blue' | 'gray' | 'red' | 'teal' | 'oran
 
 export const tripStatusTone: Record<TripStatus, Tone> = {
   Planned: 'blue',
-  Loaded: 'teal',
-  OnRoad: 'yellow',
+  Loaded: 'yellow',
+  OnRoad: 'teal',
   Delivered: 'green',
   Cancelled: 'gray',
 }

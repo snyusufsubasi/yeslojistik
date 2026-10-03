@@ -126,10 +126,10 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
           <tbody className={clsx(loading && rows && 'opacity-50')}>
             {rows?.map((row) => (
               <tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined} aria-selected={sel ? sel.isSelected(row) : undefined}
-                className={clsx('even:bg-slate-50/50', onRowClick ? 'cursor-pointer hover:bg-brand-50' : 'hover:bg-slate-50', sel?.isSelected(row) && 'bg-brand-50/70!', rowClassName?.(row))}>
+                className={clsx('even:bg-slate-50/60', onRowClick ? 'cursor-pointer hover:bg-surface-2' : 'hover:bg-slate-50', sel?.isSelected(row) && 'bg-brand-50!', rowClassName?.(row))}>
                 {sel && (
                   <td className="td w-10 p-0" onClick={(e) => e.stopPropagation()}>
-                    <label className="flex cursor-pointer items-center justify-center px-3 py-3.5">
+                    <label className="flex cursor-pointer items-center justify-center px-3 py-[7px]">
                       <SelectBox checked={sel.isSelected(row)} label={label(row)} onChange={() => sel.toggle(row)} />
                     </label>
                   </td>
@@ -148,14 +148,14 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
       {!rows && (error && !loading ? <ErrorState error={error} onRetry={onRetry} /> : loading && <Spinner />)}
       {rows && rows.length === 0 && <Empty>{empty}</Empty>}
       {onPage && total !== undefined && total > pageSize && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[0.9375rem] text-slate-700">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 text-[0.8125rem] text-muted">
           <span>Toplam <b>{total}</b> kayıt</span>
           <div className="flex items-center gap-2">
-            <button className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50 disabled:opacity-40" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
+            <button className="inline-flex min-h-8 items-center gap-1 rounded-[3px] border border-line bg-white px-2.5 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
               <ChevronLeft className="size-5" /><span className="hidden sm:inline">Önceki</span>
             </button>
             <span className="px-1">Sayfa {page} / {pages}</span>
-            <button className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50 disabled:opacity-40" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
+            <button className="inline-flex min-h-8 items-center gap-1 rounded-[3px] border border-line bg-white px-2.5 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
               <span className="hidden sm:inline">Sonraki</span><ChevronRight className="size-5" />
             </button>
           </div>
