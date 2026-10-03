@@ -88,7 +88,9 @@ public class AdminController(BackupService backups, AppDbContext db, IConfigurat
         }
         log.LogWarning("Yedekten geri yükleme yapıldı ({Actor}); uygulama yeniden başlatılıyor.", Actor);
         // Yanıt gittikten sonra kapan: Render / Docker uygulamayı yeniden başlatır, açılışta migration'lar tamamlanır.
-        Response.OnCompleted(() => { _ = Task.Delay(1000).ContinueWith(_ => lifetime.StopApplication()); return Task.CompletedTask; });
+        // Testlerde kapatılır (Backup:RestartAfterRestore=false): aynı sunucuyu paylaşan sonraki testler kapanmış sunucuya düşmesin.
+        if (config.GetValue("Backup:RestartAfterRestore", true))
+            Response.OnCompleted(() => { _ = Task.Delay(1000).ContinueWith(_ => lifetime.StopApplication()); return Task.CompletedTask; });
         return Ok(new { restored = true });
     }
 }

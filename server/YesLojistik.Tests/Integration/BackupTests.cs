@@ -16,6 +16,8 @@ public class BackupApiFactory : ApiFactory
         base.ConfigureWebHost(builder);
         builder.UseSetting("Backup:Token", Token);
         builder.UseSetting("Backup:AllowRestore", "true");
+        // Geri yükleme sonrası yeniden başlatma yok: sınıftaki diğer testler aynı sunucuyu kullanıyor.
+        builder.UseSetting("Backup:RestartAfterRestore", "false");
     }
 }
 
