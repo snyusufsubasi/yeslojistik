@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
@@ -7,7 +7,7 @@ import { errorMessage, get, openPdf } from '../api/client'
 import type { CustomerCariRow, SupplierCariRow } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { ExportButton, PdfButton } from '../components/Exports'
-import { Button, Card, PageHeader, StatCard } from '../components/ui'
+import { Button, Card, PageHeader } from '../components/ui'
 import { useToast } from '../components/Toast'
 import { ago, tl } from '../lib/format'
 import { useMirror } from '../lib/hooks'
@@ -49,7 +49,7 @@ const customerColumns: MoneyColumn[] = [
   { key: 'opening', header: 'Devir', value: (r) => r.opening, mirror: 'never' },
   { key: 'invoiced', header: 'Kesilen Fatura', value: (r) => (r as CustomerCariRow).invoiced, mirror: 'ifData' },
   { key: 'cancelled', header: 'İptal Fatura', value: (r) => r.cancelledInvoices, count: (r) => r.cancelledInvoiceCount, unit: 'fatura', mirror: 'ifData', tone: 'text-slate-500' },
-  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sefer', mirror: 'ifData', tone: 'text-violet-700' },
+  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sefer', mirror: 'ifData', tone: 'text-bill font-semibold' },
   { key: 'collected', header: 'Alınan Ödeme', value: (r) => (r as CustomerCariRow).collected, mirror: 'never' },
 ]
 
@@ -57,7 +57,7 @@ const supplierColumns: MoneyColumn[] = [
   { key: 'opening', header: 'Devir', value: (r) => r.opening, mirror: 'never' },
   { key: 'received', header: 'Alınan Fatura', value: (r) => (r as SupplierCariRow).receivedInvoices, count: (r) => (r as SupplierCariRow).receivedInvoiceCount, unit: 'fatura', mirror: 'ifData', tone: 'text-slate-500' },
   { key: 'cancelled', header: 'İptal Fatura', value: (r) => r.cancelledInvoices, count: (r) => r.cancelledInvoiceCount, unit: 'fatura', mirror: 'ifData', tone: 'text-slate-500' },
-  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sefer', mirror: 'ifData', tone: 'text-amber-700' },
+  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sefer', mirror: 'ifData', tone: 'text-warn font-semibold' },
   { key: 'expenses', header: 'Vadeli Gider', value: (r) => (r as SupplierCariRow).creditExpenses, mirror: 'never' },
   { key: 'paid', header: 'Verilen Ödeme', value: (r) => (r as SupplierCariRow).paid, mirror: 'never' },
 ]
@@ -108,7 +108,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
   const statement = (r: Row) => openPdf(`${kind === 'customers' ? '/customers' : '/suppliers'}/${r.id}/statement`, 'ekstre.pdf')
     .catch((e) => toast.error(errorMessage(e)))
   const money = (v: number, strong = false) => (
-    <span className={clsx(v === 0 && 'text-slate-400', strong && v > 0 && 'font-semibold text-slate-900', strong && v < 0 && 'font-semibold text-emerald-700')}>{tl(v)}</span>
+    <span className={clsx(v === 0 && 'text-slate-400', strong && v > 0 && 'font-semibold text-fg', strong && v < 0 && 'font-semibold text-good')}>{tl(v)}</span>
   )
 
   const titleColumn: Column<Row> = { key: 'title', header: t.party, sortKey: 'title', className: 'min-w-48', render: (r) => <>
@@ -119,13 +119,13 @@ export default function CariPage({ kind }: { kind: Kind }) {
     titleColumn,
     ...moneyColumns.map((c): Column<Row> => ({ key: c.key, header: c.header, sortKey: c.key, align: 'right', render: (r) => {
       const n = c.count?.(r) ?? 0
-      return <>{money(c.value(r))}{n > 0 && <span className={clsx('block text-sm', c.tone)}>{n} {c.unit}</span>}</>
+      return <>{money(c.value(r))}{n > 0 && <span className={clsx('block text-sm', c.tone)}>{n}<Word> {c.unit}</Word></span>}</>
     } })),
     mirror
       ? { key: 'balance', header: 'Bakiye (pratikortam)', sortKey: 'balance', align: 'right', render: (r) => money(bal(r), true) }
       : { key: 'balance', header: 'Bakiye', sortKey: 'balance', align: 'right', render: (r) => <>
         {money(r.balance, true)}
-        {r.overdue > 0 && <span className="block text-sm font-medium text-red-600">Vadesi geçen {tl(r.overdue)}</span>}
+        {r.overdue > 0 && <span className="block text-sm font-semibold text-bad"><Word>Vadesi geçen </Word>{tl(r.overdue)}</span>}
       </> },
     ...(mirror ? [] : [{ key: 'actions', header: '', align: 'right', render: (r) => (
       <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -135,11 +135,11 @@ export default function CariPage({ kind }: { kind: Kind }) {
   ]
 
   const footer = rows.length > 1 && (
-    <tr><td colSpan={columns.length} className="border-t border-slate-200 bg-slate-50 px-6 py-3">
-    <div className="flex flex-wrap items-center justify-between gap-3 text-[0.9375rem]">
-      <span className="text-slate-600">{rows.length} kayıt</span>
-      <span>Bakiye toplamı <b className="tabular-nums text-slate-900">{tl(sum(bal))}</b>
-        {sum((r) => r.overdue) > 0 && <> · <span className="text-red-600">vadesi geçen <b className="tabular-nums">{tl(sum((r) => r.overdue))}</b></span></>}
+    <tr><td colSpan={columns.length} className="border-t border-line bg-surface-2 px-4 py-2.5">
+    <div className="flex flex-wrap items-center justify-between gap-3 text-[0.84375rem]">
+      <span className="text-muted"><span className="tabular-nums">{rows.length}</span> kayıt</span>
+      <span className="text-muted">Bakiye toplamı <b className="tabular-nums text-fg">{tl(sum(bal))}</b>
+        {sum((r) => r.overdue) > 0 && <> · <span className="text-bad">vadesi geçen <b className="tabular-nums">{tl(sum((r) => r.overdue))}</b></span></>}
       </span>
     </div>
     </td></tr>
@@ -155,30 +155,30 @@ export default function CariPage({ kind }: { kind: Kind }) {
           {!mirror && <Button icon={<t.payIcon className="size-4" />} onClick={() => navigate(t.pay)}>{t.payLabel}</Button>}
         </>} />
       {mirror ? (
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <StatCard title={t.balance} value={tl(totalBalance)} icon={<Scale />} color="blue" onClick={() => setFilter('open')}
-            sub={`${all.filter((r) => bal(r) !== 0).length} hesapta bakiye var`} />
-          <StatCard title="Pratikortam'dan" value={status?.lastAt ? ago(status.lastAt) : '—'} icon={<FileSpreadsheet />} color="orange"
-            sub="Son güncelleme. Günde birkaç kez kendiliğinden yenilenir." />
-        </div>
-      ) : <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard title={t.balance} value={tl(totalBalance)} icon={<Scale />} color="blue" onClick={() => setFilter('open')}
-          sub={`${all.filter((r) => r.balance !== 0).length} hesapta bakiye var`} />
-        <StatCard title="Vadesi geçen" value={tl(totalOverdue)} icon={<AlertTriangle />} color="red" onClick={() => setFilter('overdue')}
-          sub={overdueCount ? `${overdueCount} hesap · listelemek için tıklayın` : 'Vadesi geçen yok'} />
-        {kind === 'customers'
-          ? <StatCard title="Faturası kesilecek seferler" value={tl(waiting.total)} icon={<FileSpreadsheet />} color="orange"
-              sub={waiting.count ? `${waiting.count} sefer · fatura kesmek için tıklayın` : 'Bekleyen yok'} onClick={() => navigate('/faturalar/yeni')} />
-          : <StatCard title="Taşeron faturası gelmeyen" value={`${waiting.count} sefer`} icon={<Truck />} color="orange"
-              sub="Listelemek için tıklayın" onClick={() => navigate('/seferler?carrierInvoice=missing')} />}
-      </div>}
+        <Figures items={[
+          { title: t.balance, value: tl(totalBalance), icon: <Scale />, onClick: () => setFilter('open'),
+            sub: `${all.filter((r) => bal(r) !== 0).length} hesapta bakiye var` },
+          { title: "Pratikortam'dan", value: status?.lastAt ? ago(status.lastAt) : '—', icon: <FileSpreadsheet />, plain: true,
+            sub: 'Son güncelleme. Günde birkaç kez kendiliğinden yenilenir.' },
+        ]} />
+      ) : <Figures items={[
+        { title: t.balance, value: tl(totalBalance), icon: <Scale />, onClick: () => setFilter('open'),
+          sub: `${all.filter((r) => r.balance !== 0).length} hesapta bakiye var` },
+        { title: 'Vadesi geçen', value: tl(totalOverdue), icon: <AlertTriangle />, onClick: () => setFilter('overdue'), tone: totalOverdue > 0 ? 'text-bad' : undefined,
+          sub: overdueCount ? `${overdueCount} hesap · listelemek için tıklayın` : 'Vadesi geçen yok' },
+        kind === 'customers'
+          ? { title: 'Faturası kesilecek seferler', value: tl(waiting.total), icon: <FileSpreadsheet />, highlight: waiting.count > 0,
+              sub: waiting.count ? `${waiting.count} sefer · fatura kesmek için tıklayın` : 'Bekleyen yok', onClick: () => navigate('/faturalar/yeni') }
+          : { title: 'Taşeron faturası gelmeyen', value: <>{waiting.count}<Word> sefer</Word></>, icon: <Truck />, highlight: waiting.count > 0,
+              sub: 'Listelemek için tıklayın', onClick: () => navigate('/seferler?carrierInvoice=missing') },
+      ]} />}
       <Card bodyClassName="p-0" title="Hesaplar" icon={<Scale className="size-4" />}
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />}>
-        <div role="radiogroup" aria-label="Gösterilecek hesaplar" className="flex flex-wrap gap-2 border-b border-slate-100 px-6 py-3">
+        <div role="radiogroup" aria-label="Gösterilecek hesaplar" className="flex flex-wrap gap-1.5 border-b border-line px-4 py-3 sm:px-6">
           {([['open', 'Bakiyesi olanlar'], ['overdue', 'Vadesi geçenler'], ['all', 'Hepsi']] as const).filter(([v]) => !mirror || v !== 'overdue').map(([v, label]) => (
             <button key={v} role="radio" aria-checked={filter === v} onClick={() => setFilter(v)}
-              className={clsx('min-h-9 rounded-full border px-4 text-[0.9375rem] font-medium transition',
-                filter === v ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}>
+              className={clsx('min-h-8 rounded-[3px] border px-3 text-[0.8125rem] font-semibold transition',
+                filter === v ? 'border-accent bg-accent text-white' : 'border-line bg-white text-muted hover:border-slate-300 hover:bg-surface-2 hover:text-fg')}>
               {label}
             </button>
           ))}
@@ -190,8 +190,8 @@ export default function CariPage({ kind }: { kind: Kind }) {
           mobileCard={(r) => (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate font-medium text-slate-900">{r.title}</div>
-                {r.overdue > 0 ? <div className="text-sm text-red-600">Vadesi geçen {tl(r.overdue)}</div>
+                <div className="truncate font-semibold text-fg">{r.title}</div>
+                {r.overdue > 0 ? <div className="text-sm text-bad">Vadesi geçen <span className="tabular-nums">{tl(r.overdue)}</span></div>
                   : <div className="text-sm text-slate-500">{r.taxNumber ? `VKN ${r.taxNumber}` : r.phone ?? ''}</div>}
               </div>
               <span className="shrink-0 font-semibold tabular-nums">{tl(bal(r))}</span>
@@ -199,5 +199,39 @@ export default function CariPage({ kind }: { kind: Kind }) {
           )} />
       </Card>
     </>
+  )
+}
+
+/** Tutar hücresindeki sözcük ("Vadesi geçen", "sefer"): hücre Overpass Mono olsa da yazı normal kalır, yalnız rakam mono. */
+const Word = ({ children }: { children: ReactNode }) => <span className="font-sans tracking-normal">{children}</span>
+
+interface Figure {
+  title: string; value: ReactNode; sub: ReactNode; icon: ReactNode
+  onClick?: () => void
+  /** Yapılacak iş (ör. faturası kesilecek seferler): bill-soft zeminli. */
+  highlight?: boolean
+  tone?: string
+  /** Tıklanmayan bilgi kutusu */
+  plain?: boolean
+}
+
+/** Ana sayfa rakamları düzeninde özet: yan yana kutular, aralarında çizgi; etiket küçük BÜYÜK HARF, değer Overpass Mono. */
+function Figures({ items }: { items: Figure[] }) {
+  return (
+    <div className={clsx('card mb-6 grid divide-y divide-line overflow-hidden sm:divide-x sm:divide-y-0', items.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
+      {items.map((f) => {
+        const body = <>
+          <div className={clsx('flex items-center gap-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.07em] [&_svg]:size-3.5', f.highlight ? 'text-bill' : 'text-muted')}>
+            {f.icon}{f.title}
+          </div>
+          <div className={clsx('mt-1 truncate font-mono text-[1.375rem] font-semibold leading-tight tracking-[-0.02em]', f.highlight ? 'text-bill' : f.tone ?? 'text-fg')}>{f.value}</div>
+          <div className={clsx('mt-0.5 text-[0.8125rem]', f.highlight ? 'text-bill' : 'text-muted')}>{f.sub}</div>
+        </>
+        const cls = clsx('min-w-0 px-4 py-3.5 text-left', f.highlight && 'bg-bill-soft')
+        return f.plain || !f.onClick
+          ? <div key={f.title} className={cls}>{body}</div>
+          : <button key={f.title} type="button" onClick={f.onClick} className={clsx(cls, 'transition', f.highlight ? 'hover:brightness-[.97]' : 'hover:bg-surface-2')}>{body}</button>
+      })}
+    </div>
   )
 }

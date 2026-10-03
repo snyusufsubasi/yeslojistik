@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, Rows3, SlidersHorizontal, StepForward, TableProperties, Truck, X } from 'lucide-react'
@@ -22,6 +22,7 @@ import { commissionStatusLabel, options, tripStatusAction, tripStatusLabel, trip
 import { emptyTerms } from '../lib/tripTerms'
 import { useToast } from '../components/Toast'
 import { PlateBadge } from '../components/ui'
+import { SumStrip, type SumItem } from '../components/SumStrip'
 
 const api = crud<Trip, unknown>('trips')
 
@@ -204,8 +205,8 @@ export default function TripsPage() {
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><PlateBadge plate={t.vehiclePlate} />{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
     ...(detail ? detailColumns : []),
     { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{!detail && <InvoiceInfo t={t} />}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
-    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}`}>Kâr {tl(t.profit)}</span>
-      {!detail && t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500">Kom. {tl(t.terms.commission)} · {commissionStatusLabel[t.terms.commissionStatus]}</span>}</> },
+    { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-bad' : 'text-good'}`}><Word>Kâr </Word>{tl(t.profit)}</span>
+      {!detail && t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500"><Word>Kom. </Word>{tl(t.terms.commission)}<Word> · {commissionStatusLabel[t.terms.commissionStatus]}</Word></span>}</> },
     ...(detail ? detailMoneyColumns : []),
   ]
   if (can('operations')) {
@@ -235,23 +236,24 @@ export default function TripsPage() {
           {can('accounting') && <Button write variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
           {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sefer</Button>}
         </>} />
-      <div role="tablist" aria-label="Görünüm" className="mb-4 inline-flex rounded-xl border border-slate-200 bg-white p-1">
-        {([['list', 'Liste', List], ['board', 'Pano', Columns3]] as const).map(([v, label, Icon]) => (
-          <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
-            className={clsx('inline-flex min-h-9 items-center gap-2 rounded-lg px-4 text-[0.9375rem] font-medium transition', view === v ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100')}>
-            <Icon className="size-4" />{label}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div role="tablist" aria-label="Görünüm" className={clsx(segmentGroup, 'inline-flex')}>
+          {([['list', 'Liste', List], ['board', 'Pano', Columns3]] as const).map(([v, label, Icon]) => (
+            <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className={segment(view === v)}>
+              <Icon />{label}
+            </button>
+          ))}
+        </div>
+        {view === 'list' && <div role="radiogroup" aria-label="Sütunlar" className={clsx(segmentGroup, 'hidden sm:inline-flex')}>
+          {([[false, 'Özet', Rows3], [true, 'Detay', TableProperties]] as const).map(([on, label, Icon]) => (
+            <button key={label} role="radio" aria-checked={detail === on} onClick={() => setDetail(on)}
+              title={on ? 'Fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunları' : 'Kısa liste'}
+              className={segment(detail === on)}>
+              <Icon />{label}
+            </button>
+          ))}
+        </div>}
       </div>
-      {view === 'list' && <div role="radiogroup" aria-label="Sütunlar" className="mb-4 ml-2 hidden rounded-xl sm:inline-flex border border-slate-200 bg-white p-1">
-        {([[false, 'Özet', Rows3], [true, 'Detay', TableProperties]] as const).map(([on, label, Icon]) => (
-          <button key={label} role="radio" aria-checked={detail === on} onClick={() => setDetail(on)}
-            title={on ? 'Fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunları' : 'Kısa liste'}
-            className={clsx('inline-flex min-h-9 items-center gap-2 rounded-lg px-4 text-[0.9375rem] font-medium transition', detail === on ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100')}>
-            <Icon className="size-4" />{label}
-          </button>
-        ))}
-      </div>}
       {view === 'board' && <>
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-3xl">
           <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />
@@ -262,19 +264,20 @@ export default function TripsPage() {
       </>}
       {view === 'list' && <Card bodyClassName="p-0" title="Sefer Listesi" icon={<Truck className="size-4" />}
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
-        <div role="radiogroup" aria-label="Dönem" className="flex flex-wrap gap-2 border-b border-slate-100 px-6 pt-4 pb-3">
-          {periods.map((p) => {
-            const on = from === p.from && to === p.to
-            return (
-              <button key={p.label} role="radio" aria-checked={on} onClick={() => { setFrom(p.from); setTo(p.to) }}
-                className={clsx('min-h-9 rounded-full border px-4 text-[0.9375rem] font-medium transition',
-                  on ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}>
-                {p.label}
-              </button>
-            )
-          })}
+        <div className="border-b border-slate-100 px-4 pt-4 pb-3 sm:px-6">
+          <div role="radiogroup" aria-label="Dönem" className={clsx(segmentGroup, 'flex w-full sm:inline-flex sm:w-auto')}>
+            {periods.map((p) => {
+              const on = from === p.from && to === p.to
+              return (
+                <button key={p.label} role="radio" aria-checked={on} onClick={() => { setFrom(p.from); setTo(p.to) }}
+                  className={segment(on, 'flex-1 px-2 sm:flex-none sm:px-4')}>
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(tripStatusLabel)} placeholder="Tüm durumlar" />
           <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
@@ -289,13 +292,13 @@ export default function TripsPage() {
           <Select aria-label="Fatura durumu" value={invoiced} onChange={setInvoiced} placeholder="Fatura: tümü"
             options={[{ value: 'no' as const, label: 'Faturalanmamış' }, { value: 'yes' as const, label: 'Faturalanmış' }, { value: 'carrier' as const, label: 'Taşeron faturası gelmedi' }]} />
         </div>
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-6 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 sm:px-6 py-2">
           <Button size="sm" variant="ghost" icon={<SlidersHorizontal />} aria-expanded={showMore} aria-controls="trip-more-filters" onClick={() => setShowMore(!showMore)}>
             Ayrıntılı süzgeç{advancedCount > 0 && ` (${advancedCount})`}
           </Button>
           {anyFilter && <Button size="sm" variant="ghost" icon={<X />} onClick={clearFilters}>Süzgeci temizle</Button>}
         </div>
-        {showMore && <div id="trip-more-filters" className="grid grid-cols-1 gap-3 border-b border-slate-100 bg-slate-50/50 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
+        {showMore && <div id="trip-more-filters" className="grid grid-cols-1 gap-3 border-b border-slate-100 bg-slate-50/50 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select aria-label="Komisyon işi" value={commission} onChange={setCommission} placeholder="Komisyon: tümü"
             options={[{ value: 'yes' as const, label: 'Komisyon işi' }, { value: 'no' as const, label: 'Komisyonsuz' }]} />
           <Select aria-label="Teslim evrakı" value={documentState} onChange={setDocumentState} placeholder="Teslim evrakı: tümü"
@@ -321,14 +324,14 @@ export default function TripsPage() {
           mobileCard={(t) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-slate-500">{date(t.loadingDate)} · {t.vehiclePlate}</span>
+                <span className="flex min-w-0 items-center gap-2 text-sm text-muted">{date(t.loadingDate)}<PlateBadge plate={t.vehiclePlate} /></span>
                 <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>
               </div>
-              <div className="font-medium text-navy-900">{t.customerTitle}</div>
-              <div className="text-sm">{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}</div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">{t.driverName}</span>
-                <span><span className="font-medium">{tl(t.salePrice)}</span> <span className={t.profit < 0 ? 'text-red-600' : 'text-emerald-700'}>({tl(t.profit)})</span></span>
+              <div className="font-semibold text-fg">{t.customerTitle}</div>
+              <div className="text-sm">{route(t.loadingCity, t.loadingAddress)} <span className="text-muted">→</span> {route(t.deliveryCity, t.deliveryAddress)}</div>
+              <div className="flex flex-wrap items-center justify-between gap-x-2 text-sm">
+                <span className="min-w-0 text-muted">{t.driverName}</span>
+                <span className="ml-auto tabular-nums"><span className="font-semibold">{tl(t.salePrice)}</span> <span className={t.profit < 0 ? 'text-bad' : 'text-good'}>({tl(t.profit)})</span></span>
               </div>
             </div>
           )} />
@@ -415,24 +418,24 @@ const detailColumns: Column<Trip>[] = [
 /** Detay görünümünde tutardan sonra gelen sütunlar: komisyon, masraf, fatura bilgisi ve kaydı giren. */
 const detailMoneyColumns: Column<Trip>[] = [
   { key: 'commission', header: 'Komisyon', align: 'right', render: (t) => t.terms && t.terms.commission > 0
-    ? <>{tl(t.terms.commission)}<span className="block text-sm text-slate-500">{commissionStatusLabel[t.terms.commissionStatus]}{t.commissionAccountName && ` · ${t.commissionAccountName}`}</span></>
+    ? <>{tl(t.terms.commission)}<span className="block text-sm text-slate-500"><Word>{commissionStatusLabel[t.terms.commissionStatus]}{t.commissionAccountName && ` · ${t.commissionAccountName}`}</Word></span></>
     : <Empty /> },
   { key: 'extra', header: 'Masraf', align: 'right', render: (t) => {
     const extra = t.terms?.extraCharge ?? 0
     if (extra <= 0 && t.expenseTotal <= 0) return <Empty />
     return <>
-      {extra > 0 && <span className="block">{tl(extra)}{t.terms?.extraChargeInvoiced && <span className="text-sm text-slate-500"> (faturalı)</span>}</span>}
-      {t.expenseTotal > 0 && <span className="block text-sm text-slate-500">Gider {tl(t.expenseTotal)}</span>}
+      {extra > 0 && <span className="block">{tl(extra)}{t.terms?.extraChargeInvoiced && <span className="text-sm text-slate-500"><Word> (faturalı)</Word></span>}</span>}
+      {t.expenseTotal > 0 && <span className="block text-sm text-slate-500"><Word>Gider </Word>{tl(t.expenseTotal)}</span>}
     </>
   } },
   { key: 'invoice', header: 'Fatura bilgisi', className: 'whitespace-normal! min-w-36', render: (t) => {
     const open = t.status === 'Delivered' && !t.isLegacy
     return <>
       {t.invoiceNo ? <span className="block">{t.invoiceNo}<span className="block text-sm text-slate-500">{date(t.invoiceDate)}</span></span>
-        : open ? <span className="block text-sm font-medium text-violet-700">Fatura kesilecek</span> : <Empty />}
+        : open ? <span className="block text-sm font-semibold text-bill">Fatura kesilecek</span> : <Empty />}
       {t.carrierSupplierId && (t.carrierInvoiceNo
         ? <span className="block text-sm text-slate-500">Taşeron: {t.carrierInvoiceNo}{t.carrierInvoiceDate && ` · ${date(t.carrierInvoiceDate)}`}</span>
-        : open && <span className="block text-sm font-medium text-amber-700">Taşeron faturası gelmedi</span>)}
+        : open && <span className="block text-sm font-semibold text-warn">Taşeron faturası gelmedi</span>)}
     </>
   } },
   { key: 'createdBy', header: 'Kaydı giren', render: (t) => t.createdBy || <Empty /> },
@@ -453,38 +456,33 @@ function InvoiceInfo({ t }: { t: Trip }) {
   const open = t.status === 'Delivered' && !t.isLegacy
   return <>
     {t.invoiceNo ? <span className="mt-0.5 block text-sm text-slate-500">Fatura: {t.invoiceNo}</span>
-      : open && <span className="mt-0.5 block text-sm font-medium text-violet-700">Fatura kesilecek</span>}
+      : open && <span className="mt-0.5 block text-sm font-semibold text-bill">Fatura kesilecek</span>}
     {t.carrierSupplierId && (t.carrierInvoiceNo ? <span className="block text-sm text-slate-500">Taşeron fat.: {t.carrierInvoiceNo}</span>
-      : open && <span className="block text-sm font-medium text-amber-700">Taşeron faturası gelmedi</span>)}
+      : open && <span className="block text-sm font-semibold text-warn">Taşeron faturası gelmedi</span>)}
   </>
 }
 
-/** Eski paneldeki "Kazanç Tablosu": süzgece uyan seferlerin toplamı, listenin hemen üstünde. */
+/** Eski paneldeki "Kazanç Tablosu": süzgece uyan seferlerin toplamı, listenin hemen üstünde. "Faturası kesilecek" sağda, sarı zeminli. */
 function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals; showMoney: boolean; onUninvoiced: () => void }) {
-  const cell = (label: string, value: string, tone?: string) => (
-    <div className="min-w-0">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className={clsx('truncate text-lg font-semibold tabular-nums', tone ?? 'text-slate-900')}>{value}</div>
-    </div>
-  )
-  return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-slate-100 bg-slate-50/70 px-6 py-4 sm:grid-cols-3 xl:grid-cols-6" aria-label="Kazanç tablosu">
-      {cell('Sefer', `${totals.count}`)}
-      {showMoney && <>
-        {cell('Satış', tl(totals.sale))}
-        {cell('Araç / taşeron maliyeti', tl(totals.vehicleCost))}
-        {totals.commission > 0 && cell('Komisyon', tl(totals.commission))}
-        {totals.extraCharge > 0 && cell('Ek masraf', tl(totals.extraCharge))}
-        {totals.driverBonus > 0 && cell('Şoför primi', tl(totals.driverBonus))}
-        {cell('Masraf', tl(totals.expenses))}
-        {cell('Kazanç', tl(totals.profit), totals.profit < 0 ? 'text-red-600' : 'text-emerald-700')}
-      </>}
-      {totals.uninvoicedCount > 0
-        ? <button onClick={onUninvoiced} className="min-w-0 rounded-lg text-left hover:bg-violet-50">
-            <div className="text-sm text-violet-700">Faturası kesilecek ({totals.uninvoicedCount} sefer)</div>
-            <div className="truncate text-lg font-semibold tabular-nums text-violet-800">{tl(totals.uninvoicedTotal)}</div>
-          </button>
-        : cell('Faturası kesilecek', 'Yok', 'text-slate-400')}
-    </div>
-  )
+  const items: SumItem[] = [{ label: 'Sefer', value: totals.count }]
+  if (showMoney) {
+    items.push({ label: 'Satış', value: tl(totals.sale) }, { label: 'Araç / taşeron maliyeti', value: tl(totals.vehicleCost) })
+    if (totals.commission > 0) items.push({ label: 'Komisyon', value: tl(totals.commission) })
+    if (totals.extraCharge > 0) items.push({ label: 'Ek masraf', value: tl(totals.extraCharge) })
+    if (totals.driverBonus > 0) items.push({ label: 'Şoför primi', value: tl(totals.driverBonus) })
+    items.push({ label: 'Masraf', value: tl(totals.expenses) }, { label: 'Kazanç', value: tl(totals.profit), tone: totals.profit < 0 ? 'text-bad' : 'text-good' })
+  }
+  return <SumStrip label="Kazanç tablosu" items={items}
+    end={totals.uninvoicedCount > 0
+      ? { label: `Faturası kesilecek · ${totals.uninvoicedCount} sefer`, value: tl(totals.uninvoicedTotal), highlight: true, onClick: onUninvoiced,
+          title: 'Teslim edilip faturası kesilmemiş seferleri listele' }
+      : { label: 'Faturası kesilecek', value: 'Yok' }} />
 }
+
+/** Otoyol köşeli seçim düğmeleri: yan yana, aralarında çizgi; seçili olan accent zeminli. */
+const segmentGroup = 'overflow-hidden rounded-[3px] border border-line bg-white divide-x divide-line'
+const segment = (on: boolean, pad = 'px-4') => clsx(pad, 'inline-flex min-h-8 items-center justify-center gap-1.5 whitespace-nowrap text-[0.8125rem] font-semibold transition [&_svg]:size-4',
+  on ? 'bg-accent text-white' : 'text-muted hover:bg-surface-2 hover:text-fg')
+
+/** Tutar hücresindeki sözcük ("Kâr", "Gider"): hücre Overpass Mono olsa da yazı normal kalır, yalnız rakam mono. */
+const Word = ({ children }: { children: ReactNode }) => <span className="font-sans tracking-normal">{children}</span>

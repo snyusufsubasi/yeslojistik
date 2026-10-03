@@ -6,7 +6,8 @@ import { download, errorMessage, get, openPdf, post, withQuery } from '../api/cl
 import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus, InvoiceTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
-import { ExportButton, PdfButton, TotalsStrip } from '../components/Exports'
+import { ExportButton, PdfButton } from '../components/Exports'
+import { SumStrip } from '../components/SumStrip'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Loading, Modal, PageHeader, Select, DateFilter } from '../components/ui'
@@ -53,7 +54,7 @@ export default function InvoicesPage() {
       {i.eInvoiceNo && <span className="block text-sm text-slate-500">{i.eInvoiceNo} · {eInvoiceStatusLabel[i.eInvoiceStatus ?? 'None']}</span>}</> },
     { key: 'customer', header: 'Müşteri', sortKey: 'customer', className: 'whitespace-normal! min-w-40', render: (i) => i.customerTitle },
     { key: 'total', header: 'Tutar', sortKey: 'total', align: 'right', render: (i) => tl2(i.total) },
-    { key: 'rem', header: 'Kalan', align: 'right', render: (i) => i.remaining > 0 ? <span className="text-red-600">{tl2(i.remaining)}</span> : '—' },
+    { key: 'rem', header: 'Kalan', align: 'right', render: (i) => i.remaining > 0 ? <span className="font-semibold text-bad">{tl2(i.remaining)}</span> : <span className="text-slate-400">—</span> },
     { key: 'status', header: 'Durum', sortKey: 'status', render: (i) => <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge> },
     {
       key: 'actions', header: 'İşlemler', align: 'right', render: (i) => (
@@ -79,7 +80,7 @@ export default function InvoicesPage() {
         </>} />
       <Card title="Fatura Listesi" icon={<FileText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, müşteri..." />}>
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
             options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" />
@@ -90,14 +91,14 @@ export default function InvoicesPage() {
             <input type="checkbox" checked={unpaid} onChange={(e) => setUnpaid(e.target.checked)} /> Sadece ödenmemiş
           </label>
         </div>
-        {totals && totals.count > 0 && <TotalsStrip items={[
+        {totals && totals.count > 0 && <SumStrip label="Filtre toplamı" items={[
           { label: 'Fatura', value: totals.count },
           { label: 'Matrah', value: tl2(totals.subtotal) },
           { label: 'KDV', value: tl2(totals.vatAmount) },
           { label: 'Tevkifat', value: tl2(totals.withholdingAmount) },
           { label: 'Genel toplam', value: tl2(totals.total) },
-          { label: 'Kalan', value: tl2(totals.remaining), tone: totals.remaining > 0 ? 'text-red-600' : 'text-emerald-700' },
-        ]} note={status ? undefined : 'Tutarlar kesilen faturalardan; taslak ve iptaller hariç.'} />}
+          { label: 'Kalan', value: tl2(totals.remaining), tone: totals.remaining > 0 ? 'text-bad' : 'text-good' },
+        ]} end={status ? undefined : { label: 'Tutarlar kesilen faturalardan; taslak ve iptaller hariç.', note: true }} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(i) => i.id} onRowClick={(i) => setViewing(i.id)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
@@ -115,15 +116,15 @@ export default function InvoicesPage() {
           mobileCard={(i) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-navy-900">{i.invoiceNo}</span>
+                <span className="font-semibold text-fg">{i.invoiceNo}</span>
                 <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge>
               </div>
               <div className="text-sm">{i.customerTitle}</div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">{date(i.date)} · vade {date(i.dueDate)}</span>
-                <span className="font-medium">{tl2(i.total)}</span>
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="min-w-0 text-muted">{date(i.date)} · vade {date(i.dueDate)}</span>
+                <span className="shrink-0 font-semibold tabular-nums">{tl2(i.total)}</span>
               </div>
-              {i.remaining > 0 && <div className="text-right text-sm text-red-600">Kalan {tl2(i.remaining)}</div>}
+              {i.remaining > 0 && <div className="text-right text-sm font-semibold text-bad">Kalan <span className="tabular-nums">{tl2(i.remaining)}</span></div>}
             </div>
           )} />
       </Card>
@@ -175,7 +176,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
             <div className="border-t border-slate-200 pt-1"><Sum label="Genel Toplam" value={inv.total} bold /></div>
             {inv.status === 'Issued' && <>
               <Sum label="Tahsil Edilen" value={inv.paid} />
-              <Sum label="Kalan" value={inv.remaining} bold tone={inv.remaining > 0 ? 'text-red-600' : 'text-emerald-700'} />
+              <Sum label="Kalan" value={inv.remaining} bold tone={inv.remaining > 0 ? 'text-bad' : 'text-good'} />
             </>}
           </div>
           {inv.notes && <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">{inv.notes}</p>}
@@ -241,7 +242,7 @@ function KV({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function Sum({ label, value, bold, tone }: { label: string; value: number; bold?: boolean; tone?: string }) {
-  return <div className={`flex justify-between ${bold ? 'font-semibold' : ''} ${tone ?? ''}`}><span>{label}</span><span>{tl2(value)}</span></div>
+  return <div className={`flex justify-between ${bold ? 'font-semibold' : ''} ${tone ?? ''}`}><span>{label}</span><span className="tabular-nums">{tl2(value)}</span></div>
 }
 
 function EmailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {

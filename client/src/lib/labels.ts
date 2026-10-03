@@ -78,14 +78,15 @@ export const vehicleStatusTone: Record<VehicleStatus, Tone> = {
   Maintenance: 'red',
 }
 
+/** Fatura ödeme durumu, Otoyol renkleriyle: Ödendi good, Kısmi accent, Vadesi Geçti bad, Açık warn, Taslak info, İptal muted. */
 export function paymentStatusTone(s: string): Tone {
   switch (s) {
     case 'Ödendi': return 'green'
     case 'Kısmi Ödendi': return 'teal'
     case 'Vadesi Geçti': return 'red'
-    case 'Taslak': return 'purple'
+    case 'Taslak': return 'blue'
     case 'İptal': return 'gray'
-    default: return 'orange'
+    default: return 'yellow'
   }
 }
 
