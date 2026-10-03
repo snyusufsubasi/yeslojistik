@@ -52,7 +52,7 @@ test('müşteri → araç → şoför → sefer → fatura → PDF → kısmi ta
   await tripDialog.getByLabel('Teslimat Adresi').fill('İzmir / Balçova')
   await tripDialog.getByLabel('Araç Maliyeti (TL)').fill('18000')
   await tripDialog.getByLabel('Müşteri Satış Fiyatı (TL)').fill('25000')
-  await expect(tripDialog.getByText('7.000 TL').first()).toBeVisible()
+  await expect(tripDialog.getByText('7.000,00 TL').first()).toBeVisible()
   await tripDialog.getByRole('button', { name: 'Kaydet' }).click()
   await expect(page.getByText('Sefer oluşturuldu.')).toBeVisible()
 

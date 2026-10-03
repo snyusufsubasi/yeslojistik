@@ -1,10 +1,8 @@
-const money = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 const money2 = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-/** 45000 → "45.000 TL" */
-export const tl = (v: number | null | undefined) => `${money.format(v ?? 0)} TL`
-/** 45000 → "45.000,00 TL" */
+/** 45000 → "45.000,00 TL" (tutarlar her yerde iki kuruş basamağıyla gösterilir). */
 export const tl2 = (v: number | null | undefined) => `${money2.format(v ?? 0)} TL`
+export const tl = tl2
 
 /** Form kutusundaki sayıyı okunur tutara çevirir; boş/geçersizse undefined (ör. 11000 → "= 11.000 TL"). */
 export const moneyHint = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 ? `= ${tl2(v)}` : undefined
