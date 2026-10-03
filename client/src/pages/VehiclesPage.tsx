@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import clsx from 'clsx'
 import { useSearchParams } from 'react-router-dom'
 import { Pencil, Plus, Trash2, Truck } from 'lucide-react'
 import { get } from '../api/client'
-import type { Vehicle, VehicleStatus } from '../api/types'
+import type { Vehicle, VehicleOwnership, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select } from '../components/ui'
 import { ImportButton } from '../components/ImportDialog'
@@ -15,6 +16,13 @@ import { VehicleForm } from '../components/VehicleForm'
 
 const api = crud<Vehicle, unknown>('vehicles')
 
+/** Öz araçlar varsayılan: taşeron araçları ayrı sekmede (adres: ?tip=taseron / ?tip=hepsi). */
+const tabs = [
+  { key: 'oz', label: 'Öz araçlarım', ownership: 'Own' },
+  { key: 'taseron', label: 'Taşeron araçları', ownership: 'Rented' },
+  { key: 'hepsi', label: 'Hepsi', ownership: '' },
+] as const
+
 
 export default function VehiclesPage() {
   const { can } = useAuth()
@@ -26,7 +34,13 @@ export default function VehiclesPage() {
   useOpenNewFromUrl(() => setEditing('new'))
   const [deleting, setDeleting] = useState<Vehicle | null>(null)
   const debounced = useDebounce(search)
-  const [page, setPage] = usePage([debounced, status])
+  const tab = tabs.find((t) => t.key === params.get('tip')) ?? tabs[0]
+  const ownership: VehicleOwnership | '' = tab.ownership
+  const setTab = (key: string) => {
+    if (key === 'oz') params.delete('tip'); else params.set('tip', key)
+    setParams(params, { replace: true })
+  }
+  const [page, setPage] = usePage([debounced, status, ownership])
 
   // Bildirimden gelen ?id=… bağlantısı ilgili aracı açar.
   useEffect(() => {
@@ -37,7 +51,7 @@ export default function VehiclesPage() {
     setParams(params, { replace: true })
   }, [params, setParams])
 
-  const query = { page, pageSize: 20, search: debounced, status, sort: sort.key, desc: sort.desc }
+  const query = { page, pageSize: 20, search: debounced, status, ownership, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Vehicle>('vehicles', query)
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['vehicles'], success: 'Araç silindi.', onSuccess: () => setDeleting(null) })
 
@@ -75,15 +89,24 @@ export default function VehiclesPage() {
             <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Araç</Button>
           </>}
         </>} />
-      <Card title="Araç Listesi" icon={<Truck className="size-4" />} bodyClassName="p-0"
+      <Card title={tab.key === 'taseron' ? 'Taşeron Araçları' : tab.key === 'hepsi' ? 'Bütün Araçlar' : 'Öz Araçlarım'} icon={<Truck className="size-4" />} bodyClassName="p-0"
         actions={<>
           <Select aria-label="Durum" className="sm:w-40" value={status} onChange={setStatus} options={options(vehicleStatusLabel)} placeholder="Tüm durumlar" />
           <SearchBox value={search} onChange={setSearch} placeholder="Plaka, marka, tip..." />
         </>}>
+        <div role="tablist" aria-label="Araç sahipliği" className="flex flex-wrap gap-2 border-b border-slate-100 px-6 py-3">
+          {tabs.map((t) => (
+            <button key={t.key} role="tab" aria-selected={tab.key === t.key} onClick={() => setTab(t.key)}
+              className={clsx('min-h-9 rounded-full border px-4 text-[0.9375rem] font-medium transition',
+                tab.key === t.key ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50')}>
+              {t.label}
+            </button>
+          ))}
+        </div>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id}
           onRowClick={can('operations') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : "Henüz araç yok. “Yeni Araç” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
+          page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : tab.key === 'taseron' ? "Taşeron aracı yok." : "Henüz araç yok. “Yeni Araç” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
       </Card>
       {editing && <VehicleForm vehicle={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Aracı sil" loading={deleteMut.isPending} confirmText="Sil"
