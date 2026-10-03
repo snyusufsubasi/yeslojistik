@@ -5,9 +5,9 @@
  * sarı yalnızca dikkat isteyen yerde. Sayfalar slate/brand/navy adlarını kullanır; burada yeniden eşlenince bütün ekranlar birlikte değişir.
  */
 @theme {
-  --font-sans: "Overpass", "Segoe UI", system-ui, sans-serif;
+  /* Yazı: Claude'un cevap yazısına benzeyen tırnaklı Source Serif 4 (kullanıcı seçimi). Tutar ve plakalar Overpass Mono: alt alta hizalı. */
+  --font-sans: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-mono: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  /* Eskiden başlıklar tırnaklıydı; artık her yerde Overpass */
   --font-serif: var(--font-sans);
 
   /* Otoyol jetonları */
@@ -91,8 +91,8 @@
   html { font-size: 16px; }
   html[data-text="lg"] { font-size: 17.5px; }
   html[data-text="xl"] { font-size: 19px; }
-  body { @apply bg-canvas font-sans text-[0.875rem] leading-normal text-fg antialiased; }
-  h1, h2, h3 { font-family: var(--font-sans); font-weight: 700; letter-spacing: -0.005em; }
+  body { @apply bg-canvas font-sans text-[0.9375rem] leading-normal text-fg antialiased; }
+  h1, h2, h3 { font-family: var(--font-sans); font-weight: 650; letter-spacing: -0.01em; }
   /* Rakamlar eşit genişlikte, alt alta hizalı */
   .tabular-nums, td { font-variant-numeric: tabular-nums; }
   /* Tutar ve sayılar Overpass Mono; form alanlarında tutar kutusu da öyle */
@@ -108,7 +108,7 @@
 
 @layer components {
   .input {
-    @apply min-h-10 w-full rounded-[3px] border border-slate-300 bg-white px-3 py-1.5 text-[0.875rem] text-slate-900 outline-none transition
+    @apply min-h-10 w-full rounded-[3px] border border-slate-300 bg-white px-3 py-1.5 text-[0.9375rem] text-slate-900 outline-none transition
       placeholder:text-slate-500 hover:border-slate-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600;
   }
   /* Telefonda 16px: iPhone form kutusuna dokununca sayfayı büyütmesin */
@@ -117,7 +117,7 @@
   .label { @apply mb-1 block text-[0.78125rem] font-semibold text-muted; }
   .card { @apply min-w-0 rounded-[4px] border border-line bg-white; }
   .th { @apply border-b border-line bg-surface-2 px-3 py-2 text-left text-[0.6875rem] font-bold uppercase tracking-[0.07em] text-muted; }
-  .td { @apply break-words border-b border-slate-100 px-3 py-[7px] text-[0.84375rem] text-fg; }
+  .td { @apply break-words border-b border-slate-100 px-3 py-[7px] text-[0.875rem] text-fg; }
   /* Tablodaki tutar ve sayılar (sağa yaslı sütunlar) Overpass Mono */
   td.text-right { font-family: var(--font-mono); letter-spacing: -0.02em; }
   /* Sayı hücresindeki düğmeler (ör. "Yüklendi yap") normal yazıyla kalır */

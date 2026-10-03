@@ -143,7 +143,8 @@ export function Layout() {
             <CalendarDays className="size-4" />
             {longDate()}
           </div>
-          {!mirror && <NewMenu />}
+          <NewMenu mirror={mirror} />
+          <TextSizeButton />
           <AlertsBell />
           <UserMenu name={user!.fullName} role={roleLabel[user!.role]} onLogout={logout} />
         </header>
@@ -167,34 +168,100 @@ export function Layout() {
   )
 }
 
-/** Üst çubuktaki "+ Yeni": en sık yapılan kayıtlar tek tıkla açılır (yetkiye göre). */
-function NewMenu() {
+/** Üst çubuktaki "+ Yeni": en sık yapılan kayıtlar tek tıkla açılır (yetkiye göre). Klavyede "N" de açar. */
+function NewMenu({ mirror }: { mirror: boolean }) {
   const { can } = useAuth()
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
   const items = quickActions.filter((a) => !a.perm || can(a.perm))
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setOpen(false); return }
+      if (e.key.toLowerCase() !== 'n' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return
+      if (document.querySelector('[role="dialog"]')) return
+      e.preventDefault()
+      setOpen((o) => !o)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
   return (
     <div className="relative hidden sm:block" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu"
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" title="Yeni kayıt (kısayol: N)"
         className="inline-flex min-h-9 items-center gap-1.5 rounded-[3px] bg-brand-600 px-3.5 text-[0.875rem] font-semibold text-white hover:bg-brand-700">
         <Plus className="size-[1.125rem]" /> Yeni
       </button>
-      {open && <QuickActionMenu items={items} onPick={() => setOpen(false)} className="absolute right-0 top-11 w-64" />}
+      {open && <QuickActionMenu items={items} mirror={mirror} onPick={() => setOpen(false)} className="absolute right-0 top-11 w-72" />}
     </div>
   )
 }
 
-function QuickActionMenu({ items, onPick, className }: { items: typeof quickActions; onPick: () => void; className?: string }) {
+/**
+ * "+ Yeni" listesi. Ayna açıkken kayıtlar pratikortam'dan gelir: liste yine görünür (alışkanlık bozulmasın),
+ * ama seçilen iş açılmaz, "pratikortam'a girin" denir. Ayna kapanınca aynı liste formu açar.
+ */
+function QuickActionMenu({ items, mirror, onPick, className }: { items: typeof quickActions; mirror: boolean; onPick: () => void; className?: string }) {
+  const [picked, setPicked] = useState<string | null>(null)
   return (
     <div role="menu" className={clsx('z-50 rounded-[4px] border border-line bg-white p-1 shadow-lg', className)}>
-      {items.map((a) => (
-        <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-2.5 rounded-[3px] px-2 py-1.5 hover:bg-surface-2" title={a.hint}>
+      {mirror && (
+        <div role="status" className={clsx('mb-1 rounded-[3px] px-2.5 py-2 text-[0.8125rem] leading-snug', picked ? 'bg-warn-soft text-warn' : 'bg-info-soft text-info')}>
+          {picked
+            ? <><b>{picked}</b>: ayna açıkken bu kaydı pratikortam'a girin. Bir sonraki senkronda buraya da gelir.</>
+            : <>Ayna açık: yeni kayıtları pratikortam'a girin. Panele geçince buradan açılır.</>}
+        </div>
+      )}
+      {items.map((a) => {
+        const inner = (<>
           <span className={clsx('flex size-7 shrink-0 items-center justify-center rounded-[3px]', a.tone)}><a.icon className="size-4" /></span>
           <span className="text-[0.875rem] text-fg">{a.label}</span>
-        </Link>
-      ))}
+        </>)
+        return mirror ? (
+          <button key={a.to} type="button" role="menuitem" onClick={() => setPicked(a.label)} title={a.hint}
+            className="flex w-full items-center gap-2.5 rounded-[3px] px-2 py-1.5 text-left opacity-60 hover:bg-surface-2">
+            {inner}
+          </button>
+        ) : (
+          <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-2.5 rounded-[3px] px-2 py-1.5 hover:bg-surface-2" title={a.hint}>
+            {inner}
+          </Link>
+        )
+      })}
     </div>
   )
+}
+
+/** Üst çubukta "Aa": yazı boyutu tek tıkla (Normal / Büyük / Çok büyük). Aynı ayar kullanıcı menüsünde de var. */
+function TextSizeButton() {
+  const [open, setOpen] = useState(false)
+  const ref = useClickOutside(() => setOpen(false))
+  return (
+    <div className="relative" ref={ref}>
+      <button className="flex min-h-9 items-center rounded-[3px] px-2 font-semibold text-slate-700 hover:bg-surface-2" onClick={() => setOpen((o) => !o)}
+        aria-label="Yazı boyutu" aria-expanded={open} title="Yazı boyutu">
+        <span className="text-[0.8125rem]">A</span><span className="text-[1.0625rem]">a</span>
+      </button>
+      {open && <div className="absolute right-0 top-11 z-50 w-72 rounded-[4px] border border-line bg-white px-4 py-3 shadow-lg"><TextSizePicker /></div>}
+    </div>
+  )
+}
+
+function TextSizePicker() {
+  const [textSize, setTextSize] = useTextSize()
+  return (<>
+    <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700"><Type className="size-4" /> Yazı boyutu</div>
+    <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Yazı boyutu">
+      {([['md', 'Normal', 'text-sm'], ['lg', 'Büyük', 'text-[0.9375rem]'], ['xl', 'Çok büyük', 'text-lg']] as const).map(([v, l, cls]) => (
+        <button key={v} role="radio" aria-checked={textSize === v} onClick={() => setTextSize(v)}
+          className={clsx('min-h-11 rounded-lg border px-1 font-medium leading-tight', cls,
+            textSize === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>
+          {l}
+        </button>
+      ))}
+    </div>
+  </>)
 }
 
 /** Telefonda altta sabit çubuk: en çok gidilen yerler ve ortada büyük "+ Yeni". */
@@ -214,18 +281,16 @@ function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) 
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={() => setOpen(false)} />}
-      {open && <QuickActionMenu items={items} onPick={() => setOpen(false)} className="fixed inset-x-3 bottom-24 z-50 max-h-[70vh] overflow-y-auto lg:hidden" />}
+      {open && <QuickActionMenu items={items} mirror={mirror} onPick={() => setOpen(false)} className="fixed inset-x-3 bottom-24 z-50 max-h-[70vh] overflow-y-auto lg:hidden" />}
       <nav aria-label="Alt kısayollar" className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {link('/', 'Ana Sayfa', Home, true)}
         {link('/seferler', 'Sevkiyat', Truck)}
-        {mirror ? link('/araclar', 'Araçlar', Building2) : (
-          <div className="flex flex-1 items-center justify-center">
-            <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
-              className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white ring-4 ring-white">
-              {open ? <X className="size-7" /> : <Plus className="size-8" />}
-            </button>
-          </div>
-        )}
+        <div className="flex flex-1 items-center justify-center">
+          <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
+            className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white ring-4 ring-white">
+            {open ? <X className="size-7" /> : <Plus className="size-8" />}
+          </button>
+        </div>
         {link(can('accounting') ? '/cari/musteriler' : '/musteriler', 'Cariler', Users)}
         <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium text-slate-600">
           <Menu className="size-6" />Menü
@@ -282,7 +347,6 @@ function AlertsBell() {
 function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogout: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
-  const [textSize, setTextSize] = useTextSize()
   return (
     <div className="relative" ref={ref}>
       <button className="flex items-center gap-2 rounded-[3px] px-2 py-1 hover:bg-surface-2" onClick={() => setOpen((o) => !o)} aria-label="Hesabım">
@@ -294,18 +358,7 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
       </button>
       {open && (
         <div className="absolute right-0 top-12 z-50 w-72 rounded-[4px] border border-line bg-white py-2 shadow-lg">
-          <div className="px-4 pb-2 pt-1">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700"><Type className="size-4" /> Yazı boyutu</div>
-            <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Yazı boyutu">
-              {([['md', 'Normal', 'text-sm'], ['lg', 'Büyük', 'text-[0.9375rem]'], ['xl', 'Çok büyük', 'text-lg']] as const).map(([v, l, cls]) => (
-                <button key={v} role="radio" aria-checked={textSize === v} onClick={() => setTextSize(v)}
-                  className={clsx('min-h-11 rounded-lg border px-1 font-medium leading-tight', cls,
-                    textSize === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
+          <div className="px-4 pb-2 pt-1"><TextSizePicker /></div>
           <div className="my-1 border-t border-slate-100" />
           <Link to="/ayarlar?tab=password" onClick={() => setOpen(false)} className="flex min-h-10 items-center gap-3 px-4 text-[0.9375rem] hover:bg-slate-50">
             <CreditCard className="size-5" /> Şifre Değiştir

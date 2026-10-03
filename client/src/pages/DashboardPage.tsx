@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileText, Route, Truck } from 'lucide-react'
@@ -8,7 +8,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { get } from '../api/client'
 import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { Badge, Button, Card, Figure, Figures, Loading, PlateBadge } from '../components/ui'
+import { Badge, Button, Card, Figure, Figures, Loading, MirrorContext, PlateBadge } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
 import { useAuth } from '../lib/auth'
 import { quickActions } from '../lib/quickActions'
@@ -266,21 +266,36 @@ function greeting() {
   return h < 5 ? 'İyi geceler' : h < 12 ? 'Günaydın' : h < 18 ? 'İyi günler' : 'İyi akşamlar'
 }
 
-/** Ana sayfanın üstündeki büyük kutular: en sık yapılan işler tek tıkla açılır (yetkiye göre). */
+/**
+ * Ana sayfanın üstündeki büyük kutular: en sık yapılan işler tek tıkla açılır (yetkiye göre).
+ * Ayna açıkken kutular yine görünür ama açılmaz: kayıt pratikortam'a girilir ("+ Yeni" menüsüyle aynı davranış).
+ */
 function QuickActions() {
   const { can } = useAuth()
+  const mirror = useContext(MirrorContext)
+  const [picked, setPicked] = useState<string | null>(null)
   const actions = quickActions.filter((a) => a.main && (!a.perm || can(a.perm)))
+  const box = 'group flex min-h-12 items-center gap-2.5 rounded-[4px] border border-line bg-white px-3 py-2 text-left transition hover:border-slate-300 hover:bg-surface-2'
   return (
-    <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
-      {actions.map((a) => (
-        <Link key={a.to} to={a.to}
-          className="group flex min-h-12 items-center gap-2.5 rounded-[4px] border border-line bg-white px-3 py-2 transition hover:border-slate-300 hover:bg-surface-2">
-          <span className={clsx('flex size-8 shrink-0 items-center justify-center rounded-[3px]', a.tone)}>
-            <a.icon className="size-4" />
-          </span>
-          <span className="text-[0.875rem] font-semibold leading-tight text-fg">{a.label}</span>
-        </Link>
-      ))}
-    </nav>
+    <div className="space-y-2">
+      <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+        {actions.map((a) => {
+          const inner = (<>
+            <span className={clsx('flex size-8 shrink-0 items-center justify-center rounded-[3px]', a.tone)}>
+              <a.icon className="size-4" />
+            </span>
+            <span className="text-[0.875rem] font-semibold leading-tight text-fg">{a.label}</span>
+          </>)
+          return mirror
+            ? <button key={a.to} type="button" onClick={() => setPicked(a.label)} title={a.hint} className={clsx(box, 'opacity-60')}>{inner}</button>
+            : <Link key={a.to} to={a.to} title={a.hint} className={box}>{inner}</Link>
+        })}
+      </nav>
+      {mirror && picked && (
+        <div role="status" className="rounded-[3px] bg-warn-soft px-3 py-2 text-[0.8125rem] text-warn">
+          <b>{picked}</b>: ayna açıkken bu kaydı pratikortam'a girin. Bir sonraki senkronda buraya da gelir.
+        </div>
+      )}
+    </div>
   )
 }

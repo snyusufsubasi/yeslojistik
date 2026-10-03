@@ -37,10 +37,11 @@ Otoyol tabelası gibi: az renk, net yazı, sıkı ve düzenli tablo.
 Panelde şu an karanlık tema yok, bu iş için de gerekmez.
 
 ## Yazı
-- **Overpass** (400, 600, 700, 800): bütün arayüz ve başlıklar. Tırnaklı (serif) başlık yazısı kalkar.
+- **Source Serif 4** (değişken kalınlık, optik boyut): bütün arayüz ve başlıklar. 3 Ekim'de kullanıcı seçti: "Claude'un cevap yazısı gibi olsun". Claude'un kendi yazı tipi başka sitede kullanılamadığı için en yakın ücretsiz benzeri seçildi.
 - **Overpass Mono** (400, 600): tutarlar, plakalar, sayılar, sayaçlar. Rakamlar eşit genişlikte olur, alt alta hizalanır.
-- Fontlar `@fontsource/overpass` ve `@fontsource/overpass-mono` paketlerinden gelir (Google Fonts bağlantısı kullanılmaz). Yedek yazı tipi: "Segoe UI", system-ui, sans-serif.
-- Taban boyut 14px civarı. Yazı boyutu ayarı (Normal / Büyük / Çok büyük) çalışmaya devam eder.
+- Fontlar `@fontsource-variable/source-serif-4` (opsz) ve `@fontsource/overpass-mono` paketlerinden gelir; Google Fonts bağlantısı yok. Yedek: Georgia, serif.
+- Tırnaklı yazı küçükte zor okunmasın diye taban 15px, tablo hücresi 14px.
+- Yazı boyutu ayarı (Normal / Büyük / Çok büyük): üst çubuktaki **Aa** düğmesi ve kullanıcı menüsü.
 
 ## Ölçüler
 - Köşe yarıçapı: kart 4px, düğme ve alan 3px, durum etiketi 2px.
@@ -56,7 +57,8 @@ Panelde şu an karanlık tema yok, bu iş için de gerekmez.
   - Seçili satır: side-active zemin, soldan 3px sarı çizgi, yazı kalın.
   - Sayaç rozeti: sarı zemin, koyu yeşil yazı, Overpass Mono.
   - En altta kullanıcı adı.
-- **Üst çubuk:** beyaz, ince alt çizgi, 13px yazı. İçinde tarih, "Yeni" düğmesi, bildirim zili (kırmızı sayaç), kullanıcı.
+- **Üst çubuk:** beyaz, ince alt çizgi, 13px yazı. İçinde tarih, "+ Yeni" düğmesi (kısayol N), Aa (yazı boyutu), bildirim zili (kırmızı sayaç), kullanıcı.
+  - "+ Yeni" ayna açıkken de görünür; seçilen iş açılmaz, "pratikortam'a girin" denir. Ana sayfadaki kutular da öyle.
 - **Düğme:**
   - Ana düğme: accent zemin, beyaz yazı.
   - İkincil düğme: beyaz zemin, ince çizgi.
