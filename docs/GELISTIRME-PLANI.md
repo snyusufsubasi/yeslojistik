@@ -152,7 +152,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 3 | Kalıcı eşleştirme anahtarı (eski kayıt no) | Tekrar aktarımda çift kayıt ve kaybolan kayıt olmasın | Cari, şoför, araç, fatura ve ödeme tablolarına eski no ve benzersiz indeks | M |
 | 4 | **Kaydet ve Yeni + Kopya sayısı + Formu açık tut** | Günde çok sefer giriyorsunuz, pratikortam'daki alışkanlık | `TripForm` alt düğmeleri, listede "Kopyala" | M |
 | 5 | Formlarda odak, Ctrl+Enter ile kaydet, kapatmadan önce uyarı, taslak | Yanlış tıklamayla 30 alanlık form kayboluyor. Metin: "Kaydedilmemiş değişiklikler var" | `ui.tsx` Modal + `TripForm` taslak | M |
-| 6 | Faturada seferin KDV ve tevkifatını kullan | Tevkifatlı sefer tevkifatsız faturalanabiliyor. Metin: "Seçilen seferlerin KDV oranları farklı. Ayrı fatura kesin." | `InvoiceService.CreateAsync` | M |
+| 6 | Faturada seferin KDV ve tevkifatını kullan | Tevkifatlı sefer tevkifatsız faturalanabiliyor. Metin: "Seçilen seferlerin KDV oranları farklı. Ayrı fatura kesin." | `InvoiceService.CreateAsync` | M — **kısmen (3 Ekim):** KDV seçili seferlerden gelir, tevkifat "Otomatik" (12.000 TL + VKN kuralı), %0'da istisna kodu 311. Farklı oranlı seferler için uyarı bekliyor |
 | 7 | Faturalı seferde kritik alanları kilitle | Faturası kesilmiş seferin taşeronu veya maliyeti değişince iki cari birden bozulur | `TripService.UpdateAsync` | S |
 | 8 | Aynı anda düzenleme koruması | Çift tıklama veya iki kullanıcı aynı seferi iki kez faturalayabiliyor | Sürüm alanı + uyarı: "Bu kayıt siz düzenlerken değiştirildi" | M |
 | 9 | Filtre toplamları (sayfa değil, filtrenin tamamı) | "Sayfa toplamı" ay sonu kontrolünde yanıltıyor | Fatura, gider, ödeme ve alış faturası toplam uçları + ortak toplam şeridi | M — **yapıldı (A4)** |
@@ -172,7 +172,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 |---|---|---|---|---|
 | 1 | Ayrıntılı kullanıcı yetkileri | Bugün her ofis kullanıcısı müşteri, gider ve belge silebiliyor, kârı görebiliyor | Yetki tablosu (Görüntüle / Ekle / Düzenle / Sil), "Kârı görebilir" yetkisi | L |
 | 2 | Dosyaları veritabanından harici depoya taşı | PDF ve fotoğraflar veritabanını ve yedekleri şişiriyor | S3 uyumlu depo (AB bölgesi) + "Depolama" göstergesi | M |
-| 3 | Kâr hesabını tek formüle indir, komisyonda KDV'yi doğru hesapla | Kâr, komisyonun KDV'si kadar fazla görünüyor. Formül 8 yerde tekrar ediyor | Ortak bir kâr ifadesi + testler. Etiket: "Kâr (KDV hariç)" | M — **tek formül yapıldı (A4, `TripProfit`)**; komisyon KDV düzeltmesi bekliyor |
+| 3 | Kâr hesabını tek formüle indir, komisyonda KDV'yi doğru hesapla | Kâr, komisyonun KDV'si kadar fazla görünüyor. Formül 8 yerde tekrar ediyor | Ortak bir kâr ifadesi + testler. Etiket: "Kâr (KDV hariç)" | M — **yapıldı (3 Ekim):** tek formül (`TripProfit`); komisyon, ek masraf ve giderler KDV hariç sayılıyor (`docs/KDV-KURALLARI.md`) |
 | 4 | Şoför primi, masraf ve bekleyen komisyon cariye işlensin | Kâr düşüyor ama borç ya da alacak görünmüyor | Şoför cari, borçlar, "Bekleyen komisyonlar" raporu | M |
 | 5 | Cari tutarlılık testleri | Tedarikçi hatası testlerle yakalanamadı | Ortak bir "tüm bakiyeler aynı mı" kontrolü | M |
 | 6 | Sıkı görünüm ve sabit tablo başlığı | Bir ekrana az satır sığıyor, başlık kayboluyor | `DataTable` + "Görünüm: Normal / Sıkı" | M |

@@ -68,7 +68,7 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [x] Cari ekstre: müşteri ve tedarikçi için, PDF ve Excel.
 - [x] Her listede "Excel'e aktar" ve filtrenin tamamının toplamı (yalnızca sayfanın değil).
   - Yapıldı: Sevkiyatlar'da "Sevkiyat PDF" ve "İcmal" (filtredeki seferler), Raporlar → "Kazanç" sekmesi (ay/müşteri/araç/şoför), ekstrede Excel, bütün ana listelerde Excel, fatura/gider/tahsilat/ödeme/alınan fatura/çek-senet listelerinde filtre toplamı şeridi.
-  - Kalan: komisyonun KDV'si kâr hesabında hâlâ brüt. Formül artık tek yerde (`TripProfit`); düzeltme kullanıcı onayıyla yapılacak.
+  - Yapıldı (3 Ekim): kâr KDV hariç. Komisyon, ek masraf ve giderlerin KDV'si düşülüyor. Kurallar: `KDV-KURALLARI.md`.
 
 ### A5 — Toplu işlemler (1 hafta)
 - [x] Listelerde çoklu seçim ve alt işlem çubuğu (Sevkiyatlar, tedarikçi kartı → Seferler, Faturalar, Tahsilatlar; telefonda da).
@@ -104,7 +104,7 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
    - Çözüm: `Backup:RestartAfterRestore=false` ayarı.
    - Yedek testleri geçti. Tam `dotnet test` çalıştırılıp ana dala alınacak.
 2. A2 başlar: "Otoyol" tasarımı önce ortak parçalara uygulanır (`index.css` renkleri, `ui.tsx`, `DataTable`, `Layout`). Sol menü grupları sabit açık. Sonra ekran ekran.
-3. Bekleyen kullanıcı kararları aşağıda (terimler, secret'lar, komisyon KDV'si, eksik sıralaması).
+3. Bekleyen kullanıcı kararları aşağıda (terimler, secret'lar, eksik sıralaması). Komisyon KDV'si yapıldı; KDV kurallarını mali müşavire teyit ettirin (`KDV-KURALLARI.md`).
 
 ## Kullanıcıdan gerekenler (özet)
 1. A0: GitHub secret'ları (4 + 3 yedek).
