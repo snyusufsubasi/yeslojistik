@@ -21,6 +21,28 @@
 
 **Bu turda yapılanlar (ajanlarla paralel):** iki adımlı doğrulama + veri indirme, lisans ve abonelik, müşteri kurulum otomasyonu, kurulum sihirbazı ve içe aktarma, hukuk taslakları + tanıtım sayfası, UETDS hazırlık kontrolü.
 
+## Durum (4 Ekim) — nerede kaldık
+
+**Yapıldı ve canlıda (GitHub `main`):**
+| İş | Nerede |
+|---|---|
+| İki adımlı doğrulama, hesap kilidi, ortak şifre reddi | Ayarlar → Güvenlik |
+| "Tüm verimi indir" (ZIP) ve hesap kapatma talebi | Ayarlar → Veri ve hesap |
+| İmzalı lisans, araç sınırı, deneme/abonelik süresi, salt okunur mod | Ayarlar → Abonelik, `docs/LISANS.md`, `tools/license/` |
+| Müşteri başına kurulum betikleri (yeni, güncelle, yedek, kontrol, geri yükle, kaldır) | `deploy/customer-*.sh`, `docs/MUSTERI-KURULUM.md`, `docs/PILOT-PAKETI.md` |
+| Kurulum sihirbazı, Excel/CSV aktarma (önizlemeli, hata raporlu), firma adı/logosu ayardan, boş ekran yönlendirmeleri | `/kurulum`, `/aktar` |
+| UETDS hazırlık kontrolü ("N eksik / Hazır"), sağlayıcıdan bağımsız e-Fatura altyapısı | Sevkiyat formu ve listesi, `docs/UETDS.md`, `docs/ENTEGRATOR-EKLEME.md` |
+| Hukuk taslakları (8 belge), tanıtım sitesi (`site/`), satış metinleri | `docs/hukuk/`, `site/`, `docs/TANITIM-ICERIK.md` |
+
+**Yapılmadı / dışarıdan bilgi bekliyor:**
+- UETDS'ye gerçek bildirim gönderme: Bakanlık yetki belgesi, kullanıcı adı/şifre, test ortamı ve entegrasyon dokümanı lazım.
+- e-Fatura panelden gönderme: entegratör seçimi, test hesabı, API dokümanı lazım.
+- GPS (Arvento/Mobiliz) bağlantısı: hesap ve API anahtarı lazım.
+- Hukuk belgelerinin avukat onayı; satıcı bilgileri (ünvan, VKN, adres), ürün adı, alan adı.
+- Kurulum betikleri gerçek bir sunucuda denenmedi (yalnız sahte docker ile test edildi): pilottan önce 1 deneme sunucusunda baştan sona denenmeli.
+- Abonelik ödeme alma (iyzico), müşteri portalı, teklif hazırlama, otomatik bildirimler.
+- Sevkiyat ekranındaki "sefer" yazısını "sevkiyat"a çevirme (terim tablosu onayı).
+
 ## 1. Özet (1 dakikalık okuma)
 
 1. **Pazar var ama kalabalık ve ucuz.** Türkiye'de onlarca nakliye programı var. Bir kısmı tek seferlik lisans (9.000-65.000 TL), bir kısmı aylık bulut aboneliği (aylık birkaç yüz TL'den başlıyor). Fiyatla yarışmak zor; **farkla** yarışmak lazım.

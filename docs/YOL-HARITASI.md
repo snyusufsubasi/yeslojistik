@@ -99,7 +99,7 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] Pratikortam salt okunur arşiv olarak kalır. Şifreler ortamlardan silinir.
 
 ## Satışa hazırlık
-Panel başka firmalara satılacak ürün olarak da düşünülüyor. Rakipler, eksikler, fiyat ve aşamalar: `docs/SATIS-PLANI.md`.
+Panel başka firmalara satılacak ürün olarak da düşünülüyor. Rakipler, eksikler, fiyat ve aşamalar: `docs/SATIS-PLANI.md` (başında 4 Ekim durumu var: lisans, 2FA, kurulum otomasyonu, sihirbaz, UETDS hazırlığı, hukuk taslakları yapıldı).
 
 ## Kaldığımız yer (3 Ekim, kullanım limiti yüzünden ara)
 1. `claude/wip-backup-test-fix` dalı: ara sıra düşen `BackupTests` için düzeltme var.
