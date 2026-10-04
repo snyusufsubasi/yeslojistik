@@ -228,6 +228,8 @@ export interface Driver {
   plate?: string | null
   rating?: DriverRating | null
   note?: string | null
+  /** Uyruk (yabancı şoförde). U-ETDS hazırlığı için. */
+  nationality?: string | null
 }
 
 /** Şoförle çalışma değerlendirmesi (eski paneldeki şoför durumu). */
@@ -281,6 +283,37 @@ export interface Trip {
   invoiceDate?: string | null
   /** Kaydı giren kullanıcı. */
   createdBy?: string | null
+  /** U-ETDS hazırlığı için ek bilgiler (ilçeler, yükleme saati, alıcı). */
+  uetds?: TripUetds | null
+  /** U-ETDS hazırlığı eksik madde sayısı (liste için; teslim edilmiş/iptal/eski sefer için yok). */
+  uetdsMissing?: number | null
+}
+
+export interface TripUetds {
+  loadingDistrict?: string | null
+  deliveryDistrict?: string | null
+  /** "08:30:00" */
+  loadingTime?: string | null
+  consigneeTitle?: string | null
+  consigneeTaxNumber?: string | null
+}
+
+export interface UetdsIssue {
+  code: string
+  target: 'Trip' | 'Driver' | 'Vehicle' | 'Customer'
+  targetId?: number | null
+  message: string
+  /** Sefer formundaki alan adı (target = Trip ise). */
+  field?: string | null
+  /** false: "kontrol edin" notu, seferi eksik saymaz. */
+  blocking: boolean
+}
+
+export interface UetdsReadiness {
+  tripId: number
+  ready: boolean
+  missingCount: number
+  issues: UetdsIssue[]
 }
 
 export type CommissionStatus = 'Pending' | 'Received' | 'DeductFromInvoice'

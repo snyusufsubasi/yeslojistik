@@ -36,8 +36,10 @@ Müşteri kartındaki **e-Fatura mükellefi** işareti hangisinin kullanılacağ
 ## Sözleşmeden sonra (yaklaşık 1 gün iş)
 
 1. Entegratörden test hesabı, **gönderici birim (GB) etiketi**, seri önekleri ve ilk numara bilgisi alınır. Ayarlara girilir.
-2. `server/YesLojistik.Infrastructure/EInvoice/` altına `IEInvoiceProvider`'ı uygulayan adaptör yazılır (`SendAsync`, `GetStatusAsync`, `CancelAsync`, `CheckRecipientAsync`). Örnek davranış için `MockEInvoiceProvider`'a bakın.
-3. `DependencyInjection.cs`'te sağlayıcı adıyla kaydedilir; sunucuda ortam değişkenleri: `EInvoice__Provider=<ad>`, `EInvoice__ApiKey=...` (+ sağlayıcıya özel). **Anahtarlar repoya veya veritabanına yazılmaz.**
+2. `server/YesLojistik.Infrastructure/EInvoice/` altına `IEInvoiceProvider`'ı uygulayan adaptör yazılır (`SendAsync`, `GetStatusAsync`, `CancelAsync`, `CheckRecipientAsync`, `DownloadAsync`). Örnek davranış için `MockEInvoiceProvider`'a bakın.
+3. `EInvoiceProviders.cs` kayıt tablosuna tek satırla eklenir; sunucuda ortam değişkenleri: `EInvoice__Provider=<ad>`, `EInvoice__ApiKey=...` (+ sağlayıcıya özel). **Anahtarlar repoya veya veritabanına yazılmaz.**
+
+Ayrıntılı kontrol listesi, test planı ve karşılaştırma tablosu: [ENTEGRATOR-EKLEME.md](ENTEGRATOR-EKLEME.md).
 4. Test ortamında 5 senaryo denenir: e-Arşiv bireysel (TCKN), e-Arşiv firma, Temel, Ticari (kabul ve ret), tevkifatlı Temel. XML'ler entegratörün doğrulamasından geçmeli.
 5. Canlı hesaba geçilir. Gönderilen faturaların durumu 10 dakikada bir otomatik güncellenir.
 
@@ -45,5 +47,5 @@ Müşteri kartındaki **e-Fatura mükellefi** işareti hangisinin kullanılacağ
 
 | Değişken | Açıklama |
 |---|---|
-| `EInvoice__Provider` | `FileExport` (varsayılan, XML elle), `Mock` (yalnızca test), ya da entegratör adaptörü |
+| `EInvoice__Provider` | `manual` (varsayılan; eski adı `FileExport`, XML elle yüklenir), `mock` (yalnızca test), ya da entegratör adaptörü. Tanınmayan ad `manual` sayılır ve uyarı yazılır |
 | `EInvoice__ApiKey` | Entegratör anahtarı (ayarlar ekranında yalnızca "tanımlı mı" görünür) |

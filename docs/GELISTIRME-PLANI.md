@@ -185,6 +185,8 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 11 | Görsel tutarlılık | Para hep 2 kuruş basamağıyla gösterilsin, tek tip etiket bileşeni olsun, yazım tek tip olsun ("Güzergâh") | Ortak bileşenler | S |
 | 12 | Ödeme kurallarını servise taşı | Aktarım ve elle girişin aynı kurallardan geçmesi için | Ödeme ve tedarikçi ödemesi servisleri | M |
 | 13 | Panel performansı | Geçmiş aktarılınca ana sayfa ve cari ekranları yavaşlar | Toplamlar veritabanında hesaplanır, kısa süreli önbellek | M |
+| 14 | U-ETDS (karayolu eşya bildirimi) | Rakiplerin çoğunda var, bizde yok; yasal zorunluluk | **Hazırlık yapıldı (4 Ekim):** "U-ETDS hazırlığı" kontrolü (sefer paneli, liste süzgeci), şoför/sefer ek alanları, `docs/UETDS.md`. **Gönderim bekliyor:** yetki belgesi, kullanıcı adı/şifre, test ortamı ve Bakanlık teknik dokümanı gerekli | M (doküman gelince) |
+| 15 | e-Fatura entegratörü | Fatura panelden gönderilemiyor, XML elle yükleniyor | **Altyapı yapıldı (4 Ekim):** `IEInvoiceProvider` + `ManualXmlProvider` + `EInvoice__Provider` kayıt tablosu, `docs/ENTEGRATOR-EKLEME.md`. **Bekliyor:** entegratör seçimi, test hesabı ve API dokümanı | M |
 
 ---
 

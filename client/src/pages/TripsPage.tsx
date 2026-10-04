@@ -20,11 +20,22 @@ import { addDaysIso, date, monthEndIso, monthStartIso, tl, todayIso } from '../l
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { commissionStatusLabel, options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 import { emptyTerms } from '../lib/tripTerms'
+import { UETDS_READINESS } from '../lib/features'
 import { useToast } from '../components/Toast'
 import { PlateBadge } from '../components/ui'
 import { SumStrip, type SumItem } from '../components/SumStrip'
 
 const api = crud<Trip, unknown>('trips')
+
+/** Listede küçük "U-ETDS hazır / N eksik" işareti (yalnızca henüz teslim edilmemiş seferlerde gelir). */
+function UetdsBadge({ missing }: { missing?: number | null }) {
+  if (missing == null) return null
+  return (
+    <span className="mt-0.5 block" title="U-ETDS bildirimi için bilgiler tam mı? (Hazırlık kontrolü; hiçbir şey gönderilmez.)">
+      {missing === 0 ? <Badge tone="green">UETDS hazır</Badge> : <Badge tone="yellow">UETDS {missing} eksik</Badge>}
+    </span>
+  )
+}
 
 export default function TripsPage() {
   const { can } = useAuth()
@@ -53,7 +64,9 @@ export default function TripsPage() {
   const [tripNo, setTripNo] = useState(textParam('tripNo'))
   const [docNo, setDocNo] = useState(textParam('docNo'))
   const [invoiceNo, setInvoiceNo] = useState(textParam('invoiceNo'))
-  const advancedCount = [preset, group, commission, documentState, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo].filter(Boolean).length
+  // U-ETDS hazırlığı eksik olanlar (yalnızca hazırlık kontrolü; Bakanlığa bir şey gönderilmez).
+  const [uetdsMissing, setUetdsMissing] = useState<'missing' | ''>(UETDS_READINESS && params.get('uetds') === 'missing' ? 'missing' : '')
+  const advancedCount = [preset, group, commission, documentState, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo, uetdsMissing].filter(Boolean).length
   // Seyrek kullanılan süzgeçler "Ayrıntılı süzgeç" altında; adreste dolu bir tanesi varsa açık gelir.
   const [showMore, setShowMore] = useState(advancedCount > 0)
   const toast = useToast()
@@ -83,14 +96,14 @@ export default function TripsPage() {
     commissionStatus: preset === 'commission' ? 'Pending' : undefined,
     carrierSupplierId: supplierId, vehicleId, ownership, hasCommission: yesNo(commission), hasDeliveryDocument: yesNo(documentState),
     loadingPlace: dLoading || undefined, deliveryPlace: dDelivery || undefined, tripNo: dTripNo || undefined,
-    deliveryDocumentNo: dDocNo || undefined, invoiceNo: dInvoiceNo || undefined }
+    deliveryDocumentNo: dDocNo || undefined, invoiceNo: dInvoiceNo || undefined, uetdsMissing: uetdsMissing === 'missing' || undefined }
   const [page, setPage] = usePage([filters])
   // Seçim sayfalar arasında korunur, filtre değişince boşalır.
   const selection = useRowSelection<Trip>((t) => t.id, [filters])
 
   // Süzgeçleri adrese yaz (yalnızca değişince; diğer parametrelere dokunmadan).
   const urlState = JSON.stringify({ q: debounced, status, customerId, from, to, invoiced, list: preset, group: debouncedGroup, supplierId, vehicleId,
-    ownership, commission, document: documentState, loading: dLoading, delivery: dDelivery, tripNo: dTripNo, docNo: dDocNo, invoiceNo: dInvoiceNo })
+    ownership, commission, document: documentState, loading: dLoading, delivery: dDelivery, tripNo: dTripNo, docNo: dDocNo, invoiceNo: dInvoiceNo, uetds: uetdsMissing })
   useEffect(() => {
     const next = new URLSearchParams(params)
     next.delete('carrierInvoice')
@@ -103,7 +116,7 @@ export default function TripsPage() {
   const clearFilters = () => {
     setSearch(''); setStatus(''); setCustomerId(''); setFrom(''); setTo(''); setInvoiced(''); setPreset(''); setGroup('')
     setSupplierId(''); setVehicleId(''); setOwnership(''); setCommission(''); setDocumentState('')
-    setLoadingPlace(''); setDeliveryPlace(''); setTripNo(''); setDocNo(''); setInvoiceNo('')
+    setLoadingPlace(''); setDeliveryPlace(''); setTripNo(''); setDocNo(''); setInvoiceNo(''); setUetdsMissing('')
   }
   const anyFilter = !!(search || status || customerId || from || to || invoiced || supplierId || vehicleId || ownership) || advancedCount > 0
   const bulkResult = useBulkResult()
@@ -204,7 +217,7 @@ export default function TripsPage() {
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><PlateBadge plate={t.vehiclePlate} />{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
     ...(detail ? detailColumns : []),
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{!detail && <InvoiceInfo t={t} />}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}</> },
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{!detail && <InvoiceInfo t={t} />}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}{UETDS_READINESS && <UetdsBadge missing={t.uetdsMissing} />}</> },
     { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-bad' : 'text-good'}`}><Word>Kâr </Word>{tl(t.profit)}</span>
       {!detail && t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500"><Word>Kom. </Word>{tl(t.terms.commission)}<Word> · {commissionStatusLabel[t.terms.commissionStatus]}</Word></span>}</> },
     ...(detail ? detailMoneyColumns : []),
@@ -310,6 +323,8 @@ export default function TripsPage() {
           <input className="input" aria-label="Sevkiyat no" placeholder="Sevkiyat no" value={tripNo} onChange={(e) => setTripNo(e.target.value)} />
           <input className="input" aria-label="Teslim evrak no" placeholder="Teslim evrak no" value={docNo} onChange={(e) => setDocNo(e.target.value)} />
           <input className="input" aria-label="Fatura no" placeholder="Fatura no (satış ya da taşeron)" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
+          {UETDS_READINESS && <Select aria-label="U-ETDS hazırlığı" value={uetdsMissing} onChange={setUetdsMissing} placeholder="U-ETDS: tüm seferler"
+            options={[{ value: 'missing' as const, label: 'U-ETDS eksik olanlar' }]} />}
         </div>}
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
           onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}

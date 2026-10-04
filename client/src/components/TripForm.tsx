@@ -30,6 +30,9 @@ import { useAuth } from '../lib/auth'
 import { AmountInput, DateQuick, MoreFields, Section } from './Inputs'
 import { CommissionFields, DocumentFields, LocationFields, MarginSummary, VatFields } from './TripTermsFields'
 import { emptyTerms, termsSchema, termsToApi, termsToForm, type TermsForm } from '../lib/tripTerms'
+import { emptyUetds, uetdsApplies, uetdsFieldPath, uetdsSchema, uetdsToApi, uetdsToForm, type UetdsForm } from '../lib/tripUetds'
+import { UETDS_READINESS } from '../lib/features'
+import { UetdsFields, UetdsPanel } from './UetdsPanel'
 import { vehicleOwnershipIcon } from '../lib/icons'
 
 const cargoUnits = ['palet', 'koli', 'adet', 'ton', 'kg', 'm³']
@@ -71,6 +74,7 @@ const schema = z.object({
   carrierInvoiceDate: optStr,
   jobRequestId: z.number().nullable().optional(),
   terms: termsSchema,
+  uetds: uetdsSchema,
 }).refine((v) => !v.deliveryDate || v.deliveryDate >= v.loadingDate, {
   path: ['deliveryDate'], message: 'Teslim tarihi yükleme tarihinden önce olamaz.',
 })
@@ -116,7 +120,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const [newSupplier, setNewSupplier] = useState<string | null>(null)
   const [newVehicle, setNewVehicle] = useState<string | null>(null)
 
-  const { register, handleSubmit, control, getValues, setValue, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, getValues, setValue, setError, setFocus, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: trip ? {
       customerId: trip.customerId, vehicleId: trip.vehicleId, driverId: trip.driverId,
@@ -129,7 +133,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       deliveryContact: trip.deliveryContact ?? '', carrierSupplierId: trip.carrierSupplierId ?? null,
       carrierInvoiceNo: trip.carrierInvoiceNo ?? '', carrierInvoiceDate: trip.carrierInvoiceDate ?? '',
       jobRequestId: trip.jobRequestId ?? null,
-      terms: termsToForm(trip.terms),
+      terms: termsToForm(trip.terms), uetds: uetdsToForm(trip.uetds),
     } : copyOf ? {
       customerId: copyOf.customerId, vehicleId: copyOf.vehicleId, driverId: copyOf.driverId,
       loadingAddress: copyOf.loadingAddress, deliveryAddress: copyOf.deliveryAddress,
@@ -141,13 +145,13 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       deliveryContact: copyOf.deliveryContact ?? '', carrierSupplierId: copyOf.carrierSupplierId ?? null,
       carrierInvoiceNo: '', carrierInvoiceDate: '',
       jobRequestId: null,
-      terms: termsToForm(copyOf.terms, false),
-    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, terms: { ...emptyTerms }, ...defaults },
+      terms: termsToForm(copyOf.terms, false), uetds: { ...uetdsToForm(copyOf.uetds), loadingTime: '' },
+    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds }, ...defaults },
   })
 
   const save = useSave((v: FormValues) => {
-    const { terms, ...rest } = v
-    const body = { ...nullify(rest), terms: termsToApi(terms) } as unknown as FormValues
+    const { terms, uetds, ...rest } = v
+    const body = { ...nullify(rest), terms: termsToApi(terms), uetds: uetdsToApi(uetds) } as unknown as FormValues
     return trip ? api.update(trip.id, body) : api.create(body)
   }, {
     invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
@@ -253,10 +257,12 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const detailsOpen = !!trip || !!(initial.customerReference || initial.cargoType || initial.cargoQuantity || initial.cargoWeightKg || initial.trailerPlate
     || initial.loadingContact || initial.deliveryContact || initial.description || initial.terms?.customerGroup || initial.terms?.paymentTerms || initial.terms?.invoiceFooterNote)
   const termErrors = (errors.terms ?? {}) as Record<string, unknown>
+  // "U-ETDS hazırlığı" panelindeki "Alana git": ilgili alana odaklanır (alan kayıtlı değilse sessizce geçer).
+  const focusUetdsField = (field: string) => { try { setFocus(uetdsFieldPath(field) as never) } catch { /* özel seçim kutusu */ } }
   const termHasError = (keys: readonly string[]) => keys.some((k) => !!termErrors[k])
   const commissionError = termHasError(commissionTermKeys)
   const detailsError = !!(errors.customerReference || errors.trailerPlate || errors.cargoType || errors.cargoQuantity || errors.cargoUnit || errors.cargoWeightKg
-    || errors.loadingContact || errors.deliveryContact || errors.description || errors.carrierInvoiceNo || errors.carrierInvoiceDate) || termHasError(detailTermKeys)
+    || errors.loadingContact || errors.deliveryContact || errors.description || errors.carrierInvoiceNo || errors.carrierInvoiceDate || errors.uetds) || termHasError(detailTermKeys)
   const showCarrier = rented || !!trip?.carrierSupplierId
 
   return (
@@ -306,6 +312,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           ))}
         </div>
       )}
+      {UETDS_READINESS && trip && uetdsApplies(trip) && <UetdsPanel tripId={trip.id} onFixTrip={focusUetdsField} />}
       {trip?.isLegacy && (
         <p className="mb-3 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
           Bu sefer eski sistemden aktarıldı. Geçmiş için gösterilir; tutarları devir bakiyesinde olduğundan borç ve fatura hesaplarına girmez.
@@ -497,6 +504,11 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               </Field>
             </div>
           </SubGroup>
+          {UETDS_READINESS && (
+            <SubGroup title="U-ETDS hazırlığı" hint="Bildirim için gereken ek bilgiler. Hiçbir yere gönderilmez.">
+              <UetdsFields register={register as unknown as UseFormRegister<{ uetds: UetdsForm }>} errors={(errors.uetds ?? {}) as FieldErrors<UetdsForm>} />
+            </SubGroup>
+          )}
           <SubGroup title="Konum">
             <LocationFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
           </SubGroup>

@@ -24,7 +24,7 @@ import { driverRatingLabel, driverRatingTone, options } from '../lib/labels'
 const schema = z.object({
   fullName: req('Ad soyad zorunlu.'),
   phone: optStr,
-  nationalId: z.string().trim().regex(/^(\d{11})?$/, 'TC kimlik no 11 hane olmalı.'),
+  nationalId: z.string().trim().max(20, 'En fazla 20 karakter.'),
   licenseClass: optStr,
   licenseExpiry: optStr,
   srcExpiry: optStr,
@@ -35,9 +35,15 @@ const schema = z.object({
   birthYear: z.number().int().min(1930, 'Geçerli bir yıl girin.').max(2015, 'Geçerli bir yıl girin.').nullable().or(z.nan().transform(() => null)),
   address: optStr,
   isForeign: z.boolean(),
+  nationality: optStr,
   plate: optStr,
   rating: z.string().nullable().optional(),
   note: optStr,
+}).superRefine((v, ctx) => {
+  // Türk şoförde TCKN (11 hane), yabancı şoförde pasaport / kimlik no (5-20 harf-rakam).
+  if (!v.nationalId) return
+  const ok = v.isForeign ? /^[A-Za-z0-9]{5,20}$/.test(v.nationalId) : /^\d{11}$/.test(v.nationalId)
+  if (!ok) ctx.addIssue({ code: 'custom', path: ['nationalId'], message: v.isForeign ? 'Pasaport / kimlik no 5-20 harf veya rakam olmalı.' : 'TC kimlik no 11 hane olmalı.' })
 })
 type FormValues = z.infer<typeof schema>
 const api = crud<Driver, FormValues>('drivers')
@@ -128,7 +134,7 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
       fullName: driver?.fullName ?? '', phone: driver?.phone ?? '', nationalId: driver?.nationalId ?? '',
       licenseClass: driver?.licenseClass ?? '', licenseExpiry: driver?.licenseExpiry ?? '', srcExpiry: driver?.srcExpiry ?? '',
       psychotechnicExpiry: driver?.psychotechnicExpiry ?? '', isActive: driver?.isActive ?? true, supplierId: driver?.supplierId ?? null,
-      licenseNo: driver?.licenseNo ?? '', birthYear: driver?.birthYear ?? null, address: driver?.address ?? '', isForeign: driver?.isForeign ?? false,
+      licenseNo: driver?.licenseNo ?? '', birthYear: driver?.birthYear ?? null, address: driver?.address ?? '', isForeign: driver?.isForeign ?? false, nationality: driver?.nationality ?? '',
       plate: driver?.plate ?? '', rating: driver?.rating ?? null, note: driver?.note ?? '',
     },
   })
@@ -142,6 +148,7 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
     save.mutate(v)
   })
   const licenseClass = useWatch({ control, name: 'licenseClass' })
+  const isForeign = useWatch({ control, name: 'isForeign' })
   return (
     <Modal open onClose={onClose} title={driver ? driver.fullName : 'Yeni Şoför'} size={tab === 'info' ? 'md' : 'lg'}
       footer={tab === 'info' && editable ? <><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>
@@ -180,9 +187,15 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
             <Field label="Psikoteknik Bitiş"><DateQuick control={control} name="psychotechnicExpiry" quick="expiry" years={[5]} disabled={!editable} /></Field>
           </div>
         </Section>
-        <MoreFields title="TC kimlik no ve durum (isteğe bağlı)" defaultOpen={!!driver} hasError={!!errors.nationalId}>
+        <MoreFields title="TC kimlik no, uyruk ve durum (isteğe bağlı)" defaultOpen={!!driver} hasError={!!(errors.nationalId || errors.nationality)}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="TC Kimlik No" error={errors.nationalId?.message}><input className="input" inputMode="numeric" maxLength={11} {...register('nationalId')} /></Field>
+            <Field label={isForeign ? 'Pasaport / Kimlik No' : 'TC Kimlik No'} error={errors.nationalId?.message} hint="U-ETDS bildirimi için gerekir.">
+              <input className="input" inputMode={isForeign ? 'text' : 'numeric'} maxLength={isForeign ? 20 : 11} {...register('nationalId')} />
+            </Field>
+            <div className="space-y-2">
+              <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('isForeign')} /> Yabancı uyruklu</label>
+              {isForeign && <Field label="Uyruk" error={errors.nationality?.message} hint="Ör. Gürcistan, Azerbaycan."><input className="input" {...register('nationality')} /></Field>}
+            </div>
             <Field group label="Durum" hint="Pasif şoförler yeni seferde listelenmez.">
               <ControlledToggle control={control} name="isActive" label="Şoför durumu" labels={['Aktif', 'Pasif']} disabled={!editable} />
             </Field>
@@ -202,7 +215,6 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
             <Field label="Doğum Yılı" error={errors.birthYear?.message}><input className="input" type="number" min="1930" max="2015" {...register('birthYear', { valueAsNumber: true })} /></Field>
             <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" {...register('address')} /></Field>
             <Field className="sm:col-span-2" label="Not" error={errors.note?.message}><textarea className="input min-h-16" {...register('note')} /></Field>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('isForeign')} /> Yabancı uyruklu</label>
           </div>
         </MoreFields>
         </fieldset>

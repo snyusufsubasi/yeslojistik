@@ -150,6 +150,6 @@ kurulu uygulamalar açılışta kendiliğinden yeni adrese geçer.
 
 ## 7. e-Fatura entegrasyonu
 
-`YesLojistik.Core/Abstractions/IEInvoiceProvider.cs` arayüzü hazır. Seçilecek özel entegratörün (Paraşüt, Uyumsoft,
-Logo vb.) API'si için bu arayüzü uygulayan bir sınıf yazılıp `DependencyInjection.cs` içinde
-`NullEInvoiceProvider` yerine kaydedilmesi yeterli; fatura kesme/iptal akışları onu otomatik çağırır.
+`YesLojistik.Core/Abstractions/IEInvoiceProvider.cs` arayüzü hazır; varsayılan sağlayıcı `manual` (XML indirilip portala elle yüklenir).
+Seçilecek özel entegratörün API'si için bu arayüzü uygulayan bir sınıf yazılıp `EInvoiceProviders.cs` kayıt tablosuna eklenir ve
+`EInvoice__Provider=<ad>` ile seçilir; fatura kesme/iptal akışları onu otomatik çağırır. Adımlar: `docs/ENTEGRATOR-EKLEME.md`.
