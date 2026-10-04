@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ClipboardCopy, Columns3, Download, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, Rows3, SlidersHorizontal, StepForward, TableProperties, Truck, X } from 'lucide-react'
 import { download, errorMessage, get, post } from '../api/client'
 import { ExportButton, PdfButton } from '../components/Exports'
-import type { BulkResult, Driver, JobRequest, Trip, TripStatus, TripTotals, VehicleOwnership } from '../api/types'
+import type { BulkResult, Dashboard, Driver, JobRequest, Trip, TripStatus, TripTotals, VehicleOwnership } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
@@ -12,6 +12,7 @@ import { useBulkResult } from '../lib/useBulkResult'
 import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
+import { FirstUse } from '../components/FirstUse'
 import { TripForm } from '../components/TripForm'
 import { TripBoard } from '../components/TripBoard'
 import clsx from 'clsx'
@@ -118,6 +119,9 @@ export default function TripsPage() {
     setSupplierId(''); setVehicleId(''); setOwnership(''); setCommission(''); setDocumentState('')
     setLoadingPlace(''); setDeliveryPlace(''); setTripNo(''); setDocNo(''); setInvoiceNo(''); setUetdsMissing('')
   }
+  // Gerçekten hiç sefer yoksa (yalnız süzgeç/sekme yüzünden boş değilse) ilk adım kartı gösterilir.
+  const dash = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), staleTime: 30_000 })
+  const noTripsAtAll = dash.data?.setup.tripCount === 0
   const anyFilter = !!(search || status || customerId || from || to || invoiced || supplierId || vehicleId || ownership) || advancedCount > 0
   const bulkResult = useBulkResult()
   const [advancing, setAdvancing] = useState<Trip[] | null>(null)
@@ -335,7 +339,10 @@ export default function TripsPage() {
           selectable selection={selection} bulkActions={bulkActions} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}, ${t.customerTitle}`}
           empty={anyFilter
             ? 'Bu filtrelere uyan sefer yok. Filtreleri temizlemeyi deneyin.'
-            : 'Henüz sefer yok. Sağ üstteki “Yeni Sefer” ile ilk seferi ekleyin.'}
+            : !noTripsAtAll ? 'Bu görünümde sefer yok.' : (
+              <FirstUse title="İlk sevkiyatınızı ekleyin" addLabel="Yeni sefer" onAdd={can('operations') ? () => setEditing('new') : undefined}>
+                Müşteri, araç ve şoförünüzü seçip ilk seferi oluşturun. Sefer teslim edilince tek tıkla faturalanır. Henüz müşteri ya da araç eklemediyseniz önce onları ekleyin.
+              </FirstUse>)}
           mobileCard={(t) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">

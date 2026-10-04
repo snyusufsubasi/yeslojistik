@@ -13,6 +13,7 @@ import { useToast } from '../components/Toast'
 import { Badge, Button, Card, ConfirmDialog, Loading, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
+import { FirstUse } from '../components/FirstUse'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
@@ -112,7 +113,10 @@ export default function InvoicesPage() {
           </>}
           empty={debounced || status || customerId || unpaid || from || to || debouncedTripNo
             ? 'Bu filtrelere uyan fatura yok.'
-            : 'Henüz fatura yok. Seferler teslim edilince “Yeni Fatura” ile faturalayın.'}
+            : (
+              <FirstUse title="Henüz fatura kesilmedi" addLabel="Yeni fatura" onAdd={can('accounting') ? () => navigate('/faturalar/yeni') : undefined}>
+                Teslim edilen seferleri “Yeni Fatura” ile faturalayın. Eski programda kestiğiniz faturalar için “Excel'den Aktar” düğmesini kullanın.
+              </FirstUse>)}
           mobileCard={(i) => (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">

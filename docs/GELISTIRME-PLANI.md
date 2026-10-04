@@ -276,3 +276,12 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 54 | Money formatting tl vs tl2; pill/copy inconsistencies; low-contrast muted text; theme-color | low | `lib/format.ts`, various |
 | 55 | Mobile filter block height; 8 lists without mobileCard | low | `TripsPage.tsx` + 8 pages |
 | 56 | Lint: exported const from component file | low | `InvoicesPage.tsx` L177 |
+
+## İlk kurulum ve genel içe aktarma (4 Ekim)
+**Yapıldı:**
+- **Kurulum sihirbazı** `/kurulum` (yalnız yönetici): firma bilgileri + logo, fatura/KDV varsayılanları, veri aktarma, ilk kullanıcılar, "Örnek veri ile dene / Boş başla". Adımlar atlanabilir; tamamlanma veriden anlaşılır. Ana sayfada, firma VKN ve adresi girilene kadar büyük kart olarak görünür ("Şimdilik gizle" tarayıcıda hatırlanır).
+- **Veri Aktarımı** `/aktar` (menü: Listeler): müşteri, tedarikçi, araç, şoför (devir bakiyeleri dahil). Şablon (2 örnek satır + açıklama sayfası), .xlsx veya .csv (UTF-8 / Windows-1254, `;` `,` sekme), satır satır önizleme (hazır / uyarı / hatalı / tekrar), yalnız geçerli satırları aktarma, CSV hata raporu. En çok 5.000 satır ve 5 MB. Başka programların sütun adları (Vergi No, Tel, Firma Adı...) ve ASCII yazım (Unvan) de okunur; Excel'in sildiği baştaki sıfır (9 haneli VKN) geri konur.
+- **Beyaz etiket:** firma adı ve logo ayardan gelir: sol menü, giriş, takip ve gizlilik sayfaları, sekme başlığı. Ad "YES Lojistik" kaldıysa eski sarı "YES" kutusu korunur.
+- **Boş durumlar:** Müşteriler, Araçlar, Sevkiyatlar, Faturalar tamamen boşken "İlk ... ekleyin" kartı + "Excel'den aktarın"; ayna açıkken düğmeler gizli.
+
+**Sırada:** sefer, fatura, tahsilat ve gider aktarımı da önizlemeli/kısmi sihirbaza alınabilir (şimdilik eski pencere: hatalı satır varsa hiçbiri aktarılmaz). Pratikortam'dan geçiş sihirbazı ayrı iş.

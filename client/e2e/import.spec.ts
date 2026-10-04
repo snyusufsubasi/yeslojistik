@@ -12,10 +12,10 @@ test('Excel şablonu indir → yükle → kontrol et', async ({ page }) => {
   const path = await (await dl).path()
   expect(fs.statSync(path).size).toBeGreaterThan(1000)
 
-  // Şablondaki örnek satır (Mehmet Yılmaz) zaten kayıtlı → atlanacak
+  // Şablondaki iki örnek satır (Mehmet Yılmaz, Ahmet Çelik) örnek veride zaten kayıtlı → atlanacak
   await dialog.getByLabel('Excel dosyası').setInputFiles(path)
   await dialog.getByRole('button', { name: 'Kontrol Et' }).click()
-  await expect(dialog.getByText(/1 satır kontrol edildi: 0 yeni kayıt/)).toBeVisible()
+  await expect(dialog.getByText(/2 satır kontrol edildi: 0 yeni kayıt/)).toBeVisible()
   await expect(dialog.getByText(/Mehmet Yılmaz zaten kayıtlı/)).toBeVisible()
 })
 

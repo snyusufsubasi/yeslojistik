@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileText, Route, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileText, Rocket, Route, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
@@ -10,6 +10,7 @@ import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/
 import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Figure, Figures, Loading, MirrorContext, PlateBadge } from '../components/ui'
 import { usePageTitle } from '../lib/usePageTitle'
+import { readOnboarding, writeOnboarding } from '../lib/onboarding'
 import { useAuth } from '../lib/auth'
 import { quickActions } from '../lib/quickActions'
 import { chart as palette, chartTick } from '../lib/chart'
@@ -62,7 +63,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <SetupCard setup={data.setup} />
+      {can('admin') && !data.setup.companyInfo && !readOnboarding().cardHidden && !readOnboarding().finished
+        ? <OnboardingCard />
+        : <SetupCard setup={data.setup} />}
 
       {/* Ana sayfa rakamları: 4 sütun, arası çizgi; bekleyen tahsilat sarı (bill-soft) vurgulu */}
       <Figures label="Bu ayın rakamları" className="sm:grid-cols-2 xl:grid-cols-4">
@@ -189,6 +192,26 @@ function TrendChart({ rows }: { rows: Dashboard['trend'] }) {
         </ResponsiveContainer>
       </div>
     </div>
+  )
+}
+
+/** Yeni kurulumda (firma VKN ve adresi henüz girilmemişken) ana sayfanın en üstünde: kurulum sihirbazına çağrı. */
+function OnboardingCard() {
+  const [hidden, setHidden] = useState(false)
+  if (hidden) return null
+  return (
+    <section aria-label="Kuruluma başlayın" className="rounded-[4px] border-2 border-accent bg-accent-soft p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0 max-w-2xl">
+          <h2 className="flex items-center gap-2 text-[1.125rem] font-extrabold text-fg"><Rocket className="size-5 text-accent" /> Kuruluma başlayın</h2>
+          <p className="mt-1 text-[0.9375rem] text-fg">Firma bilgilerinizi girin, müşteri ve araç listelerinizi Excel'den aktarın, çalışanlarınızı ekleyin. Yaklaşık 10 dakika sürer; istediğiniz adımı atlayabilirsiniz.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/kurulum" className="inline-flex min-h-10 items-center rounded-[3px] bg-accent px-4 text-[0.9375rem] font-semibold text-white hover:opacity-90">Kurulum sihirbazını aç</Link>
+          <Button variant="ghost" onClick={() => { writeOnboarding({ cardHidden: true }); setHidden(true) }}>Şimdilik gizle</Button>
+        </div>
+      </div>
+    </section>
   )
 }
 

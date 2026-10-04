@@ -5,6 +5,7 @@ import { Plus, Users } from 'lucide-react'
 import type { Customer } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
 import { ImportButton } from '../components/ImportDialog'
+import { FirstUse } from '../components/FirstUse'
 import { ExportButton } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Button, Card, PageHeader } from '../components/ui'
@@ -53,7 +54,10 @@ export default function CustomersPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(c) => c.id}
           onRowClick={(c) => navigate(`/musteriler/${c.id}`)}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz müşteri yok. “Yeni Müşteri” ile ekleyin ya da listenizi “Excel'den Aktar” ile yükleyin."}
+          page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : (
+            <FirstUse title="İlk müşterinizi ekleyin" addLabel="Yeni müşteri" onAdd={() => setCreating(true)} importEntity="customers">
+              Sevkiyat ve fatura için önce müşteri kartı gerekir. Tek tek ekleyin ya da elinizdeki listeyi Excel'den aktarın.
+            </FirstUse>)}
           mobileCard={(c) => (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">

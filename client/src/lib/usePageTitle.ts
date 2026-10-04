@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
+import { useBranding } from './branding'
 
-/** Tarayıcı sekmesinde sayfa adını gösterir. */
+/** Tarayıcı sekmesinde sayfa adını gösterir (ürün adı: ayardaki firma adı, değişmediyse "YES Lojistik"). */
 export function usePageTitle(title: string) {
+  const { name } = useBranding()
   useEffect(() => {
-    document.title = `${title} · YES Lojistik`
-    return () => { document.title = 'YES Lojistik – Nakliye Takip Sistemi' }
-  }, [title])
+    document.title = `${title} · ${name}`
+    return () => { document.title = `${name} – Nakliye Takip Sistemi` }
+  }, [title, name])
 }

@@ -11,7 +11,13 @@ namespace YesLojistik.Infrastructure.Services;
 
 public record ImportRowError(int Row, string Message);
 
-public record ImportResult(int TotalRows, int Created, int Skipped, IReadOnlyList<ImportRowError> Errors, IReadOnlyList<string> Warnings, bool DryRun);
+/// <summary>Önizleme satırı. <c>Status</c>: ok, warning (aktarılır ama dikkat), error (aktarılmaz), duplicate (zaten var, atlanır).</summary>
+public record ImportRowInfo(int Row, string Status, string? Label, string? Message);
+
+/// <param name="Rows">Her dolu satırın durumu (önizleme tablosu ve hata raporu için).</param>
+/// <param name="SkipInvalid">Hatalı satırlar atlanıp geçerli olanlar aktarıldı (yalnız müşteri, tedarikçi, araç, şoför).</param>
+public record ImportResult(int TotalRows, int Created, int Skipped, IReadOnlyList<ImportRowError> Errors, IReadOnlyList<string> Warnings, bool DryRun,
+    IReadOnlyList<ImportRowInfo>? Rows = null, bool SkipInvalid = false);
 
 /// <summary>
 /// Excel'den toplu tedarikçi/müşteri/şoför/araç/sefer/iş talebi/fatura/tahsilat/ödeme/gider aktarımı. Önce <c>dryRun</c> ile kontrol edilir; hata yoksa kaydedilir.
@@ -22,6 +28,9 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
     IValidator<SupplierSaveRequest> supplierValidator, IValidator<TripSaveRequest> tripValidator, LicenseService license)
 {
     public const int MaxRows = 5000;
+    public const int MaxFileBytes = 5 * 1024 * 1024;
+    /// <summary>Hatalı satırları atlayıp geçerlileri aktarabilen (kısmi aktarım) türler: satır başına bağımsız kayıtlar.</summary>
+    public static readonly string[] PartialEntities = ["customers", "suppliers", "vehicles", "drivers"];
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
     public static readonly Dictionary<string, string[]> Columns = new()
@@ -84,6 +93,18 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         ["staff"] = ["Ali Veli", "", "0532 111 22 33", new DateTime(2026, 9, 1), 30000m, "Depo"],
     };
 
+    /// <summary>Sihirbazdaki dört temel liste için şablona ikinci örnek satır (boş alanlar seçeneklidir).</summary>
+    private static readonly Dictionary<string, object[]> SecondExamples = new()
+    {
+        ["suppliers"] = ["Anadolu Oto Servis", "Servis", "9876543217", "Pendik", "0216 444 11 22", "servis@anadoluoto.example", "", "İstanbul / Pendik",
+            "İstanbul", "Pendik", "Selim Kaya", 15, 0m, ""],
+        ["customers"] = ["Kuzey İnşaat", "9876543217", "Çankaya", "0312 444 55 66", "", "Ankara / Çankaya", "Ödeme çekle", 0m,
+            "", "Ankara", "Çankaya", "Murat Kuzey", "Hayır", "", 45],
+        ["drivers"] = ["Ahmet Çelik", "0533 222 33 44", "", "C", new DateTime(2029, 5, 1), new DateTime(2027, 9, 1), "", ""],
+        ["vehicles"] = ["06 ANK 123", "Tır", "Mercedes", "Actros", 2018, 610000, "", "", new DateTime(2027, 6, 1),
+            new DateTime(2026, 12, 20), "Özmal", "", ""],
+    };
+
     private static readonly Dictionary<string, string> Notes = new()
     {
         ["suppliers"] = "Zorunlu: Ünvan. Tür: Taşeron, Servis, Akaryakıt veya Diğer (boşsa Taşeron). Devir Borcu: firmanın bu tedarikçiye borcu.",
@@ -135,9 +156,24 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             if (Examples[entity][i] is DateTime) ex.Style.DateFormat.Format = "dd.mm.yyyy";
             ex.Style.Font.FontColor = XLColor.Gray;
         }
+        if (SecondExamples.TryGetValue(entity, out var second))
+            for (var i = 0; i < cols.Length; i++)
+            {
+                var ex = ws.Cell(3, i + 1);
+                ex.Value = second[i] switch
+                {
+                    DateTime d => d,
+                    decimal m => m,
+                    int n => n,
+                    var o => o.ToString(),
+                };
+                if (second[i] is DateTime) ex.Style.DateFormat.Format = "dd.mm.yyyy";
+                ex.Style.Font.FontColor = XLColor.Gray;
+            }
         ws.Columns().AdjustToContents();
         var info = wb.Worksheets.Add("Açıklama");
-        info.Cell(1, 1).Value = "“Veri” sayfasının 2. satırı örnektir; silip kendi kayıtlarınızı yazın. Başlık satırını değiştirmeyin.";
+        var exampleRows = SecondExamples.ContainsKey(entity) ? "2. ve 3. satırlar örnektir" : "2. satır örnektir";
+        info.Cell(1, 1).Value = $"“Veri” sayfasının {exampleRows}; silip kendi kayıtlarınızı yazın. Başlık satırını değiştirmeyin.";
         info.Cell(2, 1).Value = "Tarihler gg.aa.yyyy biçiminde olmalı. " + Notes[entity];
         info.Cell(3, 1).Value = "Sistemde zaten kayıtlı olanlar (aynı plaka / aynı ünvan veya VKN / aynı ad soyad) atlanır.";
         info.Cell(4, 1).Value = "Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler ve İş Talepleri → " +
@@ -150,23 +186,135 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
 
     private static string Key(string s) => string.Join(' ', s.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToUpper(Tr);
 
-    public async Task<ImportResult> ImportAsync(string entity, Stream file, bool dryRun, CancellationToken ct = default)
+    /// <summary>Başlık adı yerine sık kullanılan başka yazımlar (başka programların dışa aktarımları): şablondaki ad → alternatifler.</summary>
+    private static readonly Dictionary<string, string[]> Aliases = new()
+    {
+        ["Ünvan"] = ["Firma", "Firma Adı", "Firma Ünvanı", "Müşteri", "Müşteri Adı", "Müşteri Ünvanı", "Cari Ünvan", "Cari Adı", "Tedarikçi", "Tedarikçi Adı", "Unvan"],
+        ["VKN/TCKN"] = ["VKN", "TCKN", "VKN TCKN", "Vergi No", "Vergi Numarası", "Vergi Kimlik No", "Vergi/TC No", "TC/Vergi No"],
+        ["Vergi Dairesi"] = ["VD", "V.D.", "Vergi Dairesi Adı"],
+        ["Telefon"] = ["Tel", "Telefon No", "Tel No", "GSM", "Cep", "Cep Telefonu"],
+        ["E-posta"] = ["Eposta", "E-Mail", "Email", "Mail", "E Posta"],
+        ["Adres"] = ["Açık Adres"],
+        ["Yetkili"] = ["Yetkili Kişi", "İlgili Kişi"],
+        ["Vade Gün"] = ["Vade", "Vade (Gün)"],
+        ["Devir Bakiyesi"] = ["Bakiye", "Açılış Bakiyesi", "Devir"],
+        ["Devir Borcu"] = ["Bakiye", "Açılış Borcu", "Açılış Bakiyesi", "Devir"],
+        ["Ad Soyad"] = ["Adı Soyadı", "Ad Soyadı", "İsim", "Şoför", "Şoför Adı"],
+        ["TC Kimlik No"] = ["TC", "TC No", "T.C. Kimlik No", "TCKN"],
+        ["Ehliyet Sınıfı"] = ["Ehliyet", "Ehliyet Sınıf"],
+        ["Plaka"] = ["Plaka No", "Araç Plakası", "Çekici Plakası"],
+        ["Araç Tipi"] = ["Tip", "Tipi", "Araç Cinsi", "Araç Türü"],
+        ["Model Yılı"] = ["Yıl", "Model Yili"],
+    };
+
+    /// <summary>
+    /// Dosyayı açar: .xlsx ya da CSV (UTF-8 veya Windows-1254; ayraç ; , ya da sekme). CSV, bellekte tek sayfalık çalışma kitabına çevrilir.
+    /// </summary>
+    internal static XLWorkbook OpenWorkbook(Stream file)
+    {
+        using var ms = new MemoryStream();
+        file.CopyTo(ms);
+        if (ms.Length == 0) throw new DomainException("Dosya boş.");
+        if (ms.Length > MaxFileBytes)
+            throw new DomainException($"Dosya çok büyük ({ms.Length / 1024 / 1024} MB). En fazla {MaxFileBytes / 1024 / 1024} MB yükleyebilirsiniz; dosyayı ikiye bölün.");
+        var bytes = ms.ToArray();
+        try
+        {
+            if (bytes.Length > 1 && bytes[0] == 'P' && bytes[1] == 'K') return new XLWorkbook(new MemoryStream(bytes));
+            if (bytes.Contains((byte)0)) throw new InvalidDataException();
+            return CsvToWorkbook(DecodeText(bytes));
+        }
+        catch (Exception ex) when (ex is not DomainException)
+        {
+            throw new DomainException("Dosya okunamadı. Lütfen şablondaki .xlsx dosyasını ya da .csv dosyasını kullanın.");
+        }
+    }
+
+    private static string DecodeText(byte[] bytes)
+    {
+        try { return new System.Text.UTF8Encoding(false, true).GetString(bytes).TrimStart('﻿'); }
+        catch (System.Text.DecoderFallbackException)
+        {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            return System.Text.Encoding.GetEncoding(1254).GetString(bytes);
+        }
+    }
+
+    private static XLWorkbook CsvToWorkbook(string text)
+    {
+        var firstLine = text.Split('\n', 2)[0];
+        var delimiter = new[] { ';', ',', '\t' }.MaxBy(d => firstLine.Count(c => c == d));
+        if (!firstLine.Contains(delimiter)) delimiter = ';';
+        var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Veri");
+        int row = 1, col = 1;
+        var field = new System.Text.StringBuilder();
+        var quoted = false;
+        void EndField()
+        {
+            // Metin olarak yazılır: baştaki sıfırlar (VKN, telefon) bozulmaz; sayı ve tarihi okuyucu çözer.
+            var v = field.ToString();
+            if (v.Length > 0) ws.Cell(row, col).Value = v;
+            field.Clear();
+            col++;
+        }
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (quoted)
+            {
+                if (ch == '"' && i + 1 < text.Length && text[i + 1] == '"') { field.Append('"'); i++; }
+                else if (ch == '"') quoted = false;
+                else field.Append(ch);
+            }
+            else if (ch == '"' && field.Length == 0) quoted = true;
+            else if (ch == delimiter) EndField();
+            else if (ch is '\r' or '\n')
+            {
+                if (ch == '\r' && i + 1 < text.Length && text[i + 1] == '\n') i++;
+                EndField();
+                row++;
+                col = 1;
+                if (row > MaxRows + 2) throw TooManyRows(null);
+            }
+            else field.Append(ch);
+        }
+        if (field.Length > 0 || col > 1) EndField();
+        return wb;
+    }
+
+    private static DomainException TooManyRows(int? count) =>
+        new($"Dosyada {(count is { } n ? n.ToString("N0", Tr) : MaxRows.ToString("N0", Tr) + "'den fazla")} satır var. " +
+            $"Tek seferde en fazla {MaxRows.ToString("N0", Tr)} satır aktarılabilir; dosyayı parçalara bölün.");
+
+    public async Task<ImportResult> ImportAsync(string entity, Stream file, bool dryRun, CancellationToken ct = default) =>
+        await ImportAsync(entity, file, dryRun, false, ct);
+
+    /// <param name="skipInvalid">
+    /// Açıksa hatalı satırlar atlanır, geçerli olanlar aktarılır (yalnız <see cref="PartialEntities"/>). Kapalıyken tek hata bile varsa hiçbir şey aktarılmaz.
+    /// </param>
+    public async Task<ImportResult> ImportAsync(string entity, Stream file, bool dryRun, bool skipInvalid, CancellationToken ct = default)
     {
         if (!Columns.ContainsKey(entity)) throw new NotFoundException("Bilinmeyen aktarım türü.");
-        XLWorkbook wb;
-        try { wb = new XLWorkbook(file); }
-        catch (Exception) { throw new DomainException("Dosya okunamadı. Lütfen şablondaki .xlsx dosyasını kullanın."); }
-        using var _ = wb;
+        using var wb = OpenWorkbook(file);
         var ws = wb.Worksheets.First();
 
-        var header = ws.Row(1).CellsUsed().ToDictionary(c => Normalize(c.GetString()), c => c.Address.ColumnNumber);
+        var header = new Dictionary<string, int>();
+        foreach (var c in ws.Row(1).CellsUsed()) header.TryAdd(Normalize(c.GetString()), c.Address.ColumnNumber);
+        foreach (var canonical in Columns[entity].Where(Aliases.ContainsKey))
+        {
+            if (header.ContainsKey(Normalize(canonical))) continue;
+            foreach (var alias in Aliases[canonical])
+                if (header.TryGetValue(Normalize(alias), out var col)) { header[Normalize(canonical)] = col; break; }
+        }
         var missing = Required[entity].Where(c => !header.ContainsKey(Normalize(c))).ToList();
         if (missing.Count > 0) throw new DomainException($"Başlık satırında zorunlu sütun eksik: {string.Join(", ", missing)}. Şablonu kullanın.");
 
         var rows = ws.RowsUsed().Where(r => r.RowNumber() > 1 && !r.CellsUsed().All(c => string.IsNullOrWhiteSpace(c.GetString()))).ToList();
-        if (rows.Count > MaxRows) throw new DomainException($"Tek seferde en fazla {MaxRows} satır aktarılabilir.");
+        if (rows.Count > MaxRows) throw TooManyRows(rows.Count);
+        if (rows.Count == 0) throw new DomainException("Dosyada aktarılacak satır yok. Başlık satırının altına kayıtlarınızı yazın.");
 
-        var ctx = new Ctx(new RowReader(header), [], []);
+        var ctx = new Ctx(new RowReader(header), [], []) { FirstColumn = Columns[entity][0] };
         switch (entity)
         {
             case "suppliers": await SuppliersAsync(rows, ctx, ct); break;
@@ -183,30 +331,48 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             default: await DriversAsync(rows, ctx, ct); break;
         }
 
-        if (!dryRun && ctx.Errors.Count == 0) await db.SaveChangesAsync(ct);
+        var partial = skipInvalid && PartialEntities.Contains(entity);
+        var apply = ctx.Errors.Count == 0 || partial;
+        if (!dryRun && apply) await db.SaveChangesAsync(ct);
         else db.ChangeTracker.Clear();
-        return new ImportResult(rows.Count, ctx.Errors.Count == 0 ? ctx.Created : 0, ctx.Skipped, ctx.Errors, ctx.Warnings, dryRun || ctx.Errors.Count > 0);
+        return new ImportResult(rows.Count, apply ? ctx.Created : 0, ctx.Skipped, ctx.Errors, ctx.Warnings, dryRun || !apply, ctx.Rows, partial);
     }
 
     private sealed record Ctx(RowReader R, List<ImportRowError> Errors, List<string> Warnings)
     {
         public int Created { get; set; }
         public int Skipped { get; set; }
-        public void Skip(int row, string what)
+        public string FirstColumn { get; init; } = "";
+        public List<ImportRowInfo> Rows { get; } = [];
+        /// <summary>İşlenen satır için işleyicinin yazdığı uyarı (satır yine aktarılır).</summary>
+        public string? RowWarning { get; set; }
+        public string? SkipMessage { get; set; }
+        public void Skip(int row, string what, bool inFile = false)
         {
-            Warnings.Add($"Satır {row}: {what} zaten kayıtlı, atlandı.");
+            SkipMessage = inFile ? $"{what} dosyada birden fazla kez var; tekrarı atlandı." : $"{what} zaten kayıtlı, atlandı.";
+            Warnings.Add($"Satır {row}: {SkipMessage}");
             Skipped++;
         }
     }
 
-    /// <summary>Satırı işler; tarih/sayı biçim hataları satır hatası olarak yazılır.</summary>
+    /// <summary>Satırı işler; tarih/sayı biçim hataları satır hatası olarak yazılır. Her satırın durumu önizleme için <c>Rows</c>'a yazılır.</summary>
     private static async Task EachAsync(IEnumerable<IXLRow> rows, Ctx ctx, Func<IXLRow, int, Task> handle)
     {
         foreach (var row in rows)
         {
             var n = row.RowNumber();
+            var errors0 = ctx.Errors.Count;
+            var skipped0 = ctx.Skipped;
+            ctx.RowWarning = null;
+            ctx.SkipMessage = null;
             try { await handle(row, n); }
             catch (FormatException ex) { ctx.Errors.Add(new ImportRowError(n, ex.Message)); }
+            var label = ctx.R.Str(row, ctx.FirstColumn);
+            if (ctx.Errors.Count > errors0)
+                ctx.Rows.Add(new ImportRowInfo(n, "error", label, string.Join(" ", ctx.Errors.Skip(errors0).Select(e => e.Message))));
+            else if (ctx.Skipped > skipped0) ctx.Rows.Add(new ImportRowInfo(n, "duplicate", label, ctx.SkipMessage));
+            else if (ctx.RowWarning != null) ctx.Rows.Add(new ImportRowInfo(n, "warning", label, ctx.RowWarning));
+            else ctx.Rows.Add(new ImportRowInfo(n, "ok", label, null));
         }
     }
 
@@ -229,6 +395,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         var existing = await db.Suppliers.Select(s => new { s.Title, s.TaxNumber }).ToListAsync(ct);
         var titles = existing.Select(s => Key(s.Title)).ToHashSet();
         var taxes = existing.Where(s => s.TaxNumber != null).Select(s => s.TaxNumber!).ToHashSet();
+        var inFile = new HashSet<string>();
         var r = ctx.R;
         await EachAsync(rows, ctx, (row, n) =>
         {
@@ -240,17 +407,18 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
                 "DİĞER" or "DIGER" => SupplierKind.Other,
                 _ => throw new FormatException($"“Tür” Taşeron, Servis, Akaryakıt veya Diğer olmalı: {k}"),
             } : SupplierKind.Carrier;
-            var req = new SupplierSaveRequest(r.Str(row, "Ünvan") ?? "", kind, r.Str(row, "VKN/TCKN"), r.Str(row, "Vergi Dairesi"), r.Str(row, "Telefon"),
+            var req = new SupplierSaveRequest(r.Str(row, "Ünvan") ?? "", kind, TaxNo(r.Str(row, "VKN/TCKN")), r.Str(row, "Vergi Dairesi"), r.Str(row, "Telefon"),
                 r.Str(row, "E-posta"), r.Str(row, "Adres"), r.Str(row, "İl"), r.Str(row, "İlçe"), r.Str(row, "IBAN"), r.Str(row, "Yetkili"),
                 r.Int(row, "Vade Gün") ?? 30, null, r.Dec(row, "Devir Borcu") ?? 0, r.Date(row, "Devir Tarihi"));
             if (!Validate(supplierValidator, req, n, ctx.Errors)) return Task.CompletedTask;
             if (titles.Contains(Key(req.Title)) || (req.TaxNumber != null && taxes.Contains(req.TaxNumber.Trim())))
             {
-                ctx.Skip(n, $"“{req.Title}”");
+                ctx.Skip(n, $"“{req.Title}”", inFile.Contains(Key(req.Title)) || (req.TaxNumber != null && inFile.Contains(req.TaxNumber.Trim())));
                 return Task.CompletedTask;
             }
             titles.Add(Key(req.Title));
-            if (req.TaxNumber != null) taxes.Add(req.TaxNumber.Trim());
+            inFile.Add(Key(req.Title));
+            if (req.TaxNumber != null) { taxes.Add(req.TaxNumber.Trim()); inFile.Add(req.TaxNumber.Trim()); }
             db.Suppliers.Add(new Supplier
             {
                 Title = req.Title.Trim(), Kind = req.Kind, TaxNumber = Clean(req.TaxNumber), TaxOffice = Clean(req.TaxOffice),
@@ -269,22 +437,25 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         var existing = await db.Customers.Select(c => new { c.Title, c.TaxNumber }).ToListAsync(ct);
         var titles = existing.Select(c => Key(c.Title)).ToHashSet();
         var taxes = existing.Where(c => c.TaxNumber != null).Select(c => c.TaxNumber!).ToHashSet();
+        var inFile = new HashSet<string>();
         var r = ctx.R;
         await EachAsync(rows, ctx, (row, n) =>
         {
             var eInvoice = YesNo(r.Str(row, "e-Fatura Mükellefi")) ?? false;
-            var req = new CustomerSaveRequest(r.Str(row, "Ünvan") ?? "", r.Str(row, "VKN/TCKN"), r.Str(row, "Vergi Dairesi"),
+            var req = new CustomerSaveRequest(r.Str(row, "Ünvan") ?? "", TaxNo(r.Str(row, "VKN/TCKN")), r.Str(row, "Vergi Dairesi"),
                 r.Str(row, "Telefon"), r.Str(row, "E-posta"), r.Str(row, "Adres"), r.Str(row, "Not"),
                 r.Dec(row, "Devir Bakiyesi") ?? 0, r.Date(row, "Devir Tarihi"), false, r.Str(row, "İl"), r.Str(row, "İlçe"), r.Str(row, "Yetkili"),
                 eInvoice, r.Str(row, "PK Etiketi"), r.Int(row, "Vade Gün"));
             if (!Validate(customerValidator, req, n, ctx.Errors)) return Task.CompletedTask;
+            if (req.TaxNumber == null) ctx.RowWarning = "VKN/TCKN yok; e-Fatura kesmek için sonra tamamlayın.";
             if (titles.Contains(Key(req.Title)) || (req.TaxNumber != null && taxes.Contains(req.TaxNumber.Trim())))
             {
-                ctx.Skip(n, $"“{req.Title}”");
+                ctx.Skip(n, $"“{req.Title}”", inFile.Contains(Key(req.Title)) || (req.TaxNumber != null && inFile.Contains(req.TaxNumber.Trim())));
                 return Task.CompletedTask;
             }
             titles.Add(Key(req.Title));
-            if (req.TaxNumber != null) taxes.Add(req.TaxNumber.Trim());
+            inFile.Add(Key(req.Title));
+            if (req.TaxNumber != null) { taxes.Add(req.TaxNumber.Trim()); inFile.Add(req.TaxNumber.Trim()); }
             db.Customers.Add(new Customer
             {
                 Title = req.Title.Trim(), TaxNumber = Clean(req.TaxNumber), TaxOffice = Clean(req.TaxOffice),
@@ -305,6 +476,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         var licenseInfo = await license.CurrentAsync(ct);
         var room = await license.RemainingVehiclesAsync(ct);
         var suppliers = await SupplierIdsAsync(ct);
+        var inFile = new HashSet<string>();
         var r = ctx.R;
         await EachAsync(rows, ctx, (row, n) =>
         {
@@ -325,9 +497,10 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             var plate = Formatters.NormalizePlate(req.Plate)!;
             if (!plates.Add(plate))
             {
-                ctx.Skip(n, plate);
+                ctx.Skip(n, plate, inFile.Contains(plate));
                 return Task.CompletedTask;
             }
+            inFile.Add(plate);
             if (room is { } left && ctx.Created >= left)
             {
                 ctx.Errors.Add(new ImportRowError(n, LicenseService.VehicleLimitMessage(licenseInfo.VehicleLimit)));
@@ -349,6 +522,7 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
     {
         var names = (await db.Drivers.Select(d => d.FullName).ToListAsync(ct)).Select(Key).ToHashSet();
         var suppliers = await SupplierIdsAsync(ct);
+        var inFile = new HashSet<string>();
         var r = ctx.R;
         await EachAsync(rows, ctx, (row, n) =>
         {
@@ -361,9 +535,11 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             if (!Validate(driverValidator, req, n, ctx.Errors)) return Task.CompletedTask;
             if (!names.Add(Key(req.FullName)))
             {
-                ctx.Skip(n, req.FullName);
+                ctx.Skip(n, req.FullName, inFile.Contains(Key(req.FullName)));
                 return Task.CompletedTask;
             }
+            inFile.Add(Key(req.FullName));
+            if (Formatters.NormalizePhone(req.Phone) == null) ctx.RowWarning = "Telefon yok; şoföre bildirim ve arama için sonra ekleyin.";
             db.Drivers.Add(new Driver
             {
                 FullName = req.FullName.Trim(), Phone = Formatters.NormalizePhone(req.Phone), NationalId = Clean(req.NationalId),
@@ -797,32 +973,52 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         return result.IsValid;
     }
 
+    /// <summary>
+    /// VKN/TCKN'yi toparlar: boşluk, nokta ve tire atılır; Excel baştaki sıfırı silmişse (9 hane) VKN'ye 0 eklenir.
+    /// Rakam dışı bir şey varsa olduğu gibi bırakılır (doğrulama hata verir).
+    /// </summary>
+    public static string? TaxNo(string? s)
+    {
+        if (s == null) return null;
+        var t = new string(s.Where(ch => ch is not (' ' or '.' or '-' or '\u00A0')).ToArray());
+        if (t.Length == 0) return null;
+        return t.All(char.IsAsciiDigit) && t.Length == 9 ? "0" + t : t;
+    }
+
     private static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
+    /// <summary>Başlık karşılaştırması: büyük/küçük harf, boşluk, noktalama ve Türkçe karakterler (ı/i, ş/s, ğ/g, ü/u, ö/o, ç/c) önemsenmez.</summary>
     private static string Normalize(string s) =>
-        new string(s.Trim().ToLower(Tr).Where(char.IsLetterOrDigit).ToArray());
+        new string(s.Trim().ToLower(Tr).Select(ch => ch switch { 'ı' => 'i', 'ş' => 's', 'ğ' => 'g', 'ü' => 'u', 'ö' => 'o', 'ç' => 'c', 'â' => 'a', 'î' => 'i', 'û' => 'u', _ => ch })
+            .Where(char.IsLetterOrDigit).ToArray());
 
     private class RowReader(Dictionary<string, int> header)
     {
         private IXLCell? Cell(IXLRow row, string col) =>
             header.TryGetValue(Normalize(col), out var i) ? row.Cell(i) : null;
 
+        private static bool IsBlank(IXLCell? c) =>
+            c == null || c.IsEmpty() || (c.DataType == XLDataType.Text && string.IsNullOrWhiteSpace(c.GetString()));
+
         public string? Str(IXLRow row, string col)
         {
             var c = Cell(row, col);
-            if (c == null || c.IsEmpty()) return null;
+            if (IsBlank(c)) return null;
             // Excel sayıya çevirmişse (VKN, telefon) bilimsel gösterim olmasın.
-            var s = c.DataType == XLDataType.Number ? c.GetDouble().ToString("0", CultureInfo.InvariantCulture) : c.GetString();
+            var s = c!.DataType == XLDataType.Number ? c.GetDouble().ToString("0", CultureInfo.InvariantCulture) : c.GetString();
             return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
         }
 
         public decimal? Dec(IXLRow row, string col)
         {
             var c = Cell(row, col);
-            if (c == null || c.IsEmpty()) return null;
-            if (c.DataType == XLDataType.Number) return Money.Round((decimal)c.GetDouble());
+            if (IsBlank(c)) return null;
+            if (c!.DataType == XLDataType.Number) return Money.Round((decimal)c.GetDouble());
             var s = c.GetString().Replace("TL", "").Replace("₺", "").Trim();
-            if (decimal.TryParse(s, NumberStyles.Number, Tr, out var tr)) return Money.Round(tr);
+            // "1234.5" (nokta ondalık) ile "1.234" (binlik) karışmasın: yalnız nokta varsa ve 3'lü gruplara uyuyorsa binliktir.
+            var onlyDot = s.Contains('.') && !s.Contains(',');
+            var dotIsThousands = System.Text.RegularExpressions.Regex.IsMatch(s, @"^-?\d{1,3}(\.\d{3})+$");
+            if (!(onlyDot && !dotIsThousands) && decimal.TryParse(s, NumberStyles.Number, Tr, out var tr)) return Money.Round(tr);
             if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var inv)) return Money.Round(inv);
             throw new FormatException($"“{col}” sayı olmalı: {s}");
         }
@@ -832,8 +1028,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
         public DateOnly? Date(IXLRow row, string col)
         {
             var c = Cell(row, col);
-            if (c == null || c.IsEmpty()) return null;
-            if (c.DataType == XLDataType.DateTime) return DateOnly.FromDateTime(c.GetDateTime());
+            if (IsBlank(c)) return null;
+            if (c!.DataType == XLDataType.DateTime) return DateOnly.FromDateTime(c.GetDateTime());
             if (c.DataType == XLDataType.Number) return DateOnly.FromDateTime(DateTime.FromOADate(c.GetDouble()));
             var s = c.GetString().Trim();
             if (DateOnly.TryParseExact(s, ["dd.MM.yyyy", "d.M.yyyy", "dd/MM/yyyy", "yyyy-MM-dd"], Tr, DateTimeStyles.None, out var d)) return d;

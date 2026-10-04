@@ -5,7 +5,7 @@ import clsx from 'clsx'
 import {
   Handshake, HandCoins, Plus,
   BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat, FileInput } from 'lucide-react'
+  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet } from 'lucide-react'
 import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Dashboard, Health } from '../api/types'
@@ -18,6 +18,7 @@ import { MirrorContext } from './ui'
 import { Logo } from './Logo'
 import { LicenseBanner } from './LicenseBanner'
 import { useTextSize } from '../lib/textSize'
+import { useBranding } from '../lib/branding'
 
 type Badge = { count: number; title: string }
 type NavItem = { to: string; label: string; icon: typeof Home; perm?: Permission; badge?: (d: Dashboard | undefined, alerts: Alert[]) => Badge | null }
@@ -57,6 +58,7 @@ const navGroups: { title?: string; items: NavItem[] }[] = [
       badge: (_, a) => badge(alertsAt(a, '/soforler'), 'belge uyarısı') },
     { to: '/personel', label: 'Personeller', icon: UserRound, perm: 'accounting' },
     { to: '/sabit-odemeler', label: 'Sabit Ödemeler', icon: Repeat, perm: 'accounting' },
+    { to: '/aktar', label: 'Veri Aktarımı', icon: FileSpreadsheet },
   ] },
   { title: 'Öz Mal', items: [
     { to: '/araclar', label: 'Araçlar', icon: Building2,
@@ -79,6 +81,7 @@ const navGroups: { title?: string; items: NavItem[] }[] = [
 
 export function Layout() {
   const { user, logout, can } = useAuth()
+  const brand = useBranding()
   const location = useLocation()
   // Menü açıldığı sayfaya bağlı: başka sayfaya geçince kendiliğinden kapanır.
   const [openAt, setOpenAt] = useState<string | null>(null)
@@ -95,7 +98,7 @@ export function Layout() {
       <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-[236px] flex-col bg-side text-side-fg transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
         open ? 'translate-x-0' : '-translate-x-full')}>
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 pl-4 pr-2">
-          <Link to="/" className="rounded-[3px]" aria-label="YES Lojistik" title="Ana sayfaya dön"><Logo /></Link>
+          <Link to="/" className="rounded-[3px]" aria-label={brand.name} title="Ana sayfaya dön"><Logo /></Link>
           <button className="rounded-[3px] p-2 text-side-muted hover:bg-side-active hover:text-white lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
         </div>
         {/* Gruplar hep açık: katlanmaz, menü daraltılmaz (kullanıcı isteği) */}
@@ -131,7 +134,7 @@ export function Layout() {
         </nav>
         <div className="shrink-0 border-t border-white/10 px-4 py-2.5 text-[0.75rem] leading-snug text-side-muted">
           <div className="truncate font-semibold text-side-fg">{user!.fullName}</div>
-          YES Lojistik · v{health?.version ?? '2'}{health?.commit && ` (${health.commit.slice(0, 7)})`}
+          {brand.name} · v{health?.version ?? '2'}{health?.commit && ` (${health.commit.slice(0, 7)})`}
         </div>
       </aside>
 

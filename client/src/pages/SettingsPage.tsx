@@ -118,7 +118,7 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
   })
   const logo = useWatch({ control, name: 'logoDataUrl' })
   const save = useSave((v: CompanyValues) => put<CompanySettings>('/settings', nullify(v)), {
-    invalidate: ['settings'], success: 'Firma bilgileri kaydedildi.', onError: (e) => applyServerErrors(e, setError),
+    invalidate: ['settings', 'public'], success: 'Firma bilgileri kaydedildi.', onError: (e) => applyServerErrors(e, setError),
   })
   const onLogo = (file?: File) => {
     if (!file) return

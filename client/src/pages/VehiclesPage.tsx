@@ -6,6 +6,7 @@ import type { Vehicle, VehicleOwnership, VehicleStatus } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Chip, ConfirmDialog, IconButton, PageHeader, PlateBadge, Select } from '../components/ui'
 import { ImportButton } from '../components/ImportDialog'
+import { FirstUse } from '../components/FirstUse'
 import { ExportButton } from '../components/Exports'
 import { useAuth } from '../lib/auth'
 import { date, daysUntil } from '../lib/format'
@@ -103,7 +104,10 @@ export default function VehiclesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id}
           onRowClick={can('operations') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : tab.key === 'taseron' ? "Taşeron aracı yok." : "Henüz araç yok. “Yeni Araç” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
+          page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : tab.key === 'taseron' ? "Taşeron aracı yok." : (
+            <FirstUse title="İlk aracınızı ekleyin" addLabel="Yeni araç" onAdd={can('operations') ? () => setEditing('new') : undefined} importEntity={can('operations') ? 'vehicles' : undefined}>
+              Araçlarınız burada listelenir; bakım ve belge uyarıları da buradan gelir. Tek tek ekleyin ya da plaka listenizi Excel'den aktarın.
+            </FirstUse>)} />
       </Card>
       {editing && <VehicleForm vehicle={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Aracı sil" loading={deleteMut.isPending} confirmText="Sil"

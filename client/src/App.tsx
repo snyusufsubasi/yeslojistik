@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { ErrorState, Spinner } from './components/ui'
 import { useAuth, type Permission } from './lib/auth'
 import LoginPage from './pages/LoginPage'
+import { useBranding } from './lib/branding'
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 
 const TripsPage = lazy(() => import('./pages/TripsPage'))
@@ -34,6 +35,8 @@ const ForgotPasswordPage = lazy(() => import('./pages/PasswordResetPages').then(
 const ResetPasswordPage = lazy(() => import('./pages/PasswordResetPages').then((m) => ({ default: m.ResetPasswordPage })))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
 const AccountDeletionPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.AccountDeletionPage })))
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'))
+const ImportPage = lazy(() => import('./pages/ImportPage'))
 
 function RequireAuth() {
   const { user, loading, unreachable, retry } = useAuth()
@@ -65,6 +68,11 @@ function Guard({ perm, children }: { perm: Permission; children: React.ReactNode
 }
 
 export default function App() {
+  const { name } = useBranding()
+  // Sekme başlığı: sayfalar kendi başlığını yazar; henüz yazmadıysa ürün/firma adı görünür (beyaz etiket).
+  useEffect(() => {
+    if (document.title.includes('Nakliye Takip Sistemi')) document.title = `${name} – Nakliye Takip Sistemi`
+  }, [name])
   return (
     <Suspense fallback={<Spinner />}>
       <Routes>
@@ -99,6 +107,8 @@ export default function App() {
           <Route path="kasa-banka" element={<Guard perm="accounting"><CashAccountsPage /></Guard>} />
           <Route path="raporlar" element={<Guard perm="accounting"><ReportsPage /></Guard>} />
           <Route path="ayarlar" element={<SettingsPage />} />
+          <Route path="kurulum" element={<Guard perm="admin"><OnboardingPage /></Guard>} />
+          <Route path="aktar" element={<ImportPage />} />
           <Route path="yardim" element={<HelpPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

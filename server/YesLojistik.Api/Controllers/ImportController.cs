@@ -32,16 +32,23 @@ public class ImportController(ImportService imports) : ControllerBase
         return new FileContentResult(ImportService.Template(entity), FileResults.Xlsx) { FileDownloadName = $"{name}-aktarim-sablonu.xlsx" };
     }
 
+    /// <summary>
+    /// Excel (.xlsx) ya da CSV yükler. <c>dryRun=true</c>: yalnız kontrol (satır satır önizleme). <c>skipInvalid=true</c>: müşteri, tedarikçi, araç ve şoförde
+    /// hatalı satırlar atlanır, geçerliler aktarılır; kapalıyken tek hata bile her şeyi durdurur.
+    /// </summary>
     [HttpPost("{entity}")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<ActionResult<ImportResult>> Import(string entity, IFormFile file, [FromQuery] bool dryRun = true, CancellationToken ct = default)
+    [RequestSizeLimit(ImportService.MaxFileBytes + 1024 * 1024)]
+    public async Task<ActionResult<ImportResult>> Import(string entity, IFormFile file, [FromQuery] bool dryRun = true,
+        [FromQuery] bool skipInvalid = false, CancellationToken ct = default)
     {
         if (!Names.ContainsKey(entity)) throw new NotFoundException("Bilinmeyen aktarım türü.");
         if (!Allowed(entity)) return Forbid();
+        if (file.Length > ImportService.MaxFileBytes)
+            throw new DomainException($"Dosya çok büyük ({file.Length / 1024 / 1024} MB). En fazla {ImportService.MaxFileBytes / 1024 / 1024} MB yükleyebilirsiniz; dosyayı ikiye bölün.");
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms, ct);
         ms.Position = 0;
-        return await imports.ImportAsync(entity, ms, dryRun, ct);
+        return await imports.ImportAsync(entity, ms, dryRun, skipInvalid, ct);
     }
 }
