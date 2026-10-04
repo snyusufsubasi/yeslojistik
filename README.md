@@ -17,6 +17,8 @@ ve şoför mobil uygulaması.
 | [docs/KURULUM.md](docs/KURULUM.md) | Geliştirme ortamı, sunucuya kurulum, yedekleme |
 | [docs/KULLANIM.md](docs/KULLANIM.md) | Kullanım kılavuzu (kuzen için) |
 | [mobile/README.md](mobile/README.md) | Şoför uygulaması: derleme, kurulum, konum paylaşımı |
+| [AGENTS.md](AGENTS.md) | Yapay zekâ ajanları (Codex, Claude) için proje kılavuzu: kurallar, çalıştırma, durum |
+| [docs/CODEX-PROMPTLARI.md](docs/CODEX-PROMPTLARI.md) | Codex'e geçiş: sırayla yapıştırılacak prompt dizisi |
 | [docs/ekranlar](docs/ekranlar/README.md) | Bütün ekranların görüntüleri (bilgisayar + telefon) |
 
 ## Sunucuya kurulum (canlı)
