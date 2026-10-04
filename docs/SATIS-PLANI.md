@@ -17,6 +17,8 @@
 | 6 | e-Fatura ve UETDS | Entegratör/Bakanlık bilgisi gelene kadar **sağlayıcıdan bağımsız altyapı** ve "UETDS'ye hazır mı?" kontrolü yapılır. Uydurma API yazılmaz. |
 | 7 | Fiyat | Bölüm 4'teki öneri geçerli, pilotta doğrulanır. |
 
+**Lisans ve abonelik (yapıldı, 4 Ekim):** imzalı lisans anahtarı, araç sınırı, süre bitince salt okunur, Ayarlar → Abonelik ekranı; satıcı aracı `tools/license/`, anlatım `docs/LISANS.md`.
+
 **Bu turda yapılanlar (ajanlarla paralel):** iki adımlı doğrulama + veri indirme, lisans ve abonelik, müşteri kurulum otomasyonu, kurulum sihirbazı ve içe aktarma, hukuk taslakları + tanıtım sayfası, UETDS hazırlık kontrolü.
 
 ## 1. Özet (1 dakikalık okuma)

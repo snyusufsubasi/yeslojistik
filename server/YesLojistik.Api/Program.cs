@@ -172,6 +172,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMaintenanceMode();
+app.UseLicenseGuard();
 
 // Sürüm/commit: Render RENDER_GIT_COMMIT verir; diğer ortamlarda APP_COMMIT ayarlanabilir.
 var commit = app.Configuration["RENDER_GIT_COMMIT"] ?? app.Configuration["APP_COMMIT"];

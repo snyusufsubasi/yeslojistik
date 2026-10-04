@@ -16,6 +16,7 @@ import { roleLabel } from '../lib/labels'
 import { quickActions } from '../lib/quickActions'
 import { MirrorContext } from './ui'
 import { Logo } from './Logo'
+import { LicenseBanner } from './LicenseBanner'
 import { useTextSize } from '../lib/textSize'
 
 type Badge = { count: number; title: string }
@@ -153,6 +154,7 @@ export function Layout() {
             Bakım çalışması yapılıyor: şu an yalnızca görüntüleme yapılabilir, kayıt eklenemez ve değiştirilemez.
           </div>
         )}
+        <LicenseBanner />
         {mirror && (
           <div role="status" className="border-b border-line bg-info-soft px-4 py-1.5 text-center text-[0.8125rem] text-info">
             <b>Pratikortam aynası:</b> kayıtlar pratikortam'dan gelir, değişikliği orada yapın.

@@ -19,7 +19,7 @@ public record ImportResult(int TotalRows, int Created, int Skipped, IReadOnlyLis
 /// </summary>
 public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> customerValidator,
     IValidator<VehicleSaveRequest> vehicleValidator, IValidator<DriverSaveRequest> driverValidator,
-    IValidator<SupplierSaveRequest> supplierValidator, IValidator<TripSaveRequest> tripValidator)
+    IValidator<SupplierSaveRequest> supplierValidator, IValidator<TripSaveRequest> tripValidator, LicenseService license)
 {
     public const int MaxRows = 5000;
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
@@ -302,6 +302,8 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
     private async Task VehiclesAsync(List<IXLRow> rows, Ctx ctx, CancellationToken ct)
     {
         var plates = (await db.Vehicles.Select(v => v.Plate).ToListAsync(ct)).ToHashSet();
+        var licenseInfo = await license.CurrentAsync(ct);
+        var room = await license.RemainingVehiclesAsync(ct);
         var suppliers = await SupplierIdsAsync(ct);
         var r = ctx.R;
         await EachAsync(rows, ctx, (row, n) =>
@@ -324,6 +326,11 @@ public class ImportService(AppDbContext db, IValidator<CustomerSaveRequest> cust
             if (!plates.Add(plate))
             {
                 ctx.Skip(n, plate);
+                return Task.CompletedTask;
+            }
+            if (room is { } left && ctx.Created >= left)
+            {
+                ctx.Errors.Add(new ImportRowError(n, LicenseService.VehicleLimitMessage(licenseInfo.VehicleLimit)));
                 return Task.CompletedTask;
             }
             db.Vehicles.Add(new Vehicle

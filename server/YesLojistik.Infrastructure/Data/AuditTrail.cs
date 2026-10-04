@@ -14,7 +14,7 @@ internal static class AuditTrail
         nameof(BaseEntity.CreatedAt), nameof(BaseEntity.UpdatedAt), nameof(BaseEntity.CreatedBy),
         nameof(User.PasswordHash), nameof(User.LastLoginAt), nameof(User.FailedLoginCount),
         nameof(Vehicle.LastLatitude), nameof(Vehicle.LastLongitude), nameof(Vehicle.LastSpeedKmh), nameof(Vehicle.LastLocationAt),
-        nameof(Trip.TrackingToken), nameof(CompanySettings.LogoDataUrl), nameof(CompanySettings.LastDigestDate), nameof(CompanySettings.LastBackupAt),
+        nameof(Trip.TrackingToken), nameof(CompanySettings.LogoDataUrl), nameof(CompanySettings.LastDigestDate), nameof(CompanySettings.LastBackupAt), nameof(CompanySettings.LicenseKey),
         nameof(TripAttachment.StoragePath), nameof(Expense.ReceiptPath), nameof(Expense.ReceiptContentType),
         nameof(FleetDocument.FilePath), nameof(FleetDocument.FileContentType), nameof(Expense.ReviewedAt),
     ];

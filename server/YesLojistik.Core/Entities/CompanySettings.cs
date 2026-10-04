@@ -49,5 +49,7 @@ public class CompanySettings
     public EInvoiceScenario DefaultScenario { get; set; } = EInvoiceScenario.Temel;
     /// <summary>Gönderici birim (GB) etiketi, ör. urn:mail:defaultgb@firma.com</summary>
     public string? SenderAlias { get; set; }
+    /// <summary>İmzalı lisans anahtarı (boşsa sahip modu). License__Key ortam değişkeni varsa o kazanır. Panelde hiçbir yerde gösterilmez.</summary>
+    public string? LicenseKey { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -17,11 +17,12 @@ import { FormSelect } from '../components/FormSelect'
 import { CitySelect } from '../components/CitySelect'
 import { AuditLogTable } from '../components/AuditLog'
 import { InvoiceNotesCard } from '../components/InvoiceNotesCard'
+import { LicenseTab } from './LicenseTab'
 import { ago, dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useMirror, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'notifications' | 'password'
+type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'license' | 'notifications' | 'password'
 
 export default function SettingsPage() {
   const { can } = useAuth()
@@ -30,7 +31,8 @@ export default function SettingsPage() {
   const tabs = [
     ...(can('admin') ? [{ value: 'company' as const, label: 'Firma Bilgileri' }, { value: 'users' as const, label: 'Kullanıcılar' },
       { value: 'invoiceNotes' as const, label: 'Fatura Notları' },
-      { value: 'audit' as const, label: 'İşlem Geçmişi' }, { value: 'data' as const, label: 'Veriler' }] : []),
+      { value: 'audit' as const, label: 'İşlem Geçmişi' }, { value: 'data' as const, label: 'Veriler' },
+      { value: 'license' as const, label: 'Abonelik' }] : []),
     { value: 'notifications' as const, label: 'Telefon Bildirimleri' },
     { value: 'password' as const, label: 'Şifre Değiştir' },
   ]
@@ -59,6 +61,7 @@ export default function SettingsPage() {
           <ResetDataCard />
         </div>
       )}
+      {tab === 'license' && can('admin') && <LicenseTab />}
       {tab === 'notifications' && <NotificationPrefsCard />}
       {tab === 'password' && <PasswordForm />}
     </>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using YesLojistik.Core.Abstractions;
 using YesLojistik.Infrastructure.Data;
 using YesLojistik.Infrastructure.Services;
@@ -44,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<DriverNotifier>();
         services.AddScoped<StaffNotifier>();
         services.AddScoped<InvoiceMailer>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<LicenseService>();
         services.AddHttpClient<IPushSender, ExpoPushSender>(c => c.Timeout = TimeSpan.FromSeconds(5));
         // Database: dosyalar PostgreSQL'de (varsayılan, yedeğe dahil). Local: disk (Docker volume).
         if (string.Equals(storageProvider, "Local", StringComparison.OrdinalIgnoreCase))

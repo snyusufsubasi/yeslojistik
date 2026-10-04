@@ -1,0 +1,5 @@
+# Özel anahtar asla repoya girmez.
+*.pem
+*.key
+*private*
+anahtar*.txt

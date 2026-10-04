@@ -20,7 +20,7 @@ public record VehicleQuery : ListQuery
 
 [ApiController]
 [Route("api/vehicles")]
-public class VehiclesController(AppDbContext db) : ControllerBase
+public class VehiclesController(AppDbContext db, LicenseService license) : ControllerBase
 {
     private static readonly Dictionary<string, Expression<Func<Vehicle, object?>>> SortMap = new()
     {
@@ -95,6 +95,7 @@ public class VehiclesController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<VehicleDto> Create(VehicleSaveRequest req, CancellationToken ct)
     {
+        await license.EnsureVehicleCapacityAsync(1, ct);
         var v = new Vehicle();
         await ApplyAsync(v, req, ct);
         db.Vehicles.Add(v);

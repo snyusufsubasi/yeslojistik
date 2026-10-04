@@ -14,6 +14,7 @@ const actionLabel: Record<string, { text: string; tone: 'green' | 'blue' | 'red'
   Updated: { text: 'Değiştirdi', tone: 'blue' },
   Deleted: { text: 'Sildi', tone: 'red' },
   Reset: { text: 'Sıfırladı', tone: 'orange' },
+  License: { text: 'Lisans', tone: 'blue' },
 }
 
 /** İşlem geçmişi listesi. entityType/entityId verilirse yalnızca o kaydın geçmişi gösterilir. */
