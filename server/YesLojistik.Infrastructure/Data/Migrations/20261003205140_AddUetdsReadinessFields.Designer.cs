@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using YesLojistik.Infrastructure.Data;
@@ -12,9 +13,11 @@ using YesLojistik.Infrastructure.Data;
 namespace YesLojistik.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261003205140_AddUetdsReadinessFields")]
+    partial class AddUetdsReadinessFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -303,10 +306,6 @@ namespace YesLojistik.Infrastructure.Data.Migrations
                     b.Property<DateOnly?>("LastDigestDate")
                         .HasColumnType("date")
                         .HasColumnName("last_digest_date");
-
-                    b.Property<string>("LicenseKey")
-                        .HasColumnType("text")
-                        .HasColumnName("license_key");
 
                     b.Property<string>("LogoDataUrl")
                         .HasColumnType("text")
@@ -3076,10 +3075,6 @@ namespace YesLojistik.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
-                    b.Property<DateTime?>("LastFailedLoginAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_failed_login_at");
-
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
@@ -3107,26 +3102,6 @@ namespace YesLojistik.Infrastructure.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("role");
-
-                    b.Property<bool>("TotpEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("totp_enabled");
-
-                    b.Property<DateTime?>("TotpEnabledAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("totp_enabled_at");
-
-                    b.Property<long?>("TotpLastStep")
-                        .HasColumnType("bigint")
-                        .HasColumnName("totp_last_step");
-
-                    b.Property<string>("TotpRecoveryHashes")
-                        .HasColumnType("text")
-                        .HasColumnName("totp_recovery_hashes");
-
-                    b.Property<string>("TotpSecretEnc")
-                        .HasColumnType("text")
-                        .HasColumnName("totp_secret_enc");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

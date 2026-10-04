@@ -4,17 +4,18 @@ using YesLojistik.Core.Entities;
 namespace YesLojistik.Infrastructure.EInvoice;
 
 /// <summary>
-/// Entegratör sözleşmesi yokken: XML üretilir ve indirilir, entegratör portalına / muhasebeciye elle verilir.
-/// Gönderim ve durum sorgusu yoktur; kullanıcı "Gönderildi olarak işaretle" der.
+/// Entegratör sözleşmesi yokken (<c>EInvoice:Provider=manual</c>): XML üretilir ve indirilir, e-Fatura portalına /
+/// muhasebeciye elle verilir. Gönderim ve durum sorgusu yoktur; kullanıcı "Gönderildi olarak işaretle" der.
 /// </summary>
-public class FileExportEInvoiceProvider : IEInvoiceProvider
+public class ManualXmlProvider : IEInvoiceProvider
 {
+    public string Key => "manual";
     public string Name => "Elle (XML indir)";
     public bool CanSend => false;
     public bool SupportsStatus => false;
     public bool SupportsRecipientCheck => false;
     public Task<EInvoiceResult> SendAsync(Invoice invoice, string ublXml, CancellationToken ct = default) =>
-        Task.FromResult(new EInvoiceResult(EInvoiceStatus.Ready, null, "XML'i indirip entegratör portalına yükleyin."));
+        Task.FromResult(new EInvoiceResult(EInvoiceStatus.Ready, null, "XML'i indirip e-Fatura portalına yükleyin."));
     public Task<EInvoiceResult> GetStatusAsync(Invoice invoice, CancellationToken ct = default) =>
         Task.FromResult(new EInvoiceResult(invoice.EInvoiceStatus));
     public Task<EInvoiceResult> CancelAsync(Invoice invoice, string reason, CancellationToken ct = default) =>
@@ -28,6 +29,7 @@ public class FileExportEInvoiceProvider : IEInvoiceProvider
 /// </summary>
 public class MockEInvoiceProvider : IEInvoiceProvider
 {
+    public string Key => "mock";
     public string Name => "Test (sahte entegratör)";
     public bool CanSend => true;
     public bool SupportsStatus => true;

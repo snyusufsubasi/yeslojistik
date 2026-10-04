@@ -93,6 +93,12 @@ public class TripsController(TripService trips) : ControllerBase
     [HttpGet("{id:int}")]
     public Task<TripDto> Get(int id, CancellationToken ct) => trips.GetAsync(id, ct);
 
+    /// <summary>
+    /// "U-ETDS'ye hazır mı?": bildirim için eksik ya da geçersiz bilgiler. Hazırlık kontrolüdür, Bakanlığa bir şey GÖNDERMEZ.
+    /// </summary>
+    [HttpGet("{id:int}/uetds-readiness")]
+    public Task<UetdsReadinessDto> UetdsReadiness(int id, [FromServices] UetdsService uetds, CancellationToken ct) => uetds.CheckAsync(id, ct);
+
     /// <summary>Sevk belgesi (irsaliye) PDF'i; fiyat bilgisi içermez.</summary>
     [HttpGet("{id:int}/waybill")]
     public async Task<IActionResult> Waybill(int id, [FromServices] WaybillPdfGenerator pdf, [FromQuery] bool download, CancellationToken ct)

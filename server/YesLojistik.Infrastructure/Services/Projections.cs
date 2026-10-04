@@ -17,5 +17,5 @@ public static class Projections
     public static readonly Expression<Func<Driver, DriverDto>> Driver = d => new DriverDto(d.Id, d.FullName, d.Phone,
         d.NationalId, d.LicenseClass, d.LicenseExpiry, d.SrcExpiry, d.PsychotechnicExpiry, d.IsActive,
         d.SupplierId, d.Supplier != null ? d.Supplier.Title : null, false, null,
-        d.LicenseNo, d.BirthYear, d.Address, d.IsForeign, d.Plate, d.Rating, d.Note);
+        d.LicenseNo, d.BirthYear, d.Address, d.IsForeign, d.Plate, d.Rating, d.Note, d.Nationality);
 }

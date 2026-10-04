@@ -42,6 +42,13 @@ public class Trip : BaseEntity
     public string? TrailerPlate { get; set; }
     public string? LoadingCity { get; set; }
     public string? DeliveryCity { get; set; }
+    // U-ETDS hazırlığı: ilçe, yükleme saati ve alıcı kimliği (gönderici = müşteri).
+    public string? LoadingDistrict { get; set; }
+    public string? DeliveryDistrict { get; set; }
+    public TimeOnly? LoadingTime { get; set; }
+    public string? ConsigneeTitle { get; set; }
+    /// <summary>Alıcının VKN (10) ya da TCKN (11).</summary>
+    public string? ConsigneeTaxNumber { get; set; }
     /// <summary>Yüklemede / teslimde görüşülecek kişi (ad, telefon).</summary>
     public string? LoadingContact { get; set; }
     public string? DeliveryContact { get; set; }

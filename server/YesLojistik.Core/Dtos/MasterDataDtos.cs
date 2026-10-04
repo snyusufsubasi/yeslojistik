@@ -57,12 +57,12 @@ public record DriverDto(int Id, string FullName, string? Phone, string? National
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,
     string? SupplierTitle = null, bool HasAppAccount = false, DateTime? LocationConsentAt = null,
     string? LicenseNo = null, int? BirthYear = null, string? Address = null, bool IsForeign = false, string? Plate = null,
-    DriverRating? Rating = null, string? Note = null);
+    DriverRating? Rating = null, string? Note = null, string? Nationality = null);
 
 public record DriverSaveRequest(string FullName, string? Phone, string? NationalId, string? LicenseClass,
     DateOnly? LicenseExpiry, DateOnly? SrcExpiry, DateOnly? PsychotechnicExpiry, bool IsActive, int? SupplierId = null,
     string? LicenseNo = null, int? BirthYear = null, string? Address = null, bool IsForeign = false, string? Plate = null,
-    DriverRating? Rating = null, string? Note = null);
+    DriverRating? Rating = null, string? Note = null, string? Nationality = null);
 
 /// <summary>Uninvoiced: faturası kesilmemiş seferler de ekstrede bilgi olarak listelenir.</summary>
 public record StatementEmailRequest(DateOnly? From, DateOnly? To, string? Recipient, string? Message, bool Uninvoiced = false);

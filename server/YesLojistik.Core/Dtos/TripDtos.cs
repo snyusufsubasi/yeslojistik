@@ -11,14 +11,16 @@ public record TripDto(int Id, int CustomerId, string CustomerTitle, int VehicleI
     string? LoadingContact = null, string? DeliveryContact = null, int? CarrierSupplierId = null, string? CarrierSupplierTitle = null,
     string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, string? ReceivedBy = null, DateTime? DeliveredAt = null,
     VehicleOwnership VehicleOwnership = VehicleOwnership.Own, int? JobRequestId = null, bool IsLegacy = false, TripTerms? Terms = null,
-    string? CommissionAccountName = null, DateOnly? InvoiceDate = null, string? CreatedBy = null);
+    string? CommissionAccountName = null, DateOnly? InvoiceDate = null, string? CreatedBy = null,
+    TripUetds? Uetds = null, int? UetdsMissing = null);
 
 public record TripSaveRequest(int CustomerId, int VehicleId, int DriverId, string LoadingAddress, string DeliveryAddress,
     DateOnly LoadingDate, DateOnly? DeliveryDate, string? Description, decimal VehicleCost, decimal SalePrice,
     string? CustomerReference = null, string? CargoType = null, decimal? CargoWeightKg = null, int? CargoQuantity = null,
     string? CargoUnit = null, string? TrailerPlate = null, string? LoadingCity = null, string? DeliveryCity = null,
     string? LoadingContact = null, string? DeliveryContact = null, int? CarrierSupplierId = null,
-    string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, int? JobRequestId = null, TripTerms? Terms = null);
+    string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, int? JobRequestId = null, TripTerms? Terms = null,
+    TripUetds? Uetds = null);
 
 /// <summary>
 /// Seferin ticari koşulları (eski paneldeki fiyat, komisyon, masraf ve evrak alanları). Tutarlar KDV hariç.
@@ -36,6 +38,13 @@ public record TripTerms(
     double? LoadingLatitude = null, double? LoadingLongitude = null, double? DeliveryLatitude = null, double? DeliveryLongitude = null,
     int? DistanceKm = null, bool HideCarrierPrice = false, string? InvoiceFooterNote = null, bool ShowFooterNote = false,
     string? DeliveredBy = null, string? PaymentTerms = null, string? ExternalRef = null);
+
+/// <summary>
+/// U-ETDS hazırlığı için seferde tutulan ek bilgiler (ilçeler, yükleme saati, alıcı). Kayıtta boş (null) gelirse mevcut değerler korunur.
+/// Gönderici = müşteri. Hiçbir yere gönderilmez.
+/// </summary>
+public record TripUetds(string? LoadingDistrict = null, string? DeliveryDistrict = null, TimeOnly? LoadingTime = null,
+    string? ConsigneeTitle = null, string? ConsigneeTaxNumber = null);
 
 /// <summary>Sefer durum zaman çizelgesi satırı.</summary>
 public record TripEventDto(long Id, TripStatus Status, DateTime OccurredAt, DateTime RecordedAt, string? UserName,
@@ -81,6 +90,8 @@ public record TripQuery : ListQuery
     public string? InvoiceNo { get; init; }
     /// <summary>Teslim evrakı var (teslim evrak no girilmiş ya da sefere belge yüklenmiş) / yok.</summary>
     public bool? HasDeliveryDocument { get; init; }
+    /// <summary>U-ETDS hazırlığı eksik olan, henüz teslim edilmemiş seferler (iptal ve eski kayıtlar sayılmaz).</summary>
+    public bool? UetdsMissing { get; init; }
 }
 
 /// <summary>Müşterinin daha önce kullanılmış bir yükleme / teslim adresi (kaç seferde geçtiğiyle).</summary>

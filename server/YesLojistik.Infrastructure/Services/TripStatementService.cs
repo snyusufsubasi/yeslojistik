@@ -20,7 +20,7 @@ public class TripStatementService(AppDbContext db, TripService trips)
 
     public async Task<List<TripStatementLine>> LinesAsync(TripQuery q, CancellationToken ct = default)
     {
-        var query = trips.Filter(q).Where(t => t.Status != TripStatus.Cancelled);
+        var query = (await trips.FilterAsync(q, ct)).Where(t => t.Status != TripStatus.Cancelled);
         var count = await query.CountAsync(ct);
         if (count > MaxTrips)
             throw new DomainException($"Filtrede {count} sefer var. Belge en fazla {MaxTrips} sefer alır; tarih aralığını daraltın.");

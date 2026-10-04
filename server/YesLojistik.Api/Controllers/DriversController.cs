@@ -154,7 +154,8 @@ public class DriversController(AppDbContext db) : ControllerBase
         d.SupplierId = r.SupplierId;
         d.FullName = r.FullName.Trim();
         d.Phone = Formatters.NormalizePhone(r.Phone);
-        d.NationalId = CustomersController.NullIfEmpty(r.NationalId);
+        d.NationalId = CustomersController.NullIfEmpty(r.NationalId)?.ToUpperInvariant();
+        d.Nationality = CustomersController.NullIfEmpty(r.Nationality);
         d.LicenseClass = CustomersController.NullIfEmpty(r.LicenseClass)?.ToUpperInvariant();
         d.LicenseExpiry = r.LicenseExpiry;
         d.SrcExpiry = r.SrcExpiry;

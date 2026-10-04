@@ -171,7 +171,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.HasIndex(x => x.LegacyKey);
             e.Property(x => x.FullName).HasMaxLength(100);
             e.Property(x => x.Phone).HasMaxLength(20);
-            e.Property(x => x.NationalId).HasMaxLength(11);
+            e.Property(x => x.NationalId).HasMaxLength(20); // TCKN 11 hane; yabancı şoförde pasaport/kimlik no
+            e.Property(x => x.Nationality).HasMaxLength(60);
             e.Property(x => x.LicenseClass).HasMaxLength(20);
             e.HasOne(x => x.Supplier).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.Property(x => x.LicenseNo).HasMaxLength(30);
@@ -199,6 +200,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.TrailerPlate).HasMaxLength(15);
             e.Property(x => x.LoadingCity).HasMaxLength(30);
             e.Property(x => x.DeliveryCity).HasMaxLength(30);
+            e.Property(x => x.LoadingDistrict).HasMaxLength(60);
+            e.Property(x => x.DeliveryDistrict).HasMaxLength(60);
+            e.Property(x => x.ConsigneeTitle).HasMaxLength(150);
+            e.Property(x => x.ConsigneeTaxNumber).HasMaxLength(11);
             e.Property(x => x.LoadingContact).HasMaxLength(150);
             e.Property(x => x.DeliveryContact).HasMaxLength(150);
             e.Property(x => x.CarrierInvoiceNo).HasMaxLength(50);

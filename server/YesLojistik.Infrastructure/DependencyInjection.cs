@@ -9,12 +9,13 @@ namespace YesLojistik.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads", string storageProvider = "Database", string eInvoiceProvider = "FileExport")
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string storagePath = "data/uploads", string storageProvider = "Database", string eInvoiceProvider = EInvoice.EInvoiceProviders.Default)
     {
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
         services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString).UseSnakeCaseNamingConvention());
         services.AddScoped<BalanceService>();
+        services.AddScoped<UetdsService>();
         services.AddScoped<TripService>();
         services.AddScoped<JobRequestService>();
         services.AddScoped<InvoiceService>();
@@ -53,10 +54,8 @@ public static class DependencyInjection
             services.AddSingleton<IFileStorage>(new LocalFileStorage(storagePath));
         else
             services.AddScoped<IFileStorage, DatabaseFileStorage>();
-        // e-Fatura sağlayıcısı: FileExport (varsayılan, XML elle yüklenir) ya da Mock (yalnızca geliştirme/test).
-        // Gerçek entegratör sözleşmesinden sonra buraya adaptörü eklenir (docs/E-FATURA.md).
-        if (eInvoiceProvider.Equals("Mock", StringComparison.OrdinalIgnoreCase)) services.AddSingleton<IEInvoiceProvider, EInvoice.MockEInvoiceProvider>();
-        else services.AddSingleton<IEInvoiceProvider, EInvoice.FileExportEInvoiceProvider>();
+        // e-Fatura sağlayıcısı: EInvoice:Provider ile seçilir (varsayılan manual). Kayıt tablosu: EInvoice/EInvoiceProviders.cs.
+        EInvoice.EInvoiceProviders.Register(services, eInvoiceProvider);
         services.AddScoped<EInvoice.EInvoiceService>();
         return services;
     }

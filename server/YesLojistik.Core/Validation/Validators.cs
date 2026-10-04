@@ -183,7 +183,11 @@ public class DriverSaveRequestValidator : AbstractValidator<DriverSaveRequest>
         RuleFor(x => x.FullName).NotEmpty().WithMessage("Ad soyad zorunlu.").MaximumLength(100);
         RuleFor(x => x.Phone).ValidPhone();
         RuleFor(x => x.NationalId).Must(v => TaxNumberValidator.IsValidTckn(v!)).WithMessage("Geçersiz TC kimlik numarası.")
-            .When(x => !string.IsNullOrWhiteSpace(x.NationalId));
+            .When(x => !x.IsForeign && !string.IsNullOrWhiteSpace(x.NationalId));
+        // Yabancı şoförde TCKN yerine pasaport / kimlik numarası (serbest biçim).
+        RuleFor(x => x.NationalId).Must(v => UetdsReadiness.IsValidForeignId(v!.Trim())).WithMessage("Pasaport / kimlik no 5-20 harf veya rakam olmalı.")
+            .When(x => x.IsForeign && !string.IsNullOrWhiteSpace(x.NationalId));
+        RuleFor(x => x.Nationality).MaximumLength(60);
         RuleFor(x => x.LicenseClass).MaximumLength(20);
         RuleFor(x => x.LicenseNo).MaximumLength(30);
         RuleFor(x => x.Address).MaximumLength(300);
@@ -248,6 +252,19 @@ public class TripSaveRequestValidator : AbstractValidator<TripSaveRequest>
         RuleFor(x => x.DeliveryContact).MaximumLength(150);
         RuleFor(x => x.CarrierInvoiceNo).MaximumLength(50);
         RuleFor(x => x.Terms!).SetValidator(new TripTermsValidator()).When(x => x.Terms != null);
+        RuleFor(x => x.Uetds!).SetValidator(new TripUetdsValidator()).When(x => x.Uetds != null);
+    }
+}
+
+public class TripUetdsValidator : AbstractValidator<TripUetds>
+{
+    public TripUetdsValidator()
+    {
+        RuleFor(x => x.LoadingDistrict).MaximumLength(60);
+        RuleFor(x => x.DeliveryDistrict).MaximumLength(60);
+        RuleFor(x => x.ConsigneeTitle).MaximumLength(150);
+        RuleFor(x => x.ConsigneeTaxNumber).Must(v => TaxNumberValidator.IsValid(v!.Trim())).WithMessage("Alıcı için geçerli bir VKN (10 hane) ya da TCKN (11 hane) girin.")
+            .When(x => !string.IsNullOrWhiteSpace(x.ConsigneeTaxNumber));
     }
 }
 

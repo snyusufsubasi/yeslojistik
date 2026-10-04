@@ -8,7 +8,7 @@ using YesLojistik.Infrastructure.Data;
 
 namespace YesLojistik.Infrastructure.Services;
 
-public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotifier customerNotifier, ICurrentUser? current = null)
+public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotifier customerNotifier, UetdsService uetds, ICurrentUser? current = null)
 {
     private static readonly Dictionary<string, Expression<Func<Trip, object?>>> SortMap = new()
     {
@@ -45,7 +45,8 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             TripStatusRules.NextStatuses(t.Status), t.InvoiceId, r.InvoiceNo, t.CustomerReference, t.CargoType, t.CargoWeightKg,
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
-            t.JobRequestId, t.IsLegacy, TermsOf(t), r.CommissionAccountName, r.InvoiceDate, t.CreatedBy);
+            t.JobRequestId, t.IsLegacy, TermsOf(t), r.CommissionAccountName, r.InvoiceDate, t.CreatedBy,
+            new TripUetds(t.LoadingDistrict, t.DeliveryDistrict, t.LoadingTime, t.ConsigneeTitle, t.ConsigneeTaxNumber));
     }
 
     private static TripTerms TermsOf(Trip t) => new(t.SaleVatRate, t.SaleWithholdingTenths, t.CostVatRate, t.CostWithholdingTenths,
@@ -54,6 +55,17 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         t.DriverBonus, t.CustomerPays, t.CustomerGroup, t.DeliveryDocumentNo, t.DeliveryDocumentApproved, t.WaybillNo,
         t.EWaybillNo, t.EWaybillDate, t.LoadingLatitude, t.LoadingLongitude, t.DeliveryLatitude, t.DeliveryLongitude,
         t.DistanceKm, t.HideCarrierPrice, t.InvoiceFooterNote, t.ShowFooterNote, t.DeliveredBy, t.PaymentTerms, t.ExternalRef);
+
+    /// <summary>
+    /// <see cref="Filter"/> + U-ETDS süzgeci (eksik hazırlık, kural kodda olduğu için SQL'e çevrilemez; önce numaralar bulunur).
+    /// </summary>
+    public async Task<IQueryable<Trip>> FilterAsync(TripQuery q, CancellationToken ct = default)
+    {
+        var query = Filter(q);
+        if (q.UetdsMissing != true) return query;
+        var ids = await uetds.MissingTripIdsAsync(query, ct);
+        return query.Where(t => ids.Contains(t.Id));
+    }
 
     public IQueryable<Trip> Filter(TripQuery q)
     {
@@ -116,7 +128,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     /// <summary>Filtredeki seferlerin kazanç tablosu (eski paneldeki "Kazanç Tablosu"). İptal edilen seferler sayılmaz.</summary>
     public async Task<TripTotalsDto> TotalsAsync(TripQuery q, CancellationToken ct = default)
     {
-        var rows = await Filter(q).Where(t => t.Status != TripStatus.Cancelled).Select(t => new
+        var rows = await (await FilterAsync(q, ct)).Where(t => t.Status != TripStatus.Cancelled).Select(t => new
         {
             Money = new TripMoney(t.SalePrice, t.VehicleCost, t.Commission, t.DriverBonus, t.ExtraCharge, t.ExtraChargeInvoiced,
                 Money.Round(t.Expenses.AsQueryable().Where(e => e.ApprovalStatus == ApprovalStatus.Approved).Select(ExpenseVat.NetAmount).Sum()),
@@ -133,11 +145,15 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
     /// <param name="export">Excel için: sayfa boyutu sınırı <see cref="QueryExtensions.ExportLimit"/> olur.</param>
     public async Task<PagedResult<TripDto>> ListAsync(TripQuery q, CancellationToken ct = default, bool export = false)
     {
-        var (rows, total, page, size) = await Filter(q)
+        var (rows, total, page, size) = await (await FilterAsync(q, ct))
             .ApplySort(q.Sort, q.Desc, SortMap, "loadingDate")
             .Select(Projection)
             .PageAsync(q, ct, export ? QueryExtensions.ExportLimit : QueryExtensions.MaxPageSize);
-        return new PagedResult<TripDto>(rows.Select(ToDto).ToList(), total, page, size);
+        var dtos = rows.Select(ToDto).ToList();
+        if (export) return new PagedResult<TripDto>(dtos, total, page, size);
+        // Listedeki "U-ETDS eksik" işareti: yalnızca bu sayfadaki seferler için hesaplanır.
+        var missing = await uetds.MissingCountsAsync(dtos.Select(d => d.Id).ToList(), ct);
+        return new PagedResult<TripDto>(dtos.Select(d => missing.TryGetValue(d.Id, out var n) ? d with { UetdsMissing = n } : d).ToList(), total, page, size);
     }
 
 
@@ -474,6 +490,15 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         t.TrailerPlate = Formatters.NormalizePlate(r.TrailerPlate) ?? Clean(r.TrailerPlate)?.ToUpper(Formatters.Tr);
         t.LoadingCity = Cities.Normalize(r.LoadingCity);
         t.DeliveryCity = Cities.Normalize(r.DeliveryCity);
+        // U-ETDS hazırlığı: istek göndermeyen istemciler (eski uygulama sürümü) mevcut değerleri silmez.
+        if (r.Uetds is { } u)
+        {
+            t.LoadingDistrict = Clean(u.LoadingDistrict);
+            t.DeliveryDistrict = Clean(u.DeliveryDistrict);
+            t.LoadingTime = u.LoadingTime;
+            t.ConsigneeTitle = Clean(u.ConsigneeTitle);
+            t.ConsigneeTaxNumber = Clean(u.ConsigneeTaxNumber);
+        }
         t.LoadingContact = Clean(r.LoadingContact);
         t.DeliveryContact = Clean(r.DeliveryContact);
         t.CarrierInvoiceNo = Clean(r.CarrierInvoiceNo);

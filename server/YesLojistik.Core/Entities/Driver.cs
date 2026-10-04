@@ -18,6 +18,8 @@ public class Driver : BaseEntity
     public int? BirthYear { get; set; }
     public string? Address { get; set; }
     public bool IsForeign { get; set; }
+    /// <summary>Uyruk (yabancı şoförde zorunlu sayılır; boşsa T.C.). U-ETDS hazırlığı için.</summary>
+    public string? Nationality { get; set; }
     /// <summary>Şoförün genelde kullandığı plaka (taşeron şoförlerinde araç kaydı olmayabilir).</summary>
     public string? Plate { get; set; }
     public DriverRating? Rating { get; set; }

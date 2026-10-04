@@ -13,7 +13,8 @@ using YesLojistik.Infrastructure.Services;
 
 namespace YesLojistik.Api.Controllers;
 
-public record EInvoiceInfoDto(string ProviderName, bool CanSend, bool SupportsStatus, bool SupportsRecipientCheck, bool ApiKeyConfigured);
+public record EInvoiceInfoDto(string ProviderName, bool CanSend, bool SupportsStatus, bool SupportsRecipientCheck, bool ApiKeyConfigured,
+    string ProviderKey = "manual", bool SupportsDownload = false);
 
 /// <summary>e-Fatura / e-Arşiv işlemleri: XML indirme, gönderme, elle işaretleme, durum ve iptal; mükellef sorgusu.</summary>
 [ApiController]
@@ -23,7 +24,7 @@ public class EInvoiceController(EInvoiceService service, InvoiceService invoices
 {
     [HttpGet("einvoice/info")]
     public EInvoiceInfoDto Info() => new(provider.Name, provider.CanSend, provider.SupportsStatus, provider.SupportsRecipientCheck,
-        !string.IsNullOrWhiteSpace(config["EInvoice:ApiKey"]));
+        !string.IsNullOrWhiteSpace(config["EInvoice:ApiKey"]), provider.Key, provider.SupportsDownload);
 
     [HttpGet("invoices/{id:int}/einvoice/xml")]
     public async Task<IActionResult> Xml(int id, CancellationToken ct)

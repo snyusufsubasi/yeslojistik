@@ -33,7 +33,7 @@ var connectionString = HostingSupport.NormalizeConnectionString(builder.Configur
 if (string.IsNullOrWhiteSpace(builder.Configuration["App:PublicUrl"]) && builder.Configuration["RENDER_EXTERNAL_URL"] is { Length: > 0 } externalUrl)
     builder.Configuration["App:PublicUrl"] = externalUrl;
 builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads",
-    builder.Configuration["Storage:Provider"] ?? "Database", builder.Configuration["EInvoice:Provider"] ?? "FileExport");
+    builder.Configuration["Storage:Provider"] ?? "Database", builder.Configuration["EInvoice:Provider"] ?? "manual");
 builder.Services.AddSingleton<MaintenanceState>();
 builder.Services.AddHostedService<LocationRetentionService>();
 builder.Services.AddHostedService<DailyDigestWorker>();
