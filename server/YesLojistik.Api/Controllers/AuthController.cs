@@ -14,13 +14,15 @@ namespace YesLojistik.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 public class AuthController(AppDbContext db, TokenService tokens, IPasswordHasher<User> hasher, ICurrentUser current,
-    IEmailSender email, IConfiguration config, ILogger<AuthController> log) : ControllerBase
+    IEmailSender email, IConfiguration config, ILogger<AuthController> log, TwoFactorService twoFactor) : ControllerBase
 {
     public const int MaxFailedLogins = 5;
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
     /// <summary>
-    /// Ortak giriş kontrolü: şifre, pasif hesap ve kilit. 5 hatalı denemede hesap 15 dakika kilitlenir; başarılı girişte sayaç sıfırlanır.
+    /// Ortak giriş kontrolü: şifre, pasif hesap ve kilit. 15 dakika içinde 5 hatalı denemede hesap 15 dakika kilitlenir;
+    /// başarılı girişte sayaç sıfırlanır. İki adımlı doğrulaması açık hesapta sayaç ve son giriş zamanı ikinci adım
+    /// (/api/auth/2fa/verify) bitince güncellenir; böylece şifre bilen biri kod denemelerini sıfırlayamaz.
     /// </summary>
     private async Task<(User? User, ObjectResult? Error)> VerifyAsync(LoginRequest req, CancellationToken ct)
     {
@@ -28,17 +30,16 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == mail, ct);
         if (user == null)
             return (null, Problem(title: "E-posta veya şifre hatalı.", statusCode: StatusCodes.Status401Unauthorized));
-        if (user.LockoutUntil > DateTime.UtcNow)
+        var now = DateTime.UtcNow;
+        if (LoginGuard.IsLocked(user, now))
             return (null, Problem(title: "Çok fazla hatalı deneme yapıldı. 15 dakika sonra tekrar deneyin ya da yöneticinizden kilidi açmasını isteyin.",
                 statusCode: StatusCodes.Status429TooManyRequests));
         var result = hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password);
         if (result == PasswordVerificationResult.Failed)
         {
-            user.FailedLoginCount++;
-            if (user.FailedLoginCount >= MaxFailedLogins)
+            if (LoginGuard.RegisterFailure(user, now))
             {
-                user.LockoutUntil = DateTime.UtcNow.Add(LockoutDuration);
-                user.FailedLoginCount = 0;
+                db.AuditLogs.Add(TwoFactorService.Audit(user, "AccountLocked", "Hatalı şifre nedeniyle hesap 15 dakika kilitlendi", "sistem"));
                 log.LogWarning("Hesap kilitlendi: kullanıcı {UserId}", user.Id);
             }
             await db.SaveChangesAsync(ct);
@@ -47,22 +48,29 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
         if (!user.IsActive)
             return (null, Problem(title: "Hesabınız pasif durumda. Yöneticinizle iletişime geçin.", statusCode: StatusCodes.Status403Forbidden));
         if (result == PasswordVerificationResult.SuccessRehashNeeded) user.PasswordHash = hasher.HashPassword(user, req.Password);
-        user.FailedLoginCount = 0;
-        user.LockoutUntil = null;
-        user.LastLoginAt = DateTime.UtcNow;
+        if (!user.TotpEnabled)
+        {
+            LoginGuard.Reset(user);
+            user.LastLoginAt = now;
+        }
         await db.SaveChangesAsync(ct);
         return (user, null);
     }
 
+    /// <summary>İki adımlı doğrulaması açık hesap için oturum yerine kısa ömürlü meydan okuma belirteci döner.</summary>
+    private IActionResult TwoFactorChallenge(User user, bool mobile) =>
+        Ok(new TwoFactorRequiredResponse(true, twoFactor.CreateChallenge(user.Id, mobile, DateTime.UtcNow)));
+
     [AllowAnonymous]
     [EnableRateLimiting("login")]
     [HttpPost("login")]
-    public async Task<ActionResult<CurrentUserDto>> Login(LoginRequest req, CancellationToken ct)
+    public async Task<IActionResult> Login(LoginRequest req, CancellationToken ct)
     {
         var (user, error) = await VerifyAsync(req, ct);
         if (user == null) return error!;
+        if (user.TotpEnabled) return TwoFactorChallenge(user, mobile: false);
         await IssueAsync(user, ct);
-        return ToDto(user);
+        return Ok(ToDto(user));
     }
 
     [AllowAnonymous]
@@ -94,11 +102,12 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
     [AllowAnonymous]
     [EnableRateLimiting("login")]
     [HttpPost("token")]
-    public async Task<ActionResult<TokenLoginResponse>> Token(LoginRequest req, CancellationToken ct)
+    public async Task<IActionResult> Token(LoginRequest req, CancellationToken ct)
     {
         var (user, error) = await VerifyAsync(req, ct);
         if (user == null) return error!;
-        return await TokenResponseAsync(user, ct);
+        if (user.TotpEnabled) return TwoFactorChallenge(user, mobile: true);
+        return Ok(await TokenResponseAsync(user, ct));
     }
 
     [AllowAnonymous]
@@ -186,8 +195,7 @@ public class AuthController(AppDbContext db, TokenService tokens, IPasswordHashe
             return Problem(title: "Bağlantının süresi dolmuş ya da daha önce kullanılmış. Yeniden \"Şifremi unuttum\" deyin.", statusCode: StatusCodes.Status400BadRequest);
         token.UsedAt = DateTime.UtcNow;
         token.User.PasswordHash = hasher.HashPassword(token.User, req.NewPassword);
-        token.User.FailedLoginCount = 0;
-        token.User.LockoutUntil = null;
+        LoginGuard.Reset(token.User);
         await db.SaveChangesAsync(ct);
         await tokens.RevokeAllAsync(token.User.Id, ct);
         return NoContent();

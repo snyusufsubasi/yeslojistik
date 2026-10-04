@@ -45,6 +45,7 @@ if (!builder.Configuration.GetValue("Push:Enabled", true))
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<TwoFactorService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddProblemDetails();

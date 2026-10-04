@@ -17,6 +17,18 @@ public class User : BaseEntity
     /// <summary>Art arda hatalı giriş sayısı; 5'te hesap 15 dakika kilitlenir.</summary>
     public int FailedLoginCount { get; set; }
     public DateTime? LockoutUntil { get; set; }
+    /// <summary>Son hatalı girişin zamanı: 15 dakikadan eski hatalar sayılmaz.</summary>
+    public DateTime? LastFailedLoginAt { get; set; }
+
+    // --- İki adımlı doğrulama (TOTP, RFC 6238) ---
+    /// <summary>Doğrulayıcı uygulama anahtarı, şifreli (AES-GCM). Kurulum başladığında dolar; TotpEnabled true olunca geçerlidir.</summary>
+    public string? TotpSecretEnc { get; set; }
+    public bool TotpEnabled { get; set; }
+    /// <summary>En son kabul edilen 30 sn'lik adım: aynı kod ikinci kez kullanılamaz.</summary>
+    public long? TotpLastStep { get; set; }
+    /// <summary>Kurtarma kodlarının özetleri (JSON dizi). Kullanılan kod listeden silinir.</summary>
+    public string? TotpRecoveryHashes { get; set; }
+    public DateTime? TotpEnabledAt { get; set; }
 }
 
 /// <summary>"Şifremi unuttum" bağlantısı: 30 dakika geçerli, tek kullanımlık; yalnızca özeti (hash) saklanır.</summary>

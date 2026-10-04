@@ -143,7 +143,7 @@
 | Abonelik, ödeme alma, paketler | ❌ | |
 | Deneme sürümü (14-30 gün), demo veri | 🟡 | Örnek veri var; hesap açma akışı yok |
 | Rol ve yetki | ✅ | Yönetici, operasyon, muhasebe, şoför. Daha ince ayar eksik |
-| İki adımlı doğrulama (2FA) | ❌ | |
+| İki adımlı doğrulama (2FA) | ✅ | TOTP, kurtarma kodları, hesap kilidi (Ayarlar → Güvenlik) |
 | Denetim kaydı (kim ne yaptı) | ✅ | |
 | Yedekleme | ✅ | Günlük yedek; müşteri kendi verisini indirebilmeli |
 | Hata izleme, durum sayfası | 🟡 | |

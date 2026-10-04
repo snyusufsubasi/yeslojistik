@@ -15,6 +15,14 @@ const actionLabel: Record<string, { text: string; tone: 'green' | 'blue' | 'red'
   Deleted: { text: 'Sildi', tone: 'red' },
   Reset: { text: 'Sıfırladı', tone: 'orange' },
   License: { text: 'Lisans', tone: 'blue' },
+  TwoFactorEnabled: { text: '2 adımlı doğrulamayı açtı', tone: 'green' },
+  TwoFactorDisabled: { text: '2 adımlı doğrulamayı kapattı', tone: 'orange' },
+  LoginFailed: { text: 'Hatalı giriş', tone: 'red' },
+  LoginRecovery: { text: 'Kurtarma koduyla girdi', tone: 'orange' },
+  AccountLocked: { text: 'Hesap kilitlendi', tone: 'red' },
+  DataExport: { text: 'Verileri indirdi', tone: 'blue' },
+  CloseRequested: { text: 'Kapatma talebi', tone: 'red' },
+  CloseCancelled: { text: 'Kapatma talebinden vazgeçti', tone: 'blue' },
 }
 
 /** İşlem geçmişi listesi. entityType/entityId verilirse yalnızca o kaydın geçmişi gösterilir. */

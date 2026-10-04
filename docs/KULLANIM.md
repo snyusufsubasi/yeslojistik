@@ -177,8 +177,26 @@ varsayılan KDV/tevkifat ve vade süresi ayarlanır.
 ## Hesap güvenliği ve KVKK
 
 - **Şifremi unuttum:** Giriş ekranındaki bağlantı, e-posta ayarlıysa 30 dakika geçerli, tek kullanımlık bir sıfırlama bağlantısı gönderir. E-posta ayarlı değilse yönetici **Ayarlar → Kullanıcılar**'dan yeni şifre verir.
-- **Hesap kilidi:** Aynı hesaba 5 hatalı giriş denemesinde hesap 15 dakika kilitlenir. Yönetici Kullanıcılar listesindeki **Kilidi aç** ile hemen açabilir; **Oturumları kapat** o kullanıcının tüm cihazlardaki oturumunu sonlandırır.
+- **Hesap kilidi:** Aynı hesaba 15 dakika içinde 5 hatalı giriş (şifre ya da kod) olursa hesap 15 dakika kilitlenir; kilit işlem geçmişine yazılır. Yönetici Kullanıcılar listesindeki **Kilidi aç** ile hemen açabilir; **Oturumları kapat** o kullanıcının tüm cihazlardaki oturumunu sonlandırır.
+- **Şifre kuralı:** En az 8 karakter, harf ve rakam içermeli. "password1", "qwerty123" gibi çok bilinen şifreler kabul edilmez.
 - **Gizlilik ve KVKK:** `/gizlilik` (aydınlatma metni) ve `/hesap-silme` sayfaları herkese açıktır; firma bilgileri Ayarlar'dan gelir. Metin bir şablondur: avukat/mali müşavir gözden geçirmeli, VERBİS kaydı gerekip gerekmediği teyit edilmelidir.
+
+## İki adımlı doğrulama (önerilir)
+
+Şifre çalınsa bile hesaba girilemesin diye, girişte telefondaki uygulamanın 6 haneli kodu da istenir. Özellikle yönetici hesapları için açın.
+
+1. **Ayarlar → Güvenlik → İki adımlı doğrulamayı aç**'a basın.
+2. Telefonunuza *Google Authenticator* ya da *Microsoft Authenticator* kurun, uygulamada hesap ekleyip ekrandaki kareyi okutun (okunmazsa altındaki anahtarı elle girin).
+3. Uygulamanın gösterdiği 6 haneli kodu yazıp **Doğrula ve aç**'a basın.
+4. Ekranda 10 **kurtarma kodu** çıkar. **Kopyala** ya da **İndir** ile saklayın ve güvenli bir yerde tutun; bir daha gösterilmez. Telefonunuzu kaybederseniz her kod bir kez giriş yapmanızı sağlar.
+
+Sonra girişte önce e-posta ve şifre, ardından kod sorulur. Kapatmak için aynı yerde şifrenizi ve bir kodu yazarsınız. Telefonunu ve kodlarını kaybeden bir çalışan için yönetici **Ayarlar → Kullanıcılar → 2 adımlıyı sıfırla** der; çalışan yeniden kurar. Şoför hesaplarında bu özellik yoktur (mobil uygulama kullanır).
+
+## Verilerimi indir ve hesabı kapatma
+
+*Ayarlar → Veri ve hesap* (yalnızca yönetici):
+- **Tüm verilerimi indir:** müşteriler, tedarikçiler, şoförler, araçlar, sevkiyatlar, faturalar (satırlarıyla), alış faturaları, tahsilatlar, tedarikçi ödemeleri, giderler, kasa/banka ve personel kayıtlarını Excel'de açılan dosyalar olarak bir ZIP içinde indirir. Şifreler pakete girmez. İçinde müşteri ve şoför bilgisi vardır; güvenli saklayın. Her indirme işlem geçmişine yazılır.
+- **Hesabı kapatma talebi:** firma adını yazarak onaylarsınız. Talep alındığında hiçbir şey hemen silinmez; verileriniz 30 gün içinde silinir, bu sürede talebi **geri çekebilirsiniz**. Silmeden önce verilerinizi indirmenizi öneririz. (Silme işlemini şimdilik destek ekibi elle yapar.)
 
 ## e-Fatura ve muhasebe aktarımı
 

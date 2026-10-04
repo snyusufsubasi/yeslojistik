@@ -17,7 +17,9 @@ interface AuthState {
   /** Sunucuya uzun süre ulaşılamadıysa son hata; oturum kapatılmaz, "Tekrar dene" ile `retry` çağrılır. */
   unreachable: unknown
   retry: () => void
-  login: (email: string, password: string) => Promise<void>
+  /** İki adımlı doğrulaması açık hesapta oturum açılmaz; ikinci adım için `challengeToken` döner. */
+  login: (email: string, password: string) => Promise<{ challengeToken?: string }>
+  completeTwoFactor: (challengeToken: string, code: string) => Promise<void>
   logout: () => Promise<void>
   can: (p: Permission) => boolean
 }
@@ -58,7 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retry = useCallback(() => { setUnreachable(null); setLoading(true); setAttemptKey((k) => k + 1) }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    setUser(await post<CurrentUser>('/auth/login', { email, password }))
+    const res = await post<CurrentUser | { twoFactorRequired: true; challengeToken: string }>('/auth/login', { email, password })
+    if ('twoFactorRequired' in res) return { challengeToken: res.challengeToken }
+    setUser(res)
+    return {}
+  }, [])
+
+  const completeTwoFactor = useCallback(async (challengeToken: string, code: string) => {
+    setUser(await post<CurrentUser>('/auth/2fa/verify', { challengeToken, code }))
   }, [])
 
   const logout = useCallback(async () => {
@@ -67,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const can = useCallback((p: Permission) => !!user && permissionRoles[p].includes(user.role), [user])
 
-  const value = useMemo(() => ({ user, loading, unreachable, retry, login, logout, can }), [user, loading, unreachable, retry, login, logout, can])
+  const value = useMemo(() => ({ user, loading, unreachable, retry, login, completeTwoFactor, logout, can }), [user, loading, unreachable, retry, login, completeTwoFactor, logout, can])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

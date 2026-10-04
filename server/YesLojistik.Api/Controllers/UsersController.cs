@@ -20,16 +20,28 @@ public class UsersController(AppDbContext db, IPasswordHasher<User> hasher, Toke
     public async Task<List<UserDto>> List(CancellationToken ct) =>
         await db.Users.AsNoTracking().OrderBy(u => u.FullName)
             .Select(u => new UserDto(u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.CreatedAt, u.DriverId,
-                u.Driver != null ? u.Driver.FullName : null, u.LockoutUntil > DateTime.UtcNow ? u.LockoutUntil : null, u.LastLoginAt)).ToListAsync(ct);
+                u.Driver != null ? u.Driver.FullName : null, u.LockoutUntil > DateTime.UtcNow ? u.LockoutUntil : null, u.LastLoginAt, u.TotpEnabled)).ToListAsync(ct);
 
     /// <summary>Hatalı denemeler yüzünden kilitlenen hesabın kilidini açar.</summary>
     [HttpPost("{id:int}/unlock")]
     public async Task<IActionResult> Unlock(int id, CancellationToken ct)
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) ?? throw new NotFoundException("Kullanıcı bulunamadı.");
-        user.LockoutUntil = null;
-        user.FailedLoginCount = 0;
+        LoginGuard.Reset(user);
         await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    /// <summary>Telefonunu ve kurtarma kodlarını kaybeden kullanıcının iki adımlı doğrulamasını kapatır (kullanıcı yeniden kurabilir).</summary>
+    [HttpPost("{id:int}/reset-2fa")]
+    public async Task<IActionResult> ResetTwoFactor(int id, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) ?? throw new NotFoundException("Kullanıcı bulunamadı.");
+        if (!user.TotpEnabled) throw new DomainException("Bu kullanıcıda iki adımlı doğrulama zaten kapalı.");
+        TwoFactorController.Clear(user);
+        db.AuditLogs.Add(TwoFactorService.Audit(user, "TwoFactorDisabled", "İki adımlı doğrulama yönetici tarafından sıfırlandı", current.Name));
+        await db.SaveChangesAsync(ct);
+        await tokens.RevokeAllAsync(id, ct);
         return NoContent();
     }
 

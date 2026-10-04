@@ -8,7 +8,7 @@ import { Logo } from '../components/Logo'
 import { useAuth } from '../lib/auth'
 
 export default function LoginPage() {
-  const { user, login } = useAuth()
+  const { user, login, completeTwoFactor } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -16,6 +16,9 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [show, setShow] = useState(false)
+  /** İkinci adım: şifre doğru, doğrulama kodu bekleniyor. */
+  const [challenge, setChallenge] = useState<string | null>(null)
+  const [code, setCode] = useState('')
   const from = (location.state as { from?: string } | null)?.from ?? '/'
   usePageTitle('Giriş')
 
@@ -26,7 +29,12 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      if (challenge) {
+        await completeTwoFactor(challenge, code)
+      } else {
+        const r = await login(email, password)
+        if (r.challengeToken) { setChallenge(r.challengeToken); setCode(''); return }
+      }
       navigate(from, { replace: true })
     } catch (err) {
       setError(errorMessage(err))
@@ -40,6 +48,15 @@ export default function LoginPage() {
       <form onSubmit={submit} className="w-full max-w-sm rounded-[4px] border-t-[3px] border-hl bg-white p-6 shadow-lg sm:p-8">
         <Logo dark size="lg" className="mb-1.5 justify-center" />
         <p className="mb-7 text-center text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-muted">Nakliye Takip Sistemi</p>
+        {challenge ? (
+          <>
+            <p className="mb-4 text-[0.9375rem] text-slate-700">Telefonunuzdaki doğrulama uygulamasının 6 haneli kodunu yazın. Telefonunuza ulaşamıyorsanız kurtarma kodlarından birini yazın.</p>
+            <label className="mb-4 block">
+              <span className="label">Doğrulama kodu</span>
+              <input className="input font-mono tracking-widest" inputMode="text" autoComplete="one-time-code" autoFocus required value={code} onChange={(e) => setCode(e.target.value)} />
+            </label>
+          </>
+        ) : (<>
         <label className="mb-3 block">
           <span className="label">E-posta</span>
           <div className="relative">
@@ -58,8 +75,10 @@ export default function LoginPage() {
             </button>
           </div>
         </label>
+        </>)}
         {error && <div role="alert" className="mb-4 rounded-[3px] bg-bad-soft px-3 py-2.5 text-[0.875rem] font-semibold text-bad">{error}</div>}
-        <Button type="submit" className="min-h-11 w-full text-[0.9375rem]" loading={loading}>Giriş Yap</Button>
+        <Button type="submit" className="min-h-11 w-full text-[0.9375rem]" loading={loading}>{challenge ? 'Doğrula' : 'Giriş Yap'}</Button>
+        {challenge && <p className="mt-4 text-center text-[0.875rem]"><button type="button" className="font-semibold text-accent hover:underline" onClick={() => { setChallenge(null); setCode(''); setError('') }}>Geri dön</button></p>}
         <p className="mt-5 text-center text-[0.875rem]"><Link className="font-semibold text-accent hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>
         <p className="mt-2 text-center text-[0.8125rem] text-muted"><Link className="hover:underline" to="/gizlilik">Gizlilik ve KVKK</Link></p>
       </form>

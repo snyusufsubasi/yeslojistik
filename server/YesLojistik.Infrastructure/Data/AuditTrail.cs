@@ -13,6 +13,7 @@ internal static class AuditTrail
     [
         nameof(BaseEntity.CreatedAt), nameof(BaseEntity.UpdatedAt), nameof(BaseEntity.CreatedBy),
         nameof(User.PasswordHash), nameof(User.LastLoginAt), nameof(User.FailedLoginCount),
+        nameof(User.LastFailedLoginAt), nameof(User.TotpSecretEnc), nameof(User.TotpRecoveryHashes), nameof(User.TotpLastStep), nameof(User.TotpEnabledAt),
         nameof(Vehicle.LastLatitude), nameof(Vehicle.LastLongitude), nameof(Vehicle.LastSpeedKmh), nameof(Vehicle.LastLocationAt),
         nameof(Trip.TrackingToken), nameof(CompanySettings.LogoDataUrl), nameof(CompanySettings.LastDigestDate), nameof(CompanySettings.LastBackupAt), nameof(CompanySettings.LicenseKey),
         nameof(TripAttachment.StoragePath), nameof(Expense.ReceiptPath), nameof(Expense.ReceiptContentType),
@@ -39,7 +40,7 @@ internal static class AuditTrail
         ["Scenario"] = "e-Fatura senaryosu", ["TypeCode"] = "Fatura tipi", ["Ettn"] = "ETTN", ["EInvoiceNo"] = "e-Fatura no", ["EInvoiceStatus"] = "e-Fatura durumu",
         ["EInvoiceMessage"] = "e-Fatura mesajı", ["EInvoiceSentAt"] = "e-Fatura gönderim", ["WithholdingCode"] = "Tevkifat kodu", ["EInvoiceEnabled"] = "e-Fatura açık",
         ["EInvoiceSeriesPrefix"] = "e-Fatura seri", ["EArchiveSeriesPrefix"] = "e-Arşiv seri", ["DefaultScenario"] = "Varsayılan senaryo", ["SenderAlias"] = "GB etiketi",
-        ["FailedLoginCount"] = "Hatalı giriş sayısı", ["LockoutUntil"] = "Kilit bitişi", ["PaidBy"] = "Ödeyen", ["ApprovalStatus"] = "Onay", ["LocationConsentAt"] = "Konum izni", ["LocationConsentVersion"] = "İzin metni sürümü",
+        ["FailedLoginCount"] = "Hatalı giriş sayısı", ["TotpEnabled"] = "İki adımlı doğrulama", ["LockoutUntil"] = "Kilit bitişi", ["PaidBy"] = "Ödeyen", ["ApprovalStatus"] = "Onay", ["LocationConsentAt"] = "Konum izni", ["LocationConsentVersion"] = "İzin metni sürümü",
         ["RequireDeliveryPhoto"] = "Teslimde fotoğraf zorunlu", ["RequireDeliverySignature"] = "Teslimde imza zorunlu", ["ClientRequestId"] = "İstek kimliği",
         ["MersisNo"] = "MERSİS no", ["TradeRegistryNo"] = "Ticaret sicil no", ["Website"] = "Web sitesi",
         ["RejectionReason"] = "Ret gerekçesi", ["ReviewedBy"] = "Onaylayan", ["NextMaintenanceKm"] = "Sonraki bakım km", ["Direction"] = "Yön",

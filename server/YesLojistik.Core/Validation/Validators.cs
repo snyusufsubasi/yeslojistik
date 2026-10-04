@@ -31,9 +31,24 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
 
 public static class PasswordPolicy
 {
-    public const string Message = "Şifre en az 8 karakter olmalı ve harf ile rakam içermeli.";
+    public const string Message = "Şifre en az 8 karakter olmalı ve harf ile rakam içermeli. Çok bilinen şifreler (ör. password1, qwerty123) kabul edilmez.";
+
+    /// <summary>En sık kullanılan zayıf şifreler (küçük harfle karşılaştırılır).</summary>
+    private static readonly HashSet<string> Common = new(StringComparer.Ordinal)
+    {
+        "password1", "password12", "password123", "password1234", "passw0rd", "p@ssw0rd", "pass1234", "qwerty123", "qwerty1234", "qwerty12",
+        "qwertyui1", "asdfgh123", "asdf1234", "zxcvbn123", "1q2w3e4r", "1qaz2wsx", "123qweasd", "q1w2e3r4", "abcd1234", "abc12345", "abc123456",
+        "iloveyou1", "welcome1", "welcome123", "letmein123", "admin1234", "admin12345", "administrator1", "root1234", "test1234", "test12345",
+        "parola123", "parola1234", "sifre123", "sifre12345", "sifre123456", "benimsifrem1", "merhaba123", "merhaba1", "turkiye1", "turkiye123",
+        "yeslojistik1", "yeslojistik12", "yeslojistik123", "yeslojistik2024", "yeslojistik2025", "yeslojistik2026", "lojistik123", "nakliye123",
+        "galatasaray1", "galatasaray1905", "fenerbahce1", "fenerbahce1907", "besiktas1", "besiktas1903", "trabzonspor1", "trabzon61",
+        "istanbul34", "istanbul1", "ankara06", "izmir3535", "123456789a", "12345678a", "a1234567", "a12345678", "a123456789", "1234567a",
+    };
+
+    public static bool IsCommon(string? p) => p != null && Common.Contains(p.Trim().ToLower(new System.Globalization.CultureInfo("en-US")));
+
     public static bool IsValid(string? p) =>
-        p is { Length: >= 8 } && p.Any(char.IsLetter) && p.Any(char.IsDigit);
+        p is { Length: >= 8 } && p.Any(char.IsLetter) && p.Any(char.IsDigit) && !IsCommon(p);
 }
 
 public class UserSaveRequestValidator : AbstractValidator<UserSaveRequest>

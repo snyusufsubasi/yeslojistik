@@ -48,6 +48,7 @@ export interface User extends CurrentUser {
   driverName?: string | null
   lockoutUntil?: string | null
   lastLoginAt?: string | null
+  twoFactorEnabled?: boolean
 }
 
 export interface Customer {

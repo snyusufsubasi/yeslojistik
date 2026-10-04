@@ -18,11 +18,12 @@ import { CitySelect } from '../components/CitySelect'
 import { AuditLogTable } from '../components/AuditLog'
 import { InvoiceNotesCard } from '../components/InvoiceNotesCard'
 import { LicenseTab } from './LicenseTab'
+import { DataOwnershipCard, TwoFactorCard } from '../components/SecurityCards'
 import { ago, dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useMirror, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
 
-type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'license' | 'notifications' | 'password'
+type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'license' | 'notifications' | 'password' | 'security' | 'account'
 
 export default function SettingsPage() {
   const { can } = useAuth()
@@ -35,6 +36,8 @@ export default function SettingsPage() {
       { value: 'license' as const, label: 'Abonelik' }] : []),
     { value: 'notifications' as const, label: 'Telefon Bildirimleri' },
     { value: 'password' as const, label: 'Şifre Değiştir' },
+    { value: 'security' as const, label: 'Güvenlik' },
+    ...(can('admin') ? [{ value: 'account' as const, label: 'Veri ve hesap' }] : []),
   ]
   return (
     <>
@@ -64,6 +67,8 @@ export default function SettingsPage() {
       {tab === 'license' && can('admin') && <LicenseTab />}
       {tab === 'notifications' && <NotificationPrefsCard />}
       {tab === 'password' && <PasswordForm />}
+      {tab === 'security' && <TwoFactorCard />}
+      {tab === 'account' && can('admin') && <DataOwnershipCard />}
     </>
   )
 }
@@ -240,18 +245,21 @@ function UsersTab() {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['users'], queryFn: () => get<User[]>('/users') })
   const del = useSave((id: number) => usersApi.remove(id), { invalidate: ['users'], success: 'Kullanıcı silindi.', onSuccess: () => setDeleting(null) })
   const unlock = useSave((id: number) => post(`/users/${id}/unlock`), { invalidate: ['users'], success: 'Hesabın kilidi açıldı.' })
+  const resetTwoFactor = useSave((id: number) => post(`/users/${id}/reset-2fa`), { invalidate: ['users'], success: 'İki adımlı doğrulama sıfırlandı.' })
   const signOut = useSave((id: number) => post(`/users/${id}/sign-out`), { invalidate: ['users'], success: 'Kullanıcının tüm oturumları kapatıldı.' })
   const cols: Column<User>[] = [
     { key: 'n', header: 'Ad Soyad', render: (u) => <span className="font-medium">{u.fullName}</span> },
     { key: 'e', header: 'E-posta', render: (u) => u.email },
     { key: 'r', header: 'Rol', render: (u) => <><Badge tone={u.role === 'Admin' ? 'purple' : u.role === 'Driver' ? 'teal' : 'blue'}>{roleLabel[u.role]}</Badge>{u.driverName && <span className="ml-1 text-sm text-slate-500">{u.driverName}</span>}</> },
     { key: 'a', header: 'Durum', render: (u) => <><Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Aktif' : 'Pasif'}</Badge>
-      {u.lockoutUntil && <span className="ml-1"><Badge tone="red">Kilitli</Badge></span>}</> },
+      {u.lockoutUntil && <span className="ml-1"><Badge tone="red">Kilitli</Badge></span>}
+      {u.twoFactorEnabled && <span className="ml-1"><Badge tone="blue">2 adımlı</Badge></span>}</> },
     { key: 'c', header: 'Son giriş', render: (u) => u.lastLoginAt ? dateTime(u.lastLoginAt) : '—' },
     {
       key: 'x', header: '', align: 'right', render: (u) => (
         <div className="flex justify-end gap-1">
           {u.lockoutUntil && <Button size="sm" variant="secondary" onClick={() => unlock.mutate(u.id)}>Kilidi aç</Button>}
+          {u.twoFactorEnabled && u.id !== me?.id && <Button size="sm" variant="ghost" onClick={() => resetTwoFactor.mutate(u.id)}>2 adımlıyı sıfırla</Button>}
           {u.id !== me?.id && <Button size="sm" variant="ghost" onClick={() => signOut.mutate(u.id)}>Oturumları kapat</Button>}
           <IconButton label="Düzenle" onClick={() => setEditing(u)}><Pencil className="size-4" /></IconButton>
           <IconButton label="Sil" disabled={u.id === me?.id} onClick={() => setDeleting(u)}><Trash2 className="size-4" /></IconButton>
