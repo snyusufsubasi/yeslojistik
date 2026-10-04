@@ -12,6 +12,8 @@
 
 > **Güncel sıra ve kullanıcı kararları (2 Ekim):** `YOL-HARITASI.md` (A0–A9). Bu belge teknik ayrıntı kaynağıdır.
 
+> **Müşteri kurulum otomasyonu (karar A, hazır, gerçek sunucuda denenmedi):** `deploy/customer-new.sh` / `customer-update.sh` / `customer-check.sh` / `customer-backup.sh` / `customer-restore.sh` / `customer-remove.sh`; anlatım `MUSTERI-KURULUM.md`, pilot listesi `PILOT-PAKETI.md`. Sıradaki: ilk gerçek VPS'te uçtan uca deneme, lisans ayarının (`License__Key`) uygulamayla eşlenmesi.
+
 ---
 
 ## Özet

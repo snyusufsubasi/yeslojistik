@@ -1,0 +1,5 @@
+# Müşteri listesi örneği. Gerçek liste deploy/customers.txt dosyasındadır (git'e girmez, customer-new.sh yazar).
+# Sütunlar: slug  alan-adı  paket  oluşturulma-tarihi
+# Paketler: baslangic | standart | profesyonel | kurumsal
+ornek-nakliyat  panel.ornek-nakliyat.com.tr  baslangic  2026-10-05
+ikinci-lojistik  yes.ikinci-lojistik.com  standart  2026-10-12

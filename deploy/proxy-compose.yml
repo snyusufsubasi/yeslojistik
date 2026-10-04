@@ -1,0 +1,35 @@
+# Ortak HTTPS yönlendirici: tüm müşterilerin alan adları 80/443 portlarını paylaşır.
+# Müşteri kayıtları ${YES_PROXY_DIR}/conf.d/<slug>.caddy dosyalarıdır (customer-new.sh üretir).
+# Başlatma customer-new.sh tarafından otomatik yapılır; elle:
+#   YES_PROXY_DIR=/opt/yeslojistik/proxy docker compose -p yes-proxy -f deploy/proxy-compose.yml up -d
+name: yes-proxy
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: yes-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile.multi:/etc/caddy/Caddyfile:ro
+      - ${YES_PROXY_DIR:?YES_PROXY_DIR eksik}/conf.d:/etc/caddy/conf.d:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    name: yes-proxy
+
+volumes:
+  caddy_data:
+  caddy_config:

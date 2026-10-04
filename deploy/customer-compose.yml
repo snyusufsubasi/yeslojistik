@@ -1,0 +1,105 @@
+# Müşteri başına kurulum şablonu: tüm müşteriler bu tek dosyayı kullanır, ayarlar müşterinin kendi .env dosyasından gelir.
+# Elle çalıştırmayın; şunu kullanın:  ./deploy/customer-compose.sh <slug> ps
+# (customer-new.sh / customer-update.sh bu dosyayı "docker compose -p yes-<slug> --env-file customers/<slug>/.env" ile çağırır.)
+#
+# Ağ düzeni: db ve api yalnızca müşterinin kendi iç ağındadır, dışarıya port açılmaz.
+# Yalnızca web konteyneri ortak "yes-proxy" ağına da katılır; Caddy ona yes-<slug>-web adıyla ulaşır.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: yeslojistik
+      POSTGRES_USER: yeslojistik
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD eksik}
+      TZ: Europe/Istanbul
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yeslojistik -d yeslojistik"]
+      interval: 10s
+      retries: 5
+    mem_limit: ${DB_MEM:-384m}
+    logging: *logging
+
+  api:
+    image: yeslojistik-api:${IMAGE_TAG:?IMAGE_TAG eksik}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: Host=db;Database=yeslojistik;Username=yeslojistik;Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?JWT_KEY eksik}
+      Jwt__SecureCookies: "true"
+      Seed__AdminEmail: ${ADMIN_EMAIL:?ADMIN_EMAIL eksik}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-}
+      Seed__SampleData: ${SAMPLE_DATA:-false}
+      App__PublicUrl: ${PUBLIC_URL:?PUBLIC_URL eksik}
+      Storage__Provider: ${STORAGE_PROVIDER:-Database}
+      Backup__Token: ${BACKUP_TOKEN:-}
+      Tracking__RetentionDays: ${LOCATION_RETENTION_DAYS:-90}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__User: ${SMTP_USER:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-}
+      # Lisans anahtarı (docs/LISANS.md). Boşsa uygulama kendi varsayılan davranışını uygular.
+      License__Key: ${LICENSE_KEY:-}
+      # /api/health yanıtındaki "commit" alanı: hangi sürümün çalıştığını gösterir.
+      APP_COMMIT: ${IMAGE_TAG}
+    volumes:
+      - uploads:/app/data/uploads
+    mem_limit: ${API_MEM:-640m}
+    logging: *logging
+
+  web:
+    image: yeslojistik-web:${IMAGE_TAG:?IMAGE_TAG eksik}
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - yes-${CUSTOMER_SLUG:?CUSTOMER_SLUG eksik}-web
+    mem_limit: 64m
+    logging: *logging
+
+  # Her gece yedek alır (deploy/backup.sh, tek müşterili kurulumdakiyle aynı betik).
+  # Saat dakikası müşteriye göre dağıtılır (BACKUP_HOUR/BACKUP_MIN) ki hepsi aynı anda yedeklenmesin.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PGHOST: db
+      PGUSER: yeslojistik
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: yeslojistik
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      TZ: Europe/Istanbul
+    volumes:
+      - ${BACKUPS_DIR:?BACKUPS_DIR eksik}:/backups
+      - ${YES_REPO:?YES_REPO eksik}/deploy/backup.sh:/backup.sh:ro
+      - uploads:/uploads:ro
+    entrypoint: ["/bin/sh", "-c", "echo '${BACKUP_MIN:-0} ${BACKUP_HOUR:-3} * * * /bin/sh /backup.sh >> /backups/backup.log 2>&1' | crontab - && crond -f -l 8"]
+    mem_limit: 128m
+    logging: *logging
+
+networks:
+  default: {}
+  proxy:
+    name: yes-proxy
+    external: true
+
+volumes:
+  pgdata:
+  uploads:

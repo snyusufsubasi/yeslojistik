@@ -1,5 +1,7 @@
 # Kurulum ve İşletim
 
+> **Birden fazla müşteriye satıyorsanız** (her müşteriye ayrı kurulum, tek sunucuda): bu belge yerine [MUSTERI-KURULUM.md](MUSTERI-KURULUM.md) kullanılır. Pilot için [PILOT-PAKETI.md](PILOT-PAKETI.md). Aşağıdaki anlatım tek firmanın kendi sunucusu içindir.
+
 ## 1. Sunucu ve kurulum (tek komut)
 
 Gerekenler:

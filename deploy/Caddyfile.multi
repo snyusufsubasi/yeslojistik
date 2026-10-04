@@ -1,0 +1,3 @@
+# Çok müşterili ortak Caddy. Her müşterinin alan adı conf.d/<slug>.caddy içinde tanımlıdır.
+# HTTPS sertifikaları (Let's Encrypt) her alan adı için otomatik alınır ve yenilenir.
+import /etc/caddy/conf.d/*.caddy
