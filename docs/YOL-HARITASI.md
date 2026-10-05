@@ -100,6 +100,9 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 - [ ] 5 rastgele cari pratikortam ile yan yana karşılaştırılır. Tam yedek alınır.
 - [ ] Pratikortam salt okunur arşiv olarak kalır. Şifreler ortamlardan silinir.
 
+## Kolaylaştırma (5 Ekim, öncelik)
+Müşteri paneli pratikortam'a göre çok zor buldu. Plan: menü ve sekmeler pratikortam'daki ad ve sırayla, ekranlar daha sade ve şık; "Yeni görünüm" anahtarıyla aşama aşama. Ayrıntı: `docs/KOLAYLASTIRMA-PLANI.md`.
+
 ## Satışa hazırlık
 Panel başka firmalara satılacak ürün olarak da düşünülüyor. Rakipler, eksikler, fiyat ve aşamalar: `docs/SATIS-PLANI.md` (başında 4 Ekim durumu var: lisans, 2FA, kurulum otomasyonu, sihirbaz, UETDS hazırlığı, hukuk taslakları yapıldı).
 

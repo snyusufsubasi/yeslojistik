@@ -55,6 +55,12 @@ Başlamadan 5 satırla planını yaz, sonra çalış. Bitince kısa Türkçe öz
 GÖREV:
 ```
 
+### 2Z. Kolaylaştırma (ÖNCELİKLİ)
+```
+docs/KOLAYLASTIRMA-PLANI.md dosyasını baştan sona oku. Bölüm 8'deki sıradaki "Bekliyor" aşamasını uygula
+(K0 ve K1 müşteri onayı ister: onay gelmeden K2'ye geçme). Bölüm 12'deki talimata uy.
+```
+
 ### 2A. Tam geçmişi taşıma (en önemli; pratikortam'dan tamamen çıkmak için gerek)
 ```
 Pratikortam aynası şu an müşteri, tedarikçi, şoför, araç, sevkiyat, gider kayıtlarını ve her carinin bakiye rakamını getiriyor.

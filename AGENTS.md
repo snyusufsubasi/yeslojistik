@@ -92,6 +92,7 @@ Spec: `docs/TASARIM-OTOYOL.md`. Koyu çam yeşili sol menü, **gruplar hep açı
 - **Terim tablosu** (`docs/TERIMLER.md`: "Sefer" yerine "Sevkiyat" vb.) **kullanıcı onayını bekliyor**. Onay gelmeden ekran yazılarını toplu değiştirme.
 
 ## 7. Dokümanlar (hangi sırayla okunur)
+0. **`docs/KOLAYLASTIRMA-PLANI.md`: ŞU ANKİ ÖNCELİK.** Müşteri paneli pratikortam'a göre zor buldu; menü/sekmeler pratikortam gibi, görünüm daha sade ve şık olacak (aşamalar K0-K6).
 1. `docs/YOL-HARITASI.md`: aşamalar (A0-A9), kullanıcı kararları, kaldığımız yer.
 2. `docs/SATIS-PLANI.md`: ürünleştirme planı, rakipler, eksikler, fiyat, **4 Ekim durumu**.
 3. `docs/GELISTIRME-PLANI.md`: ayrıntılı iş listesi.
@@ -110,6 +111,8 @@ Spec: `docs/TASARIM-OTOYOL.md`. Koyu çam yeşili sol menü, **gruplar hep açı
 - Hukuk belgeleri için avukat; satıcı ünvanı/VKN/adres, ürün adı, alan adı.
 - Veritabanı: Render'ın ücretsiz DB'si **28 Ekim'de silinir**. Ekim ortasında ücretli plana geçilmeli ya da yenisi açılıp ayna yeniden doldurulmalı (kullanıcı karar verir).
 - Gece yedeği için GitHub secret'ları (`BACKUP_*`) ve Render `Backup__Token`.
+
+**Öncelik (5 Ekim):** kolaylaştırma planı (`docs/KOLAYLASTIRMA-PLANI.md`). Yeni düzen "Yeni görünüm" anahtarının arkasında geliştirilir; müşteri onaylayınca varsayılan olur.
 
 **Bilgi beklemeyen, yapılabilir işler:** tam geçmişi taşıma (fatura, tahsilat, tedarikçi ödemesi, banka hareketi; A8), müşteri portalı, otomatik "yükünüz yolda" bildirimleri, teklif hazırlama, iyzico abonelik ödemesi, Ödemeler/Giderler/Alınan Faturalar/Çekler üstündeki toplam şeritlerini `SumStrip`'e çevirme, Personel/Sabit Ödemeler `StatCard`'ları, "Kiralık" etiket rengi, `PRATIKORTAM-HARITA.md` orta öncelik 7-16.
 
