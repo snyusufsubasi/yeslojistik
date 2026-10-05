@@ -1,5 +1,7 @@
 # YES Lojistik — Yol Haritası (uçtan uca)
 
+> **4 Ekim — kullanıcı kararları ve uygulama:** YES'in tam geçişi ve satış hazırlığı birlikte planlandı. Önce hesap doğruluğu ve kullanım; Otoyol tasarımı korunacak. YES'in müşterileri kendi kayıtlarını görüp taşıma/teklif talebi açabilecek. Ayrıntı: `TAM-GELISTIRME-PLANI.md`. İlk düzeltmeler çalışma kopyasında; henüz yayınlanmadı (`UYGULAMA-DURUMU.md`). Aşağıdaki eski “Kaldığımız yer” bölümü güncel görev sırası olarak kullanılmamalı.
+
 *2 Ekim 2026'da kullanıcıyla soru-cevapla belirlendi. Bu belgeye veri, şifre ya da kişisel bilgi yazılmaz.*
 *Her aşama bitince burada işaretlenir. Teknik ayrıntılar: `GELISTIRME-PLANI.md`, pratikortam tarafı: `PRATIKORTAM-GECIS.md`.*
 

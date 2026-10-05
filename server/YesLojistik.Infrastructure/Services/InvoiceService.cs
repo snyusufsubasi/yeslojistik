@@ -98,6 +98,8 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
         if (trips.Any(t => t.InvoiceId != null)) throw new DomainException("Seçilen seferlerden bazıları zaten faturalanmış.");
         if (trips.Any(t => t.IsLegacy)) throw new DomainException("Eski sistemden aktarılan seferler yeniden faturalanamaz (tutarları devir bakiyesinde).");
         if (trips.Any(t => t.Status == TripStatus.Cancelled)) throw new DomainException("İptal edilmiş sefer faturalanamaz.");
+        if (trips.Select(t => t.SaleVatRate).Distinct().Skip(1).Any())
+            throw new DomainException("Seçilen seferlerin KDV oranları farklı. Ayrı fatura kesin.");
 
         // Sahip olunan tip tek başına izlenmeden sorgulanamaz; müşteriyle birlikte okunur.
         var customer = await db.Customers.AsNoTracking().FirstAsync(c => c.Id == req.CustomerId, ct);

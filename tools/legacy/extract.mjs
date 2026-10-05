@@ -4,6 +4,7 @@
 // Giriş crawl.mjs ile aynı (PRATIK_USER / PRATIK_PASS, e-posta + şifre). Her adres isSafeUrl'den geçer; yalnız GET yapılır.
 // Dosyalar <out>/exports altına yazılır; repoya girmez.
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { BASE, Jar, req, loginFetch, isSafeUrl, assertOutsideRepo } from './crawl.mjs'
 
@@ -28,6 +29,18 @@ export const SOURCES = {
   'mazotlar': `excel/genel_ex.php?mazot=1&p=0&bt=${FROM}&st=${TO}`,
   'bankalar': 'bankalar.php',
   'personeller': 'oz_arac/prsnl.php',
+}
+
+// Archives and shipment summary are downloaded for inspection, but transform.py does not consume them.
+export const REQUIRED_SOURCES = Object.keys(SOURCES).filter((name) => !['firmalar-arsiv', 'tedarikciler-arsiv', 'sevkiyat-ozet'].includes(name))
+
+export function assertComplete(summary) {
+  for (const name of REQUIRED_SOURCES) {
+    const entries = summary.filter((entry) => entry.name === name)
+    if (entries.length !== 1 || entries[0].error != null || entries[0].skipped != null || !entries[0].file || !(entries[0].bytes > 0)) {
+      throw new Error(`${name}: dışa aktarım tamamlanmadı; senkron durduruldu`)
+    }
+  }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -58,10 +71,11 @@ async function main() {
     const ext = extFor(res.headers.get('content-type') ?? '', bytes)
     const file = `${name}.${ext}`
     writeFileSync(join(dir, file), bytes)
-    summary.push({ name, file, bytes: bytes.length, type: res.headers.get('content-type') })
+    summary.push({ name, file, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), type: res.headers.get('content-type') })
     console.log(`${name}: ${file} (${bytes.length} bayt, ${res.headers.get('content-type')})`)
   }
   writeFileSync(join(dir, 'summary.json'), JSON.stringify({ at: new Date().toISOString(), from: FROM, to: TO, summary }, null, 2))
+  assertComplete(summary)
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().catch((e) => { console.error(e.message); process.exit(1) })

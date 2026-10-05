@@ -1,5 +1,6 @@
 using System.Net;
 using FluentAssertions;
+using Npgsql;
 using YesLojistik.Core.Dtos;
 using YesLojistik.Core.Entities;
 
@@ -31,6 +32,48 @@ public class VatRulesTests(ApiFactory factory) : IClassFixture<ApiFactory>
     private static async Task<InvoiceDto> InvoiceAsync(HttpClient c, int customer, int trip, decimal vat, int? withholding, string? exemption = null) =>
         await (await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(customer, Today, null, vat, withholding, null, false, [trip], null,
             exemption))).ReadAsync<InvoiceDto>();
+
+    [Fact]
+    public async Task Mixed_trip_vat_rates_are_rejected_without_saving_or_consuming_a_number()
+    {
+        var (c, vehicle, driver) = await FleetAsync("34 KM");
+        var customer = await CustomerAsync(c, "Karışık KDV", null);
+        var zero = await TripAsync(c, customer, vehicle, driver, 1_000, new TripTerms(SaleVatRate: 0));
+        var standard = await TripAsync(c, customer, vehicle, driver, 1_000, new TripTerms(SaleVatRate: 20));
+
+        await using var connection = new NpgsqlConnection(factory.ConnectionString);
+        await connection.OpenAsync();
+        async Task<object?> NextNumber()
+        {
+            await using var command = new NpgsqlCommand("SELECT next_invoice_number FROM company_settings WHERE id = 1", connection);
+            return await command.ExecuteScalarAsync();
+        }
+        var nextNumber = await NextNumber();
+        var response = await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(customer, Today, null, 20, 0, null,
+            false, [zero.Id, standard.Id], null));
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await NextNumber()).Should().Be(nextNumber);
+        var invoices = await (await c.GetAsync($"/api/invoices?customerId={customer}")).ReadAsync<PagedResult<InvoiceDto>>();
+        invoices.Total.Should().Be(0);
+        foreach (var id in new[] { zero.Id, standard.Id })
+            (await (await c.GetAsync($"/api/trips/{id}")).ReadAsync<TripDto>()).InvoiceId.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(0, 0, 2_000)]
+    [InlineData(20, 400, 2_400)]
+    public async Task Trips_with_the_same_vat_rate_can_be_invoiced_together(decimal rate, decimal vat, decimal total)
+    {
+        var (c, vehicle, driver) = await FleetAsync("34 KE");
+        var customer = await CustomerAsync(c, "Eşit KDV", null);
+        var first = await TripAsync(c, customer, vehicle, driver, 1_000, new TripTerms(SaleVatRate: rate));
+        var second = await TripAsync(c, customer, vehicle, driver, 1_000, new TripTerms(SaleVatRate: rate));
+        var invoice = await (await c.PostJsonAsync("/api/invoices", new InvoiceCreateRequest(customer, Today, null, rate, 0,
+            null, false, [first.Id, second.Id], null))).ReadAsync<InvoiceDto>();
+        invoice.VatAmount.Should().Be(vat);
+        invoice.Total.Should().Be(total);
+        invoice.Lines.Select(l => l.TripId).Should().BeEquivalentTo(new int?[] { first.Id, second.Id });
+    }
 
     [Fact]
     public async Task Automatic_withholding_needs_total_over_limit_and_a_company_buyer()

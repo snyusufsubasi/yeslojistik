@@ -17,10 +17,16 @@ from decimal import Decimal as D
 from pathlib import Path
 import openpyxl
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from snapshot_validation import validate_exports  # noqa: E402
 from turkce import key, clean, fix_places, fix_city, fix_district, fix_title, fix_case, fixes  # noqa: E402
 
 SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else sys.exit(__doc__)
 EXP, OUT = SRC / 'exports', SRC / 'aktar'
+if '--json' in sys.argv:
+    try:
+        validate_exports(EXP)
+    except ValueError as exc:
+        sys.exit(f'DUR: {exc}')
 OUT.mkdir(exist_ok=True)
 report = []
 note = report.append

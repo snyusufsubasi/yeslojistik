@@ -222,7 +222,7 @@ public partial class LegacyMirrorService(AppDbContext db)
         var updated = touched.Count(x => db.Entry(x).State == EntityState.Modified);
         var remove = all.Where(x => !x.IsDeleted && !touched.Contains(x)).ToList();
         var live = all.Count(x => !x.IsDeleted);
-        if (!allowLargeRemoval && live >= 10 && remove.Count * 2 > live)
+        if (!allowLargeRemoval && live > 0 && remove.Count * 2 > live)
             throw new DomainException($"{name}: {live} kaydın {remove.Count} tanesi silinecekti. Pratikortam'dan gelen veri eksik olabilir; senkron durduruldu.");
         foreach (var x in remove) x.IsDeleted = true;
         await db.SaveChangesAsync(ct);
