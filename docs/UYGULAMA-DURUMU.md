@@ -7,8 +7,10 @@ Yeni kapsam: `TAM-GELISTIRME-PLANI.md`.
 
 **Durum: ilk paket tamamlandı; test dalında bütün GitHub Actions kontrolleri geçti. Ana dala alınan kod bu test edilmiş pakettir.**
 
-Test edilen kod commit’i: `e7e3d5c32d1f08bebf0586dd18e98ca3b063d0b3`.
-CI kanıtı: https://github.com/snyusufsubasi/yeslojistik/actions/runs/37297230879 (5 Ekim 2026, başarılı). Sonraki kapanış commit’i yalnız bu plan/durum belgelerini günceller; kod ve testler aynıdır.
+Test edilen uygulama kodu commit’i: `e7e3d5c32d1f08bebf0586dd18e98ca3b063d0b3`.
+CI kanıtı: https://github.com/snyusufsubasi/yeslojistik/actions/runs/37297230879 (5 Ekim 2026, başarılı). Sonraki kapanış commit’i yalnız plan/durum belgelerini günceller; uygulama kodu ve testler aynıdır.
+
+Canlı kontrolünde ayrıca bir eksik bulundu: `BACKUP_URL` yokken `smoke.yml` kontrolü atlıyor ve yeşil dönüyordu. Adres artık sırasıyla `APP_URL` repository variable, `BACKUP_URL` secret veya projenin bilinen Render adresinden alınır. Böylece yapılandırılmamış yedek adresi canlı kontrolünü atlatmaz. `37298458660` çalışması kontrolü atladığı için canlı yayın kanıtı değildir. Canlı commit/sağlık doğrulaması yeni smoke çalışmasının sonucuna bağlıdır.
 
 - Eksik/başarısız dışa aktarım tamamlanmış veri gibi kabul edilmiyor. Özet, gerekli dosyalar, boyutlar, yeni özetlerde SHA-256 ve dönüşümün okuyacağı tablo başlığı doğrulanıyor. Hatalı veriyle `ayna.json` üretilmiyor.
 - Aynanın toplu silme koruması 10'dan az kaydı olan grupları da kapsıyor. Yarıdan fazlasının kaldırılması açık override yoksa reddediliyor. Mevcut override davranışı korunuyor.

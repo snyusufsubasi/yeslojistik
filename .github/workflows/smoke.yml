@@ -1,5 +1,5 @@
 # Canlı ortam kontrolü: main'e her birleştirmeden sonra yeni sürümün yayında olduğunu ve temel sayfaların açıldığını doğrular.
-# Gerekli secret: BACKUP_URL (canlı adres).
+# Canlı adres: APP_URL repository variable, eski BACKUP_URL secret veya bu projenin Render adresi.
 name: Canlı kontrol
 
 on:
@@ -12,12 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      URL: ${{ secrets.BACKUP_URL }}
+      URL: ${{ vars.APP_URL || secrets.BACKUP_URL || 'https://yeslojistik.onrender.com' }}
       EXPECTED: ${{ github.sha }}
     steps:
       - name: Yeni sürümün yayına çıkmasını bekle
         run: |
-          [ -n "$URL" ] || { echo "::warning::BACKUP_URL tanımlı değil, kontrol atlandı."; exit 0; }
           # CI + Render derlemesi birlikte ~15-20 dakika sürer.
           for i in $(seq 1 60); do
             BODY=$(curl -fsS --max-time 20 "$URL/api/health" || true)
