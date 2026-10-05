@@ -105,7 +105,9 @@ export default function InvoiceCreatePage() {
 
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const allSelected = available.length > 0 && available.every((t) => selected.has(t.id))
-  const canSave = customerId !== '' && lineAmounts.length > 0 && extra.every((l) => !l.description.trim() || Number(l.amount) >= 0)
+  // Sunucu farklı KDV oranlı sevkiyatları aynı faturada reddeder; kullanıcı bunu seçerken görsün.
+  const mixedVat = tripRates.length > 1
+  const canSave = !mixedVat && customerId !== '' && lineAmounts.length > 0 && extra.every((l) => !l.description.trim() || Number(l.amount) >= 0)
     && (vatRate !== 0 || /^\d{3}$/.test(exemption.trim()))
 
   return (
@@ -217,6 +219,11 @@ export default function InvoiceCreatePage() {
               {withholding > 0 && withheld > 0 && <Line label={`Tevkifat (${withholding}/10)`} value={-withheld} />}
               <div className="border-t border-slate-200 pt-1 text-[0.9375rem] font-semibold text-navy-900"><Line label="Ödenecek Tutar" value={total} /></div>
             </div>
+            {mixedVat && (
+              <p role="alert" className="rounded-[3px] border border-[#ecd3a6] bg-warn-soft px-3 py-2 text-[0.875rem] text-warn">
+                Seçilen sevkiyatların KDV oranları farklı ({tripRates.map((r) => `%${r}`).join(', ')}). Ayrı fatura kesin: aynı orandaki sevkiyatları seçin.
+              </p>
+            )}
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === true} onClick={() => create.mutate(true)}>Taslak Kaydet</Button>
               <Button className="flex-1" disabled={!canSave} loading={create.isPending && create.variables === false} onClick={() => create.mutate(false)}>Faturayı Kes</Button>

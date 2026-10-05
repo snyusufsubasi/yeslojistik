@@ -9,6 +9,8 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { ExportButton, PdfButton } from '../components/Exports'
 import { Button, Card, PageHeader } from '../components/ui'
 import { useToast } from '../components/Toast'
+import { PaymentForm } from '../components/PaymentForm'
+import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { ago, tl } from '../lib/format'
 import { useMirror } from '../lib/hooks'
 import { normalizeSearch as searchKey } from '../lib/search'
@@ -71,6 +73,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
   const navigate = useNavigate()
   const toast = useToast()
   const [search, setSearch] = useState('')
+  const [paying, setPaying] = useState<Row | null>(null)
   const [filter, setFilter] = useState<Filter>('open')
   const [sort, setSort] = useState({ key: 'balance', desc: true })
   const { data, isFetching, error, refetch } = useQuery({ queryKey: ['cari', kind], queryFn: () => get<Row[]>(`/cari/${kind}`) })
@@ -130,6 +133,9 @@ export default function CariPage({ kind }: { kind: Kind }) {
     ...(mirror ? [] : [{ key: 'actions', header: '', align: 'right', render: (r) => (
       <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
         <Button size="sm" variant="secondary" icon={<FileText className="size-4" />} onClick={() => statement(r)}>Ekstre</Button>
+        {/* Pratikortam'daki gibi: carinin satırından doğrudan tahsilat / ödeme */}
+        <Button write size="sm" variant="secondary" icon={kind === 'customers' ? <Wallet className="size-4" /> : <HandCoins className="size-4" />}
+          onClick={() => setPaying(r)}>{kind === 'customers' ? 'Tahsilat Ekle' : 'Ödeme Ekle'}</Button>
       </div>
     ) }] as Column<Row>[]),
   ]
@@ -198,6 +204,8 @@ export default function CariPage({ kind }: { kind: Kind }) {
             </div>
           )} />
       </Card>
+      {paying && kind === 'customers' && <PaymentForm payment={null} defaults={{ customerId: paying.id }} onClose={() => setPaying(null)} />}
+      {paying && kind === 'suppliers' && <SupplierPaymentForm payment={null} defaults={{ supplierId: paying.id }} onClose={() => setPaying(null)} />}
     </>
   )
 }
