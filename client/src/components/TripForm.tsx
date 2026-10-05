@@ -120,7 +120,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const [newSupplier, setNewSupplier] = useState<string | null>(null)
   const [newVehicle, setNewVehicle] = useState<string | null>(null)
 
-  const { register, handleSubmit, control, getValues, setValue, setError, setFocus, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, getValues, setValue, setError, setFocus, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: trip ? {
       customerId: trip.customerId, vehicleId: trip.vehicleId, driverId: trip.driverId,
@@ -149,12 +149,32 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds }, ...defaults },
   })
 
-  const save = useSave((v: FormValues) => {
+  // Pratikortam "İş Ekle"deki gibi: aynı işten birden çok sevkiyat (kopya sayısı) ve kaydettikten sonra formu açık tutma.
+  const [copies, setCopies] = useState(1)
+  const [keepOpen, setKeepOpenState] = useState(() => { try { return localStorage.getItem('yes.tripKeepOpen') === '1' } catch { return false } })
+  const setKeepOpen = (on: boolean) => { setKeepOpenState(on); try { localStorage.setItem('yes.tripKeepOpen', on ? '1' : '0') } catch { /* gizli pencere */ } }
+  const count = trip ? 1 : Math.min(20, Math.max(1, Math.trunc(copies) || 1))
+  const save = useSave(async (v: FormValues) => {
     const { terms, uetds, ...rest } = v
     const body = { ...nullify(rest), terms: termsToApi(terms), uetds: uetdsToApi(uetds) } as unknown as FormValues
-    return trip ? api.update(trip.id, body) : api.create(body)
+    if (trip) return api.update(trip.id, body)
+    let last: Trip | undefined
+    for (let i = 0; i < count; i++) last = await api.create(body)
+    return last!
   }, {
-    invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sevkiyat güncellendi.' : 'Sevkiyat oluşturuldu.', onSuccess: onClose,
+    invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'],
+    success: trip ? 'Sevkiyat güncellendi.' : count > 1 ? `${count} sevkiyat oluşturuldu.` : 'Sevkiyat oluşturuldu.',
+    onSuccess: () => {
+      if (trip || !keepOpen) return onClose()
+      // Formu açık tut: müşteri ve tarihler kalır, gerisi boşalır; yeni sevkiyat hemen girilebilir.
+      const v = getValues()
+      reset({ loadingDate: v.loadingDate, deliveryDate: v.deliveryDate, customerId: v.customerId,
+        vehicleId: undefined, driverId: undefined, loadingAddress: '', deliveryAddress: '', description: '', loadingCity: '', deliveryCity: '',
+        vehicleCost: undefined, salePrice: undefined, customerReference: '', cargoType: '', cargoWeightKg: null, cargoQuantity: null, cargoUnit: '',
+        trailerPlate: '', loadingContact: '', deliveryContact: '', carrierSupplierId: null, carrierInvoiceNo: '', carrierInvoiceDate: '',
+        jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds } } as unknown as FormValues)
+      setCopies(1)
+    },
     onError: (e) => applyServerErrors(e, setError),
   })
 
@@ -278,8 +298,21 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             {onCopy && <Button variant="secondary" icon={<Copy className="size-4" />} title="Aynı müşteri, güzergah ve fiyatla yeni sevkiyat" onClick={() => onCopy(trip)}>Kopyala</Button>}
           </div>
         )}
+        {!trip && (
+          <div className="mr-auto flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.875rem]">
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" className="size-4 accent-[var(--color-accent)]" checked={keepOpen} onChange={(e) => setKeepOpen(e.target.checked)} />
+              Kaydettikten sonra formu açık tut
+            </label>
+            <label className="inline-flex items-center gap-2">
+              Kopya sayısı
+              <input type="number" min={1} max={20} className="input w-20 min-h-9 py-1" aria-label="Kopya sayısı" value={copies}
+                onChange={(e) => setCopies(Number(e.target.value))} />
+            </label>
+          </div>
+        )}
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button>
-        <Button onClick={handleSubmit((v) => save.mutate(v))} loading={save.isPending}>Kaydet</Button>
+        <Button onClick={handleSubmit((v) => save.mutate(v))} loading={save.isPending}>{count > 1 ? `${count} sevkiyat kaydet` : 'Kaydet'}</Button>
       </> : <Button variant="secondary" onClick={onClose}>Kapat</Button>}>
       {trip && (
         <div className="mb-4">

@@ -384,7 +384,7 @@ Aşama adları: plan K0-K6 ↔ uygulama kılavuzu F1-F6 (K1+K2 = F1, K3 = F2, K4
 |---|---|
 | K0 Dinleme (müşteri görüşmesi) | Bekliyor; uygulamayı durdurmaz, F2 sonunda müşteriye gösterilir |
 | F1 Anahtar, menü, sekmeler, ortak parçalar, terim | **Kısmen yapıldı (5 Ekim):** görünüm anahtarı (kullanıcı menüsü → Görünüm), pratikortam sıralı yeni menü, bölüm sekmeleri, pratikortam başlıkları, MoreMenu/RowMenu/FilterBar/FilterPanel. F1.5: panelde görünen bütün "Sefer" yazıları "Sevkiyat" oldu (sunucu mesajları ve şoför uygulaması henüz değil) |
-| F2 Bugün + Sevkiyatlar + Sevkiyat Ekle | **Kısmen yapıldı (5 Ekim):** Bugün ekranı (3 rakam, 2 uyarı, bugünkü sevkiyatlar), Sevkiyatlar (⋯ Diğer, tek ana düğme, süzgeç paneli + çipler, satır menüsü, UETDS rozeti listede yok; ilk ekranda 3 → 7-8 satır). Kalan: Onay Bekleyenler sekmesi, F2.3 Sevkiyat Ekle formu |
+| F2 Bugün + Sevkiyatlar + Sevkiyat Ekle | **Kısmen yapıldı (5 Ekim):** Bugün ekranı (3 rakam, 2 uyarı, bugünkü sevkiyatlar), Sevkiyatlar (⋯ Diğer, tek ana düğme, süzgeç paneli + çipler, satır menüsü, UETDS rozeti listede yok; ilk ekranda 3 → 7-8 satır). Sevkiyat formunda "Kaydettikten sonra formu açık tut" ve "Kopya sayısı" (pratikortam İş Ekle gibi). Kalan: Onay Bekleyenler sekmesi, formun tek sayfa iki sütun düzeni |
 | F3 e-Fatura + Cari + Banka & Çek | Bekliyor |
 | F4 Listeler + Öz Mal + Analiz + Yönetici | Bekliyor |
 | F5 Formlar + telefon | Bekliyor |
