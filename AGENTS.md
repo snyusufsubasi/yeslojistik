@@ -92,7 +92,7 @@ Spec: `docs/TASARIM-OTOYOL.md`. Koyu çam yeşili sol menü, **gruplar hep açı
 - **Terim tablosu** (`docs/TERIMLER.md`: "Sefer" yerine "Sevkiyat" vb.) **kullanıcı onayını bekliyor**. Onay gelmeden ekran yazılarını toplu değiştirme.
 
 ## 7. Dokümanlar (hangi sırayla okunur)
-0. **`docs/KOLAYLASTIRMA-PLANI.md`: ŞU ANKİ ÖNCELİK.** Müşteri paneli pratikortam'a göre zor buldu; menü/sekmeler pratikortam gibi, görünüm daha sade ve şık olacak (aşamalar K0-K6).
+0. **`docs/KOLAYLASTIRMA-PLANI.md`: ŞU ANKİ ÖNCELİK.** Müşteri paneli pratikortam'a göre zor buldu; menü/sekmeler pratikortam gibi, görünüm daha sade ve şık olacak (aşamalar K0-K6). **Uygulama görev kartları: `docs/KOLAYLASTIRMA-UYGULAMA.md` (F1-F6); bölüm 11'deki oturum sırasına uy.**
 1. `docs/YOL-HARITASI.md`: aşamalar (A0-A9), kullanıcı kararları, kaldığımız yer.
 2. `docs/SATIS-PLANI.md`: ürünleştirme planı, rakipler, eksikler, fiyat, **4 Ekim durumu**.
 3. `docs/GELISTIRME-PLANI.md`: ayrıntılı iş listesi.

@@ -57,8 +57,9 @@ GÖREV:
 
 ### 2Z. Kolaylaştırma (ÖNCELİKLİ)
 ```
-docs/KOLAYLASTIRMA-PLANI.md dosyasını baştan sona oku. Bölüm 8'deki sıradaki "Bekliyor" aşamasını uygula
-(K0 ve K1 müşteri onayı ister: onay gelmeden K2'ye geçme). Bölüm 12'deki talimata uy.
+AGENTS.md, docs/KOLAYLASTIRMA-PLANI.md ve docs/KOLAYLASTIRMA-UYGULAMA.md dosyalarını oku.
+KOLAYLASTIRMA-UYGULAMA.md bölüm 11'deki tablodan sıradaki oturumu uygula (Durum tablosunda "Bekliyor" olan ilk aşama).
+Bölüm 0'daki kurallara kesin uy; bitince testler, ekran görüntüleri, Durum tablosu, commit + push.
 ```
 
 ### 2A. Tam geçmişi taşıma (en önemli; pratikortam'dan tamamen çıkmak için gerek)

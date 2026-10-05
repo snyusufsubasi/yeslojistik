@@ -2,6 +2,7 @@
 
 *5 Ekim 2026. Müşteri (YES Lojistik) paneli pratikortam'a göre **çok zor** buldu. Kullanıcının isteği: pratikortam'daki gibi sekmeler ve menüler, aynı kullanım mantığı; ama daha basit görünen, göze hoş gelen, şık bir site.*
 
+> **Kullanıcı planı onayladı (5 Ekim).** Kod düzeyinde adım adım uygulama: **`docs/KOLAYLASTIRMA-UYGULAMA.md`** (ChatGPT/Codex için görev kartları F1-F6).
 > Bu belge **plandır**, henüz kod değişmedi. Uygulama aşama aşama yapılır ve her aşama müşteriye gösterilip onaylanır (bölüm 8).
 > Pratikortam'ın ekran ve menü bilgisi `docs/PRATIKORTAM-HARITA.md` dosyasından gelir (salt okuma robotuyla çıkarıldı, veri içermez).
 
@@ -89,7 +90,7 @@ Gruplar **hep açık kalır** (kullanıcının önceki isteği). Madde sayısı 
 | — | **Yardım** (sağ üstte "?" simgesi) | Yardım | Menüden çıkar |
 
 - **Üst çubuk:** arama (Ctrl K), **+ Yeni** menüsü (pratikortam sırasıyla), Aa, bildirim zili, Profilim.
-- **Eski adresler** (`/seferler`, `/cari/musteriler`…) çalışmaya devam eder. Yeni adreslere yönlendirilir, böylece kayıtlı yer imleri bozulmaz.
+- **Adresler değişmez** (`/seferler`, `/cari/musteriler`…): yeni menü mevcut adreslere bağlanır; sunucu bildirimleri ve yer imleri bozulmaz. Yalnız gerçekten yeni sayfalar (`/mazotlar`, `/arac-masraflari`) yeni adres alır.
 - **Rol bazlı görünüm:** kullanıcı yetkisi olmayan menüleri görmez (bugünkü gibi). Şoför web panelinde yalnız uygulamaya yönlendirilir.
 
 ### 4.2 Sayfa içi sekmeler (pratikortam'daki gibi)
@@ -331,7 +332,7 @@ Kural: **canlı site hiçbir aşamada bozulmaz.**
   - `MoreMenu` (⋯ Diğer).
   - Mevcut `DataTable`, `SumStrip`, `Chip`, `Modal`, `useOpenNewFromUrl` yeniden kullanılır.
 - **Görünüm anahtarı:** `localStorage` + kullanıcı tercihi (`yes.layout = 'classic' | 'new'`). Menü ve sayfa iskeleti bu değere göre seçilir. Sayfa içerikleri ortak kalır, kod iki kez yazılmaz.
-- **Adresler:** yeni adresler Türkçe ve pratikortam adlarına yakın olur (`/bugun`, `/e-fatura`, `/raporlar/musteriler-cari` …). Eskiler `Navigate` ile yönlendirilir.
+- **Adresler değişmez** (bkz. `KOLAYLASTIRMA-UYGULAMA.md` bölüm 0). Sekmeler mevcut sayfalar arasında bağlantıdır.
 - **Ayna modu** bu işten etkilenmez: yazma düğmeleri `write` ile yine gizlenir.
 - **Testler:**
   - Her aşamada `client/e2e` güncellenir. Seçiciler metin değiştiği için güncellenmeli.
@@ -377,12 +378,14 @@ Bana kısa Türkçe özet: ne değişti, nerede, müşteriye neyi göstermeliyim
 ---
 
 ## Durum
+Aşama adları: plan K0-K6 ↔ uygulama kılavuzu F1-F6 (K1+K2 = F1, K3 = F2, K4 = F3, K5 = F4 + F5, K6 = F6).
+
 | Aşama | Durum |
 |---|---|
-| K0 Dinleme | Bekliyor (müşteri görüşmesi) |
-| K1 Prototip | Bekliyor |
-| K2 Menü ve iskelet | Bekliyor |
-| K3 Bugün + Sevkiyatlar | Bekliyor |
-| K4 e-Fatura + Cari + Banka | Bekliyor |
-| K5 Listeler + Öz Mal + Analiz | Bekliyor |
-| K6 Cila ve geçiş | Bekliyor |
+| K0 Dinleme (müşteri görüşmesi) | Bekliyor; uygulamayı durdurmaz, F2 sonunda müşteriye gösterilir |
+| F1 Anahtar, menü, sekmeler, ortak parçalar, terim | Bekliyor |
+| F2 Bugün + Sevkiyatlar + Sevkiyat Ekle | Bekliyor |
+| F3 e-Fatura + Cari + Banka & Çek | Bekliyor |
+| F4 Listeler + Öz Mal + Analiz + Yönetici | Bekliyor |
+| F5 Formlar + telefon | Bekliyor |
+| F6 Cila, yardım, varsayılan yapma | Bekliyor |
