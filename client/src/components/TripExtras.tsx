@@ -54,7 +54,7 @@ export function TripAttachments({ trip }: { trip: Trip }) {
         <Button icon={<Upload className="size-4" />} loading={upload.isPending} onClick={() => input.current?.click()}>Dosya Yükle</Button>
       </div>
       <p className="text-sm text-slate-500">JPEG, PNG, WEBP veya PDF · en fazla 10 MB. Şoförler teslim fotoğraflarını mobil uygulamadan yükler.</p>
-      {isLoading ? <Spinner /> : !data?.length ? <Empty>Bu sefere eklenmiş dosya yok.</Empty> : (
+      {isLoading ? <Spinner /> : !data?.length ? <Empty>Bu sevkiyata eklenmiş dosya yok.</Empty> : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {data.map((a) => (
             <li key={a.id} className="flex gap-3 rounded-lg border border-slate-200 p-2">
@@ -106,10 +106,10 @@ export function TripTracking({ trip }: { trip: Trip }) {
       <div className="rounded-lg bg-slate-50 p-3">
         <div className="mb-2 text-sm font-medium text-navy-900">Müşteri takip linki</div>
         <p className="mb-3 text-sm text-slate-500">
-          Müşteri bu linkle seferin durumunu ve araç yoldayken konumunu görür. Fiyat ve şoför bilgisi paylaşılmaz.
+          Müşteri bu linkle sevkiyatın durumunu ve araç yoldayken konumunu görür. Fiyat ve şoför bilgisi paylaşılmaz.
           Link teslimden 7 gün sonra kapanır.
         </p>
-        {trip.status === 'Cancelled' ? <p className="text-sm text-slate-500">İptal edilmiş sefer için link oluşturulamaz.</p> : !link ? (
+        {trip.status === 'Cancelled' ? <p className="text-sm text-slate-500">İptal edilmiş sevkiyat için link oluşturulamaz.</p> : !link ? (
           <Button icon={<Link2 className="size-4" />} loading={create.isPending} onClick={() => create.mutate()}>Takip Linki Oluştur</Button>
         ) : (
           <div className="space-y-2">
@@ -127,9 +127,9 @@ export function TripTracking({ trip }: { trip: Trip }) {
         )}
       </div>
       <div>
-        <div className="mb-2 text-sm font-medium text-navy-900">Sefer rotası</div>
+        <div className="mb-2 text-sm font-medium text-navy-900">Sevkiyat rotası</div>
         {route.isLoading ? <Spinner /> : points.length === 0 ? (
-          <Empty>Bu sefer için henüz konum kaydı yok. Şoför mobil uygulamada sefere başladığında rota burada görünür.</Empty>
+          <Empty>Bu sevkiyat için henüz konum kaydı yok. Şoför mobil uygulamada sevkiyata başladığında rota burada görünür.</Empty>
         ) : (
           <>
             <MapView className="h-72" route={points} markers={last ? [{ id: 'last', lat: last[0], lng: last[1], label: `${trip.vehiclePlate} · ${tripStatusLabel[trip.status]}`, color: '#d97706' }] : []} />

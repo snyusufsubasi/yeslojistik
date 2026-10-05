@@ -14,7 +14,7 @@ export const tripStatusAction: Record<TripStatus, string> = {
   Loaded: 'Yüklendi yap',
   OnRoad: 'Yola çıktı yap',
   Delivered: 'Teslim edildi yap',
-  Cancelled: 'Seferi iptal et',
+  Cancelled: 'Sevkiyatı iptal et',
 }
 
 export const vehicleStatusLabel: Record<VehicleStatus, string> = {

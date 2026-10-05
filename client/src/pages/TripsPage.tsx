@@ -176,36 +176,36 @@ export default function TripsPage() {
         t.cargoType && `Taşınan mal: ${t.cargoType}`,
       ].filter(Boolean).join('\n')
       await navigator.clipboard.writeText(text)
-      toast.success('Şoför ve sefer bilgisi kopyalandı.')
+      toast.success('Şoför ve sevkiyat bilgisi kopyalandı.')
     } catch {
       toast.error('Kopyalanamadı.')
     }
   }
 
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
-    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
-  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sefer silindi.', onSuccess: () => setDeleting(null) })
+    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sevkiyat durumu güncellendi.' })
+  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sevkiyat silindi.', onSuccess: () => setDeleting(null) })
 
   // Toplu işlemler (alttaki seçim çubuğu).
   const approveMut = useSave((ids: number[]) => post<BulkResult>('/trips/bulk/approve-delivery-documents', { tripIds: ids }), {
-    invalidate: ['trips'], onSuccess: (r) => { selection.clear(); bulkResult.show('Teslim evrakı onayı', 'seferin teslim evrakı onaylandı.', r) },
+    invalidate: ['trips'], onSuccess: (r) => { selection.clear(); bulkResult.show('Teslim evrakı onayı', 'sevkiyatın teslim evrakı onaylandı.', r) },
   })
   const advanceMut = useSave((ids: number[]) => post<BulkResult>('/trips/bulk/advance-status', { tripIds: ids }), {
     invalidate: ['trips', 'vehicles', 'suppliers'],
-    onSuccess: (r) => { setAdvancing(null); selection.clear(); bulkResult.show('Durum güncelleme', 'seferin durumu ilerletildi.', r) },
+    onSuccess: (r) => { setAdvancing(null); selection.clear(); bulkResult.show('Durum güncelleme', 'sevkiyatın durumu ilerletildi.', r) },
   })
   /** Seçilenlerle fatura: hepsi aynı müşterinin, faturalanmamış ve iptal edilmemiş seferleri olmalı. */
   const invoiceSelected = (rows: Trip[]) => {
     if (new Set(rows.map((t) => t.customerId)).size > 1)
-      return toast.error('Seçilen seferler farklı müşterilere ait. Fatura tek müşteriye kesilir; aynı müşterinin seferlerini seçin.')
+      return toast.error('Seçilen sevkiyatlar farklı müşterilere ait. Fatura tek müşteriye kesilir; aynı müşterinin sevkiyatlarını seçin.')
     const invoicedCount = rows.filter((t) => t.invoiceId || t.isLegacy).length
-    if (invoicedCount) return toast.error(`${invoicedCount} seferin faturası zaten kesilmiş. Bu seferleri seçimden çıkarın.`)
+    if (invoicedCount) return toast.error(`${invoicedCount} sevkiyatın faturası zaten kesilmiş. Bu sevkiyatları seçimden çıkarın.`)
     const cancelledCount = rows.filter((t) => t.status === 'Cancelled').length
-    if (cancelledCount) return toast.error(`${cancelledCount} sefer iptal edilmiş; iptal edilen sefer faturalanmaz. Seçimden çıkarın.`)
+    if (cancelledCount) return toast.error(`${cancelledCount} sevkiyat iptal edilmiş; iptal edilen sevkiyat faturalanmaz. Seçimden çıkarın.`)
     navigate(`/faturalar/yeni?customerId=${rows[0].customerId}&tripIds=${rows.map((t) => t.id).join(',')}`)
   }
   const paySelected = (rows: Trip[]) => {
-    if (!rows.some((t) => t.carrierSupplierId)) return toast.error('Seçilen seferlerin hiçbiri kiralık (taşeron) araçla yapılmamış; ödenecek tedarikçi yok.')
+    if (!rows.some((t) => t.carrierSupplierId)) return toast.error('Seçilen sevkiyatların hiçbiri kiralık (taşeron) araçla yapılmamış; ödenecek tedarikçi yok.')
     setPaying(rows.map((t) => t.id))
   }
   const exportSelected = (rows: Trip[]) =>
@@ -277,14 +277,14 @@ export default function TripsPage() {
             options={[{ value: 'yes' as const, label: 'Komisyon işi' }, { value: 'no' as const, label: 'Komisyonsuz' }]} />
           <Select aria-label="Teslim evrakı" value={documentState} onChange={setDocumentState} placeholder="Teslim evrakı: tümü"
             options={[{ value: 'yes' as const, label: 'Teslim evrakı eklenenler' }, { value: 'no' as const, label: 'Teslim evrakı beklenenler' }]} />
-          <Select aria-label="Hazır liste" value={preset} onChange={setPreset} placeholder="Liste: tüm seferler" options={presetOptions} />
+          <Select aria-label="Hazır liste" value={preset} onChange={setPreset} placeholder="Liste: tüm sevkiyatlar" options={presetOptions} />
           <input className="input" aria-label="Firma grubu" placeholder="Firma grubu / şantiye" value={group} onChange={(e) => setGroup(e.target.value)} />
           <input className="input" aria-label="Yükleme yeri" placeholder="Yükleme yeri (il ya da adres)" value={loadingPlace} onChange={(e) => setLoadingPlace(e.target.value)} />
           <input className="input" aria-label="İndirme yeri" placeholder="İndirme yeri (il ya da adres)" value={deliveryPlace} onChange={(e) => setDeliveryPlace(e.target.value)} />
           <input className="input" aria-label="Sevkiyat no" placeholder="Sevkiyat no" value={tripNo} onChange={(e) => setTripNo(e.target.value)} />
           <input className="input" aria-label="Teslim evrak no" placeholder="Teslim evrak no" value={docNo} onChange={(e) => setDocNo(e.target.value)} />
           <input className="input" aria-label="Fatura no" placeholder="Fatura no (satış ya da taşeron)" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
-          {UETDS_READINESS && <Select aria-label="U-ETDS hazırlığı" value={uetdsMissing} onChange={setUetdsMissing} placeholder="U-ETDS: tüm seferler"
+          {UETDS_READINESS && <Select aria-label="U-ETDS hazırlığı" value={uetdsMissing} onChange={setUetdsMissing} placeholder="U-ETDS: tüm sevkiyatlar"
             options={[{ value: 'missing' as const, label: 'U-ETDS eksik olanlar' }]} />}
   </>
   const label = (list: { value: number; label: string }[] | undefined, id: number | '') => list?.find((x) => x.value === id)?.label ?? String(id)
@@ -336,7 +336,7 @@ export default function TripsPage() {
 
   return (
     <>
-      <PageHeader title="Sevkiyatlar" subtitle="Seferlerin takibi, durum güncelleme, fatura ve kazanç"
+      <PageHeader title="Sevkiyatlar" subtitle="Sevkiyatların takibi, durum güncelleme, fatura ve kazanç"
         actions={isNew ? <>
           <MoreMenu items={[
             { label: 'Excel (liste)', icon: <Download />, onClick: () => download('/trips/export', query, 'sevkiyatlar.xlsx').catch(fail) },
@@ -348,12 +348,12 @@ export default function TripsPage() {
           ]} />
           {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sevkiyat Ekle</Button>}
         </> : <>
-          <ExportButton url="/trips/export" params={query} fileName="seferler.xlsx" />
+          <ExportButton url="/trips/export" params={query} fileName="sevkiyatlar.xlsx" />
           <PdfButton url="/trips/pdf" params={filters} fileName="sevkiyat-listesi.pdf" label="Sevkiyat PDF" icon={<Printer className="size-4" />} />
           <PdfButton url="/trips/summary" params={{ ...filters, format: 'pdf' }} fileName="icmal.pdf" label="İcmal" icon={<FileText className="size-4" />} />
           {can('operations') && <ImportButton entity="trips" />}
           {can('accounting') && <Button write variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
-          {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sefer</Button>}
+          {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sevkiyat</Button>}
         </>} />
       {(!isNew || view === 'board') && <div className="mb-4 flex flex-wrap items-center gap-2">
         {viewToggle}
@@ -379,7 +379,7 @@ export default function TripsPage() {
         <FilterBar search={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres, sevkiyat no..." />}
           quick={<>{viewToggle}{periodButtons}</>} chips={chips} onOpen={() => setFilterOpen(true)} onClearAll={anyFilter ? clearFilters : undefined} />
       </div>}
-      {view === 'list' && <Card bodyClassName="p-0" title={isNew ? undefined : 'Sefer Listesi'} icon={isNew ? undefined : <Truck className="size-4" />}
+      {view === 'list' && <Card bodyClassName="p-0" title={isNew ? undefined : 'Sevkiyat Listesi'} icon={isNew ? undefined : <Truck className="size-4" />}
         actions={isNew ? undefined : <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
         {!isNew && <><div className="border-b border-slate-100 px-4 pt-4 pb-3 sm:px-6">
           <div role="radiogroup" aria-label="Dönem" className={clsx(segmentGroup, 'flex w-full sm:inline-flex sm:w-auto')}>
@@ -413,12 +413,12 @@ export default function TripsPage() {
           onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
-          selectable selection={selection} bulkActions={bulkActions} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}, ${t.customerTitle}`}
+          selectable selection={selection} bulkActions={bulkActions} rowLabel={(t) => `Sevkiyat ${t.terms?.externalRef ?? t.id}, ${t.customerTitle}`}
           empty={anyFilter
-            ? 'Bu filtrelere uyan sefer yok. Filtreleri temizlemeyi deneyin.'
-            : !noTripsAtAll ? 'Bu görünümde sefer yok.' : (
-              <FirstUse title="İlk sevkiyatınızı ekleyin" addLabel="Yeni sefer" onAdd={can('operations') ? () => setEditing('new') : undefined}>
-                Müşteri, araç ve şoförünüzü seçip ilk seferi oluşturun. Sefer teslim edilince tek tıkla faturalanır. Henüz müşteri ya da araç eklemediyseniz önce onları ekleyin.
+            ? 'Bu filtrelere uyan sevkiyat yok. Filtreleri temizlemeyi deneyin.'
+            : !noTripsAtAll ? 'Bu görünümde sevkiyat yok.' : (
+              <FirstUse title="İlk sevkiyatınızı ekleyin" addLabel="Yeni sevkiyat" onAdd={can('operations') ? () => setEditing('new') : undefined}>
+                Müşteri, araç ve şoförünüzü seçip ilk sevkiyatı oluşturun. Sevkiyat teslim edilince tek tıkla faturalanır. Henüz müşteri ya da araç eklemediyseniz önce onları ekleyin.
               </FirstUse>)}
           mobileCard={(t) => (
             <div className="space-y-1">
@@ -467,8 +467,8 @@ export default function TripsPage() {
         <div className="grid gap-3">{mainFilters}{moreFilters}</div>
       </FilterPanel>
       {importOpen && <ImportDialog entity="trips" onClose={() => setImportOpen(false)} />}
-      <ConfirmDialog open={!!deleting} title="Seferi sil" loading={deleteMut.isPending}
-        message={<>“{deleting?.customerTitle} – {deleting?.loadingAddress} → {deleting?.deliveryAddress}” seferi silinecek. Emin misiniz?</>}
+      <ConfirmDialog open={!!deleting} title="Sevkiyatı sil" loading={deleteMut.isPending}
+        message={<>“{deleting?.customerTitle} – {deleting?.loadingAddress} → {deleting?.deliveryAddress}” sevkiyatı silinecek. Emin misiniz?</>}
         confirmText="Sil" onClose={() => setDeleting(null)} onConfirm={() => deleting && deleteMut.mutate(deleting.id)} />
     </>
   )
@@ -482,13 +482,13 @@ function AdvanceSummary({ trips }: { trips: Trip[] }) {
   const counts = new Map<TripStatus, number>()
   for (const t of trips) { const n = forward[t.status]; if (n) counts.set(n, (counts.get(n) ?? 0) + 1) }
   const stay = trips.filter((t) => !forward[t.status]).length
-  if (counts.size === 0) return <p>Seçilen seferlerin hiçbiri ilerletilemez: hepsi teslim edilmiş ya da iptal.</p>
+  if (counts.size === 0) return <p>Seçilen sevkiyatların hiçbiri ilerletilemez: hepsi teslim edilmiş ya da iptal.</p>
   return <>
-    <p>Seçilen seferler bir sonraki aşamaya geçecek:</p>
+    <p>Seçilen sevkiyatlar bir sonraki aşamaya geçecek:</p>
     <ul className="mt-2 list-disc space-y-1 pl-5">
-      {[...counts].map(([s, n]) => <li key={s}><b>{n}</b> sefer → {tripStatusLabel[s]}</li>)}
+      {[...counts].map(([s, n]) => <li key={s}><b>{n}</b> sevkiyat → {tripStatusLabel[s]}</li>)}
     </ul>
-    {stay > 0 && <p className="mt-2 text-slate-600">{stay} sefer değişmeyecek (teslim edilmiş ya da iptal).</p>}
+    {stay > 0 && <p className="mt-2 text-slate-600">{stay} sevkiyat değişmeyecek (teslim edilmiş ya da iptal).</p>}
     {counts.has('Delivered') && <p className="mt-2 text-slate-600">Teslim tarihi boş olanlara bugünün tarihi yazılır.</p>}
   </>
 }
@@ -567,7 +567,7 @@ function InvoiceInfo({ t }: { t: Trip }) {
 
 /** Eski paneldeki "Kazanç Tablosu": süzgece uyan seferlerin toplamı, listenin hemen üstünde. "Faturası kesilecek" sağda, sarı zeminli. */
 function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals; showMoney: boolean; onUninvoiced: () => void }) {
-  const items: SumItem[] = [{ label: 'Sefer', value: totals.count }]
+  const items: SumItem[] = [{ label: 'Sevkiyat', value: totals.count }]
   if (showMoney) {
     items.push({ label: 'Satış', value: tl(totals.sale) }, { label: 'Araç / taşeron maliyeti', value: tl(totals.vehicleCost) })
     if (totals.commission > 0) items.push({ label: 'Komisyon', value: tl(totals.commission) })
@@ -577,8 +577,8 @@ function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals
   }
   return <SumStrip label="Kazanç tablosu" items={items}
     end={totals.uninvoicedCount > 0
-      ? { label: `Faturası kesilecek · ${totals.uninvoicedCount} sefer`, value: tl(totals.uninvoicedTotal), highlight: true, onClick: onUninvoiced,
-          title: 'Teslim edilip faturası kesilmemiş seferleri listele' }
+      ? { label: `Faturası kesilecek · ${totals.uninvoicedCount} sevkiyat`, value: tl(totals.uninvoicedTotal), highlight: true, onClick: onUninvoiced,
+          title: 'Teslim edilip faturası kesilmemiş sevkiyatları listele' }
       : { label: 'Faturası kesilecek', value: 'Yok' }} />
 }
 

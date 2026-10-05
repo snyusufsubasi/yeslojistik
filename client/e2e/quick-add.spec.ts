@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { login } from './helpers'
 
-test('üst çubuktaki "+ Yeni" menüsünden sefer formu açılır; N kısayolu menüyü açar', async ({ page }) => {
+test('üst çubuktaki "+ Yeni" menüsünden sevkiyat formu açılır; N kısayolu menüyü açar', async ({ page }) => {
   await login(page)
   await page.keyboard.press('n')
   const menu = page.getByRole('menu')
@@ -10,8 +10,8 @@ test('üst çubuktaki "+ Yeni" menüsünden sefer formu açılır; N kısayolu m
   await expect(menu).toBeHidden()
 
   await page.getByRole('button', { name: 'Yeni', exact: true }).click()
-  await menu.getByRole('menuitem', { name: 'Yeni Sefer' }).click()
-  await expect(page.getByRole('dialog', { name: /Sefer Oluştur/ })).toBeVisible()
+  await menu.getByRole('menuitem', { name: 'Yeni Sevkiyat' }).click()
+  await expect(page.getByRole('dialog', { name: /Sevkiyat Oluştur/ })).toBeVisible()
 })
 
 test('ayna açıkken "+ Yeni" görünür ama kaydı pratikortam\'a yönlendirir', async ({ page }) => {

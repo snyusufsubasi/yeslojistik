@@ -193,7 +193,7 @@ export function MarginSummary({ sale, cost, terms, expenses }: { sale: number; c
       {terms.commission > 0 && row('Komisyon (KDV hariç)', commissionNet(terms), '+ ')}
       {terms.extraCharge > 0 && !terms.extraChargeInvoiced && row('Masraf (KDV hariç)', extraCost(terms), '− ')}
       {terms.driverBonus > 0 && row('Şoför primi', terms.driverBonus, '− ')}
-      {expenses > 0 && row('Sefere bağlı giderler', expenses, '− ')}
+      {expenses > 0 && row('Sevkiyata bağlı giderler', expenses, '− ')}
       <div className="flex justify-between border-t border-slate-100 pt-1 font-medium">
         <span>Toplam Kazanç</span>
         <span className={total < 0 ? 'text-red-600' : 'text-emerald-700'}>{tl(total)}</span>

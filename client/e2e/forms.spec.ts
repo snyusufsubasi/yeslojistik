@@ -4,8 +4,8 @@ import { login, pick, unique } from './helpers'
 test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab vurgulananı seçer', async ({ page }) => {
   await login(page)
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
-  await page.getByRole('button', { name: 'Yeni Sefer' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Sefer Oluştur' })
+  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
 
   // "mar" yazıp Tab: vurgulanan müşteri seçilir, odak sonraki alana geçer.
   const customer = dialog.locator('input[name=customerId]')
@@ -38,11 +38,11 @@ test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab v
   await expect(dialog.getByLabel('Yükleme Enlem')).toBeVisible()
 })
 
-test('sefer formu sade: KDV tek satır özet, komisyon/prim katlanır bölümde', async ({ page }) => {
+test('sevkiyat formu sade: KDV tek satır özet, komisyon/prim katlanır bölümde', async ({ page }) => {
   await login(page)
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
-  await page.getByRole('button', { name: 'Yeni Sefer' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Sefer Oluştur' })
+  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
 
   // Fiyatlar zorunlu (yıldızlı); KDV ve tevkifat varsayılanda özet olarak görünür, "Değiştir" ile açılır.
   await dialog.getByLabel('Müşteri Satış Fiyatı (TL)').fill('10000')
@@ -93,13 +93,13 @@ test('pencere: ilk alana odak, yazılmışsa kapatmadan önce sorar, Ctrl+Enter 
   await expect(page.getByText(name).first()).toBeVisible()
 })
 
-test('gider formu: sefer seçilince boş araç ve şoför seferden gelir; gider adı katlanır bölümde', async ({ page }) => {
+test('gider formu: sevkiyat seçilince boş araç ve şoför sevkiyattan gelir; gider adı katlanır bölümde', async ({ page }) => {
   await login(page)
   await page.goto('/giderler')
   await page.getByRole('button', { name: 'Gider Ekle' }).click()
   const dlg = page.getByRole('dialog', { name: 'Gider Ekle' })
   await expect(dlg.getByLabel('Gider Adı')).toBeHidden()
-  await dlg.getByRole('button', { name: /^Sefer, tedarikçi, ödeme/ }).click()
+  await dlg.getByRole('button', { name: /^Sevkiyat, tedarikçi, ödeme/ }).click()
   await expect(dlg.getByLabel('Gider Adı')).toBeVisible()
   await pick(dlg.locator('input[name=tripId]'), { index: 1 })
   await expect(dlg.locator('input[name=vehicleId]')).not.toHaveValue('')

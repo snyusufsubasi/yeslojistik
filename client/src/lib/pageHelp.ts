@@ -1,9 +1,9 @@
 /** Sayfa başlığının yanındaki "?" kutusunda gösterilen kısa ipuçları (adresin ilk parçasına göre). */
 export const pageHelp: Record<string, string[]> = {
-  seferler: [
-    'Yeni yük için sağ üstteki mavi "Yeni Sefer" düğmesine basın; müşteri, araç ve güzergâhı seçin.',
-    'Satırdaki "Yüklendi yap", "Yola çıktı yap" düğmeleriyle seferin durumunu ilerletin.',
-    'Teslim edilen seferler "Faturalar" sayfasında fatura kesilmeyi bekler.',
+  sevkiyatlar: [
+    'Yeni yük için sağ üstteki mavi "Yeni Sevkiyat" düğmesine basın; müşteri, araç ve güzergâhı seçin.',
+    'Satırdaki "Yüklendi yap", "Yola çıktı yap" düğmeleriyle sevkiyatın durumunu ilerletin.',
+    'Teslim edilen sevkiyatlar "Faturalar" sayfasında fatura kesilmeyi bekler.',
     '"Bugün / Gelecek / Geçmiş / Bu ay" ile dönemi seçin; listenin üstündeki kazanç tablosu o döneme göre hesaplanır.',
     'Tedarikçi, plaka, Piyasa / Öz Araç ile süzün; yer, numara, komisyon ve teslim evrakı süzgeçleri "Ayrıntılı süzgeç" altındadır. Kazanç tablosu, Excel, PDF ve İcmal süzgece uyar.',
     '"Detay" düğmesi fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunlarını açar.',
@@ -35,7 +35,7 @@ export const pageHelp: Record<string, string[]> = {
   ],
   harita: [
     'Yolda olan araçların son konumları haritada görünür.',
-    'Araca tıklayınca hangi seferde olduğunu görürsünüz.',
+    'Araca tıklayınca hangi sevkiyatta olduğunu görürsünüz.',
     'Konum, şoför uygulamada "Yola çıktım" dediğinde gelmeye başlar.',
   ],
   musteriler: [
@@ -45,11 +45,11 @@ export const pageHelp: Record<string, string[]> = {
   ],
   tedarikciler: [
     'Araç sahipleri (taşeronlar), servisler ve akaryakıtçılar burada durur.',
-    'Kiralık araçla yapılan her sefer taşerona borç olarak yazılır.',
+    'Kiralık araçla yapılan her sevkiyat taşerona borç olarak yazılır.',
     'Tedarikçiye tıklayıp "Ödeme Yap" ile borcu kapatın.',
   ],
   faturalar: [
-    '"Yeni Fatura" ile teslim edilmiş seferleri seçip tek faturada birleştirin.',
+    '"Yeni Fatura" ile teslim edilmiş sevkiyatları seçip tek faturada birleştirin.',
     'Faturaya tıklayınca PDF\'ini indirebilir ya da e-postayla gönderebilirsiniz.',
     'Ödenmeyen faturalar "Açık" görünür; tahsilat girilince kapanır.',
   ],
@@ -61,7 +61,7 @@ export const pageHelp: Record<string, string[]> = {
   odemeler: [
     'Taşerona (araç sahibine) yaptığınız ödemeleri buradan girin.',
     'Ödeme, tedarikçinin borcunu eskiden yeniye doğru kapatır.',
-    'Belirli bir seferin avansıysa sefer de seçilebilir.',
+    'Belirli bir sevkiyatın avansıysa sevkiyat de seçilebilir.',
   ],
   'cek-senet': [
     'Müşteriden aldığınız çek ve senetler burada vadesine göre sıralanır.',
@@ -81,7 +81,7 @@ export const pageHelp: Record<string, string[]> = {
   raporlar: [
     'Üstteki sekmelerden istediğiniz raporu seçin.',
     'Her raporu "Excel\'e Aktar" ile indirebilirsiniz.',
-    'Kârlılık raporları seferin satış fiyatından araç maliyeti ve giderleri düşer.',
+    'Kârlılık raporları sevkiyatın satış fiyatından araç maliyeti ve giderleri düşer.',
   ],
   ayarlar: [
     'Firma bilgileri faturalarda ve PDF\'lerde görünür; eksiksiz doldurun.',

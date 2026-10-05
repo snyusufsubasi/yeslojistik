@@ -154,12 +154,12 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     const body = { ...nullify(rest), terms: termsToApi(terms), uetds: uetdsToApi(uetds) } as unknown as FormValues
     return trip ? api.update(trip.id, body) : api.create(body)
   }, {
-    invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sefer güncellendi.' : 'Sefer oluşturuldu.', onSuccess: onClose,
+    invalidate: ['trips', 'vehicles', 'customers', 'suppliers', 'job-requests'], success: trip ? 'Sevkiyat güncellendi.' : 'Sevkiyat oluşturuldu.', onSuccess: onClose,
     onError: (e) => applyServerErrors(e, setError),
   })
 
   const statusMut = useSave((s: TripStatus) => post<Trip>(`/trips/${trip!.id}/status`, { status: s }),
-    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.', onSuccess: onClose })
+    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sevkiyat durumu güncellendi.', onSuccess: onClose })
 
   const cost = useWatch({ control, name: 'vehicleCost' })
   const price = useWatch({ control, name: 'salePrice' })
@@ -222,7 +222,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     setValue('driverId', t.driverId, opts)
     setValue('vehicleCost', t.vehicleCost, opts)
     setValue('salePrice', t.salePrice, opts)
-    toast.success('Son seferin bilgileri dolduruldu. Tarihi ve fiyatı kontrol edin.')
+    toast.success('Son sevkiyatın bilgileri dolduruldu. Tarihi ve fiyatı kontrol edin.')
   }
   const pickAddress = (kind: 'loading' | 'delivery', a: TripAddressHint) => {
     setValue(`${kind}Address`, a.address, opts)
@@ -266,16 +266,16 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const showCarrier = rented || !!trip?.carrierSupplierId
 
   return (
-    <Modal open onClose={onClose} title={trip ? 'Sefer Düzenle' : copyOf ? 'Sefer Oluştur (kopya)' : 'Sefer Oluştur'} size="lg"
+    <Modal open onClose={onClose} title={trip ? 'Sevkiyat Düzenle' : copyOf ? 'Sevkiyat Oluştur (kopya)' : 'Sevkiyat Oluştur'} size="lg"
       footer={tab === 'info' ? <>
         {trip && (
           <div className="mr-auto flex flex-wrap gap-2">
             {onDelete && !trip.invoiceId && (
-              <Button variant="ghost" className="text-red-700 hover:bg-red-50" icon={<Trash2 className="size-4" />} onClick={() => onDelete(trip)}>Seferi Sil</Button>
+              <Button variant="ghost" className="text-red-700 hover:bg-red-50" icon={<Trash2 className="size-4" />} onClick={() => onDelete(trip)}>Sevkiyatı Sil</Button>
             )}
             <Button variant="secondary" icon={<FileText className="size-4" />} title="Araçta taşınacak, teslimde imzalatılacak belge (fiyat içermez)"
               onClick={() => openPdf(`/trips/${trip.id}/waybill`, `S-${String(trip.id).padStart(6, '0')}.pdf`).catch((e) => toast.error(errorMessage(e)))}>Sevk Belgesi</Button>
-            {onCopy && <Button variant="secondary" icon={<Copy className="size-4" />} title="Aynı müşteri, güzergah ve fiyatla yeni sefer" onClick={() => onCopy(trip)}>Kopyala</Button>}
+            {onCopy && <Button variant="secondary" icon={<Copy className="size-4" />} title="Aynı müşteri, güzergah ve fiyatla yeni sevkiyat" onClick={() => onCopy(trip)}>Kopyala</Button>}
           </div>
         )}
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button>
@@ -284,7 +284,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       {trip && (
         <div className="mb-4">
           <Tabs value={tab} onChange={setTab} tabs={[
-            { value: 'info', label: 'Sefer Bilgileri' },
+            { value: 'info', label: 'Sevkiyat Bilgileri' },
             { value: 'files', label: 'Dosyalar / Fotoğraflar' },
             { value: 'tracking', label: 'Takip ve Rota' },
             { value: 'history' as const, label: 'Geçmiş' },
@@ -315,12 +315,12 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       {UETDS_READINESS && trip && uetdsApplies(trip) && <UetdsPanel tripId={trip.id} onFixTrip={focusUetdsField} />}
       {trip?.isLegacy && (
         <p className="mb-3 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
-          Bu sefer eski sistemden aktarıldı. Geçmiş için gösterilir; tutarları devir bakiyesinde olduğundan borç ve fatura hesaplarına girmez.
+          Bu sevkiyat eski sistemden aktarıldı. Geçmiş için gösterilir; tutarları devir bakiyesinde olduğundan borç ve fatura hesaplarına girmez.
         </p>
       )}
       {invoiced && (
         <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Bu sefer {trip?.invoiceNo} numaralı faturaya bağlı. Müşteri ve satış fiyatı değiştirilemez.
+          Bu sevkiyat {trip?.invoiceNo} numaralı faturaya bağlı. Müşteri ve satış fiyatı değiştirilemez.
         </p>
       )}
       <form className="space-y-6" onSubmit={handleSubmit((v) => save.mutate(v))}>
@@ -334,14 +334,14 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             </Field>
             {overLimit && risk.data && (
               <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-red-800 md:col-span-2">
-                Risk limiti aşılıyor: açık bakiye {tl(risk.data.openBalance)} + faturalanmamış {tl(risk.data.uninvoicedDelivered)} + bu sefer {tl(Number(price) || 0)} &gt; limit {tl(risk.data.creditLimit!)}. Kayıt yine de yapılabilir.
+                Risk limiti aşılıyor: açık bakiye {tl(risk.data.openBalance)} + faturalanmamış {tl(risk.data.uninvoicedDelivered)} + bu sevkiyat {tl(Number(price) || 0)} &gt; limit {tl(risk.data.creditLimit!)}. Kayıt yine de yapılabilir.
               </p>
             )}
             {last && (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 md:col-span-2">
                 <History className="size-5 shrink-0 text-brand-600" />
                 <div className="min-w-0 flex-1 text-sm text-slate-700">
-                  <div className="font-medium text-slate-900">Son sefer · {date(last.loadingDate)}</div>
+                  <div className="font-medium text-slate-900">Son sevkiyat · {date(last.loadingDate)}</div>
                   <div className="truncate">{[last.loadingCity || last.loadingAddress, last.deliveryCity || last.deliveryAddress].join(' → ')}{last.cargoType && ` · ${last.cargoType}`} · {tl(last.salePrice)}</div>
                 </div>
                 <Button type="button" size="sm" icon={<Sparkles className="size-4" />} onClick={() => fillFromLast(last)}>Aynısını doldur</Button>
@@ -389,7 +389,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               {busy && (
                 <p role="alert" className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                  {busy === 'OnRoad' ? 'Bu araç şu an başka bir seferde (yolda). Yine de planlayabilirsiniz; önceki sefer bitince yola çıkar.' : 'Bu araç şu an bakımda görünüyor.'}
+                  {busy === 'OnRoad' ? 'Bu araç şu an başka bir sevkiyatta (yolda). Yine de planlayabilirsiniz; önceki sevkiyat bitince yola çıkar.' : 'Bu araç şu an bakımda görünüyor.'}
                 </p>
               )}
             </Field>
@@ -432,9 +432,9 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             <div className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
               <MapPin className="size-4 shrink-0 text-slate-500" />
               <span className="min-w-0 flex-1">
-                <b className="font-medium text-slate-900">{loadingCity} → {deliveryCity}</b>: son 1 yılda {route.count} sefer.
+                <b className="font-medium text-slate-900">{loadingCity} → {deliveryCity}</b>: son 1 yılda {route.count} sevkiyat.
                 Ortalama satış <b className="font-medium">{tl(route.avgSalePrice)}</b>, araç maliyeti <b className="font-medium">{tl(route.avgVehicleCost)}</b>.
-                <span className="block text-slate-500">Son sefer ({date(route.lastDate)}): {tl(route.lastSalePrice)} / {tl(route.lastVehicleCost)}</span>
+                <span className="block text-slate-500">Son sevkiyat ({date(route.lastDate)}): {tl(route.lastSalePrice)} / {tl(route.lastVehicleCost)}</span>
               </span>
               <Button type="button" size="sm" variant="secondary" onClick={() => { setValue('salePrice', route.lastSalePrice, opts); setValue('vehicleCost', route.lastVehicleCost, opts) }}>Son fiyatları kullan</Button>
             </div>
@@ -442,7 +442,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           <div className="rounded-xl bg-slate-50 px-4 py-3">
             {trip && trip.expenseTotal > 0 && (
               <div className="flex justify-between gap-2 text-sm">
-                <span className="text-slate-600">Sefere bağlı giderler</span>
+                <span className="text-slate-600">Sevkiyata bağlı giderler</span>
                 <Link className="tabular-nums text-brand-700 underline underline-offset-2" to={`/giderler?tripId=${trip.id}`}>{tl(trip.expenseTotal)}</Link>
               </div>
             )}
@@ -587,7 +587,7 @@ function AddressChips({ items, current, onPick }: { items?: TripAddressHint[]; c
       <span className="text-sm text-slate-500">Kayıtlı:</span>
       {items.slice(0, 4).map((a) => (
         <Chip key={`${a.address}|${a.city}`} active={a.address.trim().toLocaleLowerCase('tr') === cur} onClick={() => onPick(a)}
-          title={`${a.count} seferde kullanıldı${a.contact ? ` · ${a.contact}` : ''}`}>
+          title={`${a.count} sevkiyatta kullanıldı${a.contact ? ` · ${a.contact}` : ''}`}>
           {a.address}{a.city ? ` (${a.city})` : ''}
         </Chip>
       ))}

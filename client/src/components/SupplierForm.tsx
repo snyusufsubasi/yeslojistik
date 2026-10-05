@@ -68,7 +68,7 @@ export function SupplierForm({ supplier, onClose, onSaved, defaultKind = 'Carrie
         </Section>
         <Section n={2} title="Ödeme" hint="Borç bu vadeye göre “ödenecekler” listesine düşer.">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Ödeme Vadesi" required error={errors.paymentTermDays?.message} hint="Sefer tarihinden itibaren kaç günde ödenir.">
+            <Field label="Ödeme Vadesi" required error={errors.paymentTermDays?.message} hint="Sevkiyat tarihinden itibaren kaç günde ödenir.">
               <DaysInput control={control} name="paymentTermDays" />
             </Field>
             <Field label="IBAN" error={errors.iban?.message} hint="Ödeme yaparken kopyalamak için.">

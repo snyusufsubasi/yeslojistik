@@ -243,9 +243,9 @@ function DataStep({ onSkip, onNext }: { onSkip: () => void; onNext: () => void }
 
 const strong = (p: string) => p.length >= 8 && /\p{L}/u.test(p) && /\d/.test(p)
 const userRoles: { value: Exclude<UserRole, 'Admin'>; label: string; hint: string }[] = [
-  { value: 'Operations', label: 'Operasyon', hint: 'Sefer, araç ve şoför işleri' },
+  { value: 'Operations', label: 'Operasyon', hint: 'Sevkiyat, araç ve şoför işleri' },
   { value: 'Accounting', label: 'Muhasebe', hint: 'Fatura, tahsilat, cari ve raporlar' },
-  { value: 'Driver', label: 'Şoför (mobil)', hint: 'Yalnız mobil uygulamadan kendi seferleri' },
+  { value: 'Driver', label: 'Şoför (mobil)', hint: 'Yalnız mobil uygulamadan kendi sevkiyatları' },
 ]
 const usersApi = crud<User, { fullName: string; email: string; role: UserRole; isActive: boolean; password: string; driverId: number | null }>('users')
 
@@ -337,7 +337,7 @@ function StartStep({ setup, onFinish }: { setup: Dashboard['setup']; onFinish: (
       <div className="grid gap-3 sm:grid-cols-2">
         <section className="rounded-[4px] border border-line p-4">
           <h3 className="mb-1 flex items-center gap-2 font-bold"><FlaskConical className="size-4 text-accent" /> Örnek veri ile dene</h3>
-          <p className="mb-3 text-[0.875rem] text-muted">Örnek müşteri, araç, şoför, sefer ve faturalar yüklenir; programı gerçek veri girmeden gezebilirsiniz. Girdiğiniz firma bilgileri korunur. Hazır olunca Ayarlar → Veriler'den tek tuşla temizlenir.</p>
+          <p className="mb-3 text-[0.875rem] text-muted">Örnek müşteri, araç, şoför, sevkiyat ve faturalar yüklenir; programı gerçek veri girmeden gezebilirsiniz. Girdiğiniz firma bilgileri korunur. Hazır olunca Ayarlar → Veriler'den tek tuşla temizlenir.</p>
           <Button variant="secondary" loading={load.isPending} disabled={!!sampleBlocked} onClick={() => load.mutate()}>Örnek verileri yükle</Button>
           {sampleBlocked && <p className="mt-2 text-[0.8125rem] text-muted">{sampleBlocked}</p>}
         </section>

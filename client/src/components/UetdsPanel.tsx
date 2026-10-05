@@ -43,7 +43,7 @@ export function UetdsPanel({ tripId, onFixTrip }: { tripId: number; onFixTrip: (
           {notes.map((i) => <IssueRow key={i.code} issue={i} onFixTrip={onFixTrip} note />)}
         </ul>
       )}
-      {data && !data.ready && <p className="mt-2 text-[0.8125rem] text-muted">Sefer alanlarını düzeltip Kaydet deyin; şoför, araç ve müşteri düzeltmeleri yeni sekmede açılır.</p>}
+      {data && !data.ready && <p className="mt-2 text-[0.8125rem] text-muted">Sevkiyat alanlarını düzeltip Kaydet deyin; şoför, araç ve müşteri düzeltmeleri yeni sekmede açılır.</p>}
     </section>
   )
 }

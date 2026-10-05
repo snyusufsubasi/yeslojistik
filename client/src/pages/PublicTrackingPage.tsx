@@ -11,15 +11,15 @@ import { ago, date, dateTime } from '../lib/format'
 import { usePageTitle } from '../lib/usePageTitle'
 
 const headline: Record<TripStatus, { text: string; tone: string }> = {
-  Planned: { text: 'Seferiniz planlandı', tone: 'bg-info' },
+  Planned: { text: 'Sevkiyatınız planlandı', tone: 'bg-info' },
   Loaded: { text: 'Yükünüz araca yüklendi', tone: 'bg-accent' },
   OnRoad: { text: 'Yükünüz yolda', tone: 'bg-accent' },
   Delivered: { text: 'Yükünüz teslim edildi', tone: 'bg-good' },
-  Cancelled: { text: 'Bu sefer iptal edildi', tone: 'bg-bad' },
+  Cancelled: { text: 'Bu sevkiyat iptal edildi', tone: 'bg-bad' },
 }
 
 const steps: { status: TripStatus; label: string }[] = [
-  { status: 'Planned', label: 'Sefer planlandı' },
+  { status: 'Planned', label: 'Sevkiyat planlandı' },
   { status: 'Loaded', label: 'Yük araca yüklendi' },
   { status: 'OnRoad', label: 'Araç yolda' },
   { status: 'Delivered', label: 'Teslim edildi' },

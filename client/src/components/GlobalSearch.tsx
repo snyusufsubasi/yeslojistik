@@ -8,7 +8,7 @@ import { useDebounce } from '../lib/hooks'
 import { Modal, Spinner } from './ui'
 
 const typeInfo: Record<SearchResult['type'], { label: string; icon: typeof Truck }> = {
-  trip: { label: 'Sefer', icon: Truck },
+  trip: { label: 'Sevkiyat', icon: Truck },
   customer: { label: 'Müşteri', icon: Users },
   supplier: { label: 'Tedarikçi', icon: Handshake },
   vehicle: { label: 'Araç', icon: Building2 },

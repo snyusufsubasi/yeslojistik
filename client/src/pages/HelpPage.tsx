@@ -38,10 +38,10 @@ export default function HelpPage() {
       <div className="space-y-3">
         <Section icon={<Truck className="size-5" />} title="Günlük iş akışı" open>
           <Steps items={[
-            <>Sefer açın: <L to="/seferler?new=1">Sevkiyatlar → Yeni Sefer</L>. Müşteri, araç, il ve adresler, yük bilgisi ve fiyatları girin; tahmini kâr hemen görünür. Müşterinin sipariş numarasını “Müşteri Referans No”ya yazarsanız faturaya da basılır.</>,
-            <>Sefer ilerledikçe listedeki düğmeyle durumu güncelleyin (ya da şoför mobil uygulamadan günceller).</>,
-            <>Masrafları <L to="/giderler">Giderler</L> sayfasından girin; sefere bağlarsanız o seferin kârından düşülür.</>,
-            <>Sefer bitince <L to="/faturalar/yeni">Faturalar → Yeni Fatura</L> ile müşteriyi seçin, teslim edilen seferler kendiliğinden işaretlenir.</>,
+            <>Sevkiyat açın: <L to="/seferler?new=1">Sevkiyatlar → Yeni Sevkiyat</L>. Müşteri, araç, il ve adresler, yük bilgisi ve fiyatları girin; tahmini kâr hemen görünür. Müşterinin sipariş numarasını “Müşteri Referans No”ya yazarsanız faturaya da basılır.</>,
+            <>Sevkiyat ilerledikçe listedeki düğmeyle durumu güncelleyin (ya da şoför mobil uygulamadan günceller).</>,
+            <>Masrafları <L to="/giderler">Giderler</L> sayfasından girin; sevkiyata bağlarsanız o sevkiyatın kârından düşülür.</>,
+            <>Sevkiyat bitince <L to="/faturalar/yeni">Faturalar → Yeni Fatura</L> ile müşteriyi seçin, teslim edilen sevkiyatlar kendiliğinden işaretlenir.</>,
             <>Ödeme gelince faturanın içinden <b>Tahsilat Ekle</b> deyin. Müşterinin cari bakiyesi kendiliğinden güncellenir.</>,
           ]} />
         </Section>
@@ -51,11 +51,11 @@ export default function HelpPage() {
           <Steps items={[
             <>Araç sahibini <b>Yeni Tedarikçi</b> ile ekleyin (IBAN'ı yazarsanız ödeme yaparken tek tuşla kopyalanır).</>,
             <><L to="/araclar">Araçlar</L> sayfasında aracın <b>Sahiplik</b> alanını “Kiralık” yapıp araç sahibini seçin. Dorse plakasını da girebilirsiniz.</>,
-            <>Bu araçla sefer açınca form “Taşeron” bölümünü gösterir; <b>Taşerona Ödenecek</b> tutarı araç sahibine borç yazılır. Şoför listede yoksa <b>+ Hızlı şoför ekle</b> deyin.</>,
-            <>Borç, sefer <b>Yüklendi</b> olduğunda oluşur; planlanmış ve iptal edilen sefer borç doğurmaz. Tedarikçinin sayfasında toplam borcu ve seferleri görürsünüz.</>,
-            <>Ödeme yapınca tedarikçi sayfasında <b>Ödeme Yap</b> deyin ya da <L to="/odemeler">Ödemeler</L> sayfasını kullanın. Ödeme en eski borçtan başlayarak kapatır; bir sefere bağlarsanız önce o seferi kapatır.</>,
+            <>Bu araçla sevkiyat açınca form “Taşeron” bölümünü gösterir; <b>Taşerona Ödenecek</b> tutarı araç sahibine borç yazılır. Şoför listede yoksa <b>+ Hızlı şoför ekle</b> deyin.</>,
+            <>Borç, sevkiyat <b>Yüklendi</b> olduğunda oluşur; planlanmış ve iptal edilen sevkiyat borç doğurmaz. Tedarikçinin sayfasında toplam borcu ve sevkiyatları görürsünüz.</>,
+            <>Ödeme yapınca tedarikçi sayfasında <b>Ödeme Yap</b> deyin ya da <L to="/odemeler">Ödemeler</L> sayfasını kullanın. Ödeme en eski borçtan başlayarak kapatır; bir sevkiyata bağlarsanız önce o sevkiyatı kapatır.</>,
             <>Veresiye yakıt, tamircide açık hesap gibi giderleri <L to="/giderler">Giderler</L>'de tedarikçiyi seçip <b>Vadeli</b> işaretleyerek girin; borca eklenir. Fişin fotoğrafını da ekleyebilirsiniz.</>,
-            <><b>Hesap Ekstresi</b> düğmesi mutabakat için PDF verir. Vadesi geçen borçlar ve 15 günü geçtiği halde faturası gelmeyen seferler ana sayfadaki uyarılarda çıkar; <L to="/raporlar">Raporlar</L>'da <b>Borç Yaşlandırma</b> ve <b>Tedarikçiler</b> sekmeleri var.</>,
+            <><b>Hesap Ekstresi</b> düğmesi mutabakat için PDF verir. Vadesi geçen borçlar ve 15 günü geçtiği halde faturası gelmeyen sevkiyatlar ana sayfadaki uyarılarda çıkar; <L to="/raporlar">Raporlar</L>'da <b>Borç Yaşlandırma</b> ve <b>Tedarikçiler</b> sekmeleri var.</>,
           ]} />
         </Section>
 
@@ -65,7 +65,7 @@ export default function HelpPage() {
             <>Demo verilerini temizleyin.</>,
             <>Firma bilgilerini, logoyu, il/ilçeyi ve IBAN'ı girin.</>,
             <>Ofis ve şoför hesaplarını açın.</>,
-            <>Excel'den aktarın, bu sırayla: <b>Tedarikçiler → Müşteriler → Şoförler → Araçlar → Seferler</b>. Her sayfadaki “Excel'den Aktar” düğmesi şablonu verir; önce “Kontrol Et”, hata yoksa aktarılır.</>,
+            <>Excel'den aktarın, bu sırayla: <b>Tedarikçiler → Müşteriler → Şoförler → Araçlar → Sevkiyatlar</b>. Her sayfadaki “Excel'den Aktar” düğmesi şablonu verir; önce “Kontrol Et”, hata yoksa aktarılır.</>,
             <>Devir bakiyelerinin toplamını eski defterinizle karşılaştırın ve sıradaki fatura numarasını kontrol edin.</>,
             <>İlk tam yedeği indirin.</>,
           ]} />
@@ -76,15 +76,15 @@ export default function HelpPage() {
           <p>Aynı kartta veritabanının doluluğu görünür; ücretsiz sunucuda sınır 1 GB'tır.</p>
         </Section>
 
-        <Section icon={<Truck className="size-5" />} title="Sefer durumları ne anlama geliyor?">
+        <Section icon={<Truck className="size-5" />} title="Sevkiyat durumları ne anlama geliyor?">
           <ul className="space-y-2">
-            <li><Badge tone="blue">Planlandı</Badge> Sefer oluşturuldu, yük henüz alınmadı.</li>
+            <li><Badge tone="blue">Planlandı</Badge> Sevkiyat oluşturuldu, yük henüz alınmadı.</li>
             <li><Badge tone="teal">Yüklendi</Badge> Yük araca yüklendi. Araç “Yolda” görünür, konum paylaşımı başlar.</li>
             <li><Badge tone="yellow">Yolda</Badge> Araç yola çıktı.</li>
-            <li><Badge tone="green">Teslim Edildi</Badge> Yük teslim edildi, sefer faturalanabilir.</li>
-            <li><Badge tone="gray">İptal</Badge> Sefer yapılmadı. Faturalanmış sefer iptal edilemez; önce faturayı iptal edin.</li>
+            <li><Badge tone="green">Teslim Edildi</Badge> Yük teslim edildi, sevkiyat faturalanabilir.</li>
+            <li><Badge tone="gray">İptal</Badge> Sevkiyat yapılmadı. Faturalanmış sevkiyat iptal edilemez; önce faturayı iptal edin.</li>
           </ul>
-          <p>Yanlış basılan bir durumu sefere tıklayıp açılan penceredeki düğmelerle bir adım geri alabilirsiniz.</p>
+          <p>Yanlış basılan bir durumu sevkiyata tıklayıp açılan penceredeki düğmelerle bir adım geri alabilirsiniz.</p>
         </Section>
 
         <Section icon={<FileText className="size-5" />} title="Fatura, KDV ve tevkifat">
@@ -92,7 +92,7 @@ export default function HelpPage() {
           <ul className="list-disc space-y-1 pl-5">
             <li><b>Taslak Kaydet</b>: sonra kesmek için saklar, cari bakiyeye yansımaz.</li>
             <li><b>Faturayı Kes</b>: kesinleştirir, müşterinin borcuna yazılır. <b>PDF</b> ile yazdırın veya gönderin.</li>
-            <li>Hatalı fatura <b>silinmez, iptal edilir</b>; numara korunur, seferler tekrar faturalanabilir.</li>
+            <li>Hatalı fatura <b>silinmez, iptal edilir</b>; numara korunur, sevkiyatlar tekrar faturalanabilir.</li>
           </ul>
           <p className="rounded-md bg-amber-50 px-3 py-2 text-amber-900">Bu faturalar sistem içi kayıttır. Resmi e-Fatura/e-Arşiv muhasebe programınızdan kesilmeye devam eder.</p>
         </Section>
@@ -114,29 +114,29 @@ export default function HelpPage() {
         <Section icon={<Smartphone className="size-5" />} title="Şoför mobil uygulaması">
           <Steps items={[
             <><L to="/ayarlar?tab=users">Ayarlar → Kullanıcılar → Yeni Kullanıcı</L>: rolü <b>Şoför (mobil)</b> seçin ve şoförü bağlayın.</>,
-            <>Şoför uygulamaya bu e-posta ve şifreyle girer; yalnızca kendi seferlerini görür, fiyatları görmez.</>,
-            <>Seferde sırayla <b>Yükü Aldım → Yola Çıktım → Teslim Ettim</b> der, teslim fotoğrafı veya imzalı irsaliye yükler.</>,
-            <>Yolda yaptığı <b>yakıt</b> (litre ve km ile), otoyol/köprü ve onarım masraflarını <b>Masraf / Yakıt</b> bölümünden girer; masraf sefere, araca ve şoföre bağlanarak <L to="/giderler">Giderler</L>'e düşer.</>,
-            <>Yük alındığı andan teslime kadar konum kendiliğinden paylaşılır. Sefer atadığınızda şoföre bildirim gider.</>,
+            <>Şoför uygulamaya bu e-posta ve şifreyle girer; yalnızca kendi sevkiyatlarını görür, fiyatları görmez.</>,
+            <>Sevkiyatta sırayla <b>Yükü Aldım → Yola Çıktım → Teslim Ettim</b> der, teslim fotoğrafı veya imzalı irsaliye yükler.</>,
+            <>Yolda yaptığı <b>yakıt</b> (litre ve km ile), otoyol/köprü ve onarım masraflarını <b>Masraf / Yakıt</b> bölümünden girer; masraf sevkiyata, araca ve şoföre bağlanarak <L to="/giderler">Giderler</L>'e düşer.</>,
+            <>Yük alındığı andan teslime kadar konum kendiliğinden paylaşılır. Sevkiyat atadığınızda şoföre bildirim gider.</>,
           ]} />
         </Section>
 
         <Section icon={<MapPin className="size-5" />} title="Araç takip haritası">
-          <p><L to="/harita">Araç Takip Haritası</L> araçların son konumunu gösterir ve 30 saniyede bir yenilenir. Listeden bir araca tıklayınca o seferin izlediği yol çizilir.</p>
+          <p><L to="/harita">Araç Takip Haritası</L> araçların son konumunu gösterir ve 30 saniyede bir yenilenir. Listeden bir araca tıklayınca o sevkiyatın izlediği yol çizilir.</p>
         </Section>
 
         <Section icon={<Link2 className="size-5" />} title="Müşteriye takip linki gönderme">
           <Steps items={[
-            <>Sefere tıklayın → <b>Takip ve Rota</b> sekmesi → <b>Takip Linki Oluştur</b>.</>,
+            <>Sevkiyata tıklayın → <b>Takip ve Rota</b> sekmesi → <b>Takip Linki Oluştur</b>.</>,
             <><b>WhatsApp ile Gönder</b> ya da <b>Kopyala</b>. Müşteri giriş yapmadan sevkiyatın aşamasını ve araç yoldayken konumunu görür.</>,
           ]} />
           <p>Linkte fiyat ve şoför bilgisi yoktur, plakanın son haneleri gizlenir. Teslimden 7 gün sonra link kapanır.</p>
         </Section>
 
-        <Section icon={<Copy className="size-5" />} title="Sevk belgesi ve sefer kopyalama">
+        <Section icon={<Copy className="size-5" />} title="Sevk belgesi ve sevkiyat kopyalama">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Sefere tıklayın → <b>Sevk Belgesi</b>: araçta taşınacak, teslimde imzalatılacak belge. Fiyat içermez.</li>
-            <li><b>Kopyala</b>: aynı müşteri, güzergah, araç ve fiyatla bugünün tarihine yeni sefer açar. Düzenli seferler için idealdir.</li>
+            <li>Sevkiyata tıklayın → <b>Sevk Belgesi</b>: araçta taşınacak, teslimde imzalatılacak belge. Fiyat içermez.</li>
+            <li><b>Kopyala</b>: aynı müşteri, güzergah, araç ve fiyatla bugünün tarihine yeni sevkiyat açar. Düzenli sevkiyatlar için idealdir.</li>
           </ul>
         </Section>
 
@@ -147,14 +147,14 @@ export default function HelpPage() {
         <Section icon={<Fuel className="size-5" />} title="Yakıt takibi ve şoför avansı">
           <ul className="list-disc space-y-1 pl-5">
             <li>Yakıt giderine <b>litre</b> ve <b>araç kilometresini</b> yazın. <L to="/raporlar">Raporlar → Yakıt</L> her aracın 100 km'de kaç litre yaktığını gösterir; ortalamanın belirgin üstündeki araç kırmızı görünür.</li>
-            <li>Depoyu her seferinde doldurup o anki km'yi yazarsanız sonuç en doğru olur. Girilen km araç kartındaki km'yi de günceller.</li>
+            <li>Depoyu her sevkiyatında doldurup o anki km'yi yazarsanız sonuç en doğru olur. Girilen km araç kartındaki km'yi de günceller.</li>
             <li>Şoföre verilen avans için <b>Şoför Avansı</b> kategorisini seçip şoförü işaretleyin. <b>Raporlar → Şoför Bazlı</b> avans ve harcırah toplamlarını gösterir.</li>
           </ul>
         </Section>
 
         <Section icon={<HelpCircle className="size-5" />} title="Genel arama ve telefona kurma">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Üst çubuktaki <b>Ara</b> kutusu (ya da <b>Ctrl+K</b>): plaka, müşteri, sefer referans no, fatura no, şoför ve tedarikçi arar; sonuca tıklayınca kayıt açılır.</li>
+            <li>Üst çubuktaki <b>Ara</b> kutusu (ya da <b>Ctrl+K</b>): plaka, müşteri, sevkiyat referans no, fatura no, şoför ve tedarikçi arar; sonuca tıklayınca kayıt açılır.</li>
             <li>Paneli telefona uygulama gibi kurmak için: iPhone'da Safari → Paylaş → <b>Ana Ekrana Ekle</b>; Android'de Chrome menüsü → <b>Uygulamayı yükle</b>.</li>
             <li><L to="/raporlar">Raporlar</L> → <b>Müşteri Kârlılığı</b> ve <b>Güzergâh</b>: hangi müşteri ve hangi il-il hattının ne kadar kazandırdığını gösterir.</li>
           </ul>
@@ -166,14 +166,14 @@ export default function HelpPage() {
             <li>Portföydeki çeki <b>Tahsile ver</b>, <b>Tahsil edildi</b> (hesabını seçin), <b>Ciro et</b> (tedarikçiye ödeme olarak yazılır) ya da <b>Karşılıksız</b> / <b>İade</b> olarak işaretleyin. Karşılıksız ve iade çek müşterinin bakiyesinden düşmez; ciro edilmişse tedarikçi ödemesi de geri alınır.</li>
             <li><L to="/kasa-banka">Kasa / Banka</L>: hesaplarınızı açılış bakiyesiyle açın. Tahsilat, ödeme, gider ve şoför ödemesinde hesap seçerseniz bakiye kendiliğinden hesaplanır. Hesaplar arası para aktarımı için <b>Virman</b>.</li>
             <li>Ana sayfadaki <b>Nakit Akışı</b> kartı önümüzdeki 4 haftada beklenen tahsilatı (fatura vadeleri, çek/senetler) ve taşeron/tedarikçi ödemelerini gösterir.</li>
-            <li>Müşteri kartında <b>Risk limiti</b> girerseniz, açık bakiye + faturalanmamış seferler limiti aşınca sefer formunda ve bildirimlerde uyarı çıkar. Vadesi geçmiş alacakta müşteri sayfasındaki <b>Vade Hatırlatma</b> e-posta (ekstre ekli) ya da WhatsApp mesajı hazırlar.</li>
+            <li>Müşteri kartında <b>Risk limiti</b> girerseniz, açık bakiye + faturalanmamış sevkiyatlar limiti aşınca sevkiyat formunda ve bildirimlerde uyarı çıkar. Vadesi geçmiş alacakta müşteri sayfasındaki <b>Vade Hatırlatma</b> e-posta (ekstre ekli) ya da WhatsApp mesajı hazırlar.</li>
           </ul>
         </Section>
 
         <Section icon={<Wallet className="size-5" />} title="Şoför masraf onayı ve şoför hesabı">
           <ul className="list-disc space-y-1 pl-5">
             <li>Şoförün uygulamadan girdiği masraf <b>Onay bekliyor</b> olarak düşer; ana sayfada sayısı görünür. <L to="/giderler?onay=Pending">Giderler</L> sayfasında <b>Onayla</b> ya da gerekçe yazıp <b>Reddet</b> deyin. Gerekçe şoföre bildirim olarak gider.</li>
-            <li>Raporlar, ana sayfa ve sefer kârı yalnızca <b>onaylı</b> masrafları sayar.</li>
+            <li>Raporlar, ana sayfa ve sevkiyat kârı yalnızca <b>onaylı</b> masrafları sayar.</li>
             <li>Şoför kartındaki <b>Hesap</b> sekmesi: verilen avans ve ödemeler bakiyeyi artırır; şoförün cebinden yaptığı onaylı masraflar ve geri verdiği para düşürür. Pozitif bakiye “şoförde kalan firma parası”, negatif bakiye “şoföre borcumuz” demektir. Mahsuplaşma için <b>Ödeme / İade Gir</b> kullanın.</li>
           </ul>
         </Section>
@@ -188,18 +188,18 @@ export default function HelpPage() {
 
         <Section icon={<Mail className="size-5" />} title="Müşteriye otomatik e-posta ve sabah özeti">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Müşteri kartında <b>Sefer durumu değişince müşteriye e-posta gönder</b> işaretliyse, yük yüklendiğinde, yola çıktığında ve teslim edildiğinde müşteriye takip linkli e-posta gider.</li>
+            <li>Müşteri kartında <b>Sevkiyat durumu değişince müşteriye e-posta gönder</b> işaretliyse, yük yüklendiğinde, yola çıktığında ve teslim edildiğinde müşteriye takip linkli e-posta gider.</li>
             <li><L to="/ayarlar">Ayarlar → Bildirimler → Sabah uyarı özeti</L>: her sabah 08:00'de yöneticilere bakım, belge ve vadesi geçen alacak uyarıları e-postayla gelir.</li>
             <li>E-postaların çalışması için sunucuda e-posta (SMTP) ayarının yapılmış olması gerekir.</li>
           </ul>
         </Section>
 
         <Section icon={<History className="size-5" />} title="İşlem geçmişi">
-          <p><L to="/ayarlar?tab=audit">Ayarlar → İşlem Geçmişi</L> (yalnızca yönetici): kim, ne zaman, hangi kaydı oluşturdu, değiştirdi ya da sildi; değişen alanların eski ve yeni değeriyle. Bir seferin geçmişi, sefer penceresindeki <b>Geçmiş</b> sekmesinde de görünür.</p>
+          <p><L to="/ayarlar?tab=audit">Ayarlar → İşlem Geçmişi</L> (yalnızca yönetici): kim, ne zaman, hangi kaydı oluşturdu, değiştirdi ya da sildi; değişen alanların eski ve yeni değeriyle. Bir sevkiyatın geçmişi, sevkiyat penceresindeki <b>Geçmiş</b> sekmesinde de görünür.</p>
         </Section>
 
         <Section icon={<DatabaseZap className="size-5" />} title="Demo verilerden gerçek kullanıma geçiş">
-          <p>Program örnek verilerle açıldıysa ana sayfada sarı bir uyarı görünür. Deneme bitince <L to="/ayarlar?tab=data">Ayarlar → Veriler</L> bölümünde kutuya <b>SİL</b> yazıp onaylayın: müşteri, araç, sefer, fatura gibi bütün kayıtlar silinir; firma bilgileri ve personel hesapları kalır, numaralar 1'den başlar.</p>
+          <p>Program örnek verilerle açıldıysa ana sayfada sarı bir uyarı görünür. Deneme bitince <L to="/ayarlar?tab=data">Ayarlar → Veriler</L> bölümünde kutuya <b>SİL</b> yazıp onaylayın: müşteri, araç, sevkiyat, fatura gibi bütün kayıtlar silinir; firma bilgileri ve personel hesapları kalır, numaralar 1'den başlar.</p>
         </Section>
 
         <Section icon={<Bell className="size-5" />} title="Bildirimler (zil simgesi)">
@@ -212,13 +212,13 @@ export default function HelpPage() {
         </Section>
 
         <Section icon={<BarChart3 className="size-5" />} title="Raporlar">
-          <p><L to="/raporlar">Raporlar</L>: aylık özet, sefer kârlılığı, araç ve şoför bazlı gelir-gider, yakıt tüketimi, alacak yaşlandırma ve gider dağılımı. Her rapor ve liste <b>Excel</b> düğmesiyle indirilebilir.</p>
+          <p><L to="/raporlar">Raporlar</L>: aylık özet, sevkiyat kârlılığı, araç ve şoför bazlı gelir-gider, yakıt tüketimi, alacak yaşlandırma ve gider dağılımı. Her rapor ve liste <b>Excel</b> düğmesiyle indirilebilir.</p>
         </Section>
 
         <Section icon={<Users className="size-5" />} title="Kullanıcılar ve yetkiler">
           <ul className="list-disc space-y-1 pl-5">
             <li><b>Yönetici</b>: her şey, kullanıcı ve firma ayarları</li>
-            <li><b>Operasyon</b>: sefer, araç, şoför</li>
+            <li><b>Operasyon</b>: sevkiyat, araç, şoför</li>
             <li><b>Muhasebe</b>: fatura, tahsilat, raporlar</li>
             <li><b>Şoför (mobil)</b>: yalnızca mobil uygulama</li>
           </ul>
@@ -228,10 +228,10 @@ export default function HelpPage() {
         <Section icon={<HelpCircle className="size-5" />} title="Sık sorulanlar">
           <dl className="space-y-3">
             <div><dt className="font-medium">Şifremi unuttum.</dt><dd>Yönetici, <L to="/ayarlar?tab=users">Kullanıcılar</L> ekranında hesabınıza yeni şifre verebilir.</dd></div>
-            <div><dt className="font-medium">Seferi silemiyorum.</dt><dd>Faturalanmış sefer silinemez. Önce faturayı iptal edin.</dd></div>
-            <div><dt className="font-medium">Araç sürekli “Yolda” görünüyor.</dt><dd>Aracın yüklendi/yolda durumunda seferi vardır. O seferi “Teslim Edildi” yapınca araç “Müsait” olur.</dd></div>
+            <div><dt className="font-medium">Sevkiyatı silemiyorum.</dt><dd>Faturalanmış sevkiyat silinemez. Önce faturayı iptal edin.</dd></div>
+            <div><dt className="font-medium">Araç sürekli “Yolda” görünüyor.</dt><dd>Aracın yüklendi/yolda durumunda sevkiyatı vardır. O sevkiyatı “Teslim Edildi” yapınca araç “Müsait” olur.</dd></div>
             <div><dt className="font-medium">Faturayı iptal edemiyorum.</dt><dd>Faturaya bağlı tahsilat vardır. Önce tahsilatı silin veya düzenleyip fatura bağlantısını kaldırın.</dd></div>
-            <div><dt className="font-medium">Haritada araç görünmüyor.</dt><dd>Şoförün mobil uygulamada oturum açmış ve konum izni vermiş olması gerekir; konum yalnızca aktif seferde paylaşılır.</dd></div>
+            <div><dt className="font-medium">Haritada araç görünmüyor.</dt><dd>Şoförün mobil uygulamada oturum açmış ve konum izni vermiş olması gerekir; konum yalnızca aktif sevkiyatta paylaşılır.</dd></div>
           </dl>
         </Section>
       </div>

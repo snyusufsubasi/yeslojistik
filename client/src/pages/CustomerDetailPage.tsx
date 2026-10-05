@@ -36,7 +36,7 @@ export default function CustomerDetailPage() {
 
   return (
     <>
-      <PageHeader title={c.title} subtitle={<>Müşteri No: {c.customerNo} · {s.tripCount} sefer</>}
+      <PageHeader title={c.title} subtitle={<>Müşteri No: {c.customerNo} · {s.tripCount} sevkiyat</>}
         actions={<>
           <Button variant="secondary" icon={<ArrowLeft className="size-4" />} onClick={() => navigate('/musteriler')}>Geri</Button>
           <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>Düzenle</Button>
@@ -73,7 +73,7 @@ export default function CustomerDetailPage() {
         <div className="px-4 pt-2">
           <Tabs value={tab} onChange={setTab} tabs={[
             { value: 'movements', label: 'Hareketler' },
-            { value: 'trips', label: 'Seferler' },
+            { value: 'trips', label: 'Sevkiyatlar' },
             { value: 'invoices', label: 'Faturalar' },
             { value: 'payments', label: 'Tahsilatlar' },
           ]} />
@@ -210,8 +210,8 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
         <p className="text-sm text-slate-600">Tarihleri boş bırakırsanız bütün hareketler alınır.</p>
         <label className="flex items-start gap-2 text-[0.9375rem] text-slate-700">
           <input type="checkbox" className="mt-1" checked={uninvoiced} onChange={(e) => setUninvoiced(e.target.checked)} />
-          <span>Faturasız seferleri de göster
-            <span className="block text-sm text-slate-500">Teslim edilmiş, faturası kesilmemiş seferler ayrı bölümde listelenir; bakiyeye eklenmez.</span></span>
+          <span>Faturasız sevkiyatları de göster
+            <span className="block text-sm text-slate-500">Teslim edilmiş, faturası kesilmemiş sevkiyatlar ayrı bölümde listelenir; bakiyeye eklenmez.</span></span>
         </label>
         {canMail && <>
           <label className="block"><span className="label">Alıcı e-posta</span>

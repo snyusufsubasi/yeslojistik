@@ -75,7 +75,7 @@ export default function ExpensesPage() {
       {e.approvalStatus === 'Rejected' && e.rejectionReason && <span className="mt-0.5 block max-w-48 truncate text-sm text-red-600">{e.rejectionReason}</span>}
       {e.paidBy === 'Driver' && <span className="mt-0.5 block text-sm text-slate-500">Şoför ödedi</span>}</> },
     { key: 'plate', header: 'Araç / Şoför', render: (e) => <>{e.vehiclePlate ? <PlateBadge plate={e.vehiclePlate} /> : (e.driverName ? '' : '—')}{e.driverName && <span className="block text-sm text-slate-500">{e.driverName}</span>}</> },
-    { key: 'trip', header: 'Sefer', render: (e) => e.tripLabel ?? '—' },
+    { key: 'trip', header: 'Sevkiyat', render: (e) => e.tripLabel ?? '—' },
     { key: 'desc', header: 'Açıklama', render: (e) => <>{e.description ?? ''}{e.supplierTitle && <span className="block text-sm text-slate-500">{e.supplierTitle}{e.isOnCredit && ' · vadeli'}</span>}
       {e.hasReceipt && <button className="block text-sm font-medium text-brand-700 underline" onClick={(ev) => { ev.stopPropagation(); openPdf(`/expenses/${e.id}/receipt`, `fis-${e.id}`).catch(() => undefined) }}>Fişi gör</button>}</> },
     { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (e) => <><span className="font-medium">{tl2(e.amount)}</span>{e.liters ? <span className="block text-sm text-slate-500">{e.liters.toLocaleString('tr-TR')} L{e.odometer ? ` · ${e.odometer.toLocaleString('tr-TR')} km` : ''}</span> : null}</> },
@@ -104,7 +104,7 @@ export default function ExpensesPage() {
         </>} />
       {tripId && (
         <div className="mb-3 flex items-center gap-2 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-700">
-          #{tripId} numaralı sefere ait giderler gösteriliyor.
+          #{tripId} numaralı sevkiyata ait giderler gösteriliyor.
           <button className="ml-auto" aria-label="Filtreyi kaldır" onClick={() => { params.delete('tripId'); setParams(params) }}><X className="size-4" /></button>
         </div>
       )}
@@ -245,7 +245,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
             options={(vehicles.data ?? []).map((v) => ({ value: v.id, label: v.label }))} />
         </Field>
         <Field label="Şoför" error={errors.driverId?.message}
-          hint={forDriver ? 'Avans/harcırahta zorunlu. Araç ya da sefer seçince şoförü gelir.' : 'İsteğe bağlı. Araç seçince aracın şoförü gelir.'}>
+          hint={forDriver ? 'Avans/harcırahta zorunlu. Araç ya da sevkiyat seçince şoförü gelir.' : 'İsteğe bağlı. Araç seçince aracın şoförü gelir.'}>
           <FormSelect control={control} name="driverId" placeholder="— Şoför seçilmedi —"
             options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
         </Field>
@@ -264,10 +264,10 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
         </>}
         <Field className="sm:col-span-2" label="Açıklama" error={errors.description?.message}><input className="input" placeholder="Ör. Shell Gebze, 34 VES 01 depo" {...register('description')} /></Field>
         <div className="sm:col-span-2">
-          <MoreFields title="Sefer, tedarikçi, ödeme, fiş ve diğer bilgiler (isteğe bağlı)" defaultOpen={moreOpen}
+          <MoreFields title="Sevkiyat, tedarikçi, ödeme, fiş ve diğer bilgiler (isteğe bağlı)" defaultOpen={moreOpen}
             hasError={!!(errors.tripId || errors.supplierId)}>
-            <Field label="Sefer" error={errors.tripId?.message} hint="Sefere bağlanan giderler sefer kârından düşülür. Araç ve şoför boşsa seferden gelir.">
-              <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —" onValueChange={onTripChange}
+            <Field label="Sevkiyat" error={errors.tripId?.message} hint="Sevkiyata bağlanan giderler sevkiyat kârından düşülür. Araç ve şoför boşsa sevkiyattan gelir.">
+              <FormSelect control={control} name="tripId" placeholder="— Sevkiyata bağlama —" onValueChange={onTripChange}
                 options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">

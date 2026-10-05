@@ -104,7 +104,7 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
         <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message}>
           <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
         </Field>
-        <Field group label="Durum" error={errors.status?.message} hint="“Yolda” durumu seferlerden kendiliğinden belirlenir.">
+        <Field group label="Durum" error={errors.status?.message} hint="“Yolda” durumu sevkiyatlardan kendiliğinden belirlenir.">
           <ControlledChoice control={control} name="status" label="Durum" variant="chips" options={choices(vehicleStatusLabel)} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">

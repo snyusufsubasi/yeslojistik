@@ -30,7 +30,7 @@ export default function ImportPage() {
           </div>
           <ImportWizard key={entity} entity={entity} />
           <p className="mt-6 border-t border-line pt-3 text-[0.8125rem] text-muted">
-            Önerilen sıra: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar. Sefer, fatura, tahsilat ve gider gibi geçmiş kayıtlar için
+            Önerilen sıra: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar. Sevkiyat, fatura, tahsilat ve gider gibi geçmiş kayıtlar için
             ilgili sayfadaki “Excel'den Aktar” düğmesini kullanın.
           </p>
         </Card>

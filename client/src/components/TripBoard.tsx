@@ -29,7 +29,7 @@ const place = (city?: string | null, address?: string) => city || address || '�
 export function TripBoard({ search, customerId, onOpen, canEdit }:
   { search?: string; customerId?: number | ''; onOpen?: (t: Trip) => void; canEdit: boolean }) {
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
-    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sefer durumu güncellendi.' })
+    { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sevkiyat durumu güncellendi.' })
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {columns.map((c) => (
@@ -59,7 +59,7 @@ function Column({ status, dot, hint, search, customerId, onOpen, canEdit, busyId
       </header>
       <div className="flex-1 space-y-2.5 overflow-y-auto px-3 pb-3 xl:max-h-[calc(100vh-18rem)]">
         {isLoading && <Spinner className="py-6" />}
-        {!isLoading && items.length === 0 && <p className="px-2 py-6 text-center text-sm text-slate-500">Bu sütunda sefer yok.</p>}
+        {!isLoading && items.length === 0 && <p className="px-2 py-6 text-center text-sm text-slate-500">Bu sütunda sevkiyat yok.</p>}
         {items.map((t) => {
           const next = t.nextStatuses.find((s) => s !== 'Cancelled' && s !== 'Planned')
           return (
@@ -83,7 +83,7 @@ function Column({ status, dot, hint, search, customerId, onOpen, canEdit, busyId
             </article>
           )
         })}
-        {(data?.total ?? 0) > items.length && <p className="px-2 text-center text-sm text-slate-500">+{(data!.total - items.length)} sefer daha (listede görün)</p>}
+        {(data?.total ?? 0) > items.length && <p className="px-2 text-center text-sm text-slate-500">+{(data!.total - items.length)} sevkiyat daha (listede görün)</p>}
       </div>
     </section>
   )

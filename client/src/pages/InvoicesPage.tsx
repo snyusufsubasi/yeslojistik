@@ -115,7 +115,7 @@ export default function InvoicesPage() {
             ? 'Bu filtrelere uyan fatura yok.'
             : (
               <FirstUse title="Henüz fatura kesilmedi" addLabel="Yeni fatura" onAdd={can('accounting') ? () => navigate('/faturalar/yeni') : undefined}>
-                Teslim edilen seferleri “Yeni Fatura” ile faturalayın. Eski programda kestiğiniz faturalar için “Excel'den Aktar” düğmesini kullanın.
+                Teslim edilen sevkiyatları “Yeni Fatura” ile faturalayın. Eski programda kestiğiniz faturalar için “Excel'den Aktar” düğmesini kullanın.
               </FirstUse>)}
           mobileCard={(i) => (
             <div className="space-y-1">
@@ -190,7 +190,7 @@ function InvoiceDetail({ id, onClose, onPdf }: { id: number; onClose: () => void
       {paying && inv && <PaymentForm payment={null} defaults={{ customerId: inv.customerId, invoiceId: inv.id, amount: inv.remaining }} onClose={() => setPaying(false)} />}
       {mailing && inv && <EmailDialog invoice={inv} onClose={() => setMailing(false)} />}
       <ConfirmDialog open={cancelling} title="Faturayı iptal et" loading={cancel.isPending} confirmText="İptal Et"
-        message="Fatura iptal edilecek ve bağlı seferler tekrar faturalanabilir hale gelecek. Fatura numarası korunur. Emin misiniz?"
+        message="Fatura iptal edilecek ve bağlı sevkiyatlar tekrar faturalanabilir hale gelecek. Fatura numarası korunur. Emin misiniz?"
         onClose={() => setCancelling(false)} onConfirm={() => cancel.mutate(undefined)} />
     </Modal>
   )

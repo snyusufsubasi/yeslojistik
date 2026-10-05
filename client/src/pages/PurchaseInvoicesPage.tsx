@@ -40,7 +40,7 @@ export default function PurchaseInvoicesPage() {
   const query = { page, pageSize: 20, search: debounced, supplierId, kind, from, to }
   const { data, isFetching, error, refetch } = usePaged<PurchaseInvoice>('purchase-invoices', query)
   const cancelMut = useSave((id: number) => post<PurchaseInvoice>(`/purchase-invoices/${id}/cancel`, { reason: null }), {
-    invalidate: ['purchase-invoices', 'suppliers', 'trips'], success: 'Fatura iptal edildi; seferleri yeniden fatura bekliyor.', onSuccess: () => setCancelling(null),
+    invalidate: ['purchase-invoices', 'suppliers', 'trips'], success: 'Fatura iptal edildi; sevkiyatları yeniden fatura bekliyor.', onSuccess: () => setCancelling(null),
   })
 
   const columns: Column<PurchaseInvoice>[] = [
@@ -67,7 +67,7 @@ export default function PurchaseInvoicesPage() {
 
   return (
     <>
-      <PageHeader title="Alınan Faturalar" subtitle="Taşerondan ve tedarikçilerden gelen faturalar; bağlanan seferler fatura bekleyenlerden düşer"
+      <PageHeader title="Alınan Faturalar" subtitle="Taşerondan ve tedarikçilerden gelen faturalar; bağlanan sevkiyatlar fatura bekleyenlerden düşer"
         actions={<>
           <ExportButton url="/purchase-invoices/export" params={query} fileName="alinan-faturalar.xlsx" />
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button>}
@@ -91,11 +91,11 @@ export default function PurchaseInvoicesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           page={page} total={data?.total} onPage={setPage}
-          empty={debounced || supplierId || kind || from || to ? 'Aramanıza uyan fatura yok.' : 'Henüz alınan fatura yok. Taşerondan fatura gelince “Fatura Ekle” ile seferlere bağlayın.'} />
+          empty={debounced || supplierId || kind || from || to ? 'Aramanıza uyan fatura yok.' : 'Henüz alınan fatura yok. Taşerondan fatura gelince “Fatura Ekle” ile sevkiyatlara bağlayın.'} />
       </Card>
       {editing && <PurchaseInvoiceForm invoice={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!cancelling} title="Faturayı iptal et" loading={cancelMut.isPending} confirmText="İptal et"
-        message={<>{cancelling?.supplierTitle} – {cancelling?.invoiceNo} iptal edilecek. Bağlı seferler yeniden “fatura bekleyen” olur ve borç sefer tutarından hesaplanır.</>}
+        message={<>{cancelling?.supplierTitle} – {cancelling?.invoiceNo} iptal edilecek. Bağlı sevkiyatlar yeniden “fatura bekleyen” olur ve borç sevkiyat tutarından hesaplanır.</>}
         onClose={() => setCancelling(null)} onConfirm={() => cancelling && cancelMut.mutate(cancelling.id)} />
     </>
   )
@@ -231,9 +231,9 @@ function PurchaseInvoiceForm({ invoice, onClose, supplierId: fixedSupplier }: { 
           </Field>
         </div>
         <div>
-          <div className="mb-2 text-sm font-medium text-navy-900">Faturaya bağlanacak seferler</div>
+          <div className="mb-2 text-sm font-medium text-navy-900">Faturaya bağlanacak sevkiyatlar</div>
           {!validSupplier && <p className="text-sm text-slate-500">Önce tedarikçiyi seçin.</p>}
-          {validSupplier && trips.isFetched && pending.length === 0 && <p className="text-sm text-slate-500">Bu tedarikçinin fatura bekleyen seferi yok. Servis/yakıt faturası ise sefer seçmeden kaydedin.</p>}
+          {validSupplier && trips.isFetched && pending.length === 0 && <p className="text-sm text-slate-500">Bu tedarikçinin fatura bekleyen sevkiyatı yok. Servis/yakıt faturası ise sevkiyat seçmeden kaydedin.</p>}
           <ul className="max-h-[26rem] space-y-1.5 overflow-y-auto pr-1">
             {pending.map((t) => (
               <li key={t.tripId}>
@@ -248,7 +248,7 @@ function PurchaseInvoiceForm({ invoice, onClose, supplierId: fixedSupplier }: { 
               </li>
             ))}
           </ul>
-          {tripIds.length > 0 && <p className="mt-2 text-sm text-slate-600"><Badge tone="blue">{tripIds.length} sefer</Badge> seçildi; tutarlar seçime göre önerildi, faturadakiyle kontrol edin.</p>}
+          {tripIds.length > 0 && <p className="mt-2 text-sm text-slate-600"><Badge tone="blue">{tripIds.length} sevkiyat</Badge> seçildi; tutarlar seçime göre önerildi, faturadakiyle kontrol edin.</p>}
         </div>
         <button type="submit" className="hidden" />
       </form>

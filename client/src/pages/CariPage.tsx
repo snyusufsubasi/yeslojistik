@@ -49,7 +49,7 @@ const customerColumns: MoneyColumn[] = [
   { key: 'opening', header: 'Devir', value: (r) => r.opening, mirror: 'never' },
   { key: 'invoiced', header: 'Kesilen Fatura', value: (r) => (r as CustomerCariRow).invoiced, mirror: 'ifData' },
   { key: 'cancelled', header: 'İptal Fatura', value: (r) => r.cancelledInvoices, count: (r) => r.cancelledInvoiceCount, unit: 'fatura', mirror: 'ifData', tone: 'text-slate-500' },
-  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sefer', mirror: 'ifData', tone: 'text-bill font-semibold' },
+  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sevkiyat', mirror: 'ifData', tone: 'text-bill font-semibold' },
   { key: 'collected', header: 'Alınan Ödeme', value: (r) => (r as CustomerCariRow).collected, mirror: 'never' },
 ]
 
@@ -57,7 +57,7 @@ const supplierColumns: MoneyColumn[] = [
   { key: 'opening', header: 'Devir', value: (r) => r.opening, mirror: 'never' },
   { key: 'received', header: 'Alınan Fatura', value: (r) => (r as SupplierCariRow).receivedInvoices, count: (r) => (r as SupplierCariRow).receivedInvoiceCount, unit: 'fatura', mirror: 'ifData', tone: 'text-slate-500' },
   { key: 'cancelled', header: 'İptal Fatura', value: (r) => r.cancelledInvoices, count: (r) => r.cancelledInvoiceCount, unit: 'fatura', mirror: 'ifData', tone: 'text-slate-500' },
-  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sefer', mirror: 'ifData', tone: 'text-warn font-semibold' },
+  { key: 'uninvoiced', header: 'Faturasız Sevkiyatlar', value: (r) => r.uninvoicedTrips, count: (r) => r.uninvoicedTripCount, unit: 'sevkiyat', mirror: 'ifData', tone: 'text-warn font-semibold' },
   { key: 'expenses', header: 'Vadeli Gider', value: (r) => (r as SupplierCariRow).creditExpenses, mirror: 'never' },
   { key: 'paid', header: 'Verilen Ödeme', value: (r) => (r as SupplierCariRow).paid, mirror: 'never' },
 ]
@@ -167,9 +167,9 @@ export default function CariPage({ kind }: { kind: Kind }) {
         { title: 'Vadesi geçen', value: tl(totalOverdue), icon: <AlertTriangle />, onClick: () => setFilter('overdue'), tone: totalOverdue > 0 ? 'text-bad' : undefined,
           sub: overdueCount ? `${overdueCount} hesap · listelemek için tıklayın` : 'Vadesi geçen yok' },
         kind === 'customers'
-          ? { title: 'Faturası kesilecek seferler', value: tl(waiting.total), icon: <FileSpreadsheet />, highlight: waiting.count > 0,
-              sub: waiting.count ? `${waiting.count} sefer · fatura kesmek için tıklayın` : 'Bekleyen yok', onClick: () => navigate('/faturalar/yeni') }
-          : { title: 'Taşeron faturası gelmeyen', value: <>{waiting.count}<Word> sefer</Word></>, icon: <Truck />, highlight: waiting.count > 0,
+          ? { title: 'Faturası kesilecek sevkiyatlar', value: tl(waiting.total), icon: <FileSpreadsheet />, highlight: waiting.count > 0,
+              sub: waiting.count ? `${waiting.count} sevkiyat · fatura kesmek için tıklayın` : 'Bekleyen yok', onClick: () => navigate('/faturalar/yeni') }
+          : { title: 'Taşeron faturası gelmeyen', value: <>{waiting.count}<Word> sevkiyat</Word></>, icon: <Truck />, highlight: waiting.count > 0,
               sub: 'Listelemek için tıklayın', onClick: () => navigate('/seferler?carrierInvoice=missing') },
       ]} />}
       <Card bodyClassName="p-0" title="Hesaplar" icon={<Scale className="size-4" />}

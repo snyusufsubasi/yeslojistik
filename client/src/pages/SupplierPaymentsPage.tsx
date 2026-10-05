@@ -38,7 +38,7 @@ export default function SupplierPaymentsPage() {
   const columns: Column<SupplierPayment>[] = [
     { key: 'date', header: 'Tarih', sortKey: 'date', render: (p) => date(p.date) },
     { key: 'supplier', header: 'Tedarikçi', sortKey: 'supplier', render: (p) => <span className="font-medium">{p.supplierTitle}</span> },
-    { key: 'trip', header: 'Sefer', className: 'whitespace-normal! min-w-32', render: (p) => p.tripLabel ?? <span className="text-slate-500">Genel</span> },
+    { key: 'trip', header: 'Sevkiyat', className: 'whitespace-normal! min-w-32', render: (p) => p.tripLabel ?? <span className="text-slate-500">Genel</span> },
     { key: 'method', header: 'Yöntem', sortKey: 'method', render: (p) => paymentMethodLabel[p.method] },
     { key: 'desc', header: 'Açıklama', render: (p) => p.description ?? '' },
     { key: 'amount', header: 'Tutar', sortKey: 'amount', align: 'right', render: (p) => <span className="font-medium text-red-700">{tl2(p.amount)}</span> },

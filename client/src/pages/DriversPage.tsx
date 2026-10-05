@@ -117,7 +117,7 @@ export default function DriversPage() {
       </Card>
       {editing && <DriverForm driver={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Şoförü sil" loading={deleteMut.isPending} confirmText="Sil"
-        message={<>{deleting?.fullName} silinecek. Seferlerde görev almış şoförler silinemez; bunun yerine pasife alabilirsiniz.</>}
+        message={<>{deleting?.fullName} silinecek. Sevkiyatlarda görev almış şoförler silinemez; bunun yerine pasife alabilirsiniz.</>}
         onClose={() => setDeleting(null)} onConfirm={() => deleting && deleteMut.mutate(deleting.id)} />
     </>
   )
@@ -196,7 +196,7 @@ function DriverForm({ driver, onClose }: { driver: Driver | null; onClose: () =>
               <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('isForeign')} /> Yabancı uyruklu</label>
               {isForeign && <Field label="Uyruk" error={errors.nationality?.message} hint="Ör. Gürcistan, Azerbaycan."><input className="input" {...register('nationality')} /></Field>}
             </div>
-            <Field group label="Durum" hint="Pasif şoförler yeni seferde listelenmez.">
+            <Field group label="Durum" hint="Pasif şoförler yeni sevkiyatta listelenmez.">
               <ControlledToggle control={control} name="isActive" label="Şoför durumu" labels={['Aktif', 'Pasif']} disabled={!editable} />
             </Field>
           </div>

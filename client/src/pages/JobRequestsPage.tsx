@@ -58,7 +58,7 @@ export default function JobRequestsPage() {
           <Button size="sm" variant="secondary" onClick={() => setDeleting(r)}>Sil</Button>
         </>}
         {r.status !== 'Pending' && <Button size="sm" variant="secondary" onClick={() => setEditing(r)}>Görüntüle</Button>}
-        {r.status === 'Converted' && r.tripId && <Button size="sm" variant="secondary" icon={<Truck className="size-3.5" />} onClick={() => navigate(`/seferler?id=${r.tripId}`)}>Seferi Aç</Button>}
+        {r.status === 'Converted' && r.tripId && <Button size="sm" variant="secondary" icon={<Truck className="size-3.5" />} onClick={() => navigate(`/seferler?id=${r.tripId}`)}>Sevkiyatı Aç</Button>}
         {r.status === 'Cancelled' && can('operations') && <Button size="sm" variant="secondary" onClick={() => setDeleting(r)}>Sil</Button>}
       </div>
     ) },

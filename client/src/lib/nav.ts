@@ -24,7 +24,7 @@ export const classicNav: NavGroup[] = [
   { title: 'Sevkiyat', items: [
     { to: '/is-talepleri', label: 'İş Talepleri', icon: ClipboardList },
     { to: '/seferler', label: 'Sevkiyatlar', icon: Truck,
-      badge: (d) => badge(d?.activeTripCount ?? 0, 'bekleyen ve yoldaki sefer') },
+      badge: (d) => badge(d?.activeTripCount ?? 0, 'bekleyen ve yoldaki sevkiyat') },
   ] },
   { title: 'Cari', items: [
     { to: '/cari/musteriler', label: 'Müşteriler Cari', icon: Scale, perm: 'accounting',
@@ -32,7 +32,7 @@ export const classicNav: NavGroup[] = [
     { to: '/cari/tedarikciler', label: 'Tedarikçiler Cari', icon: Scale, perm: 'accounting',
       badge: (_, a) => badge(alertsAt(a, '/tedarikciler'), 'taşeron uyarısı') },
     { to: '/faturalar', label: 'Faturalar', icon: FileText,
-      badge: (d) => badge(d?.uninvoicedTripCount ?? 0, 'faturası kesilmemiş teslim sefer') },
+      badge: (d) => badge(d?.uninvoicedTripCount ?? 0, 'faturası kesilmemiş teslim sevkiyat') },
     { to: '/tahsilatlar', label: 'Tahsilatlar', icon: Wallet },
     { to: '/alinan-faturalar', label: 'Alınan Faturalar', icon: FileInput },
     { to: '/odemeler', label: 'Tedarikçi Ödemeleri', icon: HandCoins },

@@ -17,7 +17,7 @@ interface ImportResult {
 }
 
 const titles: Record<Entity, string> = {
-  customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', suppliers: 'Tedarikçi', trips: 'Sefer',
+  customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', suppliers: 'Tedarikçi', trips: 'Sevkiyat',
   'job-requests': 'İş Talebi', invoices: 'Fatura', payments: 'Tahsilat', 'supplier-payments': 'Ödeme', expenses: 'Gider', 'cash-accounts': 'Banka / Kasa Hesabı', staff: 'Personel',
 }
 
@@ -26,7 +26,7 @@ const hints: Partial<Record<Entity, string>> = {
   suppliers: '“Devir Borcu” sütununa firmanın bu tedarikçiye olan borcunu yazabilirsiniz.',
   vehicles: 'Kiralık araçlarda “Araç Sahibi” sütununa tedarikçi ünvanını yazın (önce tedarikçileri aktarın).',
   drivers: 'Taşeronun şoförüyse “Tedarikçi” sütununa tedarikçi ünvanını yazın; kendi şoförünüzse boş bırakın.',
-  trips: 'Geçmiş seferler içindir. Müşteri, plaka ve şoför sistemde kayıtlı olmalı. Aynı sefer iki kez aktarılmaz.',
+  trips: 'Geçmiş sevkiyatlar içindir. Müşteri, plaka ve şoför sistemde kayıtlı olmalı. Aynı sevkiyat iki kez aktarılmaz.',
   'job-requests': 'Henüz sevk edilmemiş (ya da iptal edilmiş) talepler içindir. Müşteriler önce aktarılmış olmalı.',
   invoices: 'Eski sistemde kesilmiş faturalar içindir; numarası korunur, e-Fatura gönderilmez. “Toplam” yazarsanız hesaplananla karşılaştırılır.',
   payments: 'Müşterilerden alınan eski tahsilatlar. “Fatura No” yazarsanız o faturaya bağlanır (önce faturaları aktarın).',
@@ -95,7 +95,7 @@ export function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () 
           <Button size="sm" variant="secondary" icon={<Download className="size-3.5" />}
             onClick={() => download(`/import/${entity}/template`, undefined, `${entity}-sablon.xlsx`)}>Şablonu İndir</Button>
           {hints[entity] && <p className="mt-1 text-sm text-slate-500">{hints[entity]}</p>}
-          <p className="mt-1 text-sm text-slate-500">Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Seferler.</p>
+          <p className="mt-1 text-sm text-slate-500">Aktarım sırası: 1 Tedarikçiler → 2 Müşteriler → 3 Şoförler → 4 Araçlar → 5 Sevkiyatlar.</p>
         </li>
         <li>
           <div className="mb-1 font-medium">2. Doldurduğunuz dosyayı seçin</div>

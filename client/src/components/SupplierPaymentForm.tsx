@@ -88,10 +88,10 @@ export function SupplierPaymentForm({ payment, defaults, onClose }: { payment: S
           </Field>
         )}
         <div className="sm:col-span-2">
-          <MoreFields title="Sefer seçimi ve açıklama (isteğe bağlı)" defaultOpen={!!payment?.tripId || !!defaults?.tripId} hasError={!!errors.tripId}>
-            <Field label="Sefer" error={errors.tripId?.message}
-              hint="Belirli bir seferin ödemesi ya da yükleme avansıysa seçin. Boşsa en eski borçlardan başlanarak düşülür.">
-              <FormSelect control={control} name="tripId" placeholder="— Sefere bağlama —"
+          <MoreFields title="Sevkiyat seçimi ve açıklama (isteğe bağlı)" defaultOpen={!!payment?.tripId || !!defaults?.tripId} hasError={!!errors.tripId}>
+            <Field label="Sevkiyat" error={errors.tripId?.message}
+              hint="Belirli bir sevkiyatın ödemesi ya da yükleme avansıysa seçin. Boşsa en eski borçlardan başlanarak düşülür.">
+              <FormSelect control={control} name="tripId" placeholder="— Sevkiyata bağlama —"
                 options={(trips.data?.items ?? []).filter((t) => t.status !== 'Cancelled' && t.status !== 'Planned')
                   .map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.vehiclePlate} · ${t.loadingCity ?? t.loadingAddress} → ${t.deliveryCity ?? t.deliveryAddress} · ${tl(t.vehicleCost)}` }))} />
             </Field>

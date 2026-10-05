@@ -65,9 +65,9 @@ export function PrivacyPage() {
       <Contact c={c} />
       <h2 className="text-lg font-medium text-navy-900">Hangi verileri, neden işliyoruz?</h2>
       <ul className="list-disc space-y-1 pl-5">
-        <li><b>Kimlik ve iletişim:</b> ad soyad, telefon, e-posta; hesap açmak, sefer atamak ve iletişim kurmak için.</li>
+        <li><b>Kimlik ve iletişim:</b> ad soyad, telefon, e-posta; hesap açmak, sevkiyat atamak ve iletişim kurmak için.</li>
         <li><b>Şoför belgeleri:</b> ehliyet sınıfı ve SRC/psikoteknik bitiş tarihleri; yasal yükümlülükleri takip etmek için.</li>
-        <li><b>Konum:</b> şoförün telefonundan, yalnızca atanmış bir sefer <i>yüklendi</i> veya <i>yolda</i> durumundayken ve şoförün açık rızasıyla; sevkiyatın takibi ve müşteriye bilgi verilmesi için.</li>
+        <li><b>Konum:</b> şoförün telefonundan, yalnızca atanmış bir sevkiyat <i>yüklendi</i> veya <i>yolda</i> durumundayken ve şoförün açık rızasıyla; sevkiyatın takibi ve müşteriye bilgi verilmesi için.</li>
         <li><b>Teslim kanıtı:</b> teslim alan kişinin adı, imzası ve teslim fotoğrafları; teslimatın ispatı için.</li>
         <li><b>Masraf ve fişler:</b> tutar, tarih, fiş fotoğrafı; muhasebe ve şoför hesabının tutulması için.</li>
         <li><b>Kullanım kayıtları:</b> giriş zamanı ve yapılan değişiklikler (işlem geçmişi); güvenlik ve hesap verebilirlik için.</li>
@@ -75,9 +75,9 @@ export function PrivacyPage() {
       <h2 className="text-lg font-medium text-navy-900">Hukuki sebep</h2>
       <p>Sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat (KVKK m.5/2). Konum verisi için açık rıza (KVKK m.5/1); rıza her zaman geri alınabilir.</p>
       <h2 className="text-lg font-medium text-navy-900">Kimlere aktarılır?</h2>
-      <p>Sevkiyat durumu ve araç konumu, yalnızca ilgili seferin müşterisine gönderilen takip bağlantısında (teslimden en geç 7 gün sonrasına kadar) gösterilir. Fatura bilgileri yasal zorunluluk hâlinde e-Fatura entegratörü ve Gelir İdaresi Başkanlığı ile paylaşılır. Veriler barındırma hizmeti sağlayıcısının sunucularında saklanır. Veriler satılmaz, reklam amacıyla kullanılmaz.</p>
+      <p>Sevkiyat durumu ve araç konumu, yalnızca ilgili sevkiyatın müşterisine gönderilen takip bağlantısında (teslimden en geç 7 gün sonrasına kadar) gösterilir. Fatura bilgileri yasal zorunluluk hâlinde e-Fatura entegratörü ve Gelir İdaresi Başkanlığı ile paylaşılır. Veriler barındırma hizmeti sağlayıcısının sunucularında saklanır. Veriler satılmaz, reklam amacıyla kullanılmaz.</p>
       <h2 className="text-lg font-medium text-navy-900">Ne kadar saklanır?</h2>
-      <p>Konum kayıtları {c?.locationRetentionDays ?? 90} gün sonra otomatik silinir. İşlem geçmişi 2 yıl saklanır. Fatura, tahsilat ve sefer kayıtları vergi mevzuatının öngördüğü süre (10 yıl) boyunca saklanır.</p>
+      <p>Konum kayıtları {c?.locationRetentionDays ?? 90} gün sonra otomatik silinir. İşlem geçmişi 2 yıl saklanır. Fatura, tahsilat ve sevkiyat kayıtları vergi mevzuatının öngördüğü süre (10 yıl) boyunca saklanır.</p>
       <h2 className="text-lg font-medium text-navy-900">Haklarınız (KVKK m.11)</h2>
       <p>Verilerinizin işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltilmesini veya silinmesini isteme, aktarıldığı kişileri öğrenme, itiraz etme ve zararın giderilmesini talep etme haklarına sahipsiniz. Başvurularınızı yukarıdaki iletişim bilgileriyle yazılı olarak iletebilirsiniz; en geç 30 gün içinde yanıtlanır.</p>
       <p className="text-sm text-slate-500">Son güncelleme: 29.09.2026</p>
@@ -95,7 +95,7 @@ export function AccountDeletionPage() {
       <ol className="list-decimal space-y-1 pl-5">
         <li>Aşağıdaki iletişim bilgilerinden firmaya <b>"hesabımın silinmesini istiyorum"</b> diye yazın; adınızı ve hesabın e-posta adresini belirtin.</li>
         <li>Talebiniz en geç 30 gün içinde işlenir: uygulama hesabınız ve oturumlarınız kapatılır, konum kayıtlarınız ve kişisel iletişim bilgileriniz silinir.</li>
-        <li>Fatura ve sefer gibi yasal saklama süresi olan kayıtlar, süre dolana kadar kimliğinizden ayrılmış olarak saklanır.</li>
+        <li>Fatura ve sevkiyat gibi yasal saklama süresi olan kayıtlar, süre dolana kadar kimliğinizden ayrılmış olarak saklanır.</li>
       </ol>
       <Contact c={c} />
       <p>Konum paylaşımını hemen durdurmak için telefon ayarlarından uygulamanın konum iznini kapatabilirsiniz.</p>

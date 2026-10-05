@@ -132,7 +132,7 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
             <Field label="İlçe" error={errors.district?.message}><input className="input" placeholder="Sultanbeyli" {...register('district')} /></Field>
             <Field className="sm:col-span-2" label="Adres" error={errors.address?.message}><input className="input" placeholder="Mahalle, cadde, no" {...register('address')} /></Field>
             <Field className="sm:col-span-2" label="Yetkili Kişi" error={errors.contactName?.message}><input className="input" {...register('contactName')} /></Field>
-            <Field className="sm:col-span-2" label="Risk limiti (TL)" error={errors.creditLimit?.message} hint="Açık bakiye + faturalanmamış seferler bu tutarı aşınca uyarı verilir. Boş: limit yok.">
+            <Field className="sm:col-span-2" label="Risk limiti (TL)" error={errors.creditLimit?.message} hint="Açık bakiye + faturalanmamış sevkiyatlar bu tutarı aşınca uyarı verilir. Boş: limit yok.">
               <AmountInput control={control} name="creditLimit" placeholder="Limit yok" />
             </Field>
             <Field label="Devir Bakiyesi (TL)" error={errors.openingBalance?.message} hint="Eski sistemden devreden borç. Cari bakiyeye eklenir.">
@@ -140,11 +140,11 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
             </Field>
             <Field label="Devir Tarihi" error={errors.openingBalanceDate?.message}><DateQuick control={control} name="openingBalanceDate" quick="none" /></Field>
             <Field className="sm:col-span-2" label="Notlar" error={errors.notes?.message}><textarea className="input min-h-16" {...register('notes')} /></Field>
-            <Field group className="sm:col-span-2" label="Sefer durumu e-postası"
+            <Field group className="sm:col-span-2" label="Sevkiyat durumu e-postası"
               hint="Yüklendi, yola çıktı ve teslim edildi anlarında e-posta adresine takip linkiyle bilgi gider. Fiyat gönderilmez. (Sunucuda e-posta ayarı gerekir.)">
-              <ControlledToggle control={control} name="notifyStatusByEmail" label="Sefer durumu e-postası" labels={['Gönder', 'Gönderme']} />
+              <ControlledToggle control={control} name="notifyStatusByEmail" label="Sevkiyat durumu e-postası" labels={['Gönder', 'Gönderme']} />
             </Field>
-            <Field group className="sm:col-span-2" label="Durum" hint="Pasif müşteriler yeni seferde listelenmez.">
+            <Field group className="sm:col-span-2" label="Durum" hint="Pasif müşteriler yeni sevkiyatta listelenmez.">
               <ControlledToggle control={control} name="isActive" label="Müşteri durumu" labels={['Aktif', 'Pasif']} />
             </Field>
           </div>
@@ -166,7 +166,7 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
         </div>
         <div>
           <MoreFields title={`Firma grupları / şantiyeler${groups.length ? ` (${groups.length})` : ''}`}>
-            <p className="text-sm text-slate-600">Seferde seçilir; listede ve ekstrede gruba göre süzülür.</p>
+            <p className="text-sm text-slate-600">Sevkiyatta seçilir; listede ve ekstrede gruba göre süzülür.</p>
             <div className="flex flex-wrap gap-2">
               {groups.map((g) => (
                 <span key={g} className="inline-flex items-center gap-1 rounded-[3px] border border-slate-300 bg-white py-1 pl-3 pr-1 text-sm">
@@ -192,7 +192,7 @@ export function CustomerForm({ customer, onClose, onSaved, initialTitle }: { cus
                 ))}
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('invoiceTemplate.tripFooterNotes')} />Seferlerdeki fatura altı notlarını faturaya ekle</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" {...register('invoiceTemplate.tripFooterNotes')} />Sevkiyatlardaki fatura altı notlarını faturaya ekle</label>
             <Field label="Her faturaya eklenecek açıklama"><textarea className="input min-h-14" {...register('invoiceTemplate.note')} /></Field>
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="Satış faturası notu">

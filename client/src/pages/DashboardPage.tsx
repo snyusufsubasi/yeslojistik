@@ -111,7 +111,7 @@ export default function DashboardPage() {
 
       {/* Ana sayfa rakamları: 4 sütun, arası çizgi; bekleyen tahsilat sarı (bill-soft) vurgulu */}
       <Figures label="Bu ayın rakamları" className="sm:grid-cols-2 xl:grid-cols-4">
-        <Figure label="Toplam Sefer" value={data.monthTripCount} sub="Bu ay" onClick={() => navigate('/seferler')} />
+        <Figure label="Toplam Sevkiyat" value={data.monthTripCount} sub="Bu ay" onClick={() => navigate('/seferler')} />
         <Figure label="Teslim Edilen" value={data.monthDeliveredCount} sub="Bu ay" onClick={() => navigate('/seferler?status=Delivered')} />
         <Figure label="Devam Eden" value={data.activeTripCount} sub={`${data.plannedTripCount} planlandı`} onClick={() => navigate('/seferler?status=Planned')} />
         <Figure label="Tahsilat Bekleyen" value={data.receivableInvoiceCount} highlight={data.receivableInvoiceCount > 0}
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           {data.uninvoicedTripCount > 0 && (
             <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd896] bg-bill-soft px-4 py-3 text-[0.875rem] text-bill hover:bg-[#f8e3a0]">
-              <span><span className="font-semibold">{data.uninvoicedTripCount} teslim edilmiş sefer faturalanmadı</span>
+              <span><span className="font-semibold">{data.uninvoicedTripCount} teslim edilmiş sevkiyat faturalanmadı</span>
                 <span className="block text-[0.8125rem]">Toplam <span className="font-mono font-semibold">{tl(data.uninvoicedTripTotal)}</span> + KDV</span></span>
               <span className="whitespace-nowrap rounded-[3px] bg-accent px-3 py-1.5 font-semibold text-white">Fatura kes →</span>
             </Link>
@@ -140,18 +140,18 @@ export default function DashboardPage() {
       {can('accounting') && <CashFlowCard />}
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2" title="Günlük Seferler" icon={<Route className="size-4" />} bodyClassName="p-0"
+        <Card className="xl:col-span-2" title="Günlük Sevkiyatlar" icon={<Route className="size-4" />} bodyClassName="p-0"
           actions={<Button size="sm" variant="ghost" onClick={() => navigate('/seferler')}>Tümünü Gör →</Button>}>
-          <DataTable columns={tripCols} rows={data.todayTrips} rowKey={(t) => t.id} empty="Bugün için sefer yok." />
+          <DataTable columns={tripCols} rows={data.todayTrips} rowKey={(t) => t.id} empty="Bugün için sevkiyat yok." />
           <Figures className="grid-cols-3 rounded-none border-x-0 border-b-0">
             <Figure label="Toplam Araç" value={data.vehicleCount} />
             <Figure label="Yoldaki Araç" value={data.vehiclesOnRoad} />
-            <Figure label="Bekleyen Sefer" value={data.plannedTripCount} />
+            <Figure label="Bekleyen Sevkiyat" value={data.plannedTripCount} />
           </Figures>
         </Card>
         <Card title="Bu Ay" icon={<BarChart3 className="size-4" />}>
           <dl className="space-y-2.5 text-[0.875rem]">
-            <Row label="Sefer cirosu" value={tl(data.monthRevenue)} />
+            <Row label="Sevkiyat cirosu" value={tl(data.monthRevenue)} />
             <Row label="Araç maliyeti + giderler" value={tl(data.monthExpenses)} />
             <Row label="Brüt kâr" value={tl(data.monthRevenue - data.monthExpenses)} strong
               tone={data.monthRevenue - data.monthExpenses < 0 ? 'text-bad' : data.monthRevenue - data.monthExpenses > 0 ? 'text-good' : undefined} />
@@ -271,7 +271,7 @@ function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
     { done: setup.vehicleCount > 0, title: 'Araçları ekleyin', text: 'Tek tek ya da Excel listesinden toplu aktarın.', to: '/araclar', show: true },
     { done: setup.driverCount > 0, title: 'Şoförleri ekleyin', text: 'Ehliyet ve SRC bitiş tarihleri için uyarı alırsınız.', to: '/soforler', show: true },
     { done: setup.customerCount > 0, title: 'Müşterileri ekleyin', text: 'Eski borçları “Devir Bakiyesi” olarak girebilirsiniz.', to: '/musteriler', show: true },
-    { done: setup.tripCount > 0, title: 'İlk seferi oluşturun', text: 'Sefer bitince “Fatura Kes” ile faturalayın.', to: '/seferler?new=1', show: true },
+    { done: setup.tripCount > 0, title: 'İlk sevkiyatı oluşturun', text: 'Sevkiyat bitince “Fatura Kes” ile faturalayın.', to: '/seferler?new=1', show: true },
     { done: setup.userCount > 1, title: 'Çalışan hesaplarını açın', text: 'Operasyon, muhasebe ve şoför (mobil) hesapları.', to: '/ayarlar?tab=users', show: can('admin') },
     { done: !!setup.lastBackupAt, title: 'İlk yedeği indirin', text: 'Ayarlar → Veriler → Tam yedeği indir. Haftada bir tekrarlayın.', to: '/ayarlar?tab=data', show: can('admin') },
   ].filter((s) => s.show)

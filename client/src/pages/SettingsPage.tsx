@@ -209,7 +209,7 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
               <span className="block text-sm text-slate-600">Her sabah 08:00'de yöneticilere yaklaşan bakım, muayene, sigorta, şoför belgeleri ve vadesi geçen alacakların listesi e-postayla gelir. Uyarı yoksa e-posta gönderilmez.</span>
             </span>
           </label>
-          <p className="mt-3 text-sm text-slate-600">Müşterilere sefer durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
+          <p className="mt-3 text-sm text-slate-600">Müşterilere sevkiyat durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
           <h3 className="mb-2 mt-5 border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Şoför uygulaması: teslim kuralları</h3>
           <label className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('requireDeliveryPhoto')} />
@@ -272,8 +272,8 @@ function UsersTab() {
       actions={<Button size="sm" icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Kullanıcı</Button>}>
       <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(u) => u.id} />
       <div className="border-t border-slate-100 p-3 text-sm text-slate-500">
-        <b>Yönetici:</b> her şey · <b>Operasyon:</b> sefer, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
-        <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi seferlerini görür, durum ve fotoğraf gönderir.
+        <b>Yönetici:</b> her şey · <b>Operasyon:</b> sevkiyat, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
+        <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi sevkiyatlarını görür, durum ve fotoğraf gönderir.
       </div>
       {editing && <UserForm user={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Kullanıcıyı sil" loading={del.isPending} confirmText="Sil"
@@ -313,7 +313,7 @@ function UserForm({ user, onClose }: { user: User | null; onClose: () => void })
           </select>
         </Field>
         {role === 'Driver' && (
-          <Field label="Bağlı Şoför" required error={errors.driverId?.message} hint="Şoför bu hesapla mobil uygulamaya girer ve yalnızca kendi seferlerini görür.">
+          <Field label="Bağlı Şoför" required error={errors.driverId?.message} hint="Şoför bu hesapla mobil uygulamaya girer ve yalnızca kendi sevkiyatlarını görür.">
             <FormSelect control={control} name="driverId" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
           </Field>
         )}
@@ -470,7 +470,7 @@ function ResetDataCard() {
             <div className="mb-1 font-medium text-red-800">Silinecekler</div>
             <ul className="list-inside list-disc space-y-0.5 text-red-900">
               <li>Müşteriler, araçlar, şoförler</li>
-              <li>Seferler ve sefer dosyaları</li>
+              <li>Sevkiyatlar ve sevkiyat dosyaları</li>
               <li>Faturalar, tahsilatlar, giderler</li>
               <li>Konum geçmişi ve şoför hesapları</li>
             </ul>
@@ -549,7 +549,7 @@ function GoLiveCard() {
     { key: 'company', done: s.companyInfo && s.companyDetails, title: 'Firma bilgileri, logo, il ve IBAN', text: <Link className="text-brand-600" to="/ayarlar?tab=company">Firma Bilgileri sekmesi</Link> },
     { key: 'users', done: s.userCount > 1, title: 'Kullanıcı hesapları', text: <Link className="text-brand-600" to="/ayarlar?tab=users">Ofis ve şoför hesaplarını açın</Link> },
     { key: 'import', done: s.customerCount > 0 && s.vehicleCount > 0 && s.driverCount > 0,
-      title: 'Excel aktarımları', text: `Sırayla: tedarikçiler (${s.supplierCount}) → müşteriler (${s.customerCount}) → şoförler (${s.driverCount}) → araçlar (${s.vehicleCount}) → seferler (${s.tripCount})` },
+      title: 'Excel aktarımları', text: `Sırayla: tedarikçiler (${s.supplierCount}) → müşteriler (${s.customerCount}) → şoförler (${s.driverCount}) → araçlar (${s.vehicleCount}) → sevkiyatlar (${s.tripCount})` },
     { key: 'opening', done: !!checked.opening, manual: true, title: 'Devir bakiyelerini kontrol edin',
       text: <>Müşteri alacakları toplamı <b>{tl2(s.customerOpeningTotal)}</b>, taşeron borçları toplamı <b>{tl2(s.supplierOpeningTotal)}</b>. Eski defterinizle aynı mı?</> },
     { key: 'invoice', done: !!checked.invoice, manual: true, title: 'Fatura numarası devam ediyor mu?',
@@ -615,8 +615,8 @@ function EInvoiceProviderInfo() {
 }
 
 const statLabels: Record<string, string> = {
-  customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', trips: 'Sefer', invoices: 'Fatura', payments: 'Tahsilat', expenses: 'Gider',
-  attachments: 'Sefer dosyası', users: 'Kullanıcı', suppliers: 'Tedarikçi', supplierPayments: 'Taşeron ödemesi', tripEvents: 'Durum kaydı', storedFiles: 'Saklanan dosya',
+  customers: 'Müşteri', vehicles: 'Araç', drivers: 'Şoför', trips: 'Sevkiyat', invoices: 'Fatura', payments: 'Tahsilat', expenses: 'Gider',
+  attachments: 'Sevkiyat dosyası', users: 'Kullanıcı', suppliers: 'Tedarikçi', supplierPayments: 'Taşeron ödemesi', tripEvents: 'Durum kaydı', storedFiles: 'Saklanan dosya',
 }
 
 /** Sunucu taşınması: eski sunucudaki sayımı yapıştırıp buradakiyle karşılaştırır (sayılar ve para toplamları birebir aynı olmalı). */

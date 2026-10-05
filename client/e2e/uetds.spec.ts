@@ -4,7 +4,7 @@ import { API_URL, login, unique } from './helpers'
 // Kimlik numaraları uydurmadır (algoritmaya uyan sahte örnekler); gerçek kişilere ait değildir.
 const FAKE_TCKN = '12345678950'
 
-test('U-ETDS hazırlığı: TCKN eksik şoförlü sefer "eksik" görünür, şoför düzeltilince "Hazır" olur', async ({ page, playwright }) => {
+test('U-ETDS hazırlığı: TCKN eksik şoförlü sevkiyat "eksik" görünür, şoför düzeltilince "Hazır" olur', async ({ page, playwright }) => {
   // Hazırlık (API): sefer, şoförün TCKN ve telefonu dışında tam.
   const u = unique()
   const office = await playwright.request.newContext({ baseURL: API_URL })
@@ -59,7 +59,7 @@ test('U-ETDS hazırlığı: TCKN eksik şoförlü sefer "eksik" görünür, şof
   await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` }).getByText('UETDS hazır')).toBeVisible()
 })
 
-test('U-ETDS hazırlığı: sefer formundaki alanlar doldurulup kaydedilince panel güncellenir', async ({ page, playwright }) => {
+test('U-ETDS hazırlığı: sevkiyat formundaki alanlar doldurulup kaydedilince panel güncellenir', async ({ page, playwright }) => {
   const u = unique()
   const office = await playwright.request.newContext({ baseURL: API_URL })
   expect((await office.post('/api/auth/login', { data: { email: 'admin@yeslojistik.com', password: 'Admin123!' } })).ok()).toBeTruthy()
@@ -83,7 +83,7 @@ test('U-ETDS hazırlığı: sefer formundaki alanlar doldurulup kaydedilince pan
   await page.getByLabel('Alıcı Unvanı / Adı Soyadı').fill('Alıcı Ticaret A.Ş.')
   await page.getByLabel('Alıcı VKN / TCKN').fill('10000000146')
   await page.getByRole('button', { name: 'Kaydet' }).click()
-  await expect(page.getByText('Sefer güncellendi.')).toBeVisible()
+  await expect(page.getByText('Sevkiyat güncellendi.')).toBeVisible()
 
   await page.goto(`/seferler?id=${trip.id}`)
   await expect(page.getByRole('region', { name: 'U-ETDS hazırlığı' }).getByText('Hazır', { exact: true })).toBeVisible()

@@ -110,21 +110,21 @@ export default function InvoiceCreatePage() {
 
   return (
     <>
-      <PageHeader title="Yeni Fatura" subtitle="Müşteri seçin, faturalanacak seferleri işaretleyin"
+      <PageHeader title="Yeni Fatura" subtitle="Müşteri seçin, faturalanacak sevkiyatları işaretleyin"
         actions={<Button variant="secondary" icon={<ArrowLeft className="size-4" />} onClick={() => navigate('/faturalar')}>Faturalar</Button>} />
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
-          <Card title="Müşteri ve Seferler" icon={<FileText className="size-4" />}>
+          <Card title="Müşteri ve Sevkiyatlar" icon={<FileText className="size-4" />}>
             <Field label="Müşteri" required className="mb-4 max-w-md">
               <SearchSelect value={customerId === '' ? null : customerId} onChange={(v) => { setCustomerId(v ?? ''); setExtra([]); setNotes(null) }} placeholder="Müşteri adı yazın veya seçin"
                 options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
             </Field>
-            {customerId === '' ? <Empty>Faturalanacak seferleri görmek için müşteri seçin.</Empty>
+            {customerId === '' ? <Empty>Faturalanacak sevkiyatları görmek için müşteri seçin.</Empty>
               : trips.isLoading ? <Spinner />
               : <>
                 {missingFromList > 0 && <p className="mb-3 rounded-lg bg-amber-50 px-4 py-2.5 text-[0.9375rem] text-amber-900">
-                  Sevkiyatlar'da seçilen {missingFromList} sefer burada yok: faturası kesilmiş ya da iptal edilmiş olabilir.</p>}
-                {available.length === 0 ? <Empty>Bu müşterinin faturalanmamış seferi yok. Aşağıdan serbest satır ekleyebilirsiniz.</Empty>
+                  Sevkiyatlar'da seçilen {missingFromList} sevkiyat burada yok: faturası kesilmiş ya da iptal edilmiş olabilir.</p>}
+                {available.length === 0 ? <Empty>Bu müşterinin faturalanmamış sevkiyatı yok. Aşağıdan serbest satır ekleyebilirsiniz.</Empty>
               : (
                 <div className="overflow-x-auto rounded-lg border border-slate-200">
                   <table className="w-full">
@@ -136,7 +136,7 @@ export default function InvoiceCreatePage() {
                     <tbody>
                       {available.map((t) => (
                         <tr key={t.id} className="cursor-pointer hover:bg-slate-50" onClick={() => toggle(t.id)}>
-                          <td className="td"><input type="checkbox" aria-label={`Sefer ${t.id}`} checked={selected.has(t.id)} onChange={() => toggle(t.id)} onClick={(e) => e.stopPropagation()} /></td>
+                          <td className="td"><input type="checkbox" aria-label={`Sevkiyat ${t.id}`} checked={selected.has(t.id)} onChange={() => toggle(t.id)} onClick={(e) => e.stopPropagation()} /></td>
                           <td className="td">{date(t.loadingDate)}</td>
                           <td className="td">{t.loadingAddress} → {t.deliveryAddress}</td>
                           <td className="td"><PlateBadge plate={t.vehiclePlate} /></td>

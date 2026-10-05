@@ -6,8 +6,8 @@ import { DataTable, SearchBox, type Column } from './DataTable'
 import { Badge, Select } from './ui'
 
 const auditEntityLabel: Record<string, string> = {
-  Trip: 'Sefer', Invoice: 'Fatura', Payment: 'Tahsilat', Customer: 'Müşteri', Vehicle: 'Araç', Driver: 'Şoför',
-  Expense: 'Gider', User: 'Kullanıcı', TripAttachment: 'Sefer dosyası', CompanySettings: 'Ayarlar',
+  Trip: 'Sevkiyat', Invoice: 'Fatura', Payment: 'Tahsilat', Customer: 'Müşteri', Vehicle: 'Araç', Driver: 'Şoför',
+  Expense: 'Gider', User: 'Kullanıcı', TripAttachment: 'Sevkiyat dosyası', CompanySettings: 'Ayarlar',
 }
 const actionLabel: Record<string, { text: string; tone: 'green' | 'blue' | 'red' | 'orange' }> = {
   Created: { text: 'Oluşturdu', tone: 'green' },

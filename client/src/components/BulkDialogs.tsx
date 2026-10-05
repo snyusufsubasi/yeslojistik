@@ -27,9 +27,9 @@ export function BulkResultDialog({ title, done, result, onClose }: { title: stri
     <Modal open onClose={onClose} title={title} size="sm" footer={<Button onClick={onClose}>Tamam</Button>}>
       <div className="space-y-4">
         <p className="text-[0.9375rem] text-slate-800">
-          {result.updated > 0 ? <><b>{result.updated}</b> {done}</> : 'Hiçbir sefer değişmedi.'}
+          {result.updated > 0 ? <><b>{result.updated}</b> {done}</> : 'Hiçbir sevkiyat değişmedi.'}
         </p>
-        {result.skipped.length > 0 && <SkippedList title={`${result.skipped.length} sefer değişmedi:`} items={result.skipped} />}
+        {result.skipped.length > 0 && <SkippedList title={`${result.skipped.length} sevkiyat değişmedi:`} items={result.skipped} />}
       </div>
     </Modal>
   )
@@ -74,15 +74,15 @@ export function BulkSupplierPaymentDialog({ tripIds, onClose, onDone }: { tripId
       </>}>
       {preview.isLoading ? <Spinner /> : preview.isError ? <p className="text-[0.9375rem] text-red-700">{errorMessage(preview.error)}</p> : data && (
         <div className="space-y-5">
-          <p className="text-[0.9375rem] text-slate-600">Seçilen seferlerin kalan borcu, her tedarikçiye tek ödeme olarak kaydedilir. Ödeme önce bu seferleri kapatır.</p>
-          {count === 0 ? <p className="text-[0.9375rem] font-medium text-slate-800">Seçilen seferlerde ödenecek taşeron borcu yok.</p> : (
+          <p className="text-[0.9375rem] text-slate-600">Seçilen sevkiyatların kalan borcu, her tedarikçiye tek ödeme olarak kaydedilir. Ödeme önce bu sevkiyatları kapatır.</p>
+          {count === 0 ? <p className="text-[0.9375rem] font-medium text-slate-800">Seçilen sevkiyatlarda ödenecek taşeron borcu yok.</p> : (
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full border-collapse">
-                <thead><tr><th className="th">Tedarikçi / sefer</th><th className="th text-right">Tutar</th></tr></thead>
+                <thead><tr><th className="th">Tedarikçi / sevkiyat</th><th className="th text-right">Tutar</th></tr></thead>
                 {data.suppliers.map((s) => (
                   <tbody key={s.supplierId}>
                     <tr className="bg-slate-50/70">
-                      <td className="td font-medium">{s.supplierTitle} <span className="font-normal text-slate-500">· {s.trips.length} sefer</span></td>
+                      <td className="td font-medium">{s.supplierTitle} <span className="font-normal text-slate-500">· {s.trips.length} sevkiyat</span></td>
                       <td className="td text-right font-semibold tabular-nums">{tl2(s.total)}</td>
                     </tr>
                     {s.trips.map((t) => (
@@ -97,7 +97,7 @@ export function BulkSupplierPaymentDialog({ tripIds, onClose, onDone }: { tripId
               </table>
             </div>
           )}
-          {data.skipped.length > 0 && <SkippedList title={`Ödemeye eklenmeyecek ${data.skipped.length} sefer:`} items={data.skipped} />}
+          {data.skipped.length > 0 && <SkippedList title={`Ödemeye eklenmeyecek ${data.skipped.length} sevkiyat:`} items={data.skipped} />}
           {count > 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tarih" required><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
@@ -110,7 +110,7 @@ export function BulkSupplierPaymentDialog({ tripIds, onClose, onDone }: { tripId
                     options={(accounts.data ?? []).map((a) => ({ value: a.id, label: a.label }))} />
                 </Field>
               )}
-              <Field label="Açıklama" hint="Boş bırakılırsa sefer numaraları yazılır.">
+              <Field label="Açıklama" hint="Boş bırakılırsa sevkiyat numaraları yazılır.">
                 <input className="input" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
               </Field>
             </div>

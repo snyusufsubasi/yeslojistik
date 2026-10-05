@@ -25,16 +25,16 @@ async function deliveredTrips(request: APIRequestContext, id: string) {
   return { customerId: customer.customer.id, trips }
 }
 
-test('sevkiyatlarda 2 sefer seçip teslim evrakını toplu onaylama', async ({ page }) => {
+test('sevkiyatlarda 2 sevkiyat seçip teslim evrakını toplu onaylama', async ({ page }) => {
   const id = unique()
   await login(page)
   const { customerId } = await deliveredTrips(page.request, id)
 
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
   await page.getByPlaceholder('Müşteri, plaka, şoför, adres...').fill(`E2E Toplu ${id}`)
-  const boxes = page.getByRole('checkbox', { name: new RegExp(`^Seç: Sefer \\d+, E2E Toplu ${id}`) })
+  const boxes = page.getByRole('checkbox', { name: new RegExp(`^Seç: Sevkiyat \\d+, E2E Toplu ${id}`) })
   // Arama sunucuda süzülene kadar bekle: listede yalnız bu iki sefer kalmalı ("tümünü seç" sayfadakilerin hepsini seçer).
-  await expect(page.getByRole('checkbox', { name: /^Seç: Sefer / })).toHaveCount(2)
+  await expect(page.getByRole('checkbox', { name: /^Seç: Sevkiyat / })).toHaveCount(2)
   await expect(boxes).toHaveCount(2)
 
   // Tek tek seçim → alt çubuk
@@ -50,7 +50,7 @@ test('sevkiyatlarda 2 sefer seçip teslim evrakını toplu onaylama', async ({ p
   await expect(bar).toContainText('2 kayıt seçildi')
 
   await bar.getByRole('button', { name: 'Teslim evrakını onayla' }).click()
-  await expect(page.getByText('2 seferin teslim evrakı onaylandı.')).toBeVisible()
+  await expect(page.getByText('2 sevkiyatın teslim evrakı onaylandı.')).toBeVisible()
   await expect(bar).toBeHidden()
 
   const pending = await page.request.get(`/api/trips?pendingDeliveryDocument=true&customerId=${customerId}`)
@@ -60,6 +60,6 @@ test('sevkiyatlarda 2 sefer seçip teslim evrakını toplu onaylama', async ({ p
   await page.getByRole('checkbox', { name: 'Bu sayfadaki tüm kayıtları seç' }).check()
   await bar.getByRole('button', { name: 'Fatura kes' }).click()
   await expect(page.getByRole('heading', { name: 'Yeni Fatura' })).toBeVisible()
-  await expect(page.getByRole('checkbox', { name: /^Sefer \d+$/ })).toHaveCount(2)
-  for (const box of await page.getByRole('checkbox', { name: /^Sefer \d+$/ }).all()) await expect(box).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: /^Sevkiyat \d+$/ })).toHaveCount(2)
+  for (const box of await page.getByRole('checkbox', { name: /^Sevkiyat \d+$/ }).all()) await expect(box).toBeChecked()
 })

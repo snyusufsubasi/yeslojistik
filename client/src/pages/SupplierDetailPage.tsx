@@ -70,12 +70,12 @@ export default function SupplierDetailPage() {
           </dl>
         </Card>
         <Figures label="Cari özeti" className="self-start sm:grid-cols-2 lg:col-span-2">
-          <Figure label="Toplam Borçlanma" value={tl2(sum.totalDebit)} sub="Devir + sefer maliyetleri + vadeli giderler" />
+          <Figure label="Toplam Borçlanma" value={tl2(sum.totalDebit)} sub="Devir + sevkiyat maliyetleri + vadeli giderler" />
           <Figure label="Toplam Ödenen" value={tl2(sum.totalCredit)} tone="text-good" />
           <Figure label="Kalan Borcumuz" value={tl2(sum.balance)} tone={sum.balance > 0 ? 'text-bad' : 'text-good'}
             sub={sum.balance < 0 ? 'Fazla ödeme yapılmış (avans)' : undefined} />
           <Figure label="Vadesi Geçen" value={tl2(sum.overdueAmount)} tone={sum.overdueAmount > 0 ? 'text-bad' : undefined}
-            sub={sum.missingInvoiceCount > 0 ? `${sum.missingInvoiceCount} teslim edilmiş seferin faturası gelmedi` : undefined} />
+            sub={sum.missingInvoiceCount > 0 ? `${sum.missingInvoiceCount} teslim edilmiş sevkiyatın faturası gelmedi` : undefined} />
         </Figures>
       </div>
 
@@ -83,7 +83,7 @@ export default function SupplierDetailPage() {
         <div className="px-4 pt-2">
           <Tabs value={tab} onChange={setTab} tabs={[
             { value: 'movements', label: 'Hareketler' },
-            { value: 'trips', label: 'Seferler' },
+            { value: 'trips', label: 'Sevkiyatlar' },
             { value: 'payments', label: 'Ödemeler' },
             { value: 'vehicles', label: 'Araçlar' },
             { value: 'drivers', label: 'Şoförler' },
@@ -98,7 +98,7 @@ export default function SupplierDetailPage() {
 
       {editing && <SupplierForm supplier={s} onClose={() => setEditing(false)} />}
       {paying && <SupplierPaymentForm payment={null} defaults={{ supplierId: id }} onClose={() => setPaying(false)} />}
-      <ConfirmDialog open={deleting} title="Tedarikçiyi sil" message={<>{s.title} silinecek. Seferi, aracı veya şoförü olan tedarikçi silinemez; bunun yerine pasife alın.</>}
+      <ConfirmDialog open={deleting} title="Tedarikçiyi sil" message={<>{s.title} silinecek. Sevkiyatı, aracı veya şoförü olan tedarikçi silinemez; bunun yerine pasife alın.</>}
         confirmText="Sil" loading={deleteMut.isPending} onClose={() => setDeleting(false)} onConfirm={() => deleteMut.mutate(undefined)} />
     </>
   )
@@ -132,8 +132,8 @@ function SupplierTrips({ id }: { id: number }) {
   ]
   return <>
     <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id} page={page} total={data?.total} onPage={setPage}
-      onRowClick={(t) => navigate(`/seferler?id=${t.id}`)} empty="Bu tedarikçinin aracıyla yapılmış sefer yok."
-      selectable selection={selection} rowLabel={(t) => `Sefer ${t.terms?.externalRef ?? t.id}`}
+      onRowClick={(t) => navigate(`/seferler?id=${t.id}`)} empty="Bu tedarikçinin aracıyla yapılmış sevkiyat yok."
+      selectable selection={selection} rowLabel={(t) => `Sevkiyat ${t.terms?.externalRef ?? t.id}`}
       bulkActions={(rows) => <>
         {can('accounting') && <Button write size="sm" variant="secondary" icon={<HandCoins />} onClick={() => setPaying(rows.map((t) => t.id))}>Toplu ödeme</Button>}
         <Button size="sm" variant="secondary" icon={<Download />}
@@ -185,7 +185,7 @@ function SupplierPayments({ id }: { id: number }) {
   const cols: Column<SupplierPayment>[] = [
     { key: 'date', header: 'Tarih', render: (p) => date(p.date) },
     { key: 'method', header: 'Yöntem', render: (p) => paymentMethodLabel[p.method] },
-    { key: 'trip', header: 'Sefer', render: (p) => p.tripLabel ?? 'Genel' },
+    { key: 'trip', header: 'Sevkiyat', render: (p) => p.tripLabel ?? 'Genel' },
     { key: 'desc', header: 'Açıklama', render: (p) => p.description ?? '' },
     { key: 'amount', header: 'Tutar', align: 'right', render: (p) => tl2(p.amount) },
   ]

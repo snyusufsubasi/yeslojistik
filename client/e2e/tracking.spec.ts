@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { login, API_URL } from './helpers'
 
-test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context, playwright }) => {
+test('harita, sevkiyat dosyaları ve müşteri takip linki', async ({ page, context, playwright }) => {
   // Hazırlık: 34 VES 01 ile yola çıkmış bir sefer ve şoför uygulamasından gelen konumlar
   const office = await playwright.request.newContext({ baseURL: API_URL })
   expect((await office.post('/api/auth/login', { data: { email: 'admin@yeslojistik.com', password: 'Admin123!' } })).ok()).toBeTruthy()
@@ -35,7 +35,7 @@ test('harita, sefer dosyaları ve müşteri takip linki', async ({ page, context
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
   await page.getByPlaceholder('Müşteri, plaka, şoför, adres...').fill(target)
   await page.getByRole('row', { name: new RegExp(target) }).click()
-  const dialog = page.getByRole('dialog', { name: 'Sefer Düzenle' })
+  const dialog = page.getByRole('dialog', { name: 'Sevkiyat Düzenle' })
   await dialog.getByRole('button', { name: 'Dosyalar / Fotoğraflar' }).click()
   await dialog.getByLabel('Dosya seç').setInputFiles({ name: 'irsaliye.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%test\n') })
   await expect(page.getByText('Dosya yüklendi.')).toBeVisible()
