@@ -1,6 +1,6 @@
 # YES Lojistik — Geliştirme Planı
 
-> **4 Ekim — yeni uygulama sırası:** Kullanıcıyla hazırlanan kapsam ve kabul şartları `TAM-GELISTIRME-PLANI.md` dosyasında. İlk paket çalışma kopyasında hazır; henüz commit/push/canlı yayın yapılmadı. Doğrulama durumu `UYGULAMA-DURUMU.md` içinde.
+> **5 Ekim — yeni uygulama sırası:** Kullanıcıyla hazırlanan kapsam ve kabul şartları `TAM-GELISTIRME-PLANI.md` dosyasında. İlk güvenlik paketi tamamlandı: eksik aktarım doğrulaması, küçük gruplarda toplu silme koruması ve karışık KDV faturası kontrolü. 311 sunucu ve 47 tarayıcı testi dahil CI geçti. Doğrulama durumu `UYGULAMA-DURUMU.md` içinde.
 >
 > Eski bulguların güncel durumu: tedarikçi carisine alınan faturalar dahil edilmiş; alınan fatura oluşturma/güncelleme transaction kullanıyor; demo temizliğinde koruma ve audit kaydı mevcut; müşteri durum e-postası mevcut. Bunlar yeniden yazılacak işler değil, testlerle doğrulanacak/tamamlanacak başlıklardır.
 
