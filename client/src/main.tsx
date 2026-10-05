@@ -11,10 +11,12 @@ import { AuthProvider } from './lib/auth'
 import { ToastProvider } from './components/Toast'
 import './lib/zodTr'
 import { applySavedTextSize } from './lib/textSize'
+import { applySavedUiMode } from './lib/uiMode'
 import { errorMessage, isTransientError, LOAD_ERROR_EVENT } from './api/client'
 import { ServerStatusBanner } from './components/ServerStatus'
 
 applySavedTextSize()
+applySavedUiMode()
 
 const queryClient = new QueryClient({
   // Kalıcı yükleme hataları ekranın üstündeki şeritte gösterilir; geçici hatalarda "sunucu açılıyor" şeridi görünür.

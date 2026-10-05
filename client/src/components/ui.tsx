@@ -6,6 +6,9 @@ import { HelpTip } from './Inputs'
 import type { Tone } from '../lib/labels'
 import { usePageTitle } from '../lib/usePageTitle'
 import { errorMessage, isTransientError } from '../api/client'
+import { SectionTabs } from './shell/SectionTabs'
+import { useIsNewUi } from '../lib/uiMode'
+import { newTitles } from '../lib/sections'
 
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
 
@@ -102,11 +105,15 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
   )
 }
 
-export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: { to: string; label: string } }) {
-  usePageTitle(title)
+export function PageHeader({ title: pageTitle, subtitle, actions, back }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: { to: string; label: string } }) {
   const { pathname } = useLocation()
+  const isNew = useIsNewUi()
+  // Yeni görünüm: başlık pratikortam adıyla, açıklama cümlesi (düz yazı alt başlık) gizli, altında bölüm sekmeleri.
+  const title = (isNew && newTitles[pathname]) || pageTitle
+  const showSubtitle = subtitle && !(isNew && typeof subtitle === 'string')
+  usePageTitle(title)
   const page = pathname.split('/')[1] ?? ''
-  return (
+  return (<>
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
         {back && (
@@ -116,13 +123,14 @@ export function PageHeader({ title, subtitle, actions, back }: { title: string; 
         )}
         <div className="flex items-center">
           <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{title}</h1>
-          {!back && <HelpTip page={page} />}
+          {!back && !isNew && <HelpTip page={page} />}
         </div>
-        {subtitle && <p className="mt-1 text-[0.875rem] text-muted">{subtitle}</p>}
+        {showSubtitle && <p className="mt-1 text-[0.875rem] text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
-  )
+    <SectionTabs />
+  </>)
 }
 
 export function Field({ label, error, required, children, className, hint, group }:

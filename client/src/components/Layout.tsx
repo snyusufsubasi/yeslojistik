@@ -3,13 +3,12 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import {
-  Handshake, HandCoins, Plus,
-  BarChart3, Bell, Building2, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Receipt, Settings, Truck,
-  UserCircle2, Users, Wallet, X, IdCard, Map as MapIcon, HelpCircle, Landmark, ScrollText, Type, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet } from 'lucide-react'
+  Plus, Bell, CalendarDays, CreditCard, Home, LogOut, Menu, Truck, UserCircle2, Users, X, ShieldCheck, LayoutTemplate, HelpCircle, Type,
+} from 'lucide-react'
 import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
 import type { Alert, Dashboard, Health } from '../api/types'
-import { useAuth, type Permission } from '../lib/auth'
+import { useAuth } from '../lib/auth'
 import { ago, longDate } from '../lib/format'
 import { useMirror } from '../lib/hooks'
 import { roleLabel } from '../lib/labels'
@@ -19,65 +18,9 @@ import { Logo } from './Logo'
 import { LicenseBanner } from './LicenseBanner'
 import { useTextSize } from '../lib/textSize'
 import { useBranding } from '../lib/branding'
+import { classicNav, newNav } from '../lib/nav'
+import { useUiMode } from '../lib/uiMode'
 
-type Badge = { count: number; title: string }
-type NavItem = { to: string; label: string; icon: typeof Home; perm?: Permission; badge?: (d: Dashboard | undefined, alerts: Alert[]) => Badge | null }
-
-const alertsAt = (alerts: Alert[], path: string) => alerts.filter((a) => a.link.startsWith(path)).length
-const badge = (count: number, title: string): Badge | null => (count > 0 ? { count, title } : null)
-
-/**
- * Menü, eski paneldeki (pratikortam) gruplamayı izler ki alışkanlık bozulmasın: Sevkiyat, Cari, Listeler, Öz Mal, Banka & Çek.
- * Ama daha sade: gruplar hep açık (katlanmaz), bekleyen işler sarı sayaçla görünür.
- */
-const navGroups: { title?: string; items: NavItem[] }[] = [
-  { items: [
-    { to: '/', label: 'Ana Sayfa', icon: Home },
-    { to: '/harita', label: 'Araç Takip Haritası', icon: MapIcon },
-  ] },
-  { title: 'Sevkiyat', items: [
-    { to: '/is-talepleri', label: 'İş Talepleri', icon: ClipboardList },
-    { to: '/seferler', label: 'Sevkiyatlar', icon: Truck,
-      badge: (d) => badge(d?.activeTripCount ?? 0, 'bekleyen ve yoldaki sefer') },
-  ] },
-  { title: 'Cari', items: [
-    { to: '/cari/musteriler', label: 'Müşteriler Cari', icon: Scale, perm: 'accounting',
-      badge: (_, a) => badge(alertsAt(a, '/musteriler'), 'vadesi geçen alacak') },
-    { to: '/cari/tedarikciler', label: 'Tedarikçiler Cari', icon: Scale, perm: 'accounting',
-      badge: (_, a) => badge(alertsAt(a, '/tedarikciler'), 'taşeron uyarısı') },
-    { to: '/faturalar', label: 'Faturalar', icon: FileText,
-      badge: (d) => badge(d?.uninvoicedTripCount ?? 0, 'faturası kesilmemiş teslim sefer') },
-    { to: '/tahsilatlar', label: 'Tahsilatlar', icon: Wallet },
-    { to: '/alinan-faturalar', label: 'Alınan Faturalar', icon: FileInput },
-    { to: '/odemeler', label: 'Tedarikçi Ödemeleri', icon: HandCoins },
-  ] },
-  { title: 'Listeler', items: [
-    { to: '/musteriler', label: 'Müşteriler', icon: Users },
-    { to: '/tedarikciler', label: 'Tedarikçiler', icon: Handshake },
-    { to: '/soforler', label: 'Şoförler', icon: IdCard,
-      badge: (_, a) => badge(alertsAt(a, '/soforler'), 'belge uyarısı') },
-    { to: '/personel', label: 'Personeller', icon: UserRound, perm: 'accounting' },
-    { to: '/sabit-odemeler', label: 'Sabit Ödemeler', icon: Repeat, perm: 'accounting' },
-    { to: '/aktar', label: 'Veri Aktarımı', icon: FileSpreadsheet },
-  ] },
-  { title: 'Öz Mal', items: [
-    { to: '/araclar', label: 'Araçlar', icon: Building2,
-      badge: (_, a) => badge(alertsAt(a, '/araclar'), 'belge veya bakım uyarısı') },
-    { to: '/giderler', label: 'Giderler', icon: Receipt,
-      badge: (d) => badge(d?.pendingExpenseCount ?? 0, 'onay bekleyen masraf') },
-  ] },
-  { title: 'Banka & Çek', items: [
-    { to: '/kasa-banka', label: 'Kasa / Banka', icon: Landmark, perm: 'accounting' },
-    { to: '/cek-senet', label: 'Çek / Senet', icon: ScrollText,
-      badge: (_, a) => badge(alertsAt(a, '/cek-senet'), 'vadesi yaklaşan çek/senet') },
-  ] },
-  { title: 'Rapor ve Yönetim', items: [
-    { to: '/raporlar', label: 'Raporlar', icon: BarChart3, perm: 'accounting' },
-    { to: '/ayarlar', label: 'Ayarlar', icon: Settings,
-      badge: (_, a) => badge(alertsAt(a, '/ayarlar'), 'firma belgesi uyarısı') },
-    { to: '/yardim', label: 'Yardım', icon: HelpCircle },
-  ] },
-]
 
 export function Layout() {
   const { user, logout, can } = useAuth()
@@ -91,6 +34,7 @@ export function Layout() {
   const { data: dashboard } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000, enabled: user?.role !== 'Driver' })
   const { data: alerts = [] } = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
   const { mirror, status: mirrorStatus } = useMirror()
+  const [uiMode] = useUiMode()
 
   return (
     <div className="flex min-h-full">
@@ -103,7 +47,7 @@ export function Layout() {
         </div>
         {/* Gruplar hep açık: katlanmaz, menü daraltılmaz (kullanıcı isteği) */}
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Ana menü">
-          {navGroups.map((g, gi) => {
+          {(uiMode === 'new' ? newNav : classicNav).map((g, gi) => {
             const items = g.items.filter((n) => !n.perm || can(n.perm))
             if (items.length === 0) return null
             return (
@@ -149,6 +93,9 @@ export function Layout() {
           </div>
           <NewMenu mirror={mirror} />
           <TextSizeButton />
+          {uiMode === 'new' && (
+            <Link to="/yardim" aria-label="Yardım" title="Yardım" className="rounded-[3px] p-2 text-slate-700 hover:bg-surface-2"><HelpCircle className="size-5" /></Link>
+          )}
           <AlertsBell />
           <UserMenu name={user!.fullName} role={roleLabel[user!.role]} onLogout={logout} />
         </header>
@@ -269,6 +216,23 @@ function TextSizePicker() {
   </>)
 }
 
+/** Görünüm seçimi: Klasik (bugünkü düzen) / Yeni (pratikortam gibi menü ve sekmeler). docs/KOLAYLASTIRMA-PLANI.md */
+function UiModePicker() {
+  const [mode, setMode] = useUiMode()
+  return (<>
+    <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700"><LayoutTemplate className="size-4" /> Görünüm</div>
+    <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Görünüm">
+      {([['classic', 'Klasik'], ['new', 'Yeni (sade)']] as const).map(([v, l]) => (
+        <button key={v} role="radio" aria-checked={mode === v} onClick={() => setMode(v)}
+          className={clsx('min-h-11 rounded-lg border px-1 text-sm font-medium leading-tight',
+            mode === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>
+          {l}
+        </button>
+      ))}
+    </div>
+  </>)
+}
+
 /** Telefonda altta sabit çubuk: en çok gidilen yerler ve ortada büyük "+ Yeni". */
 function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) {
   const { can } = useAuth()
@@ -364,7 +328,11 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
       {open && (
         <div className="absolute right-0 top-12 z-50 w-72 rounded-[4px] border border-line bg-white py-2 shadow-lg">
           <div className="px-4 pb-2 pt-1"><TextSizePicker /></div>
+          <div className="px-4 pb-2 pt-1"><UiModePicker /></div>
           <div className="my-1 border-t border-slate-100" />
+          <Link to="/ayarlar?tab=security" onClick={() => setOpen(false)} className="flex min-h-10 items-center gap-3 px-4 text-[0.9375rem] hover:bg-slate-50">
+            <ShieldCheck className="size-5" /> Güvenlik (2 adımlı giriş)
+          </Link>
           <Link to="/ayarlar?tab=password" onClick={() => setOpen(false)} className="flex min-h-10 items-center gap-3 px-4 text-[0.9375rem] hover:bg-slate-50">
             <CreditCard className="size-5" /> Şifre Değiştir
           </Link>

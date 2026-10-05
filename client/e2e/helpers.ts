@@ -11,7 +11,7 @@ export async function login(page: Page) {
   await page.getByLabel('E-posta').fill(ADMIN.email)
   await page.getByLabel('Şifre', { exact: true }).fill(ADMIN.password)
   await page.getByRole('button', { name: 'Giriş Yap' }).click()
-  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)|^Bugün$/ })).toBeVisible()
 }
 
 export const unique = () => Date.now().toString().slice(-6)
@@ -38,4 +38,9 @@ export async function pick(input: Locator, option: string | { index: number }) {
   } else {
     await list.getByRole('option').nth(option.index - 1).click()
   }
+}
+
+/** Yeni görünümü (pratikortam gibi menü/sekmeler) açar; sayfa açılmadan önce çağrılmalı. docs/KOLAYLASTIRMA-UYGULAMA.md */
+export async function useNewUi(page: Page) {
+  await page.addInitScript(() => localStorage.setItem('yes.uiMode', 'new'))
 }

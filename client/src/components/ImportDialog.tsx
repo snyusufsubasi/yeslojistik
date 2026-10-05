@@ -46,7 +46,7 @@ export function ImportButton({ entity }: { entity: Entity }) {
   )
 }
 
-function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void }) {
+export function ImportDialog({ entity, onClose }: { entity: Entity; onClose: () => void }) {
   const qc = useQueryClient()
   const toast = useToast()
   const input = useRef<HTMLInputElement>(null)

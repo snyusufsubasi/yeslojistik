@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileText, Rocket, Route, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileText, Plus, Rocket, Route, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
@@ -9,19 +9,22 @@ import { get } from '../api/client'
 import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Figure, Figures, Loading, MirrorContext, PlateBadge } from '../components/ui'
+import { useIsNewUi } from '../lib/uiMode'
+import { SectionTabs } from '../components/shell/SectionTabs'
 import { usePageTitle } from '../lib/usePageTitle'
 import { readOnboarding, writeOnboarding } from '../lib/onboarding'
 import { useAuth } from '../lib/auth'
 import { quickActions } from '../lib/quickActions'
 import { chart as palette, chartTick } from '../lib/chart'
-import { date, daysUntil, MONTHS, tl } from '../lib/format'
+import { date, daysUntil, longDate, MONTHS, tl } from '../lib/format'
 import { paymentStatusTone, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
 
 export default function DashboardPage() {
   const { user, can } = useAuth()
   const navigate = useNavigate()
   const { data, error, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000 })
-  usePageTitle('Ana Sayfa')
+  const isNew = useIsNewUi()
+  usePageTitle(isNew ? 'Bugün' : 'Ana Sayfa')
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
 
   if (!data) return <Loading error={error} onRetry={refetch} className={error ? 'card mx-auto mt-10 max-w-md' : undefined} />
@@ -49,6 +52,45 @@ export default function DashboardPage() {
     { key: 'no', header: 'Fatura', render: (i) => <><span className="font-medium">{i.invoiceNo}</span><span className="block max-w-36 truncate text-sm text-slate-500">{i.customerTitle}</span></> },
     { key: 'total', header: 'Tutar', align: 'right', render: (i) => <>{tl(i.total)}<span className="mt-0.5 block"><Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge></span></> },
   ]
+
+  if (isNew) return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">Bugün</h1>
+          <p className="mt-1 text-[0.875rem] text-muted">{longDate()}</p>
+        </div>
+        {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/seferler?new=1')}>Sevkiyat Ekle</Button>}
+      </div>
+      <SectionTabs />
+      {can('admin') && !data.setup.companyInfo && !readOnboarding().cardHidden && !readOnboarding().finished && <OnboardingCard />}
+      <Figures label="Sevkiyat durumu" className="sm:grid-cols-3">
+        <Figure label="Yüklenmeyi bekleyen" value={data.plannedTripCount} sub="Planlandı" onClick={() => navigate('/seferler?status=Planned')} />
+        <Figure label="Yolda / yüklendi" value={Math.max(0, data.activeTripCount - data.plannedTripCount)} sub="Şu an" onClick={() => navigate('/seferler?status=OnRoad')} />
+        <Figure label="Teslim edilen" value={data.monthDeliveredCount} sub="Bu ay" onClick={() => navigate('/seferler?status=Delivered')} />
+      </Figures>
+      {can('accounting') && data.uninvoicedTripCount > 0 && (
+        <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd896] bg-bill-soft px-4 py-2.5 text-[0.9375rem] text-bill hover:bg-[#f8e3a0]">
+          <span><b>{data.uninvoicedTripCount} teslim edilmiş sevkiyat faturalanmadı</b> · <span className="font-mono">{tl(data.uninvoicedTripTotal)}</span> + KDV</span>
+          <span className="whitespace-nowrap font-semibold">Fatura kes →</span>
+        </Link>
+      )}
+      {data.pendingExpenseCount > 0 && (
+        <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd3a6] bg-warn-soft px-4 py-2.5 text-[0.9375rem] text-warn hover:bg-[#f7e2bd]">
+          <span><b>{data.pendingExpenseCount} şoför masrafı onay bekliyor</b> · <span className="font-mono">{tl(data.pendingExpenseTotal)}</span></span>
+          <span className="whitespace-nowrap font-semibold">İncele →</span>
+        </Link>
+      )}
+      <Card title="Bugünkü sevkiyatlar" icon={<Route className="size-4" />} bodyClassName="p-0"
+        actions={<Button size="sm" variant="ghost" onClick={() => navigate('/seferler')}>Tüm sevkiyatlar →</Button>}>
+        <DataTable columns={tripCols} rows={data.todayTrips} rowKey={(t) => t.id} onRowClick={(t) => navigate(`/seferler?id=${t.id}`)}
+          empty="Bugün için sevkiyat yok." />
+      </Card>
+      {can('admin') && data.setup.sampleData && (
+        <p className="text-[0.8125rem] text-muted">Şu an örnek (demo) veriler görünüyor. Temizlemek için: Yönetici → Veriler.</p>
+      )}
+    </div>
+  )
 
   return (
     <div className="space-y-6">
