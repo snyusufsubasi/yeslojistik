@@ -128,6 +128,18 @@ test('Alınan Faturalar listesi telefonda kart olur; kart satır menüsü öge a
   expect(menuBox?.height ?? 0).toBeGreaterThanOrEqual(44)
 })
 
+test('Klasik görünümde telefon kartı çizilmez: tablo davranışı değişmez', async ({ page }) => {
+  // useNewUi ÇAĞRILMAZ: localStorage'daki varsayılan klasik görünümdür (DEFAULT_UI_MODE = 'classic').
+  await login(page)
+  for (const path of ['/araclar', '/cek-senet', '/tahsilatlar', '/odemeler', '/raporlar']) {
+    await page.goto(path)
+    await page.waitForLoadState('networkidle')
+    // Klasik görünümde `mobileCard` hiç verilmez: kart listesi yok, tablo yerinde (yatay kaydırılır).
+    expect(await page.locator('main ul.divide-y').count(), `${path}: klasik görünümde kart listesi olmamalı`).toBe(0)
+    await expect(page.locator('main table').first(), `${path}: klasik görünümde tablo görünür olmalı`).toBeVisible()
+  }
+})
+
 test('Raporlar liste bölümleri telefonda kart olur; sayfa yana kaymaz', async ({ page }) => {
   await useNewUi(page)
   await login(page)
