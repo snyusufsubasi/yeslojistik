@@ -6,7 +6,7 @@
  */
 @theme {
   /* Yazı: Claude'un cevap yazısına benzeyen tırnaklı Source Serif 4 (kullanıcı seçimi). Tutar ve plakalar Overpass Mono: alt alta hizalı. */
-  --font-sans: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --font-serif: var(--font-sans);
 
@@ -88,10 +88,10 @@
 @layer base {
   html, body, #root { height: 100%; }
   /* Yazı boyutu ayarı (Normal / Büyük / Çok büyük): her şey rem ile birlikte büyür */
-  html { font-size: 17.5px; }
-  html[data-text="lg"] { font-size: 19px; }
-  html[data-text="xl"] { font-size: 21px; }
-  body { @apply bg-canvas font-sans text-[0.9375rem] leading-normal text-fg antialiased; }
+  html { font-size: 18px; }
+  html[data-text="lg"] { font-size: 20px; }
+  html[data-text="xl"] { font-size: 22px; }
+  body { @apply bg-canvas font-sans text-[0.9375rem] leading-[1.5] text-fg antialiased; }
   h1, h2, h3 { font-family: var(--font-sans); font-weight: 650; letter-spacing: -0.01em; }
   /* Rakamlar eşit genişlikte, alt alta hizalı */
   .tabular-nums, td { font-variant-numeric: tabular-nums; }
@@ -108,16 +108,16 @@
 
 @layer components {
   .input {
-    @apply min-h-10 w-full rounded-[3px] border border-slate-300 bg-white px-3 py-1.5 text-[0.9375rem] text-slate-900 outline-none transition
+    @apply min-h-11 w-full rounded-[4px] border border-slate-300 bg-white px-3.5 py-2 text-[0.9375rem] text-slate-900 outline-none transition
       placeholder:text-slate-500 hover:border-slate-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600;
   }
   /* Telefonda 16px: iPhone form kutusuna dokununca sayfayı büyütmesin */
   @media (pointer: coarse) { .input { font-size: max(16px, 1rem); } }
   .input-error { @apply border-red-500 focus:border-red-500 focus:ring-red-100; }
-  .label { @apply mb-1 block text-[0.78125rem] font-semibold text-muted; }
+  .label { @apply mb-1.5 block text-[0.8125rem] font-semibold text-slate-700; }
   .card { @apply min-w-0 rounded-[4px] border border-line bg-white; }
-  .th { @apply border-b border-line bg-surface-2 px-3 py-2 text-left text-[0.6875rem] font-bold uppercase tracking-[0.07em] text-muted; }
-  .td { @apply break-words border-b border-slate-100 px-3 py-[7px] text-[0.875rem] text-fg; }
+  .th { @apply border-b border-line bg-surface-2 px-3.5 py-2.5 text-left text-[0.75rem] font-bold uppercase tracking-[0.04em] text-slate-700; }
+  .td { @apply break-words border-b border-slate-100 px-3.5 py-2.5 text-[0.875rem] text-fg; }
   /* Tablodaki tutar ve sayılar (sağa yaslı sütunlar) Overpass Mono */
   td.text-right { font-family: var(--font-mono); letter-spacing: -0.02em; }
   /* Sayı hücresindeki düğmeler (ör. "Yüklendi yap") normal yazıyla kalır */
@@ -145,9 +145,10 @@
 @layer components {
   /* Yeni görünümde yüzeyler biraz daha açık; klasik değerler @theme içinde kalır */
   html[data-ui="new"] {
-    --color-canvas: #f6f8f7;
-    --color-surface-2: #edf2f0;
-    --color-line: #dbe4e0;
+    --color-canvas: #f5f7f6;
+    --color-surface-2: #edf1ef;
+    --color-line: #cfd9d5;
+    --color-muted: #475a51;
   }
 
   /* Tablo başlığı: büyük harf ve geniş harf aralığı yok, daha küçük ve sakin */
@@ -159,7 +160,11 @@
   }
 
   /* Satır yoğunluğu: 7px → 5px dikey iç boşluk (satır ~44px) */
-  html[data-ui="new"] .td { padding-top: 5px; padding-bottom: 5px; }
+  html[data-ui="new"] .td { padding-top: 9px; padding-bottom: 9px; }
+
+  html[data-ui="new"] .card { border-color: #cfd9d5; }
+  html[data-ui="new"] .input { min-height: 46px; }
+  html[data-ui="new"] button, html[data-ui="new"] a { text-underline-offset: 3px; }
 
   /* Başlıklar biraz daha sıkı; üst kısım hedefi (≤260px) boşluklarla sağlanır */
   html[data-ui="new"] h1, html[data-ui="new"] h2 { letter-spacing: -0.015em; }
