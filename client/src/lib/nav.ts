@@ -1,6 +1,6 @@
 import {
   Handshake, HandCoins, BarChart3, Building2, FileText, Home, Receipt, Settings, Truck, Users, Wallet, IdCard, Map as MapIcon,
-  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun, Fuel, Wrench, UserCircle2,
+  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun, Fuel, Wrench,
 } from 'lucide-react'
 import type { Alert, Dashboard } from '../api/types'
 import type { Permission } from './auth'
@@ -111,9 +111,6 @@ export const newNav: NavGroup[] = [
     { to: '/kasa-banka', label: 'Bankalar', icon: Landmark, perm: 'accounting' },
     { to: '/cek-senet', label: 'Çekler', icon: ScrollText,
       badge: (_, a) => badge(alertsAt(a, '/cek-senet'), 'vadesi yaklaşan çek/senet') },
-  ] },
-  { items: [
-    { to: '/ayarlar?tab=profile', label: 'Profilim', icon: UserCircle2 },
   ] },
 ]
 
