@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { ScrollText } from 'lucide-react'
-import { post } from '../api/client'
-import { ExportButton, TotalsStrip } from '../components/Exports'
+import { Download, ScrollText } from 'lucide-react'
+import { download, errorMessage, post } from '../api/client'
+import { ExportButton } from '../components/Exports'
+import { SumStrip } from '../components/SumStrip'
+import { PageShell } from '../components/shell/PageShell'
 import type { InstrumentStatus, Payment, PaymentTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, DateFilter, Field, Modal, PageHeader, Select } from '../components/ui'
+import { Badge, Button, Card, DateFilter, Field, Modal, Select } from '../components/ui'
 import { useAuth } from '../lib/auth'
+import { useToast } from '../components/Toast'
 import { daysUntil, date, tl2, todayIso } from '../lib/format'
 import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { instrumentStatusLabel, instrumentStatusTone, options, paymentMethodLabel } from '../lib/labels'
@@ -34,6 +37,7 @@ const nextStatuses: Record<InstrumentStatus, InstrumentStatus[]> = {
 /** Müşteriden alınan çek ve senetler: vade takibi, tahsil, ciro ve karşılıksız işlemleri. */
 export default function ChecksPage() {
   const { can } = useAuth()
+  const toast = useToast()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<InstrumentStatus | ''>('Portfolio')
   const [dueTo, setDueTo] = useState('')
@@ -73,8 +77,9 @@ export default function ChecksPage() {
 
   return (
     <>
-      <PageHeader title="Çek / Senet" subtitle="Müşteriden alınan çek ve senetlerin vade ve durum takibi"
-        actions={<ExportButton url="/payments/export" params={query} fileName="cek-senet.xlsx" />} />
+      <PageShell title="Çekler" subtitle="Müşteriden alınan çek ve senetlerin vade ve durum takibi"
+        more={[{ label: "Excel'e aktar", icon: <Download className="size-4" />, onClick: () => download('/payments/export', query, 'cek-senet.xlsx').catch((e) => toast.error(errorMessage(e))) }]}
+        actions={<ExportButton url="/payments/export" params={query} fileName="cek-senet.xlsx" />}>
       <p className="mb-3 text-sm text-slate-600">Yeni çek/senet, Tahsilatlar'da ödeme yöntemi “Çek” ya da “Senet” seçilerek girilir. Karşılıksız ya da iade edilen çek müşterinin bakiyesinden düşmez.</p>
       <Card title="Portföy" icon={<ScrollText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, açıklama..." />}>
@@ -82,7 +87,7 @@ export default function ChecksPage() {
           <Select aria-label="Durum" value={status} onChange={setStatus} options={options(instrumentStatusLabel)} placeholder="Tüm durumlar" />
           <DateFilter label="Vadesi şu tarihe kadar" value={dueTo} onChange={setDueTo} />
         </div>
-        {totals && totals.count > 0 && <TotalsStrip items={[
+        {totals && totals.count > 0 && <SumStrip label="Çek toplamları" items={[
           { label: 'Çek / senet', value: totals.count },
           { label: 'Toplam', value: tl2(totals.total) },
         ]} />}
@@ -91,6 +96,7 @@ export default function ChecksPage() {
           page={page} total={data?.total} onPage={setPage}
           empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'} />
       </Card>
+      </PageShell>
       {action && <InstrumentActionDialog action={action} onClose={() => setAction(null)} />}
     </>
   )
