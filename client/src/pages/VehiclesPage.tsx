@@ -8,10 +8,12 @@ import { Badge, Button, Card, Chip, ConfirmDialog, IconButton, PageHeader, Plate
 import { ImportButton } from '../components/ImportDialog'
 import { FirstUse } from '../components/FirstUse'
 import { ExportButton } from '../components/Exports'
+import { MobileCards } from '../components/shell/MobileCards'
 import { useAuth } from '../lib/auth'
 import { date, daysUntil } from '../lib/format'
 import { crud, useDebounce, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 import { VehicleForm } from '../components/VehicleForm'
 
 const api = crud<Vehicle, unknown>('vehicles')
@@ -26,6 +28,7 @@ const tabs = [
 
 export default function VehiclesPage() {
   const { can } = useAuth()
+  const isNew = useIsNewUi()
   const [params, setParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<VehicleStatus | ''>('')
@@ -79,6 +82,37 @@ export default function VehiclesPage() {
     ),
   })
 
+  /** Liste boşken gösterilen metin / ilk kullanım kartı (masaüstü ve klasik görünümde değişmez). */
+  const emptyState = debounced || status ? "Aramanıza uyan kayıt yok." : tab.key === 'taseron' ? "Taşeron aracı yok." : (
+    <FirstUse title="İlk aracınızı ekleyin" addLabel="Yeni araç" onAdd={can('operations') ? () => setEditing('new') : undefined} importEntity={can('operations') ? 'vehicles' : undefined}>
+      Araçlarınız burada listelenir; bakım ve belge uyarıları da buradan gelir. Tek tek ekleyin ya da plaka listenizi Excel'den aktarın.
+    </FirstUse>)
+
+  /**
+   * Telefon kartı — YALNIZ yeni görünüm (`isNew`). Klasik görünümde `mobileCard` hiç verilmez, tablo
+   * davranışı değişmez (docs/plan/27-TELEFON.md §10.8). Kart: plaka + durum rozeti, 3 bilgi satırı ve
+   * "⋯" satır menüsü. `-my-3.5`, DataTable'ın `<li>` iç boşluğunu geri alır ki kart ≤120px kalsın.
+   */
+  const mobileCard = isNew ? (v: Vehicle) => (
+    <div className="-my-3.5">
+      <MobileCards menuLabel={`${v.plate} işlemleri`} cards={[{
+        id: v.id,
+        title: <PlateBadge plate={v.plate} />,
+        badge: { tone: vehicleStatusTone[v.status], label: vehicleStatusLabel[v.status] },
+        info: [
+          [v.ownership === 'Rented' ? 'Kiralık' : 'Öz mal', v.type, [v.brand, v.model, v.modelYear].filter(Boolean).join(' ')].filter(Boolean).join(' · '),
+          [`Şoför: ${v.defaultDriverName ?? '—'}`, `Km: ${v.km.toLocaleString('tr-TR')}`].join(' · '),
+          `Muayene ${date(v.inspectionExpiry)} · Sigorta ${date(v.insuranceExpiry)}`,
+        ],
+        onOpen: can('operations') ? () => setEditing(v) : undefined,
+        menu: [
+          { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, perm: 'operations', onClick: () => setEditing(v) },
+          { label: 'Sil', icon: <Trash2 className="size-4" />, write: true, perm: 'operations', onClick: () => setDeleting(v) },
+        ],
+      }]} />
+    </div>
+  ) : undefined
+
   return (
     <>
       <PageHeader title="Araçlar" subtitle="Filo, bakım ve belge takibi"
@@ -104,10 +138,7 @@ export default function VehiclesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(v) => v.id}
           onRowClick={can('operations') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || status ? "Aramanıza uyan kayıt yok." : tab.key === 'taseron' ? "Taşeron aracı yok." : (
-            <FirstUse title="İlk aracınızı ekleyin" addLabel="Yeni araç" onAdd={can('operations') ? () => setEditing('new') : undefined} importEntity={can('operations') ? 'vehicles' : undefined}>
-              Araçlarınız burada listelenir; bakım ve belge uyarıları da buradan gelir. Tek tek ekleyin ya da plaka listenizi Excel'den aktarın.
-            </FirstUse>)} />
+          page={page} total={data?.total} onPage={setPage} empty={emptyState} mobileCard={mobileCard} />
       </Card>
       {editing && <VehicleForm vehicle={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Aracı sil" loading={deleteMut.isPending} confirmText="Sil"

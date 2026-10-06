@@ -5,13 +5,16 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { BarChart3, Download } from 'lucide-react'
 import { download, errorMessage, get } from '../api/client'
 import { useToast } from '../components/Toast'
-import type { CustomerAgingRow, CustomerProfitRow, RouteProfitRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, ProfitGroupBy, ProfitReportRow, SupplierReportRow, TripProfitRow, VehicleReportRow } from '../api/types'
+import type { CustomerAgingRow, CustomerProfitRow, RouteProfitRow, DriverReportRow, ExpenseCategoryRow, FuelReportRow, MonthlySummaryRow, PayableAgingRow, ProfitGroupBy, ProfitReportRow, SupplierReportRow, TripProfitRow, TripStatus, VehicleReportRow } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
+import { MobileCards } from '../components/shell/MobileCards'
 import { ExportButton } from '../components/Exports'
 import { Button, Card, Figure, Figures, PageHeader, PlateBadge, Select, Loading, Tabs, DateFilter } from '../components/ui'
 import { date, MONTHS, tl, tl2, todayIso, yearStartIso } from '../lib/format'
-import { expenseCategoryLabel } from '../lib/labels'
+import { expenseCategoryLabel, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import type { Tone } from '../lib/labels'
 import { chart as palette, chartTick } from '../lib/chart'
+import { useIsNewUi } from '../lib/uiMode'
 
 type Tab = 'monthly' | 'profit' | 'customers' | 'routes' | 'trips' | 'vehicles' | 'drivers' | 'fuel' | 'aging' | 'payables' | 'suppliers' | 'expenses' | 'accounting'
 
@@ -81,6 +84,23 @@ function useReport<T>(name: string, params: object) {
   return useQuery({ queryKey: ['reports', name, params], queryFn: () => get<T>(`/reports/${name}`, params) })
 }
 
+type CardParts = { title: React.ReactNode; info?: React.ReactNode; amount?: React.ReactNode; badge?: { tone: Tone; label: React.ReactNode } }
+
+/**
+ * Rapor listelerinin telefon kartı üreticisi. Rapor tabloları salt okunur ve satır menüsü yoktur; bu
+ * yüzden kartta yalnız başlık, 2-3 bilgi satırı, sağda mono tutar ve tek rozet gösterilir
+ * (docs/plan/27-TELEFON.md §10.8). `isNew` false iken `undefined` döner: klasik görünümde `mobileCard`
+ * hiç verilmez, tablo davranışı değişmez.
+ */
+function mobileCards<T>(isNew: boolean, key: (row: T) => string | number, parts: (row: T) => CardParts) {
+  if (!isNew) return undefined
+  return (row: T) => (
+    <div className="-my-3.5">
+      <MobileCards menuLabel="Rapor kaydı" cards={[{ id: key(row), ...parts(row) }]} />
+    </div>
+  )
+}
+
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
@@ -98,6 +118,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 }
 
 function Monthly({ year }: { year: number }) {
+  const isNew = useIsNewUi()
   const { data, error, refetch } = useReport<MonthlySummaryRow[]>('monthly', { year })
   if (!data) return <Loading error={error} onRetry={refetch} />
   const chart = data.map((r) => ({ name: MONTHS[r.month - 1].slice(0, 3), Ciro: r.tripRevenue, Maliyet: r.vehicleCost + r.expenses }))
@@ -113,6 +134,11 @@ function Monthly({ year }: { year: number }) {
     { key: 'inv', header: <>Faturalanan<span className="block font-normal text-slate-500">tahsil edilen</span></>, align: 'right', render: (r) => <>{tl(r.invoiced)}<span className="block text-sm text-muted">{tl(r.collected)}</span></> },
   ]
   const net = sum('netProfit')
+  const monthlyCard = mobileCards<MonthlySummaryRow>(isNew, (r) => r.month, (r) => ({
+    title: `${MONTHS[r.month - 1]} ${r.year}`,
+    info: `${r.tripCount} sevkiyat · Ciro ${tl(r.tripRevenue)} · Maliyet ${tl(r.vehicleCost + r.expenses)}`,
+    amount: <span className={r.netProfit < 0 ? 'text-bad' : 'text-good'}>{tl(r.netProfit)}</span>,
+  }))
   return (
     <div>
       <Figures label="Yıl toplamı" className="m-4 grid-cols-2 lg:grid-cols-4">
@@ -134,7 +160,7 @@ function Monthly({ year }: { year: number }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <DataTable columns={cols} rows={data} rowKey={(r) => r.month} />
+      <DataTable columns={cols} rows={data} rowKey={(r) => r.month} mobileCard={monthlyCard} />
     </div>
   )
 }
@@ -149,6 +175,7 @@ const groupByCaption: Record<ProfitGroupBy, string> = { Month: 'Ay', Customer: '
 
 /** Kazanç raporu: satış, komisyon, maliyet, prim, masraf ve kâr; ay, müşteri, araç ya da şoför bazında (tek kâr formülü). */
 function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: ProfitGroupBy }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<ProfitReportRow[]>('profit', { from, to, groupBy })
   const money = (k: keyof ProfitReportRow) => (r: ProfitReportRow) => tl2(r[k] as number)
   const cols: Column<ProfitReportRow>[] = [
@@ -166,9 +193,15 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
   ]
   const sum = (k: keyof ProfitReportRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
   const revenue = sum('sale') + sum('commission')
+  const profitCard = mobileCards<ProfitReportRow>(isNew, (r) => r.key, (r) => ({
+    title: r.label,
+    badge: { tone: 'blue', label: `${r.tripCount} sevkiyat` },
+    info: `Satış ${tl2(r.sale)} · Komisyon ${tl2(r.commission)} · Maliyet ${tl2(r.vehicleCost)}`,
+    amount: <span className={r.profit < 0 ? 'text-bad' : 'text-good'}>{tl2(r.profit)}</span>,
+  }))
   return <>
     <p className="px-4 pb-2 text-sm text-slate-500">Tutarlar KDV hariç. Kâr = satış + komisyon − araç/taşeron maliyeti − şoför primi − müşteriye faturalanmayan ek masraf − sevkiyata bağlı onaylı giderler. Sevkiyatla ilgisi olmayan genel giderler (kira, maaş vb.) Aylık Özet'te düşülür.</p>
-    <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.key} empty="Bu dönemde sevkiyat yok."
+    <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.key} empty="Bu dönemde sevkiyat yok." mobileCard={profitCard}
       footer={data && data.length > 0 ? (
         <tr className="bg-slate-50 text-sm font-medium">
           <td className="td">Toplam</td>
@@ -180,6 +213,7 @@ function Profit({ from, to, groupBy }: { from: string; to: string; groupBy: Prof
 }
 
 function Trips({ from, to }: { from: string; to: string }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<TripProfitRow[]>('trips', { from, to })
   const cols: Column<TripProfitRow>[] = [
     { key: 'd', header: 'Tarih', render: (r) => date(r.loadingDate) },
@@ -194,7 +228,17 @@ function Trips({ from, to }: { from: string; to: string }) {
     { key: 'm', header: 'Marj', align: 'right', render: (r) => r.salePrice ? `%${Math.round(r.profit / r.salePrice * 100)}` : '—' },
   ]
   const total = (k: 'salePrice' | 'vehicleCost' | 'expenses' | 'profit') => data?.reduce((s, r) => s + r[k], 0) ?? 0
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.tripId} empty="Bu aralıkta sevkiyat yok."
+  const tripCard = mobileCards<TripProfitRow>(isNew, (r) => r.tripId, (r) => ({
+    title: r.customer,
+    badge: { tone: tripStatusTone[r.status as TripStatus] ?? 'gray', label: tripStatusLabel[r.status as TripStatus] ?? r.status },
+    info: [
+      `${date(r.loadingDate)}${r.vehicle ? ` · ${r.vehicle}` : ''}`,
+      r.route || '—',
+      `Satış ${tl(r.salePrice)} · Maliyet ${tl(r.vehicleCost)} · Gider ${tl(r.expenses)}`,
+    ],
+    amount: <span className={r.profit < 0 ? 'text-bad' : 'text-good'}>{tl(r.profit)}</span>,
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.tripId} empty="Bu aralıkta sevkiyat yok." mobileCard={tripCard}
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td" colSpan={5}>Toplam ({data.length} sevkiyat)</td>
@@ -204,6 +248,7 @@ function Trips({ from, to }: { from: string; to: string }) {
 }
 
 function Vehicles({ from, to }: { from: string; to: string }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<VehicleReportRow[]>('vehicles', { from, to })
   const cols: Column<VehicleReportRow>[] = [
     { key: 'p', header: 'Plaka', render: (r) => <PlateBadge plate={r.plate} /> },
@@ -214,10 +259,16 @@ function Vehicles({ from, to }: { from: string; to: string }) {
     { key: 'e', header: 'Giderler', align: 'right', render: (r) => tl(r.expenses) },
     { key: 'n', header: 'Net', align: 'right', render: (r) => <span className={r.net < 0 ? 'text-bad' : 'font-semibold text-good'}>{tl(r.net)}</span> },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} />
+  const vehicleCard = mobileCards<VehicleReportRow>(isNew, (r) => r.vehicleId, (r) => ({
+    title: r.plate,
+    info: [`${r.type || '—'} · ${r.tripCount} sevkiyat`, `Gelir ${tl(r.revenue)} · Maliyet ${tl(r.vehicleCost)}`, `Giderler ${tl(r.expenses)}`],
+    amount: <span className={r.net < 0 ? 'text-bad' : 'text-good'}>{tl(r.net)}</span>,
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} mobileCard={vehicleCard} />
 }
 
 function Drivers({ from, to }: { from: string; to: string }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<DriverReportRow[]>('drivers', { from, to })
   const cols: Column<DriverReportRow>[] = [
     { key: 'd', header: 'Şoför', render: (r) => <span className="font-medium">{r.driver}</span> },
@@ -230,10 +281,17 @@ function Drivers({ from, to }: { from: string; to: string }) {
     { key: 'adv', header: 'Avans / Harcırah', align: 'right', render: (r) => r.advances || r.allowances
       ? <>{tl(r.advances)}<span className="block text-sm text-muted"><span className={word}>Harcırah</span> {tl(r.allowances)}</span></> : '—' },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.driverId} empty="Bu aralıkta sevkiyat yok." />
+  const driverCard = mobileCards<DriverReportRow>(isNew, (r) => r.driverId, (r) => ({
+    title: r.driver,
+    info: [`${r.tripCount} sevkiyat · ${r.deliveredCount} teslim`, `Gelir ${tl(r.revenue)} · Maliyet ${tl(r.vehicleCost)} · Gider ${tl(r.expenses)}`,
+      `Avans ${tl(r.advances)} · Harcırah ${tl(r.allowances)}`],
+    amount: <span className={r.profit < 0 ? 'text-bad' : 'text-good'}>{tl(r.profit)}</span>,
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.driverId} empty="Bu aralıkta sevkiyat yok." mobileCard={driverCard} />
 }
 
 function Fuel({ from, to }: { from: string; to: string }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<FuelReportRow[]>('fuel', { from, to })
   const measured = (data ?? []).filter((r) => r.km && r.litersPer100Km)
   const totalKm = measured.reduce((a, r) => a + (r.km ?? 0), 0)
@@ -250,18 +308,28 @@ function Fuel({ from, to }: { from: string; to: string }) {
     { key: 'c100', header: 'L / 100 km', align: 'right', render: (r) => r.litersPer100Km == null ? <span className="text-muted">—</span>
       : <span className={high(r) ? 'font-semibold text-bad' : 'font-medium'}>{num(r.litersPer100Km, 1)}{high(r) && <span className={`block text-sm font-normal ${word}`}>Ortalamanın üstünde</span>}</span> },
   ]
+  const fuelCard = mobileCards<FuelReportRow>(isNew, (r) => r.vehicleId, (r) => ({
+    title: r.plate,
+    info: [
+      `${r.fillCount} alım · ${r.liters ? `${num(r.liters)} litre` : '—'}`,
+      `${r.km ? `${num(r.km)} km` : '—'} · ${r.pricePerLiter ? `Ort. ${tl2(r.pricePerLiter)}/L` : 'Fiyat yok'}`,
+      r.litersPer100Km == null ? 'Tüketim hesaplanamadı' : <>Tüketim <span className={high(r) ? 'text-bad' : ''}>{num(r.litersPer100Km, 1)} L/100 km{high(r) ? ' · ortalamanın üstünde' : ''}</span></>,
+    ],
+    amount: tl2(r.cost),
+  }))
   return (
     <>
       <p className="px-4 pt-3 text-[0.9375rem] text-slate-700">
         Tüketim, yakıt giderlerine girilen <b>litre</b> ve <b>araç kilometresinden</b> hesaplanır (depoyu her sevkiyatında doldurduğunuzda en doğru sonucu verir).
         {fleet != null && <> Filo ortalaması: <b>{num(fleet, 1)} L/100 km</b>. Ortalamanın %15'ten fazla üstündeki araçlar kırmızı görünür.</>}
       </p>
-      <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} empty="Bu aralıkta yakıt gideri yok." />
+      <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.vehicleId} empty="Bu aralıkta yakıt gideri yok." mobileCard={fuelCard} />
     </>
   )
 }
 
 function Aging() {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<CustomerAgingRow[]>('aging', {})
   const cols: Column<CustomerAgingRow>[] = [
     { key: 'c', header: 'Müşteri', render: (r) => <span className="font-medium">{r.customer}</span> },
@@ -273,7 +341,13 @@ function Aging() {
     { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof CustomerAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.customerId} empty="Açık alacak yok."
+  const agingCard = mobileCards<CustomerAgingRow>(isNew, (r) => r.customerId, (r) => ({
+    title: r.customer,
+    badge: r.over90 > 0 ? { tone: 'red', label: '90+ gün' } : undefined,
+    info: [`Vadesi gelmemiş ${tl2(r.notDue)}`, `1-30 ${tl2(r.days1To30)} · 31-60 ${tl2(r.days31To60)}`, `61-90 ${tl2(r.days61To90)} · 90+ ${tl2(r.over90)}`],
+    amount: tl2(r.total),
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.customerId} empty="Açık alacak yok." mobileCard={agingCard}
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
@@ -283,6 +357,7 @@ function Aging() {
 
 function Expenses({ from, to }: { from: string; to: string }) {
   const { data, error, refetch } = useReport<ExpenseCategoryRow[]>('expenses', { from, to })
+  const isNew = useIsNewUi()
   if (!data) return <Loading error={error} onRetry={refetch} />
   const total = data.reduce((s, r) => s + r.amount, 0)
   const chart = data.map((r) => ({ name: expenseCategoryLabel[r.category] ?? r.category, Tutar: r.amount }))
@@ -301,7 +376,16 @@ function Expenses({ from, to }: { from: string; to: string }) {
           </ResponsiveContainer>
         )}
       </div>
-      <div className="overflow-x-auto">
+      {/* Telefon kartı — yalnız yeni görünüm: gider dağılımı tablosu telefonda kart olur (tablo gizlenir). */}
+      {isNew && (
+        <MobileCards cards={data.map((r) => ({
+          id: r.category,
+          title: expenseCategoryLabel[r.category] ?? r.category,
+          info: `Pay: %${total ? Math.round(r.amount / total * 100) : 0}`,
+          amount: tl2(r.amount),
+        }))} />
+      )}
+      <div className={`overflow-x-auto ${isNew ? 'hidden lg:block' : ''}`}>
         <table className="w-full">
           <thead><tr><th className="th">Kategori</th><th className="th text-right">Tutar</th><th className="th text-right">Pay</th></tr></thead>
           <tbody>
@@ -319,6 +403,7 @@ function Expenses({ from, to }: { from: string; to: string }) {
 }
 
 function Payables() {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<PayableAgingRow[]>('payables', {})
   const cols: Column<PayableAgingRow>[] = [
     { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-accent hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
@@ -330,7 +415,13 @@ function Payables() {
     { key: 't', header: 'Toplam', align: 'right', render: (r) => <span className="font-medium">{tl2(r.total)}</span> },
   ]
   const s = (k: keyof PayableAgingRow) => data?.reduce((a, r) => a + (r[k] as number), 0) ?? 0
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Açık taşeron borcu yok."
+  const payableCard = mobileCards<PayableAgingRow>(isNew, (r) => r.supplierId, (r) => ({
+    title: r.supplier,
+    badge: r.over90 > 0 ? { tone: 'red', label: '90+ gün' } : undefined,
+    info: [`Vadesi gelmemiş ${tl2(r.notDue)}`, `1-30 ${tl2(r.days1To30)} · 31-60 ${tl2(r.days31To60)}`, `61-90 ${tl2(r.days61To90)} · 90+ ${tl2(r.over90)}`],
+    amount: tl2(r.total),
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Açık taşeron borcu yok." mobileCard={payableCard}
     footer={data && data.length > 0 ? (
       <tr className="bg-slate-50 text-sm font-medium">
         <td className="td">Toplam</td>
@@ -341,6 +432,7 @@ function Payables() {
 const margin = (m?: number | null) => m == null ? '—' : <span className={m < 0 ? 'font-semibold text-bad' : m < 10 ? 'text-warn' : 'text-good'}>%{m.toLocaleString('tr-TR')}</span>
 
 function CustomerProfit({ from, to }: { from: string; to: string }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<CustomerProfitRow[]>('customers', { from, to })
   const cols: Column<CustomerProfitRow>[] = [
     { key: 'c', header: 'Müşteri', render: (r) => <Link className="font-medium text-accent hover:underline" to={`/musteriler/${r.customerId}`}>{r.customer}</Link> },
@@ -352,13 +444,21 @@ function CustomerProfit({ from, to }: { from: string; to: string }) {
     { key: 'o', header: 'Açık Alacak', align: 'right', render: (r) => tl(r.openReceivable) },
     { key: 'd', header: 'Tahsil Süresi', align: 'right', render: (r) => r.collectionDays == null ? '—' : <>~{r.collectionDays} <span className={word}>gün</span></> },
   ]
+  const customerCard = mobileCards<CustomerProfitRow>(isNew, (r) => r.customerId, (r) => ({
+    title: r.customer,
+    badge: { tone: 'blue', label: `${r.tripCount} sevkiyat` },
+    info: [`Ciro ${tl(r.revenue)} · Maliyet ${tl(r.cost)}`, `Açık alacak ${tl(r.openReceivable)}`,
+      r.collectionDays == null ? 'Tahsil süresi hesaplanamadı' : `Tahsil süresi ~${r.collectionDays} gün`],
+    amount: <span className={r.profit < 0 ? 'text-bad' : 'text-good'}>{tl(r.profit)}</span>,
+  }))
   return <>
     <p className="px-4 pb-2 text-sm text-slate-500">Maliyet: araç/taşeron maliyeti + sevkiyata bağlı onaylı giderler. Tahsil süresi yaklaşıktır (açık alacak ÷ dönemdeki günlük KDV'li ciro).</p>
-    <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.customerId} empty="Bu dönemde sevkiyat yok." />
+    <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.customerId} empty="Bu dönemde sevkiyat yok." mobileCard={customerCard} />
   </>
 }
 
 function RouteProfit({ from, to }: { from: string; to: string }) {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<RouteProfitRow[]>('routes', { from, to })
   const cols: Column<RouteProfitRow>[] = [
     { key: 'r', header: 'Güzergâh', render: (r) => <span className="font-medium">{r.from} → {r.to}</span> },
@@ -368,10 +468,16 @@ function RouteProfit({ from, to }: { from: string; to: string }) {
     { key: 'p', header: 'Toplam Kâr', align: 'right', render: (r) => <span className={r.profit < 0 ? 'font-semibold text-bad' : 'font-semibold'}>{tl(r.profit)}</span> },
     { key: 'm', header: 'Marj', align: 'right', render: (r) => margin(r.marginPercent) },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => `${r.from}-${r.to}`} empty="Bu dönemde sevkiyat yok. Güzergâh için sevkiyatlarda yükleme ve teslim ilini girin." />
+  const routeCard = mobileCards<RouteProfitRow>(isNew, (r) => `${r.from}-${r.to}`, (r) => ({
+    title: `${r.from} → ${r.to}`,
+    info: [`${r.tripCount} sevkiyat · Ort. satış ${tl(r.avgRevenue)}`, `Ort. maliyet ${tl(r.avgCost)}`],
+    amount: <span className={r.profit < 0 ? 'text-bad' : 'text-good'}>{tl(r.profit)}</span>,
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => `${r.from}-${r.to}`} empty="Bu dönemde sevkiyat yok. Güzergâh için sevkiyatlarda yükleme ve teslim ilini girin." mobileCard={routeCard} />
 }
 
 function Suppliers() {
+  const isNew = useIsNewUi()
   const { data, isLoading, error, refetch } = useReport<SupplierReportRow[]>('suppliers', {})
   const cols: Column<SupplierReportRow>[] = [
     { key: 's', header: 'Tedarikçi', render: (r) => <Link className="font-medium text-accent hover:underline" to={`/tedarikciler/${r.supplierId}`}>{r.supplier}</Link> },
@@ -381,7 +487,12 @@ function Suppliers() {
     { key: 'p', header: 'Ödenen', align: 'right', render: (r) => tl2(r.paid) },
     { key: 'b', header: 'Bakiye', align: 'right', render: (r) => <span className={r.balance > 0 ? 'font-semibold text-warn' : 'font-semibold'}>{tl2(r.balance)}</span> },
   ]
-  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." />
+  const supplierCard = mobileCards<SupplierReportRow>(isNew, (r) => r.supplierId, (r) => ({
+    title: r.supplier,
+    info: [`${r.tripCount} sevkiyat · Sevkiyat maliyeti ${tl2(r.tripCost)}`, `Vadeli gider ${tl2(r.creditExpenses)} · Ödenen ${tl2(r.paid)}`],
+    amount: <span className={r.balance > 0 ? 'text-warn' : ''}>{tl2(r.balance)}</span>,
+  }))
+  return <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(r) => r.supplierId} empty="Henüz tedarikçi hareketi yok." mobileCard={supplierCard} />
 }
 
 /** Muhasebeciye aylık aktarım: satış faturaları, tahsilatlar, giderler, taşeron maliyet/ödemeleri tek Excel'de; e-Fatura XML'leri ZIP. */

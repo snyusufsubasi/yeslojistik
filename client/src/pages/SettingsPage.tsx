@@ -11,6 +11,7 @@ import { DataTable, type Column } from '../components/DataTable'
 import { useToast } from '../components/Toast'
 import { DocumentsPanel } from '../components/FleetPanels'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Loading, Modal, PageHeader, Tabs } from '../components/ui'
+import { MobileCards } from '../components/shell/MobileCards'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
@@ -22,6 +23,7 @@ import { DataOwnershipCard, TwoFactorCard } from '../components/SecurityCards'
 import { ago, dateTime, fileSize, tl2 } from '../lib/format'
 import { crud, useLookup, useMirror, useSave } from '../lib/hooks'
 import { roleLabel, withholdingOptions } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 
 type Tab = 'company' | 'users' | 'invoiceNotes' | 'audit' | 'data' | 'license' | 'notifications' | 'password' | 'security' | 'account'
 
@@ -240,6 +242,7 @@ const strong = (p: string) => p.length >= 8 && /\p{L}/u.test(p) && /\d/.test(p)
 
 function UsersTab() {
   const { user: me } = useAuth()
+  const isNew = useIsNewUi()
   const [editing, setEditing] = useState<User | 'new' | null>(null)
   const [deleting, setDeleting] = useState<User | null>(null)
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['users'], queryFn: () => get<User[]>('/users') })
@@ -270,7 +273,30 @@ function UsersTab() {
   return (
     <Card title="Kullanıcılar" icon={<Users className="size-4" />} bodyClassName="p-0"
       actions={<Button size="sm" icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Kullanıcı</Button>}>
-      <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(u) => u.id} />
+      <DataTable columns={cols} rows={data} loading={isLoading} error={error} onRetry={refetch} rowKey={(u) => u.id}
+        mobileCard={isNew ? (u) => (
+          /* Telefon kartı — yalnız yeni görünüm; klasik görünümde tablo davranışı aynı kalır. */
+          <div className="-my-3.5">
+            <MobileCards menuLabel={`${u.fullName} işlemleri`} cards={[{
+              id: u.id,
+              title: u.fullName,
+              badge: u.lockoutUntil ? { tone: 'red', label: 'Kilitli' } : { tone: u.isActive ? 'green' : 'gray', label: u.isActive ? 'Aktif' : 'Pasif' },
+              info: [
+                `${u.email} · ${roleLabel[u.role]}${u.driverName ? ` (${u.driverName})` : ''}`,
+                `Son giriş: ${u.lastLoginAt ? dateTime(u.lastLoginAt) : '—'}`,
+                u.twoFactorEnabled ? 'İki adımlı doğrulama açık' : 'İki adımlı doğrulama kapalı',
+              ],
+              onOpen: () => setEditing(u),
+              menu: [
+                ...(u.lockoutUntil ? [{ label: 'Kilidi aç', onClick: () => unlock.mutate(u.id) }] : []),
+                ...(u.twoFactorEnabled && u.id !== me?.id ? [{ label: '2 adımlıyı sıfırla', onClick: () => resetTwoFactor.mutate(u.id) }] : []),
+                ...(u.id !== me?.id ? [{ label: 'Oturumları kapat', onClick: () => signOut.mutate(u.id) }] : []),
+                { label: 'Düzenle', icon: <Pencil className="size-4" />, onClick: () => setEditing(u) },
+                { label: 'Sil', icon: <Trash2 className="size-4" />, danger: true, hidden: u.id === me?.id, onClick: () => setDeleting(u) },
+              ],
+            }]} />
+          </div>
+        ) : undefined} />
       <div className="border-t border-slate-100 p-3 text-sm text-slate-500">
         <b>Yönetici:</b> her şey · <b>Operasyon:</b> sevkiyat, araç, şoför · <b>Muhasebe:</b> fatura, tahsilat, raporlar. Herkes kayıtları görüntüleyebilir, müşteri ve gider ekleyebilir.
         <b> Şoför (mobil):</b> yalnızca mobil uygulamadan kendi sevkiyatlarını görür, durum ve fotoğraf gönderir.

@@ -8,17 +8,20 @@ import { useRowSelection } from '../lib/selection'
 import { useToast } from '../components/Toast'
 import { PaymentForm } from '../components/PaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, DateFilter } from '../components/ui'
+import { MobileCards } from '../components/shell/MobileCards'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 
 const api = crud<Payment, unknown>('payments')
 
 export default function PaymentsPage() {
   const { can } = useAuth()
+  const isNew = useIsNewUi()
   const [search, setSearch] = useState('')
   const [customerId, setCustomerId] = useState<number | ''>('')
   const [from, setFrom] = useState('')
@@ -86,7 +89,28 @@ export default function PaymentsPage() {
           bulkActions={(rows) => <Button size="sm" variant="secondary" icon={<Download />}
             onClick={() => download('/payments/export', { ids: rows.map((p) => p.id).join(','), sort: sort.key, desc: sort.desc }, 'secilen-tahsilatlar.xlsx')
               .catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>}
-          empty={debounced || customerId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz tahsilat yok. Ödeme gelince “Tahsilat Ekle” ile kaydedin."} />
+          empty={debounced || customerId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz tahsilat yok. Ödeme gelince “Tahsilat Ekle” ile kaydedin."}
+          mobileCard={isNew ? (p) => (
+            /* Telefon kartı — yalnız yeni görünüm; klasik görünümde tablo davranışı aynı kalır. */
+            <div className="-my-3.5">
+              <MobileCards menuLabel={`${p.customerTitle} tahsilatı işlemleri`} cards={[{
+                id: p.id,
+                title: p.customerTitle,
+                badge: p.isRefund ? { tone: 'orange', label: 'İade' } : undefined,
+                info: [
+                  `${date(p.date)} · ${paymentMethodLabel[p.method]}`,
+                  p.invoiceNo ? `Fatura ${p.invoiceNo}` : 'Genel tahsilat',
+                  p.description ?? p.cashAccountName ?? '—',
+                ],
+                amount: <span className="text-good">{tl2(p.amount)}</span>,
+                onOpen: can('accounting') ? () => setEditing(p) : undefined,
+                menu: [
+                  { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, perm: 'accounting', onClick: () => setEditing(p) },
+                  { label: 'Sil', icon: <Trash2 className="size-4" />, write: true, perm: 'accounting', danger: true, onClick: () => setDeleting(p) },
+                ],
+              }]} />
+            </div>
+          ) : undefined} />
       </Card>
       {editing && <PaymentForm payment={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Tahsilatı sil" loading={deleteMut.isPending} confirmText="Sil"

@@ -5,17 +5,20 @@ import type { PaymentTotals, SupplierPayment } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SupplierPaymentForm } from '../components/SupplierPaymentForm'
 import { Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
+import { MobileCards } from '../components/shell/MobileCards'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl2 } from '../lib/format'
 import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { paymentMethodLabel } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 
 const api = crud<SupplierPayment, unknown>('supplier-payments')
 
 /** Tedarikçilere (taşeron, servis, istasyon) yapılan ödemeler. */
 export default function SupplierPaymentsPage() {
   const { can } = useAuth()
+  const isNew = useIsNewUi()
   const [search, setSearch] = useState('')
   const [supplierId, setSupplierId] = useState<number | ''>('')
   const [from, setFrom] = useState('')
@@ -76,7 +79,28 @@ export default function SupplierPaymentsPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced || supplierId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz ödeme yok. Taşerona ya da tedarikçiye ödeme yapınca “Ödeme Yap” ile kaydedin."} />
+          page={page} total={data?.total} onPage={setPage} empty={debounced || supplierId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz ödeme yok. Taşerona ya da tedarikçiye ödeme yapınca “Ödeme Yap” ile kaydedin."}
+          mobileCard={isNew ? (p) => (
+            /* Telefon kartı — yalnız yeni görünüm; klasik görünümde tablo davranışı aynı kalır. */
+            <div className="-my-3.5">
+              <MobileCards menuLabel={`${p.supplierTitle} ödemesi işlemleri`} cards={[{
+                id: p.id,
+                title: p.supplierTitle,
+                badge: p.isRefund ? { tone: 'orange', label: 'İade' } : undefined,
+                info: [
+                  `${date(p.date)} · ${paymentMethodLabel[p.method]}`,
+                  p.tripLabel ? `Sevkiyat ${p.tripLabel}` : 'Genel ödeme',
+                  p.description ?? p.cashAccountName ?? '—',
+                ],
+                amount: <span className="text-bad">{tl2(p.amount)}</span>,
+                onOpen: can('accounting') ? () => setEditing(p) : undefined,
+                menu: [
+                  { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, perm: 'accounting', onClick: () => setEditing(p) },
+                  { label: 'Sil', icon: <Trash2 className="size-4" />, write: true, perm: 'accounting', danger: true, onClick: () => setDeleting(p) },
+                ],
+              }]} />
+            </div>
+          ) : undefined} />
       </Card>
       {editing && <SupplierPaymentForm payment={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Ödemeyi sil" loading={deleteMut.isPending} confirmText="Sil"

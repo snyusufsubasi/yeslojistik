@@ -5,10 +5,12 @@ import { ExportButton, TotalsStrip } from '../components/Exports'
 import type { InstrumentStatus, Payment, PaymentTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, DateFilter, Field, Modal, PageHeader, Select } from '../components/ui'
+import { MobileCards } from '../components/shell/MobileCards'
 import { useAuth } from '../lib/auth'
 import { daysUntil, date, tl2, todayIso } from '../lib/format'
 import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { instrumentStatusLabel, instrumentStatusTone, options, paymentMethodLabel } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 
 type Action = { payment: Payment; status: InstrumentStatus }
 
@@ -31,9 +33,18 @@ const nextStatuses: Record<InstrumentStatus, InstrumentStatus[]> = {
   Returned: ['Portfolio'],
 }
 
+/** Vade açıklaması: yalnız açık (portföy/tahsil) çek-senetlerde "N gün kaldı / geçti" (tablo ile aynı kural). */
+function dueText(due: string | null | undefined, status: InstrumentStatus | null | undefined) {
+  if (status !== 'Portfolio' && status !== 'InCollection') return ''
+  const d = daysUntil(due)
+  if (d === null) return ''
+  return d < 0 ? ` · ${-d} gün geçti` : d === 0 ? ' · bugün' : ` · ${d} gün kaldı`
+}
+
 /** Müşteriden alınan çek ve senetler: vade takibi, tahsil, ciro ve karşılıksız işlemleri. */
 export default function ChecksPage() {
   const { can } = useAuth()
+  const isNew = useIsNewUi()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<InstrumentStatus | ''>('Portfolio')
   const [dueTo, setDueTo] = useState('')
@@ -89,7 +100,25 @@ export default function ChecksPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage}
-          empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'} />
+          empty={status === 'Portfolio' ? 'Portföyde çek/senet yok.' : 'Kayıt yok.'}
+          mobileCard={isNew ? (p) => (
+            /* Telefon kartı — yalnız yeni görünüm. Klasik görünümde `mobileCard` verilmez (tablo aynı kalır). */
+            <div className="-my-3.5">
+              <MobileCards menuLabel={`${paymentMethodLabel[p.method]} ${p.instrumentNo ?? p.customerTitle} işlemleri`} cards={[{
+                id: p.id,
+                title: p.customerTitle,
+                badge: p.instrumentStatus ? { tone: instrumentStatusTone[p.instrumentStatus], label: instrumentStatusLabel[p.instrumentStatus] } : undefined,
+                info: [
+                  `Vade ${date(p.instrumentDueDate)}${dueText(p.instrumentDueDate, p.instrumentStatus)}`,
+                  `${paymentMethodLabel[p.method]}${p.instrumentNo ? ` ${p.instrumentNo}` : ''}${p.bank ? ` · ${p.bank}` : ''}`,
+                  p.endorsedTo ? `Ciro: ${p.endorsedTo}` : `Alış ${date(p.date)}`,
+                ],
+                amount: tl2(p.amount),
+                onOpen: can('accounting') && p.instrumentStatus ? () => setAction({ payment: p, status: nextStatuses[p.instrumentStatus as InstrumentStatus][0] }) : undefined,
+                menu: p.instrumentStatus ? nextStatuses[p.instrumentStatus].map((s) => ({ label: actionLabel[s] ?? s, danger: s === 'Bounced', write: true, perm: 'accounting', onClick: () => setAction({ payment: p, status: s }) })) : undefined,
+              }]} />
+            </div>
+          ) : undefined} />
       </Card>
       {action && <InstrumentActionDialog action={action} onClose={() => setAction(null)} />}
     </>

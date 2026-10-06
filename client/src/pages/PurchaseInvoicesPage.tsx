@@ -9,6 +9,7 @@ import type { PurchaseInvoice, PurchaseInvoiceKind, PurchaseInvoiceTotals, Uninv
 import { ExportButton, TotalsStrip } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, IconButton, Modal, PageHeader, PlateBadge, Select } from '../components/ui'
+import { MobileCards } from '../components/shell/MobileCards'
 import { FormSelect } from '../components/FormSelect'
 import { ControlledChoice } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
@@ -18,6 +19,7 @@ import { applyServerErrors, idField, money, optStr, req } from '../lib/forms'
 import { date, tl2, todayIso } from '../lib/format'
 import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
 import { options, purchaseInvoiceKindLabel, vatRates } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 import { grossAmount } from '../lib/tripTerms'
 
 const api = crud<PurchaseInvoice, unknown>('purchase-invoices')
@@ -25,6 +27,7 @@ const api = crud<PurchaseInvoice, unknown>('purchase-invoices')
 /** Tedarikçiden alınan faturalar (taşeron nakliye faturaları, servis, yakıt). */
 export default function PurchaseInvoicesPage() {
   const { can } = useAuth()
+  const isNew = useIsNewUi()
   const [search, setSearch] = useState('')
   const [supplierId, setSupplierId] = useState<number | ''>('')
   const [kind, setKind] = useState<PurchaseInvoiceKind | ''>('')
@@ -91,7 +94,29 @@ export default function PurchaseInvoicesPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(p) => p.id}
           onRowClick={can('accounting') ? setEditing : undefined}
           page={page} total={data?.total} onPage={setPage}
-          empty={debounced || supplierId || kind || from || to ? 'Aramanıza uyan fatura yok.' : 'Henüz alınan fatura yok. Taşerondan fatura gelince “Fatura Ekle” ile sevkiyatlara bağlayın.'} />
+          empty={debounced || supplierId || kind || from || to ? 'Aramanıza uyan fatura yok.' : 'Henüz alınan fatura yok. Taşerondan fatura gelince “Fatura Ekle” ile sevkiyatlara bağlayın.'}
+          mobileCard={isNew ? (p) => (
+            /* Telefon kartı — yalnız yeni görünüm; klasik görünümde tablo davranışı aynı kalır. */
+            <div className="-my-3.5">
+              <MobileCards menuLabel={`${p.invoiceNo} işlemleri`} cards={[{
+                id: p.id,
+                title: p.supplierTitle,
+                badge: p.isCancelled ? { tone: 'red', label: 'İptal' } : { tone: 'blue', label: purchaseInvoiceKindLabel[p.kind] },
+                info: [
+                  `${p.invoiceNo} · ${date(p.date)}`,
+                  p.trips.length ? `Sevkiyat: ${p.trips.map((t) => t.externalRef ?? t.tripId).join(', ')}` : 'Sevkiyata bağlanmadı',
+                  `Matrah ${tl2(p.subtotal)} · KDV ${tl2(p.vatAmount)}${p.withholdingAmount ? ` · Tevkifat ${tl2(p.withholdingAmount)}` : ''}`,
+                ],
+                amount: tl2(p.total),
+                onOpen: can('accounting') ? () => setEditing(p) : undefined,
+                menu: [
+                  ...(p.hasFile ? [{ label: 'Faturayı aç', icon: <Paperclip className="size-4" />, onClick: () => openPdf(`/purchase-invoices/${p.id}/file`, `${p.invoiceNo}.pdf`).catch((e) => toast.error(errorMessage(e))) }] : []),
+                  { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, perm: 'accounting', onClick: () => setEditing(p) },
+                  { label: 'İptal et', icon: <Ban className="size-4" />, write: true, perm: 'accounting', danger: true, onClick: () => setCancelling(p) },
+                ],
+              }]} />
+            </div>
+          ) : undefined} />
       </Card>
       {editing && <PurchaseInvoiceForm invoice={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!cancelling} title="Faturayı iptal et" loading={cancelMut.isPending} confirmText="İptal et"
