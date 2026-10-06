@@ -10,6 +10,7 @@ export type Section = { key: string; tabs: SectionTab[] }
 export const sections: Section[] = [
   { key: 'bugun', tabs: [{ to: '/', label: 'Bugün' }, { to: '/is-talepleri', label: 'İş Talepleri' }] },
   { key: 'efatura', tabs: [
+    { to: '/faturalar?sekme=bekleyen', label: 'Faturalandırılacaklar' },
     { to: '/faturalar', label: 'Kesilen Faturalar' },
     { to: '/faturalar/yeni', label: 'Fatura Kes', perm: 'accounting' },
     { to: '/alinan-faturalar', label: 'Alınan Faturalar' },
@@ -32,9 +33,9 @@ export const sections: Section[] = [
   ] },
 ]
 
-/** Bir adresin ait olduğu bölüm. "/faturalar/yeni" önce tam eşleşir; bulunamazsa yok. */
+/** Bir adresin ait olduğu bölüm. Sekme adresi sorgu taşıyabilir (`/faturalar?sekme=bekleyen`); yol karşılaştırılır. */
 export function sectionFor(pathname: string): Section | undefined {
-  return sections.find((s) => s.tabs.some((t) => t.to === pathname))
+  return sections.find((s) => s.tabs.some((t) => t.to.split('?')[0] === pathname))
 }
 
 /** Yeni görünümde sayfa başlıkları pratikortam'daki adlarla (sayfanın kendi başlığının yerine). */

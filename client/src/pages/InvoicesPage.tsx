@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet } from 'lucide-react'
 import { download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
-import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus, InvoiceTotals } from '../api/types'
+import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus, InvoiceTotals, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { ExportButton, PdfButton } from '../components/Exports'
 import { SumStrip } from '../components/SumStrip'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, Loading, Modal, PageHeader, Select, DateFilter } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Empty, Figure, Figures, Loading, Modal, PageHeader, PlateBadge, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { FirstUse } from '../components/FirstUse'
@@ -33,6 +33,7 @@ export default function InvoicesPage() {
   const [tripNo, setTripNo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [viewing, setViewing] = useState<number | null>(params.get('id') ? Number(params.get('id')) : null)
+  const pendingTab = params.get('sekme') === 'bekleyen'
   const debounced = useDebounce(search)
   const debouncedTripNo = useDebounce(tripNo.trim())
   const customers = useLookup('customers')
@@ -79,6 +80,9 @@ export default function InvoicesPage() {
           {can('accounting') && <ImportButton entity="invoices" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
         </>} />
+      {pendingTab ? (
+        <PendingInvoices onIssue={(custId, tripIds) => navigate(`/faturalar/yeni?customerId=${custId}&tripIds=${tripIds.join(',')}`)} />
+      ) : (
       <Card title="Fatura Listesi" icon={<FileText className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, müşteri..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
@@ -132,6 +136,7 @@ export default function InvoicesPage() {
             </div>
           )} />
       </Card>
+      )}
       {viewing && <InvoiceDetail id={viewing} onClose={() => setViewing(null)} onPdf={pdf} />}
     </>
   )
@@ -271,5 +276,61 @@ function EmailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => vo
         <p className="text-sm text-slate-500">Fatura PDF olarak eklenir; tutar, vade ve IBAN bilgisi e-postada yazılır.</p>
       </div>
     </Modal>
+  )
+}
+
+/**
+ * Faturalandırılacaklar: teslim edilmiş ama faturası kesilmemiş sevkiyatlar, müşteriye göre gruplanır.
+ * Şartname: docs/plan/06-FATURALANDIRILACAKLAR.md. Sunucu değişikliği gerekmez; `TripQuery.Invoiced` ve
+ * `Status` süzgeçleri kullanılır (`server/YesLojistik.Core/Dtos/TripDtos.cs:59,65`).
+ * "Fatura Kes" düğmesi sevkiyatları seçili hâlde fatura ekranını açar (`InvoiceCreatePage.tsx:49-57`).
+ */
+function PendingInvoices({ onIssue }: { onIssue: (customerId: number, tripIds: number[]) => void }) {
+  const { can } = useAuth()
+  const q = useQuery({
+    queryKey: ['trips', 'pending-invoice'],
+    queryFn: () => get<PagedResult<Trip>>('/trips', { status: 'Delivered', invoiced: false, pageSize: 500, sort: 'deliveryDate', desc: false }),
+  })
+  const groups = useMemo(() => {
+    const map = new Map<number, { customerId: number; customerTitle: string; trips: Trip[]; total: number }>()
+    for (const t of q.data?.items ?? []) {
+      const g = map.get(t.customerId) ?? { customerId: t.customerId, customerTitle: t.customerTitle, trips: [], total: 0 }
+      g.trips.push(t)
+      g.total += t.salePrice
+      map.set(t.customerId, g)
+    }
+    return [...map.values()].sort((a, b) => b.total - a.total)
+  }, [q.data])
+  const total = groups.reduce((s, g) => s + g.total, 0)
+  const cols: Column<Trip>[] = [
+    { key: 'delivery', header: 'Teslim', render: (t) => date(t.deliveryDate) },
+    { key: 'route', header: 'Güzergâh', render: (t) => [t.loadingCity ?? t.loadingAddress, t.deliveryCity ?? t.deliveryAddress].filter(Boolean).join(' → ') },
+    { key: 'plate', header: 'Araç', render: (t) => <PlateBadge plate={t.vehiclePlate} /> },
+    { key: 'sale', header: 'Satış (KDV hariç)', align: 'right', render: (t) => tl2(t.salePrice) },
+  ]
+  if (q.error) return <Loading error={q.error} onRetry={() => q.refetch()} />
+  if (q.isLoading) return <Loading />
+  return (
+    <div className="space-y-4">
+      <Figures label="Faturalandırılacaklar" className="sm:grid-cols-2">
+        <Figure label="Faturalanacak sevkiyat" value={q.data?.total ?? 0} sub="Teslim edildi, faturası kesilmedi" />
+        <Figure label="Toplam (KDV hariç)" value={tl2(total)} sub="Satış tutarı" />
+      </Figures>
+      {groups.length === 0 && (
+        <Card bodyClassName="p-0"><Empty>Faturalandırılacak sevkiyat yok. Teslim edilen sevkiyatlar burada birikir.</Empty></Card>
+      )}
+      {groups.map((g) => (
+        <Card key={g.customerId} title={g.customerTitle} icon={<FileText className="size-4" />} bodyClassName="p-0"
+          actions={<span className="flex items-center gap-3">
+            <span className="text-[0.875rem] text-muted">{g.trips.length} sevkiyat · <b className="tabular-nums">{tl2(g.total)}</b></span>
+            {can('accounting') && (
+              <Button write size="sm" icon={<Plus className="size-4" />}
+                onClick={() => onIssue(g.customerId, g.trips.map((t) => t.id))}>Fatura Kes</Button>
+            )}
+          </span>}>
+          <DataTable columns={cols} rows={g.trips} rowKey={(t) => t.id} empty="Sevkiyat yok." />
+        </Card>
+      ))}
+    </div>
   )
 }
