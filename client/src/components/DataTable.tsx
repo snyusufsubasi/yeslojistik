@@ -126,7 +126,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
           <tbody className={clsx(loading && rows && 'opacity-50')}>
             {rows?.map((row) => (
               <tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined} aria-selected={sel ? sel.isSelected(row) : undefined}
-                className={clsx('even:bg-slate-50/60', onRowClick ? 'cursor-pointer hover:bg-surface-2' : 'hover:bg-slate-50', sel?.isSelected(row) && 'bg-brand-50!', rowClassName?.(row))}>
+                className={clsx('even:bg-slate-50/60 transition-colors', onRowClick ? 'cursor-pointer hover:bg-accent-soft/60' : 'hover:bg-slate-50', sel?.isSelected(row) && 'bg-brand-50!', rowClassName?.(row))}>
                 {sel && (
                   <td className="td w-10 p-0" onClick={(e) => e.stopPropagation()}>
                     <label className="flex cursor-pointer items-center justify-center px-3 py-[7px]">
@@ -151,7 +151,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
         <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 text-[0.8125rem] text-muted">
           <span>Toplam <b>{total}</b> kayıt</span>
           <div className="flex items-center gap-2">
-            <button className="inline-flex min-h-11 items-center gap-1 rounded-[3px] border border-line bg-white px-2.5 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40 sm:min-h-8" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
+            <button className="inline-flex min-h-11 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40 sm:min-h-8" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
               <ChevronLeft className="size-5" /><span className="hidden sm:inline">Önceki</span>
             </button>
             <span className="px-1">Sayfa {page} / {pages}</span>
@@ -178,7 +178,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
 
 export function SearchBox({ value, onChange, placeholder = 'Ara...' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <div className="relative w-full sm:w-72">
+    <div className="relative w-full sm:w-80">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
       <input className="input pl-10" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
     </div>
