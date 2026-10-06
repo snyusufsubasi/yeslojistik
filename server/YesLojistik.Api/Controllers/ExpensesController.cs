@@ -83,11 +83,16 @@ public class ExpensesController(AppDbContext db) : ControllerBase
         var rows = await Filter(filters).GroupBy(e => e.ApprovalStatus)
             .Select(g => new { Status = g.Key, Count = g.Count(), Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
         // Litre yalnız yakıt kayıtlarında doludur (ExpenseService); km ise iki okuma arasındaki farktır.
-        // İkisi de "veri yoksa null" olsun diye önce nullable alana çevrilir (SUM boş kümede NULL döner).
+        // SQL SUM boş kümede 0 döner (LINQ anlamı); "veri yok" ile "0" karışmasın diye önce varlık sorulur,
+        // hiç ölçüm yoksa toplam null kalır ve ekranda "—" yazılır.
         var fuel = Filter(filters);
-        var liters = await fuel.Where(e => e.Liters != null).Select(e => e.Liters).SumAsync(ct);
-        var km = await fuel.Where(e => e.Odometer != null && e.PreviousOdometer != null && e.Odometer - e.PreviousOdometer > 0)
-            .Select(e => e.Odometer - e.PreviousOdometer).SumAsync(ct);
+        decimal? liters = null;
+        if (await fuel.AnyAsync(e => e.Liters != null, ct))
+            liters = await fuel.Where(e => e.Liters != null).Select(e => e.Liters).SumAsync(ct);
+        int? km = null;
+        if (await fuel.AnyAsync(e => e.Odometer != null && e.PreviousOdometer != null && e.Odometer - e.PreviousOdometer > 0, ct))
+            km = await fuel.Where(e => e.Odometer != null && e.PreviousOdometer != null && e.Odometer - e.PreviousOdometer > 0)
+                .Select(e => e.Odometer - e.PreviousOdometer).SumAsync(ct);
         return new ExpenseTotalsDto(rows.Sum(r => r.Count),
             rows.Where(r => q.ApprovalStatus != null || r.Status != ApprovalStatus.Rejected).Sum(r => r.Sum),
             rows.Where(r => r.Status == ApprovalStatus.Approved).Sum(r => r.Sum), rows.Where(r => r.Status == ApprovalStatus.Pending).Sum(r => r.Sum),
