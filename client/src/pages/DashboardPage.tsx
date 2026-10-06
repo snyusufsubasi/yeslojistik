@@ -80,7 +80,7 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">Bugün</h1>
+          <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{approvals ? 'Onay Bekleyenler' : 'Bugün'}</h1>
           <p className="mt-1 text-[0.875rem] text-muted">{longDate()}</p>
         </div>
         {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/seferler?new=1')}>Sevkiyat Ekle</Button>}
