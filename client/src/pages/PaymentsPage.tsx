@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Download, Pencil, Plus, Trash2, Wallet } from 'lucide-react'
 import { download, errorMessage } from '../api/client'
-import { ExportButton, TotalsStrip } from '../components/Exports'
+import { ExportButton } from '../components/Exports'
+import { SumStrip } from '../components/SumStrip'
+import { PageShell } from '../components/shell/PageShell'
 import type { Payment, PaymentTotals } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { useToast } from '../components/Toast'
 import { PaymentForm } from '../components/PaymentForm'
-import { Button, Card, ConfirmDialog, IconButton, PageHeader, DateFilter } from '../components/ui'
+import { Button, Card, ConfirmDialog, IconButton, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
@@ -59,12 +61,14 @@ export default function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Tahsilatlar" subtitle="Müşterilerden alınan ödemeler"
+      <PageShell title="Tahsilatlar" subtitle="Müşterilerden alınan ödemeler"
+        more={[{ label: "Excel'e aktar", icon: <Download className="size-4" />, onClick: () => download('/payments/export', query, 'tahsilatlar.xlsx').catch((e) => toast.error(errorMessage(e))) }]}
+        primary={can('accounting') ? <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Tahsilat Ekle</Button> : undefined}
         actions={<>
           <ExportButton url="/payments/export" params={query} fileName="tahsilatlar.xlsx" />
           {can('accounting') && <ImportButton entity="payments" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Tahsilat Ekle</Button>}
-        </>} />
+        >}>
       <Card title="Tahsilat Listesi" icon={<Wallet className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, fatura no, açıklama..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">
@@ -73,7 +77,7 @@ export default function PaymentsPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
-        {totals && totals.count > 0 && <TotalsStrip items={[
+        {totals && totals.count > 0 && <SumStrip label="Tahsilat toplamları" items={[
           { label: 'Tahsilat', value: totals.count },
           { label: 'Toplam', value: tl2(totals.total), tone: 'text-emerald-700' },
           ...(totals.refunds > 0 ? [{ label: 'İadeler (düşüldü)', value: tl2(totals.refunds) }] : []),
@@ -88,6 +92,7 @@ export default function PaymentsPage() {
               .catch((e) => toast.error(errorMessage(e)))}>Excel'e aktar</Button>}
           empty={debounced || customerId || from || to ? "Aramanıza uyan kayıt yok." : "Henüz tahsilat yok. Ödeme gelince “Tahsilat Ekle” ile kaydedin."} />
       </Card>
+      </PageShell>
       {editing && <PaymentForm payment={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Tahsilatı sil" loading={deleteMut.isPending} confirmText="Sil"
         message={<>{deleting?.customerTitle} – {tl2(deleting?.amount)} tutarındaki tahsilat silinecek. Cari bakiye güncellenecek.</>}
