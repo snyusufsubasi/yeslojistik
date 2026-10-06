@@ -19,6 +19,14 @@ public class InvoicesController(InvoiceService invoices, InvoicePdfGenerator pdf
     [HttpGet("totals")]
     public Task<InvoiceTotalsDto> Totals([FromQuery] InvoiceQuery q, CancellationToken ct) => invoices.TotalsAsync(q, ct);
 
+    /// <summary>
+    /// e-Fatura sayaç kutuları: faturalandırılacak sevkiyat, taslak, kesilen, bugün kesilen, iptal ve vadesi geçen.
+    /// Salt okuma; şema değişikliği istemez (şartname: docs/plan/06-FATURALANDIRILACAKLAR.md §3, sözleşme: docs/plan/30-VERI-API.md §10.2).
+    /// </summary>
+    [Authorize(Policy = Policies.Accounting)]
+    [HttpGet("counters")]
+    public Task<InvoiceCountersDto> Counters(CancellationToken ct) => invoices.CountersAsync(ct);
+
     [HttpGet("export")]
     public async Task<IActionResult> Export([FromQuery] InvoiceQuery q, CancellationToken ct)
     {

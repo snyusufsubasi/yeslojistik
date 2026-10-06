@@ -46,6 +46,40 @@ public class InvoiceService(AppDbContext db, BalanceService balances, EInvoice.E
             rows.Sum(r => r.Total), rows.Sum(r => bal.TryGetValue(r.Id, out var b) ? b.Remaining : 0));
     }
 
+    /// <summary>
+    /// e-Fatura sayaç kutuları (şartname: docs/plan/06-FATURALANDIRILACAKLAR.md §3). Yalnız okuma; hiçbir şema değişikliği
+    /// istemez, sayılar mevcut kayıtlardan hesaplanır. Tanımlar:
+    /// "Faturalandırılacak" = teslim edilmiş (Delivered), faturasız (InvoiceId == null) ve devir olmayan (eski sistem)
+    /// sevkiyatlar; sevkiyat listesinin `invoiced=false` süzgeciyle birebir aynı küme. "Bugün kesilen" = fatura tarihi bugün
+    /// olan kesilmiş faturalar (liste ekranındaki tarih süzgeciyle aynı ölçüt). "Vadesi geçen" = vadesi bugünden önce olup
+    /// kalanı sıfırdan büyük kesilmiş faturalar; tutar tahsil edilmemiş kısımdır (tahsilatlar faturalara dağıtılarak bulunur).
+    /// </summary>
+    public async Task<InvoiceCountersDto> CountersAsync(CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var pending = db.Trips.AsNoTracking()
+            .Where(t => t.InvoiceId == null && !t.IsLegacy && t.Status == TripStatus.Delivered);
+        var uninvoicedTrips = await pending.CountAsync(ct);
+        var uninvoicedTotal = await pending.SumAsync(t => (decimal?)t.SalePrice, ct) ?? 0;
+
+        var draft = await db.Invoices.AsNoTracking().CountAsync(i => i.Status == InvoiceStatus.Draft, ct);
+        var issued = await db.Invoices.AsNoTracking().CountAsync(i => i.Status == InvoiceStatus.Issued, ct);
+        var cancelled = await db.Invoices.AsNoTracking().CountAsync(i => i.Status == InvoiceStatus.Cancelled, ct);
+        var todayIssuedInvoices = db.Invoices.AsNoTracking().Where(i => i.Status == InvoiceStatus.Issued && i.Date == today);
+        var todayIssued = await todayIssuedInvoices.CountAsync(ct);
+        var todayIssuedTotal = await todayIssuedInvoices.SumAsync(i => (decimal?)i.Total, ct) ?? 0;
+
+        // Vadesi geçen: yalnızca kalanı (tahsil edilmemiş) sıfırdan büyük olanlar; tutar kalan kısımdır.
+        var pastDue = await db.Invoices.AsNoTracking()
+            .Where(i => i.Status == InvoiceStatus.Issued && i.DueDate < today)
+            .Select(i => new { i.Id, i.CustomerId }).ToListAsync(ct);
+        var bal = await balances.InvoiceBalancesAsync(pastDue.Select(i => i.CustomerId).Distinct(), ct);
+        var overdue = pastDue.Where(i => bal.TryGetValue(i.Id, out var b) && b.Remaining > 0).ToList();
+
+        return new InvoiceCountersDto(draft, issued, cancelled, overdue.Count, overdue.Sum(i => bal[i.Id].Remaining),
+            uninvoicedTrips, uninvoicedTotal, todayIssued, todayIssuedTotal);
+    }
+
     private async Task<IQueryable<Invoice>> FilterAsync(InvoiceQuery q, CancellationToken ct)
     {
         var query = db.Invoices.AsNoTracking().WhereIds(q.Ids);

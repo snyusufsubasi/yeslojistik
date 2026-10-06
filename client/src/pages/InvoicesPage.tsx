@@ -11,38 +11,72 @@ import { ExportButton, PdfButton } from '../components/Exports'
 import { SumStrip } from '../components/SumStrip'
 import { PaymentForm } from '../components/PaymentForm'
 import { useToast } from '../components/Toast'
-import { Badge, Button, Card, ConfirmDialog, Empty, Figure, Figures, Loading, Modal, PageHeader, PlateBadge, Select, DateFilter } from '../components/ui'
+import { Badge, Button, Card, Chip, ConfirmDialog, Empty, Figure, Figures, Loading, Modal, PageHeader, PlateBadge, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton } from '../components/ImportDialog'
 import { FirstUse } from '../components/FirstUse'
+import { FilterBar, FilterPanel, type FilterChip } from '../components/shell/FilterPanel'
 import { useAuth } from '../lib/auth'
-import { date, tl2 } from '../lib/format'
+import { date, tl2, todayIso } from '../lib/format'
 import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { invoiceStatusLabel, options, paymentStatusTone } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
+
+/** Sunucu sözleşmesi: `GET /invoices/counters` (docs/plan/06-FATURALANDIRILACAKLAR.md §3, docs/plan/30-VERI-API.md §10.2). */
+type InvoiceCounters = {
+  draft: number
+  issued: number
+  cancelled: number
+  overdue: number
+  overdueTotal: number
+  uninvoicedTrips: number
+  uninvoicedTotal: number
+  todayIssued: number
+  todayIssuedTotal: number
+}
 
 export default function InvoicesPage() {
   const { can } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
+  const isNew = useIsNewUi()
   const [params, setParams] = useSearchParams()
+  const statusKeys = Object.keys(invoiceStatusLabel) as InvoiceStatus[]
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<InvoiceStatus | ''>('')
-  const [customerId, setCustomerId] = useState<number | ''>('')
-  const [unpaid, setUnpaid] = useState(!!params.get('unpaid'))
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [tripNo, setTripNo] = useState('')
+  // Süzgeç değerleri yeni görünümde ADRESTE durur: `?durum=`, `?musteri=`, `?bas=`, `?bit=`, `?sevkiyat=`, `?odenmemis=1`.
+  const [status, setStatus] = useState<InvoiceStatus | ''>(() => {
+    const v = params.get('durum')
+    return v && statusKeys.includes(v as InvoiceStatus) ? (v as InvoiceStatus) : ''
+  })
+  const [customerId, setCustomerId] = useState<number | ''>(() => (Number(params.get('musteri')) || '') as number | '')
+  const [unpaid, setUnpaid] = useState(() => !!params.get('odenmemis') || !!params.get('unpaid'))
+  const [from, setFrom] = useState(() => params.get('bas') ?? '')
+  const [to, setTo] = useState(() => params.get('bit') ?? '')
+  const [tripNo, setTripNo] = useState(() => params.get('sevkiyat') ?? '')
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [viewing, setViewing] = useState<number | null>(params.get('id') ? Number(params.get('id')) : null)
+  const [filterOpen, setFilterOpen] = useState(false)
   const pendingTab = params.get('sekme') === 'bekleyen'
   const debounced = useDebounce(search)
   const debouncedTripNo = useDebounce(tripNo.trim())
   const customers = useLookup('customers')
   const [page, setPage] = usePage([debounced, status, customerId, unpaid, from, to, debouncedTripNo])
   const selection = useRowSelection<Invoice>((i) => i.id, [debounced, status, customerId, unpaid, from, to, debouncedTripNo])
+
+  // `id` ve eski `unpaid` parametresi tüketilir; yeni görünümde süzgeçler adreste kalır (sekme parametresi korunur).
+  const urlState = JSON.stringify({ durum: status, musteri: customerId, bas: from, bit: to, sevkiyat: debouncedTripNo, odenmemis: unpaid ? '1' : '' })
   useEffect(() => {
-    if (params.get('id') || params.get('unpaid')) { params.delete('id'); params.delete('unpaid'); setParams(params, { replace: true }) }
-  }, [params, setParams])
+    const next = new URLSearchParams(params)
+    next.delete('id')
+    next.delete('unpaid')
+    if (isNew) {
+      for (const [k, v] of Object.entries(JSON.parse(urlState) as Record<string, string | number>)) {
+        if (v === '' || v == null) next.delete(k)
+        else next.set(k, String(v))
+      }
+    }
+    if (next.toString() !== params.toString()) setParams(next, { replace: true })
+  }, [isNew, urlState, params, setParams])
 
   const query = { page, pageSize: 20, search: debounced, status, customerId, unpaid: unpaid || undefined, from, to, tripNo: debouncedTripNo, sort: sort.key, desc: sort.desc }
   // Fatura İcmali: süzgeçteki ya da seçilen faturaların listesi (PDF), müşteriye fatura ekinde gönderilir.
@@ -70,6 +104,32 @@ export default function InvoicesPage() {
   ]
 
   const { data: totals } = useListTotals<InvoiceTotals>('invoices', query)
+  // Sayaç kutuları yalnız yeni görünümde; sayılar sunucudan gelir, istemcide uydurulmaz.
+  const { data: counters } = useQuery({ queryKey: ['invoices', 'counters'], queryFn: () => get<InvoiceCounters>('/invoices/counters'), enabled: isNew, staleTime: 30_000 })
+
+  const customerSelect = <SearchSelect ariaLabel="Müşteri" value={customerId === '' ? null : customerId} onChange={(v) => setCustomerId(v ?? '')} placeholder="Tüm müşteriler"
+    options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
+  const statusSelect = <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" />
+  const fromFilter = <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
+  const toFilter = <DateFilter label="Bitiş" value={to} onChange={setTo} />
+  const tripNoFilter = <input className="input" type="search" aria-label="Sevkiyat no" placeholder="Sevkiyat no" value={tripNo} onChange={(e) => setTripNo(e.target.value)} />
+  const unpaidToggle = <label className="flex items-center gap-2 text-[0.9375rem] text-slate-600">
+    <input type="checkbox" checked={unpaid} onChange={(e) => setUnpaid(e.target.checked)} /> Sadece ödenmemiş
+  </label>
+  const searchBox = <SearchBox value={search} onChange={setSearch} placeholder="Fatura no, müşteri..." />
+
+  const customerName = (customers.data ?? []).find((c) => c.id === customerId)?.label
+  const chips: FilterChip[] = [
+    ...(customerId !== '' ? [{ label: `Müşteri: ${customerName ?? customerId}`, onClear: () => setCustomerId('') }] : []),
+    ...(status ? [{ label: `Durum: ${invoiceStatusLabel[status]}`, onClear: () => setStatus('') }] : []),
+    ...(from || to ? [{ label: `Tarih: ${from ? date(from) : '…'} – ${to ? date(to) : '…'}`, onClear: () => { setFrom(''); setTo('') } }] : []),
+    ...(tripNo ? [{ label: `Sevkiyat no: ${tripNo}`, onClear: () => setTripNo('') }] : []),
+    ...(unpaid ? [{ label: 'Sadece ödenmemiş', onClear: () => setUnpaid(false) }] : []),
+  ]
+  const anyFilter = !!(search || status || customerId !== '' || unpaid || from || to || tripNo)
+  const clearFilters = () => { setSearch(''); setStatus(''); setCustomerId(''); setUnpaid(false); setFrom(''); setTo(''); setTripNo('') }
+  // Sayaçtan listeye geçiş: bekleyen sekmesi açıksa kapanır, seçilen süzgeç adrese yazılır.
+  const openList = (apply: () => void) => () => { apply(); if (pendingTab) navigate('/faturalar') }
 
   return (
     <>
@@ -81,22 +141,46 @@ export default function InvoicesPage() {
           {can('accounting') && <ImportButton entity="invoices" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/faturalar/yeni')}>Yeni Fatura</Button>}
         </>} />
+      {isNew && (
+        <Figures label="Fatura sayaçları"
+          className="mb-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
+          <Figure highlight label="Faturalandırılacak" value={counters?.uninvoicedTrips ?? '—'}
+            sub={counters ? `sevkiyat · ${tl2(counters.uninvoicedTotal)}` : 'sevkiyat'}
+            onClick={() => { clearFilters(); navigate('/faturalar?sekme=bekleyen') }} />
+          <Figure label="Taslak" value={counters?.draft ?? '—'} sub="Kesilmemiş fatura" onClick={openList(() => setStatus('Draft'))} />
+          <Figure label="Bugün kesilen" value={counters?.todayIssued ?? '—'} sub={counters ? tl2(counters.todayIssuedTotal) : '—'}
+            onClick={openList(() => { setStatus('Issued'); setFrom(todayIso()); setTo(todayIso()) })} />
+          <Figure label="İptal" value={counters?.cancelled ?? '—'} sub="İptal edilen fatura" onClick={openList(() => setStatus('Cancelled'))} />
+          <Figure label="Vadesi geçen" value={counters?.overdue ?? '—'} sub={counters ? tl2(counters.overdueTotal) : '—'}
+            tone={counters && counters.overdue > 0 ? 'text-bad' : undefined} />
+        </Figures>
+      )}
       {pendingTab ? (
         <PendingInvoices onIssue={(custId, tripIds) => navigate(`/faturalar/yeni?customerId=${custId}&tripIds=${tripIds.join(',')}`)} />
       ) : (
-      <Card title="Fatura Listesi" icon={<FileText className="size-4" />} bodyClassName="p-0"
-        actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, müşteri..." />}>
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-          <SearchSelect ariaLabel="Müşteri" value={customerId === "" ? null : customerId} onChange={(v) => setCustomerId(v ?? "")} placeholder="Tüm müşteriler"
-            options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} />
-          <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" />
-          <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
-          <DateFilter label="Bitiş" value={to} onChange={setTo} />
-          <input className="input" type="search" aria-label="Sevkiyat no" placeholder="Sevkiyat no" value={tripNo} onChange={(e) => setTripNo(e.target.value)} />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={unpaid} onChange={(e) => setUnpaid(e.target.checked)} /> Sadece ödenmemiş
-          </label>
+      <>
+      {isNew && (
+        <div className="mb-3">
+          <FilterBar search={searchBox}
+            quick={<>
+              <Select aria-label="Durum" value={status} onChange={setStatus} options={options(invoiceStatusLabel)} placeholder="Tüm durumlar" className="w-44" />
+              <Chip active={unpaid} onClick={() => setUnpaid(!unpaid)}>Sadece ödenmemiş</Chip>
+            </>}
+            chips={chips} onOpen={() => setFilterOpen(true)} onClearAll={anyFilter ? clearFilters : undefined} />
         </div>
+      )}
+      <Card title={isNew ? undefined : 'Fatura Listesi'} icon={isNew ? undefined : <FileText className="size-4" />} bodyClassName="p-0"
+        actions={isNew ? undefined : searchBox}>
+        {!isNew && (
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+          {customerSelect}
+          {statusSelect}
+          {fromFilter}
+          {toFilter}
+          {tripNoFilter}
+          {unpaidToggle}
+        </div>
+        )}
         {totals && totals.count > 0 && <SumStrip label="Filtre toplamı" items={[
           { label: 'Fatura', value: totals.count },
           { label: 'Matrah', value: tl2(totals.subtotal) },
@@ -140,7 +224,15 @@ export default function InvoicesPage() {
             }]} />
           )} />
       </Card>
+      </>
       )}
+      <FilterPanel open={filterOpen} onClose={() => setFilterOpen(false)} onClearAll={anyFilter ? clearFilters : undefined}>
+        {customerSelect}
+        {fromFilter}
+        {toFilter}
+        {tripNoFilter}
+        {unpaidToggle}
+      </FilterPanel>
       {viewing && <InvoiceDetail id={viewing} onClose={() => setViewing(null)} onPdf={pdf} />}
     </>
   )

@@ -4,15 +4,20 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { ArrowLeftRight, Landmark, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, FileSpreadsheet, Landmark, Pencil, Plus, Trash2 } from 'lucide-react'
 import { del, get, post, put } from '../api/client'
-import type { CashAccount, CashMovement, CashTransfer } from '../api/types'
-import { ImportButton } from '../components/ImportDialog'
-import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, PageHeader, Spinner } from '../components/ui'
+import type { CashAccount, CashAccountKind, CashMovement, CashTransfer } from '../api/types'
+import { ImportButton, useImportAction } from '../components/ImportDialog'
+import { Badge, Button, Card, Chip, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner } from '../components/ui'
+import { SearchBox } from '../components/DataTable'
+import { SumStrip } from '../components/SumStrip'
+import type { MenuItem } from '../components/shell/Menu'
+import { PageShell } from '../components/shell/PageShell'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { date, tl2, todayIso } from '../lib/format'
 import { useSave } from '../lib/hooks'
 import { cashAccountKindLabel } from '../lib/labels'
+import { useIsNewUi } from '../lib/uiMode'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
 import { choices } from '../lib/choices'
@@ -28,36 +33,82 @@ const accountSchema = z.object({
 })
 type AccountValues = z.infer<typeof accountSchema>
 
-/** Kasa, banka, POS ve kredi kartı hesapları; bakiye tahsilat, ödeme, gider ve virmanlardan hesaplanır. */
+/**
+ * Kasa, banka, POS ve kredi kartı hesapları; bakiye tahsilat, ödeme, gider ve virmanlardan hesaplanır.
+ * Şartname: docs/plan/11-BANKALAR.md. Yeni görünümde `PageShell` + `SumStrip` (TOPLAM · KASA · BANKA · KREDİ KARTI)
+ * ve hesap araması kullanılır; klasik görünüm bugünkü düzeni aynen korur.
+ */
 export default function CashAccountsPage() {
+  const isNew = useIsNewUi()
   const accounts = useQuery({ queryKey: ['cash-accounts'], queryFn: () => get<CashAccount[]>('/cash-accounts') })
   const [editing, setEditing] = useState<CashAccount | 'new' | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
   const [transfer, setTransfer] = useState(false)
+  const [search, setSearch] = useState('')
+  const [showPassive, setShowPassive] = useState(false)
+  const imp = useImportAction('cash-accounts')
   const list = accounts.data ?? []
-  const current = list.find((a) => a.id === selected) ?? list[0]
+  // Yeni görünümde pasif hesaplar varsayılan gizli ve liste arama ile süzülür; klasik görünüm tam listeyi gösterir (11-BANKALAR §3a).
+  const term = search.trim().toLocaleLowerCase('tr')
+  const visible = isNew
+    ? list.filter((a) => (showPassive || a.isActive) && (!term
+      || a.name.toLocaleLowerCase('tr').includes(term)
+      || (a.iban ?? '').toLocaleLowerCase('tr').includes(term)))
+    : list
+  const current = visible.find((a) => a.id === selected) ?? visible[0]
   const total = list.filter((a) => a.isActive && a.kind !== 'CreditCard').reduce((s, a) => s + a.balance, 0)
+  const kindSum = (kinds: CashAccountKind[]) => list.filter((a) => a.isActive && kinds.includes(a.kind)).reduce((s, a) => s + a.balance, 0)
+  const cardDebt = list.filter((a) => a.kind === 'CreditCard').reduce((s, a) => s + a.balance, 0)
+  const activeCount = list.filter((a) => a.isActive).length
+
+  // Yeni görünümde nadir işler "⋯ Diğer" menüsüne taşınır; Virman yalnız iki aktif hesap varsa görünür (11-BANKALAR §10.4).
+  const more: MenuItem[] = [
+    { label: "Excel'den Aktar", icon: <FileSpreadsheet className="size-4" />, write: true, onClick: imp.run },
+    ...(activeCount >= 2 ? [{ label: 'Virman', icon: <ArrowLeftRight className="size-4" />, write: true, onClick: () => setTransfer(true) }] : []),
+  ]
 
   return (
     <>
-      <PageHeader title="Kasa / Banka" subtitle={<>Hesap bakiyeleri. Toplam nakit ve banka: <b>{tl2(total)}</b></>}
+      <PageShell title="Kasa / Banka" subtitle={<>Hesap bakiyeleri. Toplam nakit ve banka: <b>{tl2(total)}</b></>}
+        more={more} primary={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Hesap Ekle</Button>}
         actions={<>
           <ImportButton entity="cash-accounts" />
           <Button variant="secondary" icon={<ArrowLeftRight className="size-4" />} disabled={list.length < 2} onClick={() => setTransfer(true)}>Virman</Button>
           <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Hesap Ekle</Button>
-        </>} />
-      <p className="mb-3 text-sm text-slate-600">Tahsilat, taşeron ödemesi, gider ve şoför ödemesi girerken “Kasa / Banka” seçerseniz bakiye burada kendiliğinden hesaplanır. Çek/senet yalnızca tahsil edilince hesaba girer.</p>
+        </>}>
+      {isNew && (
+        <SumStrip label="Kasa ve banka toplamları" items={[
+          { label: 'Toplam', value: tl2(total) },
+          { label: 'Kasa', value: tl2(kindSum(['Cash'])) },
+          { label: 'Banka', value: tl2(kindSum(['Bank', 'Pos'])) },
+          { label: 'Kredi kartı (borç)', value: tl2(cardDebt), tone: cardDebt < 0 ? 'text-bad' : undefined },
+        ]} />
+      )}
+      <p className="mb-3 mt-3 text-sm text-slate-600">Tahsilat, taşeron ödemesi, gider ve şoför ödemesi girerken “Kasa / Banka” seçerseniz bakiye burada kendiliğinden hesaplanır. Çek/senet yalnızca tahsil edilince hesaba girer.</p>
+      {isNew && (
+        <div className="mb-3 flex flex-wrap items-center gap-2.5">
+          <div className="min-w-56 flex-1 sm:max-w-md"><SearchBox value={search} onChange={setSearch} placeholder="Hesap adı, IBAN..." /></div>
+          <Chip active={showPassive} onClick={() => setShowPassive((v) => !v)}>Pasifleri göster</Chip>
+        </div>
+      )}
       {accounts.isLoading ? <Spinner /> : list.length === 0 ? (
         <Card><Empty>Henüz hesap yok. “Hesap Ekle” ile kasa ve banka hesaplarınızı açılış bakiyeleriyle girin.</Empty></Card>
+      ) : visible.length === 0 ? (
+        <Card><Empty action={<Button variant="secondary" onClick={() => { setSearch(''); setShowPassive(true) }}>Süzgeci temizle</Button>}>
+          Aramanıza uyan hesap yok.
+        </Empty></Card>
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
           <div className="space-y-2">
-            {list.map((a) => (
-              <button key={a.id} onClick={() => setSelected(a.id)}
+            {visible.map((a) => (
+              <button key={a.id} onClick={() => setSelected(a.id)} aria-current={current?.id === a.id ? 'true' : undefined}
                 className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${current?.id === a.id ? 'border-brand-400 bg-brand-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-navy-900">{a.name}</span>
-                  <span className="text-sm text-slate-500">{cashAccountKindLabel[a.kind]}{!a.isActive && ' · pasif'}</span>
+                  <span className="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
+                    <span>{cashAccountKindLabel[a.kind]}{!a.isActive && ' · pasif'}</span>
+                    {isNew && a.balance < 0 && <Badge tone="red">Eksi bakiye</Badge>}
+                  </span>
                 </span>
                 <span className={`whitespace-nowrap font-medium ${a.balance < 0 ? 'text-red-600' : 'text-slate-800'}`}>{tl2(a.balance)}</span>
               </button>
@@ -66,8 +117,10 @@ export default function CashAccountsPage() {
           {current && <AccountMovements account={current} onEdit={() => setEditing(current)} />}
         </div>
       )}
+      </PageShell>
       {editing && <AccountForm account={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       {transfer && <TransferForm accounts={list} onClose={() => setTransfer(false)} />}
+      {imp.dialog}
     </>
   )
 }

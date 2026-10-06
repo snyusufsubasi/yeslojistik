@@ -138,6 +138,17 @@ public record UninvoicedCarrierTripDto(int TripId, DateOnly LoadingDate, string 
 /// <summary>Faturalar: tutarlar kesilmiş faturalardan (durum seçildiyse o durumdan). Kalan = tahsil edilmemiş tutar.</summary>
 public record InvoiceTotalsDto(int Count, decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total, decimal Remaining);
 
+/// <summary>
+/// e-Fatura sayaç kutuları (docs/plan/06-FATURALANDIRILACAKLAR.md §3, sözleşme: docs/plan/30-VERI-API.md §10.2).
+/// Hepsi mevcut kayıtlardan hesaplanır; yeni sütun/tablo gerekmez (migration yok).
+/// <para><c>UninvoicedTrips/UninvoicedTotal</c>: teslim edilmiş, faturası kesilmemiş ve devir olmayan sevkiyatlar;
+/// sevkiyat listesinin <c>invoiced=false</c> süzgeciyle aynı tanım. Tutar satış tutarıdır (KDV hariç).</para>
+/// <para><c>TodayIssued</c>: fatura tarihi bugün olan <b>kesilmiş</b> faturalar (taslak ve iptaller girmez).</para>
+/// <para><c>Overdue</c>: vadesi bugünden önce olup <b>kalanı sıfırdan büyük</b> kesilmiş faturalar; tutar kalan (tahsil edilmemiş) kısımdır.</para>
+/// </summary>
+public record InvoiceCountersDto(int Draft, int Issued, int Cancelled, int Overdue, decimal OverdueTotal,
+    int UninvoicedTrips, decimal UninvoicedTotal, int TodayIssued, decimal TodayIssuedTotal);
+
 /// <summary>Alınan faturalar (iptaller yalnızca "iptalleri göster" seçiliyse girer).</summary>
 public record PurchaseInvoiceTotalsDto(int Count, decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total);
 
