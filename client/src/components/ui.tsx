@@ -209,7 +209,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', gua
   const own = (e: SyntheticEvent) => (e.target as HTMLElement).closest('[role=dialog]') === ref.current
   const touch = (e: SyntheticEvent) => { if (!dirty && own(e)) setDirty(true) }
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onMouseDown={requestClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onMouseDown={requestClose}>
       <div ref={ref} role="dialog" aria-modal="true" aria-label={title}
         className={clsx('flex max-h-[95vh] w-full flex-col rounded-t-[4px] border border-line bg-white shadow-lg sm:rounded-[4px]', width)}
         onMouseDown={(e) => e.stopPropagation()}>

@@ -7,7 +7,8 @@ import { CalendarClock, CheckCircle2, Pencil, Plus, Repeat, Trash2 } from 'lucid
 import { del, get, post, put } from '../api/client'
 import type { ExpenseCategory, RecurringPayment } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { Badge, Button, ConfirmDialog, Card, Field, IconButton, Modal, PageHeader, StatCard } from '../components/ui'
+import { Badge, Button, ConfirmDialog, Card, Field, IconButton, Modal, StatCard } from '../components/ui'
+import { PageShell } from '../components/shell/PageShell'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
 import { applyServerErrors, nullify, optId, optStr, req } from '../lib/forms'
@@ -52,8 +53,9 @@ export default function RecurringPaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Sabit Ödemeler" subtitle="Her ay tekrarlanan ödemeler. “Ödendi” deyince gider olarak yazılır, seçilen hesaptan düşer."
-        actions={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>} />
+      <PageShell title="Sabit Ödemeler" subtitle="Her ay tekrarlanan ödemeler. “Ödendi” deyince gider olarak yazılır, seçilen hesaptan düşer."
+        primary={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>}
+        actions={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>}>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard title="Bu ayın toplamı" value={tl(active.reduce((s, r) => s + r.amount, 0))} icon={<Repeat />} color="blue" sub={`${active.length} kalem`} />
         <StatCard title="Ödenmeyen" value={tl(unpaid.reduce((s, r) => s + r.amount, 0))} icon={<CalendarClock />} color="orange" sub={`${unpaid.length} kalem`} />
@@ -71,6 +73,7 @@ export default function RecurringPaymentsPage() {
             </div>
           )} />
       </Card>
+      </PageShell>
       {editing && <RecurringForm item={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       {paying && <PayForm item={paying} month={month} onClose={() => setPaying(null)} />}
     </>

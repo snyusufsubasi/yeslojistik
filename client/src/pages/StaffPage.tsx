@@ -4,12 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import clsx from 'clsx'
-import { Pencil, Plus, Trash2, UserRound, Wallet } from 'lucide-react'
+import { FileSpreadsheet, Pencil, Plus, Trash2, UserRound, Wallet } from 'lucide-react'
 import { del, get, post, put } from '../api/client'
 import type { Staff, StaffTransaction, StaffTransactionKind } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { ImportButton } from '../components/ImportDialog'
-import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, PageHeader, Spinner, StatCard } from '../components/ui'
+import { ImportButton, useImportAction } from '../components/ImportDialog'
+import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner, StatCard } from '../components/ui'
+import { PageShell } from '../components/shell/PageShell'
+import type { MenuItem } from '../components/shell/Menu'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
 import { applyServerErrors, nullify, optId, optStr, req } from '../lib/forms'
@@ -46,13 +48,19 @@ export default function StaffPage() {
     ) },
   ]
 
+  const imp = useImportAction('staff')
+  const more: MenuItem[] = [
+    { label: "Excel'den aktar", icon: <FileSpreadsheet className="size-4" />, write: true, onClick: imp.run },
+  ]
   return (
     <>
-      <PageHeader title="Personeller" subtitle="Aylık maaş, avans ve primler. Kalan = maaş + prim − avans − ödenen."
+      <PageShell title="Personeller" subtitle="Aylık maaş, avans ve primler. Kalan = maaş + prim − avans − ödenen."
+        more={more}
+        primary={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Personel Ekle</Button>}
         actions={<>
           <ImportButton entity="staff" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Personel Ekle</Button>
-        </>} />
+        </>}>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard title="Bu ayın maaşları" value={tl(active.reduce((s, x) => s + x.salary, 0))} icon={<UserRound />} color="blue" sub={`${active.length} çalışan`} />
         <StatCard title="Verilen avans" value={tl(rows.reduce((s, x) => s + x.advances, 0))} icon={<Wallet />} color="orange" />
@@ -70,6 +78,8 @@ export default function StaffPage() {
             </div>
           )} />
       </Card>
+      </PageShell>
+      {imp.dialog}
       {editing && <StaffForm staff={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       {open && <StaffLedger staff={open} onClose={() => setOpen(null)} />}
     </>

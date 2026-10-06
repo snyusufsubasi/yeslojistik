@@ -19,6 +19,11 @@ function DropMenu({ items, trigger, align = 'right', label }: { items: MenuItem[
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const visible = useVisibleItems(items)
+  /** Kapanışta odağı tetikleyici düğmeye geri verir (klavye kullanıcısı kaybolmaz). */
+  const close = (returnFocus = true) => {
+    setOpen(false)
+    if (returnFocus) ref.current?.querySelector<HTMLElement>('button')?.focus()
+  }
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
@@ -30,7 +35,8 @@ function DropMenu({ items, trigger, align = 'right', label }: { items: MenuItem[
   const onKey = (e: React.KeyboardEvent) => {
     const els = [...(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
     const i = els.indexOf(document.activeElement as HTMLElement)
-    if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
+    if (e.key === 'Escape') { e.stopPropagation(); close() }
+    else if (e.key === 'Tab') { close() }
     else if (e.key === 'ArrowDown') { e.preventDefault(); els[(i + 1) % els.length]?.focus() }
     else if (e.key === 'ArrowUp') { e.preventDefault(); els[(i - 1 + els.length) % els.length]?.focus() }
   }
@@ -41,7 +47,7 @@ function DropMenu({ items, trigger, align = 'right', label }: { items: MenuItem[
         <div role="menu" aria-label={label}
           className={clsx('absolute top-full z-40 mt-1 min-w-56 rounded-[4px] border border-line bg-white p-1 shadow-lg', align === 'right' ? 'right-0' : 'left-0')}>
           {visible.map((i) => (
-            <button key={i.label} type="button" role="menuitem" onClick={() => { setOpen(false); i.onClick() }}
+            <button key={i.label} type="button" role="menuitem" onClick={() => { close(); i.onClick() }}
               className={clsx('flex w-full items-center gap-2.5 rounded-[3px] px-3 py-2 text-left text-[0.9375rem] hover:bg-surface-2 focus:bg-surface-2 focus:outline-none [&_svg]:size-4',
                 i.danger ? 'text-bad' : 'text-fg')}>
               {i.icon}{i.label}

@@ -3,14 +3,16 @@ import { useSearchParams } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { IdCard, Pencil, Plus, Trash2 } from 'lucide-react'
+import { IdCard, Pencil, Plus, Trash2, Download, FileSpreadsheet } from 'lucide-react'
 import { get } from '../api/client'
 import type { Driver } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, PlateBadge, Tabs } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PlateBadge, Tabs } from '../components/ui'
+import { PageShell } from '../components/shell/PageShell'
+import type { MenuItem } from '../components/shell/Menu'
 import { DocumentsPanel, DriverLedgerPanel } from '../components/FleetPanels'
-import { ImportButton } from '../components/ImportDialog'
-import { ExportButton } from '../components/Exports'
+import { ImportButton, useImportAction } from '../components/ImportDialog'
+import { ExportButton, useExportAction } from '../components/Exports'
 import { useAuth } from '../lib/auth'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
@@ -69,6 +71,12 @@ export default function DriversPage() {
 
   const query = { page, pageSize: 20, search: debounced, active: showPassive ? undefined : true, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Driver>('drivers', query)
+  const exp = useExportAction()
+  const imp = useImportAction('drivers')
+  const more: MenuItem[] = [
+    { label: "Excel'e aktar", icon: <Download className="size-4" />, onClick: () => exp.run('/drivers/export', 'soforler.xlsx', query) },
+    { label: "Excel'den aktar", icon: <FileSpreadsheet className="size-4" />, write: true, perm: 'operations', onClick: imp.run },
+  ]
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['drivers', 'vehicles'], success: 'Şoför silindi.', onSuccess: () => setDeleting(null) })
 
   const columns: Column<Driver>[] = [
@@ -95,14 +103,16 @@ export default function DriversPage() {
 
   return (
     <>
-      <PageHeader title="Şoförler" subtitle="Şoför bilgileri ve belge süreleri"
+      <PageShell title="Şoförler" subtitle="Şoför bilgileri ve belge süreleri"
+        more={more}
+        primary={can('operations') ? <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Şoför</Button> : undefined}
         actions={<>
           <ExportButton url="/drivers/export" params={query} fileName="soforler.xlsx" />
           {can('operations') && <>
             <ImportButton entity="drivers" />
             <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Şoför</Button>
           </>}
-        </>} />
+        </>}>
       <Card title="Şoför Listesi" icon={<IdCard className="size-4" />} bodyClassName="p-0"
         actions={<>
           <label className="flex items-center gap-2 text-sm text-slate-600">
@@ -115,6 +125,8 @@ export default function DriversPage() {
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz şoför yok. “Yeni Şoför” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
       </Card>
+      </PageShell>
+      {imp.dialog}
       {editing && <DriverForm driver={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!deleting} title="Şoförü sil" loading={deleteMut.isPending} confirmText="Sil"
         message={<>{deleting?.fullName} silinecek. Sevkiyatlarda görev almış şoförler silinemez; bunun yerine pasife alabilirsiniz.</>}

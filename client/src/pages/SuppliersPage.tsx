@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { Plus, Truck } from 'lucide-react'
+import { Download, FileSpreadsheet, Plus, Truck, Wallet } from 'lucide-react'
 import type { Supplier, SupplierKind } from '../api/types'
-import { ImportButton } from '../components/ImportDialog'
-import { ExportButton } from '../components/Exports'
+import { ImportButton, useImportAction } from '../components/ImportDialog'
+import { ExportButton, useExportAction } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SupplierForm } from '../components/SupplierForm'
-import { Badge, Button, Card, PageHeader } from '../components/ui'
+import { Badge, Button, Card } from '../components/ui'
+import { PageShell } from '../components/shell/PageShell'
+import type { MenuItem } from '../components/shell/Menu'
 import { tl } from '../lib/format'
 import { useDebounce, usePaged, usePage } from '../lib/hooks'
 import { supplierKindLabel } from '../lib/labels'
@@ -23,6 +25,13 @@ export default function SuppliersPage() {
   const [page, setPage] = usePage([debounced, kind])
   const query = { page, pageSize: 20, search: debounced, kind: kind || undefined, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Supplier>('suppliers', query)
+  const exp = useExportAction()
+  const imp = useImportAction('suppliers')
+  const more: MenuItem[] = [
+    ...(can('accounting') ? [{ label: 'Cari Tablosu', icon: <Wallet className="size-4" />, onClick: () => navigate('/cari/tedarikciler') }] : []),
+    { label: "Excel'e aktar", icon: <Download className="size-4" />, onClick: () => exp.run('/suppliers/export', 'tedarikciler.xlsx', query) },
+    { label: "Excel'den aktar", icon: <FileSpreadsheet className="size-4" />, write: true, onClick: imp.run },
+  ]
 
   const columns: Column<Supplier>[] = [
     { key: 'no', header: 'No', sortKey: 'id', render: (s) => <span className="text-slate-500">{s.supplierNo}</span> },
@@ -41,13 +50,15 @@ export default function SuppliersPage() {
 
   return (
     <>
-      <PageHeader title="Tedarikçiler" subtitle="Taşeron araç sahipleri, servisler ve akaryakıt istasyonları · firmanın borçlu olduğu taraflar"
+      <PageShell title="Tedarikçiler" subtitle="Taşeron araç sahipleri, servisler ve akaryakıt istasyonları · firmanın borçlu olduğu taraflar"
+        more={more}
+        primary={<Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Tedarikçi</Button>}
         actions={<>
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/tedarikciler')}>Cari Tablosu</Button>}
           <ExportButton url="/suppliers/export" params={query} fileName="tedarikciler.xlsx" />
           <ImportButton entity="suppliers" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Tedarikçi</Button>
-        </>} />
+        </>}>
       <Card title="Tedarikçi Listesi" icon={<Truck className="size-4" />} bodyClassName="p-0"
         actions={<div className="flex flex-wrap gap-2">
           <select className="input w-auto" aria-label="Tür" value={kind} onChange={(e) => setKind(e.target.value as SupplierKind | '')}>
@@ -71,6 +82,8 @@ export default function SuppliersPage() {
             </div>
           )} />
       </Card>
+      </PageShell>
+      {imp.dialog}
       {creating && <SupplierForm supplier={null} onClose={() => setCreating(false)} onSaved={(s) => navigate(`/tedarikciler/${s.id}`)} />}
     </>
   )

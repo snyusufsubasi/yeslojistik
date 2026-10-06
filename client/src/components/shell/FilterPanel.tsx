@@ -13,7 +13,7 @@ export function FilterBar({ search, quick, chips, onOpen, onClearAll }:
         {quick}
         <button type="button" onClick={onOpen} aria-haspopup="dialog"
           className="inline-flex min-h-10 items-center gap-1.5 rounded-[3px] border border-line bg-white px-3.5 text-[0.875rem] font-semibold text-fg hover:bg-surface-2">
-          <SlidersHorizontal className="size-4" /> Süzgeç{chips.length > 0 && <span className="rounded-[2px] bg-accent px-1.5 text-[0.75rem] text-white">{chips.length}</span>}
+          <SlidersHorizontal className="size-4" /> Süzgeç{chips.length > 0 && <span className="rounded-[2px] bg-accent px-1.5 text-[0.75rem] text-white">{chips.length > 99 ? '99+' : chips.length}</span>}
         </button>
       </div>
       {chips.length > 0 && (
@@ -36,19 +36,32 @@ export function FilterPanel({ open, onClose, children, title = 'Süzgeç', onCle
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    // Esc kapatır; Tab panelin içinde döner (odak tuzağı), açıkken gövde kaydırması kilitlenir.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab') return
+      const els = [...(ref.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? [])]
+      if (els.length === 0) return
+      const first = els[0]
+      const last = els[els.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      if (!e.shiftKey && active === last) { e.preventDefault(); first.focus() }
+      else if (e.shiftKey && (active === first || !ref.current?.contains(active))) { e.preventDefault(); last.focus() }
+    }
     document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     ref.current?.querySelector<HTMLElement>('input, select, button')?.focus()
-    return () => document.removeEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prevOverflow }
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[45]">
       <div className="absolute inset-0 bg-slate-950/30" onClick={onClose} />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={title}
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="filter-panel-title"
         className="absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-xl sm:w-[400px]">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-5">
-          <h2 className="text-[1.0625rem] font-bold">{title}</h2>
+          <h2 id="filter-panel-title" className="text-[1.0625rem] font-bold">{title}</h2>
           <button type="button" onClick={onClose} aria-label="Kapat" className="rounded-[3px] p-2 hover:bg-surface-2"><X className="size-5" /></button>
         </div>
         <div className="flex-1 space-y-3.5 overflow-y-auto px-5 py-4">{children}</div>
