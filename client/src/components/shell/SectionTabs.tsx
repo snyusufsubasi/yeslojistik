@@ -14,7 +14,7 @@ export function SectionTabs() {
   const tabs = section.tabs.filter((t) => !t.perm || can(t.perm))
   if (tabs.length < 2) return null
   return (
-    <nav aria-label="Bölüm sekmeleri" className="-mt-2 mb-5 overflow-x-auto border-b border-line">
+    <nav aria-label="Bölüm sekmeleri" className="section-tabs -mt-2 mb-5 overflow-x-auto border-b border-line">
       <div role="tablist" className="flex min-w-max gap-1">
         {tabs.map((t) => {
           const active = t.to === pathname

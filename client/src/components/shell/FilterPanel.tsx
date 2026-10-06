@@ -8,7 +8,7 @@ export function FilterBar({ search, quick, chips, onOpen, onClearAll }:
   { search?: ReactNode; quick?: ReactNode; chips: FilterChip[]; onOpen: () => void; onClearAll?: () => void }) {
   return (
     <div className="space-y-2.5">
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="filter-row flex flex-wrap items-center gap-2.5">
         {search && <div className="min-w-56 flex-1 sm:max-w-md">{search}</div>}
         {quick}
         <button type="button" onClick={onOpen} aria-haspopup="dialog"

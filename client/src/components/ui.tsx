@@ -114,7 +114,7 @@ export function PageHeader({ title: pageTitle, subtitle, actions, back }: { titl
   usePageTitle(title)
   const page = pathname.split('/')[1] ?? ''
   return (<>
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className={isNew ? 'mb-3.5 flex flex-wrap items-end justify-between gap-3' : 'mb-5 flex flex-wrap items-end justify-between gap-3'}>
       <div>
         {back && (
           <nav aria-label="Konum" className="mb-1.5 text-sm">

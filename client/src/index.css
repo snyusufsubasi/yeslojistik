@@ -130,3 +130,41 @@
   /* Tablo hücresindeki ikinci satır (ör. "No 6", şoför adı) ana yazıdan küçük kalsın: satırlar sık, dizüstünde 18-20 satır */
   .td .text-sm { font-size: 0.78125rem; line-height: 1.35; }
 }
+
+/*
+ * "Yeni görünüm" katmanı — şartname: docs/plan/29-GORSEL-SISTEM.md
+ *
+ * `client/src/lib/uiMode.ts` <html data-ui="new"> niteliğini yazar. Bu blok YALNIZ o nitelik
+ * varken devreye girer; klasik görünüm (data-ui yok / "classic") hiç etkilenmez.
+ * Amaç: müşterinin "daha sade ve şık" isteğinin görünür karşılığı —
+ *   • daha açık, sakin zemin ve daha ince çizgiler,
+ *   • tablo başlıklarında büyük harf yok,
+ *   • daha sıkı satırlar (1440×900'de ilk ekranda 12+ satır),
+ *   • üst kısım (başlık + sekmeler + süzgeç) en fazla 260px.
+ */
+@layer components {
+  /* Yeni görünümde yüzeyler biraz daha açık; klasik değerler @theme içinde kalır */
+  html[data-ui="new"] {
+    --color-canvas: #f6f8f7;
+    --color-surface-2: #edf2f0;
+    --color-line: #dbe4e0;
+  }
+
+  /* Tablo başlığı: büyük harf ve geniş harf aralığı yok, daha küçük ve sakin */
+  html[data-ui="new"] .th {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* Satır yoğunluğu: 7px → 5px dikey iç boşluk (satır ~44px) */
+  html[data-ui="new"] .td { padding-top: 5px; padding-bottom: 5px; }
+
+  /* Başlıklar biraz daha sıkı; üst kısım hedefi (≤260px) boşluklarla sağlanır */
+  html[data-ui="new"] h1, html[data-ui="new"] h2 { letter-spacing: -0.015em; }
+
+  /* Süzgeç satırı ve bölüm sekmeleri yeni görünümde daha dar aralıklı */
+  html[data-ui="new"] .filter-row { gap: 0.5rem; }
+  html[data-ui="new"] .section-tabs { margin-bottom: 0.75rem; }
+}
