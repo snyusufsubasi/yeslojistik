@@ -24,7 +24,12 @@ export const sections: Section[] = [
     { to: '/odemeler', label: 'Tedarikçi Ödemeleri' },
   ] },
   { key: 'sevkiyat', tabs: [{ to: '/seferler', label: 'Sevkiyat Listesi' }, { to: '/harita', label: 'Harita' }] },
-  { key: 'ozmal', tabs: [{ to: '/giderler', label: 'Giderler' }, { to: '/araclar', label: 'Araçlar' }] },
+  { key: 'ozmal', tabs: [
+    { to: '/giderler', label: 'Giderler' },
+    { to: '/mazotlar', label: 'Mazotlar' },
+    { to: '/arac-masraflari', label: 'Araç Masrafları' },
+    { to: '/araclar', label: 'Araçlar' },
+  ] },
   { key: 'banka', tabs: [{ to: '/kasa-banka', label: 'Bankalar', perm: 'accounting' }, { to: '/cek-senet', label: 'Çekler' }] },
   { key: 'yonetici', tabs: [
     { to: '/ayarlar', label: 'Ayarlar' },
@@ -49,4 +54,6 @@ export const newTitles: Record<string, string> = {
   '/raporlar': 'Analiz',
   '/kasa-banka': 'Bankalar',
   '/cek-senet': 'Çekler',
+  '/mazotlar': 'Mazotlar',
+  '/arac-masraflari': 'Araç Masrafları',
 }
