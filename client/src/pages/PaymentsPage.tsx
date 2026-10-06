@@ -68,7 +68,8 @@ export default function PaymentsPage() {
           <ExportButton url="/payments/export" params={query} fileName="tahsilatlar.xlsx" />
           {can('accounting') && <ImportButton entity="payments" />}
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Tahsilat Ekle</Button>}
-        }>
+        </>}
+      >
       <Card title="Tahsilat Listesi" icon={<Wallet className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, fatura no, açıklama..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-3">
