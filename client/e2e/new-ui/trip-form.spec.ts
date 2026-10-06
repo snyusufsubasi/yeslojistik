@@ -17,11 +17,15 @@ async function fixtures(request: APIRequestContext, id: string) {
 
 const dialogOf = (page: Page) => page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
 
-/** Arama kutusunu doldurup açılan seçenek listesini kapatır (Esc yalnız listeyi kapatır, pencereyi değil). */
-async function fillSelect(input: ReturnType<Page['locator']>, text: string, option: string) {
+/** Arama kutusu: tıklanır, klavyeyle yazılır (gerçek kullanıcı gibi; doldurma olayı değil), liste açılır. */
+async function typeSelect(input: ReturnType<Page['locator']>, text: string, option: string) {
   await input.click()
-  await input.fill(text)
+  await input.pressSequentially(text, { delay: 10 })
   await expect(input.page().getByRole('option', { name: option, exact: true })).toBeVisible()
+}
+
+/** Açık seçenek listesini kapatır; Esc varsayılanı engellenir, pencere kapanmaz (SearchSelect.tsx:89-92). */
+async function closeList(input: ReturnType<Page['locator']>) {
   await input.press('Escape')
 }
 
@@ -42,8 +46,10 @@ test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümd
 
   const customerInput = dialog.locator('input[name=customerId]')
   const vehicleInput = dialog.locator('input[name=vehicleId]')
-  await fillSelect(customerInput, customerTitle, customerTitle)
-  await fillSelect(vehicleInput, plate, `${plate} - Kamyon`)
+  await typeSelect(customerInput, customerTitle, customerTitle)
+  await closeList(customerInput)
+  await typeSelect(vehicleInput, plate, `${plate} - Kamyon`)
+  await closeList(vehicleInput)
 
   const customerBox = await customerInput.boundingBox()
   const vehicleBox = await vehicleInput.boundingBox()
@@ -53,11 +59,15 @@ test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümd
   expect(Math.abs(vehicleBox!.y - customerBox!.y)).toBeLessThanOrEqual(2)
   expect(vehicleBox!.x).toBeGreaterThan(customerBox!.x)
 
-  // Kaydedilmemiş değişiklik varken kapatmak sorar (Modal koruması korunur).
+  // Yazılmış alan varken Esc sorar (Modal koruması; ui.tsx:163-167, 192-194, 225-231).
+  // "Vazgeç" bilinçli olarak sormaz (kaydetmeden kapatma yolu); soran yollar Esc, dışarı tıklama ve X'tir.
+  await page.keyboard.press('Escape')
+  await expect(dialog.getByText('Kaydedilmemiş değişiklikler var. Kapatılsın mı?')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Forma dön' }).click()
+  await expect(dialog).toBeVisible()
+  // Forma dönünce yazılan korunur.
+  await expect(customerInput).toHaveValue(customerTitle)
   await dialog.getByRole('button', { name: 'Vazgeç' }).click()
-  const leave = page.getByRole('button', { name: 'Kaydetmeden kapat' })
-  await expect(leave).toBeVisible()
-  await leave.click()
   await expect(dialog).toBeHidden()
 
   // --- Klasik görünüm: aynı form bugünkü üç bölümlü düzeniyle açılır ---
@@ -72,11 +82,16 @@ test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümd
   await expect(classic.locator('h3', { hasText: 'Araç ve şoför' })).toHaveText('Araç ve şoför')
   await expect(classic.locator('h3', { hasText: 'Fiyat' })).toHaveText('Fiyat')
   // Tek sütun akış: araç kutusu müşterinin çok altında.
-  await fillSelect(classic.locator('input[name=customerId]'), customerTitle, customerTitle)
+  await typeSelect(classic.locator('input[name=customerId]'), customerTitle, customerTitle)
+  await closeList(classic.locator('input[name=customerId]'))
   const classicCustomer = await classic.locator('input[name=customerId]').boundingBox()
   const classicVehicle = await classic.locator('input[name=vehicleId]').boundingBox()
   expect(classicCustomer).not.toBeNull()
   expect(classicVehicle).not.toBeNull()
   expect(classicVehicle!.y).toBeGreaterThan(classicCustomer!.y + 100)
-  await classic.getByRole('button', { name: 'Vazgeç' }).click()
+  // Klasik görünümde de yazılmışsa Esc sorar (koruma davranışı iki düzende de aynı; ui.tsx:163-167).
+  await page.keyboard.press('Escape')
+  await expect(classic.getByText('Kaydedilmemiş değişiklikler var. Kapatılsın mı?')).toBeVisible()
+  await classic.getByRole('button', { name: 'Kaydetmeden kapat' }).click()
+  await expect(classic).toBeHidden()
 })
