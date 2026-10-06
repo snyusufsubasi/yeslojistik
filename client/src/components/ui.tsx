@@ -265,8 +265,33 @@ export function Loading({ error, onRetry, className }: { error?: unknown; onRetr
   return error ? <ErrorState error={error} onRetry={onRetry} className={className} /> : <Spinner className={className} />
 }
 
-export function Empty({ children = 'Kayıt bulunamadı.' }: { children?: ReactNode }) {
-  return <div className="px-4 py-14 text-center text-[0.9375rem] text-slate-600">{children}</div>
+export function Empty({ children = 'Kayıt bulunamadı.', icon, action }: { children?: ReactNode; icon?: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-4 py-14 text-center text-[0.9375rem] text-slate-600">
+      {icon && <span className="text-muted" aria-hidden>{icon}</span>}
+      <div>{children}</div>
+      {action}
+    </div>
+  )
+}
+
+/**
+ * Tablo yüklenirken satır iskeleti (docs/plan/29-GORSEL-SISTEM.md §5).
+ * Dönen simge yerine içerik yer tutucusu: sayfa "zıplamaz", ekran okuyucu "Yükleniyor" duyar.
+ */
+export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="space-y-2 px-3 py-4" role="status">
+      <span className="sr-only">Yükleniyor…</span>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-3" aria-hidden>
+          {Array.from({ length: cols }).map((_, c) => (
+            <div key={c} className={clsx('h-4 rounded-[2px] bg-surface-2', c === 0 ? 'w-24' : c === cols - 1 ? 'w-16' : 'flex-1')} />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {

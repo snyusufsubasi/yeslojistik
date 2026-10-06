@@ -9,17 +9,26 @@ import { useToast } from './Toast'
  * Dosya indirme düğmesi (Excel). İnerken bekleme işareti, hata olursa bildirim gösterir.
  * Kayıt değiştirmediği için aynada da görünür (`write` almaz).
  */
-export function ExportButton({ url, params, fileName, label = 'Excel', icon, size }:
-  { url: string; params?: object; fileName: string; label?: string; icon?: ReactNode; size?: 'sm' | 'md' }) {
+/**
+ * Menü maddesi içinden Excel indirmek için ortak eylem (docs/plan/28-ORTAK-PARCALAR.md).
+ * Aynı bekleme/hata davranışını paylaşır; düğme çizmez.
+ */
+export function useExportAction() {
   const toast = useToast()
   const [busy, setBusy] = useState(false)
-  const run = async () => {
+  const run = async (url: string, fileName: string, params?: object) => {
     setBusy(true)
     try { await download(url, params, fileName) }
     catch (e) { toast.error(errorMessage(e)) }
     finally { setBusy(false) }
   }
-  return <Button variant="secondary" size={size} loading={busy} icon={icon ?? <Download className="size-4" />} onClick={run}>{label}</Button>
+  return { busy, run }
+}
+
+export function ExportButton({ url, params, fileName, label = 'Excel', icon, size }:
+  { url: string; params?: object; fileName: string; label?: string; icon?: ReactNode; size?: 'sm' | 'md' }) {
+  const { busy, run } = useExportAction()
+  return <Button variant="secondary" size={size} loading={busy} icon={icon ?? <Download className="size-4" />} onClick={() => run(url, fileName, params)}>{label}</Button>
 }
 
 /** PDF'i yeni sekmede açan düğme (filtreler adrese eklenir). */

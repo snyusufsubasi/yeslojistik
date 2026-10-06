@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
-import { Empty, ErrorState, Spinner } from './ui'
+import { Empty, ErrorState, TableSkeleton } from './ui'
 import { useRowSelection, type RowSelection } from '../lib/selection'
 
 /** Seçim sütunu eklenince sayfanın verdiği toplam satırı (<tr>) da bir hücre kaydırılır. */
@@ -145,7 +145,7 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
           {footer && <tfoot>{sel ? withLeadingCell(footer) : footer}</tfoot>}
         </table>
       </div>
-      {!rows && (error && !loading ? <ErrorState error={error} onRetry={onRetry} /> : loading && <Spinner />)}
+      {!rows && (error && !loading ? <ErrorState error={error} onRetry={onRetry} /> : loading && <TableSkeleton cols={columns.length + (sel ? 1 : 0)} />)}
       {rows && rows.length === 0 && <Empty>{empty}</Empty>}
       {onPage && total !== undefined && total > pageSize && (
         <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 text-[0.8125rem] text-muted">

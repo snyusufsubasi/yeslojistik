@@ -7,13 +7,18 @@ import { MirrorContext } from '../ui'
 /** Açılır menü maddesi. `write`: ayna modunda gizlenir (kayıt değiştiren işler). */
 export type MenuItem = { label: string; onClick: () => void; icon?: ReactNode; write?: boolean; perm?: Permission; danger?: boolean; hidden?: boolean }
 
+/** Görünürlük süzgeci: `hidden`, ayna modunda `write`, yetkisiz `perm` elenir. Menüler ve PageShell ortak kullanır. */
+export function useVisibleItems(items: MenuItem[]): MenuItem[] {
+  const mirror = useContext(MirrorContext)
+  const { can } = useAuth()
+  return items.filter((i) => !i.hidden && !(i.write && mirror) && (!i.perm || can(i.perm)))
+}
+
 /** Açılır liste: klavye (↑↓ Enter Esc), dışarı tıklayınca kapanır. MoreMenu ve RowMenu ortak gövdesi. */
 function DropMenu({ items, trigger, align = 'right', label }: { items: MenuItem[]; trigger: (p: { open: boolean; toggle: () => void }) => ReactNode; align?: 'left' | 'right'; label: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const mirror = useContext(MirrorContext)
-  const { can } = useAuth()
-  const visible = items.filter((i) => !i.hidden && !(i.write && mirror) && (!i.perm || can(i.perm)))
+  const visible = useVisibleItems(items)
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
@@ -65,7 +70,7 @@ export function RowMenu({ items, label = 'İşlemler' }: { items: MenuItem[]; la
   return (
     <DropMenu items={items} label={label} trigger={({ open, toggle }) => (
       <button type="button" onClick={toggle} aria-expanded={open} aria-haspopup="menu" aria-label={label} title={label}
-        className="inline-flex size-9 items-center justify-center rounded-[3px] text-slate-700 hover:bg-surface-2 hover:text-fg">
+        className="inline-flex size-11 items-center justify-center rounded-[3px] text-slate-700 hover:bg-surface-2 hover:text-fg">
         <MoreHorizontal className="size-5" />
       </button>
     )} />

@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { Plus, Users } from 'lucide-react'
+import { Download, FileSpreadsheet, Plus, Users, Wallet } from 'lucide-react'
 import type { Customer } from '../api/types'
 import { CustomerForm } from '../components/CustomerForm'
-import { ImportButton } from '../components/ImportDialog'
+import { ImportButton, useImportAction } from '../components/ImportDialog'
 import { FirstUse } from '../components/FirstUse'
-import { ExportButton } from '../components/Exports'
+import { ExportButton, useExportAction } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Button, Card, PageHeader } from '../components/ui'
+import { Button, Card } from '../components/ui'
+import { PageShell } from '../components/shell/PageShell'
+import type { MenuItem } from '../components/shell/Menu'
 import { tl } from '../lib/format'
 import { useDebounce, usePaged, usePage, useOpenNewFromUrl } from '../lib/hooks'
 
@@ -24,6 +26,15 @@ export default function CustomersPage() {
 
   const query = { page, pageSize: 20, search: debounced, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Customer>('customers', query)
+  const exp = useExportAction()
+  const imp = useImportAction('customers')
+
+  // Yeni görünümde nadir işler "⋯ Diğer" menüsünde toplanır (docs/plan/28-ORTAK-PARCALAR.md)
+  const more: MenuItem[] = [
+    ...(can('accounting') ? [{ label: 'Cari Tablosu', icon: <Wallet className="size-4" />, onClick: () => navigate('/cari/musteriler') }] : []),
+    { label: "Excel'e aktar", icon: <Download className="size-4" />, onClick: () => exp.run('/customers/export', 'musteriler.xlsx', query) },
+    { label: "Excel'den aktar", icon: <FileSpreadsheet className="size-4" />, write: true, onClick: imp.run },
+  ]
 
   const columns: Column<Customer>[] = [
     { key: 'no', header: 'No', sortKey: 'id', render: (c) => <span className="text-slate-500">{c.customerNo}</span> },
@@ -42,13 +53,15 @@ export default function CustomersPage() {
 
   return (
     <>
-      <PageHeader title="Müşteriler" subtitle="Müşteri kartları. Bütün bakiyeleri tek tabloda görmek için “Cari Tablosu”."
+      <PageShell title="Müşteriler" subtitle="Müşteri kartları. Bütün bakiyeleri tek tabloda görmek için “Cari Tablosu”."
+        more={more}
+        primary={<Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>}
         actions={<>
           {can('accounting') && <Button variant="secondary" onClick={() => navigate('/cari/musteriler')}>Cari Tablosu</Button>}
           <ExportButton url="/customers/export" params={query} fileName="musteriler.xlsx" />
           <ImportButton entity="customers" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>Yeni Müşteri</Button>
-        </>} />
+        </>}>
       <Card title="Müşteri Listesi" icon={<Users className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Ünvan, VKN, telefon..." />}>
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(c) => c.id}
@@ -68,6 +81,8 @@ export default function CustomersPage() {
             </div>
           )} />
       </Card>
+      </PageShell>
+      {imp.dialog}
       {creating && <CustomerForm customer={null} onClose={() => setCreating(false)} onSaved={(c) => navigate(`/musteriler/${c.customer.id}`)} />}
     </>
   )

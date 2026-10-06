@@ -36,6 +36,16 @@ const hints: Partial<Record<Entity, string>> = {
   expenses: 'Eski giderler. “Vadeli: Evet” olanlar tedarikçiye borç yazılır. Plaka ve şoför sistemde kayıtlı olmalı.',
 }
 
+/**
+ * Menü maddesinden ("⋯ Diğer") Excel'den aktarım penceresini açmak için.
+ * Kullanım: `const imp = useImportAction('customers')` → menüde `onClick: imp.run`, gövdede `{imp.dialog}`.
+ */
+export function useImportAction(entity: Entity) {
+  const [open, setOpen] = useState(false)
+  const dialog = open ? <ImportDialog entity={entity} onClose={() => setOpen(false)} /> : null
+  return { run: () => setOpen(true), dialog }
+}
+
 export function ImportButton({ entity }: { entity: Entity }) {
   const [open, setOpen] = useState(false)
   return (
