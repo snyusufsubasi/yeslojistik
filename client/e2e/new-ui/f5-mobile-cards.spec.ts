@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
-import { login, useNewUi } from '../helpers'
+import { expect, test, type APIRequestContext, type APIResponse, type Page } from '@playwright/test'
+import { login, unique, useNewUi } from '../helpers'
 
 /**
  * F5 (kalan) — Kart görünümü olmayan liste ekranlarının telefonda karta çevrilmesi.
@@ -10,6 +10,23 @@ import { login, useNewUi } from '../helpers'
  * Klasik görünümde `mobileCard` hiç verilmez; o davranış `e2e/mobile.spec.ts` ile ayrıca korunur.
  */
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+/** "Alınan Faturalar" örnek veride boş: test kendi tedarikçisini ve faturasını API'den açar. */
+async function purchaseInvoiceFixture(request: APIRequestContext, id: string) {
+  const ok = async <T>(res: Promise<APIResponse>) => {
+    const r = await res
+    expect(r.ok(), await r.text()).toBeTruthy()
+    return (await r.json()) as T
+  }
+  const title = `E2E Kart Tedarikçi ${id}`
+  const supplier = await ok<{ id: number }>(request.post('/api/suppliers', { data: { title, kind: 'Carrier', paymentTermDays: 30 } }))
+  const invoiceNo = `E2EKRT${id}`
+  await ok(request.post('/api/purchase-invoices', { data: {
+    supplierId: supplier.id, invoiceNo, date: new Date().toISOString().slice(0, 10), dueDate: null, kind: 'EInvoice',
+    subtotal: 10_000, vatAmount: 2_000, withholdingAmount: 0, notes: null, tripIds: [],
+  } }))
+  return { title, invoiceNo }
+}
 
 /** Kart listesini ve sayfadaki tabloyu bulur; yatay taşmayı ölçer. */
 async function cardList(page: Page) {
@@ -53,13 +70,17 @@ test('Araçlar listesi telefonda kart olur, kart ≤120px, ⋯ ≥44px ve taşma
   const itemBox = await item.boundingBox()
   expect(itemBox?.height ?? 0).toBeGreaterThanOrEqual(44)
   await page.keyboard.press('Escape')
+  await expect(item).toBeHidden()
 
-  // Kart klavyeyle açılır (role=button + Enter): araç formu açılmalı.
-  await first.locator('[role="button"]').first().focus()
+  // Kart klavyeyle açılır (role=button + Enter): araç formu açılır, Esc kapatır.
+  const cardBody = first.locator('[role="button"]').first()
+  await cardBody.focus()
+  await expect(cardBody).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('dialog').first()).toBeVisible()
+  const dialog = page.getByRole('dialog').first()
+  await expect(dialog).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog').first()).toBeHidden()
+  await expect(dialog).toBeHidden()
 })
 
 test('Çek/Senet listesi telefonda kart olur (tablo gizli, taşma yok)', async ({ page }) => {
@@ -72,14 +93,39 @@ test('Çek/Senet listesi telefonda kart olur (tablo gizli, taşma yok)', async (
   expect(box?.height ?? 0, '/cek-senet kart yüksekliği').toBeLessThanOrEqual(120)
 })
 
-test('Tahsilatlar, Ödemeler ve Alınan Faturalar listeleri telefonda kart olur', async ({ page }) => {
+test('Tahsilatlar ve Ödemeler listeleri telefonda kart olur', async ({ page }) => {
   await useNewUi(page)
   await login(page)
-  for (const path of ['/tahsilatlar', '/odemeler', '/alinan-faturalar']) {
+  for (const path of ['/tahsilatlar', '/odemeler']) {
     await page.goto(path)
     await page.waitForLoadState('networkidle')
     await expectCardsNoOverflow(page, path)
   }
+})
+
+test('Alınan Faturalar listesi telefonda kart olur; kart satır menüsü öge adını taşır', async ({ page }) => {
+  await useNewUi(page)
+  await login(page)
+  const { title, invoiceNo } = await purchaseInvoiceFixture(page.request, unique())
+  await page.goto('/alinan-faturalar')
+  await page.waitForLoadState('networkidle')
+  const cards = await expectCardsNoOverflow(page, '/alinan-faturalar')
+
+  // Sunucu yeni faturayı en başa koyar (tarih bugün); arama kutusuna yazınca liste tek karta iner.
+  await page.getByPlaceholder('Fatura no, tedarikçi, VKN...').fill(invoiceNo)
+  const card = cards.locator('> li').first()
+  await expect(card).toContainText(title)
+  await expect(card).toContainText(invoiceNo)
+  await expect(cards.locator('> li')).toHaveCount(1)
+  const box = await card.boundingBox()
+  expect(box?.height ?? 0, '/alinan-faturalar kart yüksekliği').toBeLessThanOrEqual(120)
+
+  // "⋯" düğmesinin erişilebilir adı öge adını (fatura no) taşır ve dokunma hedefi ≥44px.
+  const menu = card.getByRole('button', { name: `${invoiceNo} işlemleri` })
+  await expect(menu).toBeVisible()
+  const menuBox = await menu.boundingBox()
+  expect(menuBox?.width ?? 0).toBeGreaterThanOrEqual(44)
+  expect(menuBox?.height ?? 0).toBeGreaterThanOrEqual(44)
 })
 
 test('Raporlar liste bölümleri telefonda kart olur; sayfa yana kaymaz', async ({ page }) => {
