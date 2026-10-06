@@ -18,12 +18,27 @@ export function SectionTabs() {
   const { pathname, search } = useLocation()
   const { can } = useAuth()
   const activeRef = useRef<HTMLAnchorElement>(null)
+  const scrollRef = useRef<HTMLElement>(null)
   const section = sectionFor(pathname)
   const activeKey = section ? pathname + search : ''
   useEffect(() => {
     if (!isNew) return
-    // `inline:'nearest'` şeridi yalnız gerektiği kadar kaydırır; `block:'nearest'` sayfayı dikey oynatmaz.
-    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    // `scrollIntoView` bazı durumlarda (yazı tipi yüklenmeden önce ölçüm) şeridi hizalamıyor;
+    // bu yüzden kaydırma doğrudan hesaplanır ve yazı tipi yerleştikten sonra bir kez daha denenir.
+    const align = () => {
+      const box = scrollRef.current
+      const active = activeRef.current
+      if (!box || !active) return
+      const overflowRight = active.offsetLeft + active.offsetWidth - (box.scrollLeft + box.clientWidth)
+      if (overflowRight > 0) box.scrollLeft += overflowRight
+      else if (active.offsetLeft < box.scrollLeft) box.scrollLeft = active.offsetLeft
+    }
+    align()
+    const raf = requestAnimationFrame(align)
+    // Yazı tipi sonradan yerleşirse sekme genişlikleri değişir: hazır olduğunda bir kez daha hizala.
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts
+    fonts?.ready.then(align).catch(() => {})
+    return () => cancelAnimationFrame(raf)
   }, [isNew, activeKey])
   if (!isNew || !section) return null
   const tabs = section.tabs.filter((t) => !t.perm || can(t.perm))
@@ -39,7 +54,7 @@ export function SectionTabs() {
     return true
   }
   return (
-    <nav aria-label="Bölüm sekmeleri"
+    <nav ref={scrollRef} aria-label="Bölüm sekmeleri"
       className="section-tabs -mt-2 mb-5 max-w-full overflow-x-auto border-b border-line [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <div role="tablist" className="flex min-w-max gap-1 whitespace-nowrap">
         {tabs.map((t) => {

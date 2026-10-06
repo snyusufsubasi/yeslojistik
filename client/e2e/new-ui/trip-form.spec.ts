@@ -30,12 +30,35 @@ async function typeSelect(input: ReturnType<Page['locator']>, text: string, opti
   await expect(choice).toBeHidden()
 }
 
-test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümde bugünkü düzen', async ({ page }) => {
+test('Sevkiyat formu: klasik görünümde bugünkü düzen, yeni görünümde tek sayfa iki sütun', async ({ page }) => {
   const id = unique()
   await login(page)
   const { customerTitle, plate } = await fixtures(page.request, id)
 
-  // --- Yeni görünüm: bölüm numarası yok; müşteri (sol) ile araç (sağ) aynı hizada ---
+  // --- Klasik görünüm (varsayılan): bugünkü üç bölümlü düzen ---
+  // Sıra önemli: `useNewUi` her sayfa yüklemesinde localStorage'ı "new" yapar, bu yüzden klasik bölüm ÖNCE koşar.
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'classic')
+  await page.goto('/seferler?new=1')
+  const classic = dialogOf(page)
+  await expect(classic).toBeVisible()
+  // Bölüm başlıkları metni değişmedi (bkz. docs/plan/04-SEVKIYAT-FORMU.md §6).
+  await expect(classic.locator('h3', { hasText: 'Müşteri ve güzergâh' })).toHaveText('Müşteri ve güzergâh')
+  await expect(classic.locator('h3', { hasText: 'Araç ve şoför' })).toHaveText('Araç ve şoför')
+  await expect(classic.locator('h3', { hasText: 'Fiyat' })).toHaveText('Fiyat')
+  // Tek sütun akış: araç kutusu müşterinin çok altında.
+  await typeSelect(classic.locator('input[name=customerId]'), customerTitle, customerTitle)
+  const classicCustomer = await classic.locator('input[name=customerId]').boundingBox()
+  const classicVehicle = await classic.locator('input[name=vehicleId]').boundingBox()
+  expect(classicCustomer).not.toBeNull()
+  expect(classicVehicle).not.toBeNull()
+  expect(classicVehicle!.y).toBeGreaterThan(classicCustomer!.y + 100)
+  // Klasik görünümde de yazılmışsa Esc sorar (koruma davranışı iki düzende de aynı; ui.tsx:163-167).
+  await page.keyboard.press('Escape')
+  await expect(classic.getByText('Kaydedilmemiş değişiklikler var. Kapatılsın mı?')).toBeVisible()
+  await classic.getByRole('button', { name: 'Kaydetmeden kapat' }).click()
+  await expect(classic).toBeHidden()
+
+  // --- Yeni görünüm: tek sayfa iki sütun; bölüm numarası ve h3 başlık yok ---
   await useNewUi(page)
   await page.goto('/seferler?new=1')
   const dialog = dialogOf(page)
@@ -68,28 +91,4 @@ test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümd
   await expect(customerInput).toHaveValue(customerTitle)
   await dialog.getByRole('button', { name: 'Vazgeç' }).click()
   await expect(dialog).toBeHidden()
-
-  // --- Klasik görünüm: aynı form bugünkü üç bölümlü düzeniyle açılır ---
-  await page.getByRole('button', { name: 'Hesabım' }).click()
-  await page.getByRole('radio', { name: 'Klasik' }).click()
-  await expect(page.locator('html')).toHaveAttribute('data-ui', 'classic')
-  await page.goto('/seferler?new=1')
-  const classic = dialogOf(page)
-  await expect(classic).toBeVisible()
-  // Bölüm başlıkları metni değişmedi (bkz. docs/plan/04-SEVKIYAT-FORMU.md §6).
-  await expect(classic.locator('h3', { hasText: 'Müşteri ve güzergâh' })).toHaveText('Müşteri ve güzergâh')
-  await expect(classic.locator('h3', { hasText: 'Araç ve şoför' })).toHaveText('Araç ve şoför')
-  await expect(classic.locator('h3', { hasText: 'Fiyat' })).toHaveText('Fiyat')
-  // Tek sütun akış: araç kutusu müşterinin çok altında.
-  await typeSelect(classic.locator('input[name=customerId]'), customerTitle, customerTitle)
-  const classicCustomer = await classic.locator('input[name=customerId]').boundingBox()
-  const classicVehicle = await classic.locator('input[name=vehicleId]').boundingBox()
-  expect(classicCustomer).not.toBeNull()
-  expect(classicVehicle).not.toBeNull()
-  expect(classicVehicle!.y).toBeGreaterThan(classicCustomer!.y + 100)
-  // Klasik görünümde de yazılmışsa Esc sorar (koruma davranışı iki düzende de aynı; ui.tsx:163-167).
-  await page.keyboard.press('Escape')
-  await expect(classic.getByText('Kaydedilmemiş değişiklikler var. Kapatılsın mı?')).toBeVisible()
-  await classic.getByRole('button', { name: 'Kaydetmeden kapat' }).click()
-  await expect(classic).toBeHidden()
 })
