@@ -33,7 +33,7 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
   return (
     <button
       className={clsx('inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[3px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-4',
-        size === 'sm' ? 'min-h-8 px-2.5 text-[0.8125rem]' : 'min-h-9 px-3.5 text-[0.875rem]', variants[variant], className)}
+        size === 'sm' ? 'min-h-9 px-3 text-[0.8125rem]' : 'min-h-11 px-4 text-[0.875rem]', variants[variant], className)}
       disabled={disabled || loading}
       {...rest}
     >
@@ -48,7 +48,7 @@ export function IconButton({ label, className, children, write, ...rest }: Butto
   if (write && mirror) return null
   return (
     <button title={label} aria-label={label}
-      className={clsx('inline-flex size-9 items-center justify-center rounded-[3px] text-slate-700 transition hover:bg-surface-2 hover:text-fg disabled:opacity-40', className)}
+      className={clsx('inline-flex size-11 items-center justify-center rounded-[3px] text-slate-700 transition hover:bg-surface-2 hover:text-fg disabled:opacity-40', className)}
       {...rest}>
       {children}
     </button>
@@ -93,7 +93,7 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
     <section className={clsx('card', className)}>
       {(title || actions) && (
         <header className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-t-[4px] border-b border-line bg-surface-2 px-4 py-2">
-          <h2 className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.08em] text-slate-700">
+          <h2 className="flex items-center gap-2 text-[0.8125rem] font-bold text-slate-800">
             {icon && <span className="flex text-muted [&_svg]:size-4">{icon}</span>}
             {title}
           </h2>
@@ -122,10 +122,10 @@ export function PageHeader({ title: pageTitle, subtitle, actions, back }: { titl
           </nav>
         )}
         <div className="flex items-center">
-          <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{title}</h1>
+          <h1 className="text-[1.625rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{title}</h1>
           {!back && !isNew && <HelpTip page={page} />}
         </div>
-        {showSubtitle && <p className="mt-1 text-[0.875rem] text-muted">{subtitle}</p>}
+        {showSubtitle && <p className="mt-1.5 text-[0.9375rem] text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
