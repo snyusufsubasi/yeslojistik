@@ -9,8 +9,9 @@ import { del, get, post, put } from '../api/client'
 import type { Staff, StaffTransaction, StaffTransactionKind } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { ImportButton, useImportAction } from '../components/ImportDialog'
-import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner, StatCard } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { Figures, Figure } from '../components/ui'
 import { MobileCards } from '../components/shell/MobileCards'
 import type { MenuItem } from '../components/shell/Menu'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
@@ -62,10 +63,12 @@ export default function StaffPage() {
           <ImportButton entity="staff" />
           <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Personel Ekle</Button>
         </>}>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard title="Bu ayın maaşları" value={tl(active.reduce((s, x) => s + x.salary, 0))} icon={<UserRound />} color="blue" sub={`${active.length} çalışan`} />
-        <StatCard title="Verilen avans" value={tl(rows.reduce((s, x) => s + x.advances, 0))} icon={<Wallet />} color="orange" />
-        <StatCard title="Ödenecek kalan" value={tl(rows.reduce((s, x) => s + Math.max(0, x.remaining), 0))} icon={<Wallet />} color="green" />
+      <div className="mb-4 border border-line bg-white">
+        <Figures>
+          <Figure label="Bu ayın maaşları" value={tl(active.reduce((s, x) => s + x.salary, 0))} />
+          <Figure label="Verilen avans" value={tl(rows.reduce((s, x) => s + x.advances, 0))} />
+          <Figure label="Ödenecek kalan" value={tl(rows.reduce((s, x) => s + Math.max(0, x.remaining), 0))} />
+        </Figures>
       </div>
       <Card bodyClassName="p-0" title="Personel listesi" icon={<UserRound className="size-4" />}
         actions={<label className="input flex items-center gap-2"><span className="shrink-0 text-sm text-slate-500">Ay</span>
