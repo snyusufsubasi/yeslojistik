@@ -18,9 +18,14 @@ yazılmıştır; hiçbiri kodu değiştirmez, yalnız ne yapılacağını tarif 
   `FilterPanel.tsx:7/35`, `SectionTabs.tsx:8`, `ui.tsx:108/112/126/132`, `TripsPage.tsx:16/341/466`,
   `DashboardPage.tsx:26/56/93`, `TripForm.tsx:154`, `textSize.ts:4`, `App.tsx:79-114`,
   `helpers.ts:44` → tamamı doğru.
-- `client/src/index.css` içinde `data-ui` seçicisi **yok** (0 eşleşme) → yeni görünümün görsel
-  karşılığı gerçekten eksik (`docs/plan/29-GORSEL-SISTEM.md` konusu).
-- `client/e2e` altında **53** `test(...)` var (`AGENTS.md` "~47" diyor).
+- `client/src/index.css` içinde `data-ui` seçicisi 5 Ekim'de **yoktu** (0 eşleşme) → yeni görünümün
+  görsel karşılığı eksikti; **6 Ekim'de `html[data-ui="new"]` jeton katmanı eklendi**
+  (`client/src/index.css:145-170`, şartname `docs/plan/29-GORSEL-SISTEM.md`). Renk/tablo/satır
+  jetonları var; "Tablo yazısı" ve `data-density` (Rahat / Sık) seçenekleri hâlâ yok.
+- `client/e2e` altında **24 spec** ve **58** `test(...)` var (6 Ekim ölçümü; 5 Ekim'de 20 spec / 53
+  test idi, `AGENTS.md` "~47" diyor). 6 Ekim'de eklenen 5 spec: `new-ui/faturalandirilacaklar`,
+  `new-ui/mobile-cards`, `new-ui/today-approvals`, `new-ui/trip-form`, `new-ui/trip-form-mobile`;
+  ayrıntı `docs/plan/31-TEST-CI.md` §2.
 - `02`–`34` numaralı belgeler yazıldıktan sonra ayrı bir doğrulama turu her belgenin referanslarını
   kodla karşılaştırır; sonuç aşağıdaki durum sütununa işlenir.
 
@@ -39,7 +44,7 @@ yazılmıştır; hiçbiri kodu değiştirmez, yalnız ne yapılacağını tarif 
 
 | # | Belge | Konu | Kelime | Referans | Bozuk | Durum |
 |---|---|---|---|---|---|---|
-| 00 | [00-DIZIN.md](00-DIZIN.md) | Dizin: pratikortam benzerliği uygulama planı | 1170 | 16 | 0 | dizin |
+| 00 | [00-DIZIN.md](00-DIZIN.md) | Dizin: pratikortam benzerliği uygulama planı | 1218 | 17 | 0 | dizin |
 | 01 | [01-ORTAK-SARTNAME.md](01-ORTAK-SARTNAME.md) | Ortak şartname (belge şablonu, kurallar, ortak gerçekler) | 2151 | 13 | 0 | sartname |
 | 02 | [02-BUGUN.md](02-BUGUN.md) | Bugün ekranı | 2793 | 82 | 0 | yazildi |
 | 03 | [03-SEVKIYATLAR-LISTE.md](03-SEVKIYATLAR-LISTE.md) | Sevkiyatlar listesi | 2624 | 51 | 0 | yazildi |
@@ -70,7 +75,7 @@ yazılmıştır; hiçbiri kodu değiştirmez, yalnız ne yapılacağını tarif 
 | 28 | [28-ORTAK-PARCALAR.md](28-ORTAK-PARCALAR.md) | Ortak parçalar şartnamesi | 2239 | 80 | 0 | yazildi |
 | 29 | [29-GORSEL-SISTEM.md](29-GORSEL-SISTEM.md) | Görsel sistem ve yeni görünüm jetonları | 1313 | 15 | 0 | yazildi |
 | 30 | [30-VERI-API.md](30-VERI-API.md) | Veri ve API sözleşmeleri | 1469 | 5 | 0 | yazildi |
-| 31 | [31-TEST-CI.md](31-TEST-CI.md) | Test ve CI stratejisi | 1211 | 11 | 0 | yazildi |
+| 31 | [31-TEST-CI.md](31-TEST-CI.md) | Test ve CI stratejisi | 1295 | 11 | 0 | yazildi |
 | 32 | [32-TERMINOLOJI.md](32-TERMINOLOJI.md) | Terim sözlüğü ve ekran metinleri | 1333 | 4 | 0 | yazildi |
 | 33 | [33-K0-VE-KABUL-TESTI.md](33-K0-VE-KABUL-TESTI.md) | K0 dinleme, tık ölçümü ve kabul testi | 1224 | 9 | 0 | yazildi |
 | 34 | [34-RISK-GUVENLIK.md](34-RISK-GUVENLIK.md) | Risk, güvenlik, gizlilik ve geçiş | 1494 | 13 | 0 | yazildi |

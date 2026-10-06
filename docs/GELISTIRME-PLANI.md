@@ -1,5 +1,7 @@
 # YES Lojistik — Geliştirme Planı
 
+> **6 Ekim — kolaylaştırma/yeni görünüm ilerlemesi:** Ayrıntı ve kalan işler aşağıdaki "Yeni görünüm ve kolaylaştırma (6 Ekim)" bölümünde. Özet: görsel jeton katmanı (`html[data-ui="new"]`), `docs/plan/` seti (35 belge) + `tools/docs/referans-denetimi.ps1` denetleyicisi, liste iskeleti (`TableSkeleton` + `PageShell`) ve Müşteriler/Tedarikçiler/Şoförler/Personel/Sabit Ödemeler listeleri, e-Fatura'da "Faturalandırılacaklar" sekmesi, `DetailDrawer` (Sevkiyatlar `?id=`), Mazotlar ve Araç Masrafları ekranları, telefonda kart görünümü/alt menü şeridi/tam ekran süzgeç, Bugün'de "Onay Bekleyenler" sekmesi, sevkiyat formunda tek sayfa iki sütun.
+
 > **5 Ekim — yeni uygulama sırası:** Kullanıcıyla hazırlanan kapsam ve kabul şartları `TAM-GELISTIRME-PLANI.md` dosyasında. İlk güvenlik paketi tamamlandı: eksik aktarım doğrulaması, küçük gruplarda toplu silme koruması ve karışık KDV faturası kontrolü. 311 sunucu ve 47 tarayıcı testi dahil CI geçti. Doğrulama durumu `UYGULAMA-DURUMU.md` içinde.
 >
 > Eski bulguların güncel durumu: tedarikçi carisine alınan faturalar dahil edilmiş; alınan fatura oluşturma/güncelleme transaction kullanıyor; demo temizliğinde koruma ve audit kaydı mevcut; müşteri durum e-postası mevcut. Bunlar yeniden yazılacak işler değil, testlerle doğrulanacak/tamamlanacak başlıklardır.
@@ -182,7 +184,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 | 4 | Şoför primi, masraf ve bekleyen komisyon cariye işlensin | Kâr düşüyor ama borç ya da alacak görünmüyor | Şoför cari, borçlar, "Bekleyen komisyonlar" raporu | M |
 | 5 | Cari tutarlılık testleri | Tedarikçi hatası testlerle yakalanamadı | Ortak bir "tüm bakiyeler aynı mı" kontrolü | M |
 | 6 | Sıkı görünüm ve sabit tablo başlığı | Bir ekrana az satır sığıyor, başlık kayboluyor | `DataTable` + "Görünüm: Normal / Sıkı" | M |
-| 7 | Mobilde filtre paneli ve kart görünümü | Telefonda filtreler ekranın yarısını kaplıyor, 8 liste yana kayıyor | Filtre alt sayfası + 8 listeye kart görünümü | M |
+| 7 | Mobilde filtre paneli ve kart görünümü | Telefonda filtreler ekranın yarısını kaplıyor, 8 liste yana kayıyor | Filtre alt sayfası + 8 listeye kart görünümü | M — **kısmen (6 Ekim):** süzgeç telefonda tam ekran ve 11 sayfada kart görünümü var (Sevkiyatlar, Cari, Müşteriler, Tedarikçiler, Şoförler, Personel, Sabit Ödemeler, Faturalar, İş Talepleri, Mazotlar, Araç Masrafları); detay sayfaları, Yönetici, Analiz, Çekler, Ödemeler ve Alınan Faturalar bekliyor |
 | 8 | Güvenlik iyileştirmeleri | Hesap kilitleme kötüye kullanılabiliyor; yedek anahtarı tek parça; şifre sıfırlama bağlantısı sahte adrese yönlendirilebilir; hız sınırı aşılabilir | Kimlik doğrulama, yönetim ve başlangıç kodu; nginx | S–M |
 | 9 | KVKK: konum izni sunucuda da denetlensin, mesai dışında konum kaydı tutulmasın | Yasal risk | `DriverController`, konum saklama süresi | S |
 | 10 | Klavye kısayolları ve erişilebilirlik | Alt+N = Yeni Sefer, "/" = arama, "?" = kısayol listesi | Layout, yardım sayfası | S |
@@ -198,7 +200,7 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 
 | Özellik (pratikortam) | YES Lojistik'te durum | Aşama |
 |---|---|---|
-| İş ekle → "Formu açık tut" ve kopya sayısı (1–19) | Yok, her kayıtta form kapanıyor | 2 |
+| İş ekle → "Formu açık tut" ve kopya sayısı (1–19) | **Var (6 Ekim):** sevkiyat formu tek sayfa iki sütun; "Kaydettikten sonra formu açık tut" ve "Kopya sayısı" (1–20) | 2 |
 | Sevkiyatlar Özet/Detay görünümü (yük, açıklama, komisyon, masraf, fatura, giren kişi) | **Var (3 Ekim):** "Özet / Detay" düğmesi; tercih tarayıcıda hatırlanır | 2 |
 | Tedarikçi, plaka, evrak var/yok filtreleri | **Var (3 Ekim):** tedarikçi, plaka, Piyasa / Öz Araç, komisyon işi, yükleme/indirme yeri, sevkiyat/teslim evrak/fatura no, teslim evrakı var/yok; adreste kalır, toplamlar ve Excel/PDF/İcmal süzgece uyar | 2 |
 | Sevkiyat listesi PDF ve İcmal | **Var:** Sevkiyatlar → "Sevkiyat PDF" ve "İcmal" | 2 |
@@ -289,3 +291,25 @@ Bütün dönüştürme işi tek bir yerde, **panelin sunucusunda** yapılacak. P
 - **Boş durumlar:** Müşteriler, Araçlar, Sevkiyatlar, Faturalar tamamen boşken "İlk ... ekleyin" kartı + "Excel'den aktarın"; ayna açıkken düğmeler gizli.
 
 **Sırada:** sefer, fatura, tahsilat ve gider aktarımı da önizlemeli/kısmi sihirbaza alınabilir (şimdilik eski pencere: hatalı satır varsa hiçbiri aktarılmaz). Pratikortam'dan geçiş sihirbazı ayrı iş.
+
+## Yeni görünüm ve kolaylaştırma (6 Ekim)
+**Yapıldı (main'e giren sıra: `8ce5c15` → `bd09ad9` → `afb62e8` → `7dba4d0` → `4ebc182`):**
+- **Görsel jeton katmanı:** `client/src/index.css` içinde `html[data-ui="new"]` bloğu — daha açık zemin ve ince çizgiler, tablo başlığında büyük harf yok, satır sıklığı 7px → 5px, süzgeç ve sekme boşlukları. Klasik görünüm etkilenmez. Şartname: `docs/plan/29-GORSEL-SISTEM.md`.
+- **Pratikortam benzerliği plan seti:** `docs/plan/` altında 35 belge (dizin, ortak şartname, ekran ekran şartname ve uygulama adımları, test/CI, risk) ve denetleyici `tools/docs/referans-denetimi.ps1` (dosya:satır referansı, mojibake/BOM, `00-DIZIN.md` durum tablosunu üretir). Tıkanıklık analizi `docs/KOLAYLASTIRMA-SIRADAKI-ISLER.md`.
+- **Liste iskeleti:** `DataTable` iskeleti (`TableSkeleton`) ve `shell/PageShell`; Müşteriler listesi ilk geçen sayfa oldu. Ardından Tedarikçiler, Şoförler, Personel ve Sabit Ödemeler listeleri `PageShell`'e geçti; menü (`shell/Menu`) ve süzgeç panelinde erişilebilirlik ve z-sırası düzeltmeleri yapıldı. Toplam beş liste: Müşteriler, Tedarikçiler, Şoförler, Personel, Sabit Ödemeler.
+- **F3 — "Faturalandırılacaklar" sekmesi:** `/faturalar?sekme=bekleyen`. Teslim edilmiş, faturası kesilmemiş sevkiyatlar müşteriye göre gruplanır; üstte faturalanacak sevkiyat sayısı ve KDV hariç toplam; gruptaki "Fatura Kes" sevkiyatları seçili hâlde fatura ekranını açar (`/faturalar/yeni?customerId=…&tripIds=…`). **Sunucu değişikliği yok**, mevcut `/trips` ucu kullanılır.
+- **Detay çekmecesi:** `shell/DetailDrawer` ortak parçası; Sevkiyatlar'da `?id=` adresiyle açılır (klasik görünümde eski pencere davranışı aynen korunur).
+- **F4 — Öz Mal ekranları:** `/mazotlar` (`pages/FuelPage.tsx`) ve `/arac-masraflari` (`pages/VehicleExpensesPage.tsx`). Mazot listesinde plaka, yakıt cinsi, istasyon, litre, yeni km, eski km, fark km ve km başı maliyet; fark hesaplanamıyorsa "—". Süzgeçler adreste kalır.
+- **F5 — telefon (yalnız yeni görünüm):** 640px altında listeler kart görünümüne geçer (`shell/MobileCards` + `DataTable.mobileCard`), alt menü şeridi beş yuva, süzgeç paneli tam ekran, 44px dokunma hedefleri. Mobil spec yatay kaydırma olmadığını doğrular.
+- **F2 — Bugün ve sevkiyat formu:** Bugün ekranında "Onay Bekleyenler" sekmesi (`/?tab=approvals`, yalnız muhasebe yetkisi): onay bekleyen teslim evrakları ve şoför masrafları tek listede, mevcut uçlarla. Sevkiyat formu tek sayfa iki sütun düzenine geçti; katlı "Diğer bilgiler" bölümü ve "Kaydet ve yeni"/"Kopya sayısı" korunur.
+- **Testler:** `client/e2e/new-ui/` altına 5 yeni spec eklendi (`faturalandirilacaklar`, `mobile-cards`, `today-approvals`, `trip-form`, `trip-form-mobile`). Toplam `client/e2e` altında 24 spec ve 58 `test(...)`. Bu makinede e2e koşulamıyor (yerelde .NET 10 SDK ve PostgreSQL yok); koşu CI'da (`.github/workflows/ci.yml`, `e2e` işi).
+
+**Sırada (bilinen eksikler):**
+- `client/src/lib/nav.ts` menüsünde **Mazotlar** ve **Araç Masrafları** girdisi yok: klasik görünümde bu iki ekrana menüden erişim yok, yalnız adresle; yeni görünümde "Öz Mal" sekmelerinden açılır.
+- Mazot şeridinde **toplam litre / toplam km** gösterilemiyor: `ExpenseTotalsDto` (`server/YesLojistik.Core/Dtos/FinanceDtos.cs:145`) yalnız kayıt, tutar, onaylı ve onay bekleyen veriyor; genişletilmeli. (Sunucu işi; istemci işi değil.)
+- Gider formunda **kilitli kategori** yok (`lockCategory`/`defaultCategory` kodda yok): Mazotlar'dan "+ Mazot Ekle" genel gider formunu açar, kategori değiştirilebilir. Mazot listesinde **satır düzenleme** (satır menüsü) de yok.
+- Detay sayfaları, Yönetici (Ayarlar), Analiz (Raporlar), Çekler, Tedarikçi Ödemeleri ve Alınan Faturalar ekranlarında **mobil kart görünümü yok**.
+- `DEFAULT_UI_MODE` hâlâ `'classic'` (`client/src/lib/uiMode.ts:8`): yeni görünüm varsayılan olmadı, **müşteri onayı bekleniyor** (F6).
+- "Tablo yazısı: Tırnaklı / Düz" seçimi ve `data-density` (Rahat / Sık) henüz yok.
+- F4.4 (Araçlar), F4.5 (Analiz "Genel Bakış"), F4.6 (Yönetici/Profilim) ve F6 cilası yapılmadı.
+- e2e testleri **bu makinede koşulamıyor** (yerelde .NET 10 SDK ve PostgreSQL yok); doğrulama CI'da yapılıyor.

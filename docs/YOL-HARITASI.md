@@ -103,6 +103,25 @@ Kod hazır ve canlıda. Bekleyen tek şey şifreler.
 ## Kolaylaştırma (5 Ekim, öncelik)
 Müşteri paneli pratikortam'a göre çok zor buldu. Plan: menü ve sekmeler pratikortam'daki ad ve sırayla, ekranlar daha sade ve şık; "Yeni görünüm" anahtarıyla aşama aşama. Ayrıntı: `docs/KOLAYLASTIRMA-PLANI.md`.
 
+### Kolaylaştırmada bitenler (6 Ekim)
+- **F1 (temel) bitti (5 Ekim):** görünüm anahtarı (`lib/uiMode.ts`, `main.tsx`, kullanıcı menüsündeki "Görünüm" seçimi), yeni menü (`lib/nav.ts` → `classicNav`/`newNav`), bölüm sekmeleri (`shell/SectionTabs`, `lib/sections.ts`), ortak parçalar (`shell/PageShell`, `shell/Menu` içinde `MoreMenu`/`RowMenu`, `shell/FilterPanel`); "Sefer" → "Sevkiyat" terim değişikliği görünen metinlerde tamam.
+- **Görsel jeton katmanı (6 Ekim):** `client/src/index.css` → `html[data-ui="new"]`: daha açık zemin, tablo başlığında büyük harf yok, satır sıklığı 7px → 5px. Klasik görünüm etkilenmez.
+- **Pratikortam benzerliği plan seti (6 Ekim):** `docs/plan/` altında 35 belge ve `tools/docs/referans-denetimi.ps1` (dosya:satır + mojibake denetimi, `00-DIZIN.md` tablosunu üretir).
+- **Liste iskeleti (6 Ekim):** `TableSkeleton` + `shell/PageShell`; Müşteriler, Tedarikçiler, Şoförler, Personel ve Sabit Ödemeler listeleri geçti; menü ve süzgeç panelinde erişilebilirlik/z-sırası düzeltmeleri.
+- **F3 "Faturalandırılacaklar" (6 Ekim):** `/faturalar?sekme=bekleyen` — teslim edilmiş, faturasız sevkiyatlar müşteriye göre gruplanır; "Fatura Kes" seçili sevkiyatları forma taşır. Sunucu değişikliği yok.
+- **Detay çekmecesi (6 Ekim):** `shell/DetailDrawer`, Sevkiyatlar'da `?id=` ile açılır.
+- **F4.2/F4.3 (6 Ekim):** `/mazotlar` (`FuelPage`) ve `/arac-masraflari` (`VehicleExpensesPage`); mazotta litre, km ve km başı maliyet.
+- **F5 telefon (6 Ekim, yalnız yeni görünüm):** 640px altında kart görünümü (`shell/MobileCards`), beş yuvalı alt şerit, tam ekran süzgeç, 44px dokunma hedefleri.
+- **F2 (6 Ekim):** Bugün ekranında "Onay Bekleyenler" sekmesi (`/?tab=approvals`, yalnız muhasebe); sevkiyat formu tek sayfa iki sütun.
+- **Testler:** `client/e2e/new-ui/` altında 8 spec (bugün 5 yeni: `faturalandirilacaklar`, `mobile-cards`, `today-approvals`, `trip-form`, `trip-form-mobile`); toplam 58 `test(...)`. Bu makinede e2e koşulamıyor (yerelde .NET 10 SDK ve PostgreSQL yok), koşu CI'da.
+
+### Kolaylaştırmada sıradakiler (6 Ekim)
+- `nav.ts` menüsüne **Mazotlar** ve **Araç Masrafları** girdisi (klasik görünümde menüden erişim yok, yalnız adres; yeni görünümde "Öz Mal" sekmeleri).
+- Mazot şeridinde toplam litre/toplam km için `ExpenseTotalsDto` genişletilmeli (`server/YesLojistik.Core/Dtos/FinanceDtos.cs`). Sunucu işi.
+- Gider formunda kilitli kategori, mazot listesinde satır düzenleme.
+- Detay sayfaları, Yönetici, Analiz, Çekler, Ödemeler ve Alınan Faturalar'da mobil kart görünümü.
+- F4.4 (Araçlar), F4.5 (Analiz "Genel Bakış"), F4.6 (Yönetici/Profilim) ve F6 (`DEFAULT_UI_MODE = 'new'` yapılacak — **müşteri onayı bekliyor**).
+
 ## Satışa hazırlık
 Panel başka firmalara satılacak ürün olarak da düşünülüyor. Rakipler, eksikler, fiyat ve aşamalar: `docs/SATIS-PLANI.md` (başında 4 Ekim durumu var: lisans, 2FA, kurulum otomasyonu, sihirbaz, UETDS hazırlığı, hukuk taslakları yapıldı).
 

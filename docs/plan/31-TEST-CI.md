@@ -12,14 +12,19 @@ kurulumu.
 
 ## 2. Bugünkü durum (kod kanıtıyla)
 
-- **Tarayıcı (e2e):** `client/e2e` altında **20 spec**, toplam **53 `test(...)`**. Dağılım:
+- **Tarayıcı (e2e):** `client/e2e` altında **24 spec**, toplam **58 `test(...)`** (6 Ekim ölçümü). Dağılım:
   `workflow.spec.ts` (16 test: uçtan uca iş akışı, rapor/Excel, bildirim, kopyalama+PDF, yakıt,
   işlem geçmişi, yedek, taşeron/kiralık, e-Fatura/XML, masraf reddi+belgeler, çek cirosu+virman,
   Ctrl+K, pano), `vehicles`, `uetds`, `trips`, `tracking`, `security`, `bulk`, `cari`,
   `driver-app`, `mobile`, `quick-add`, `office-app`, `import`, `forms`, `onboarding`, `license`.
 - **Yeni görünüm spec'leri:** `client/e2e/new-ui/` → `basics.spec.ts` (görünüm anahtarı kalıcılığı,
   menü sırası + sekmeler, süzgeç paneli/çipi/satır menüsü), `cari-invoice.spec.ts` (satırdan
-  tahsilat, KDV farkı uyarısı), `trip-copies.spec.ts` (kopya sayısı, formu açık tut).
+  tahsilat, KDV farkı uyarısı), `trip-copies.spec.ts` (kopya sayısı, formu açık tut),
+  **6 Ekim'de eklenenler:** `faturalandirilacaklar.spec.ts` (`/faturalar?sekme=bekleyen` sekmesinin
+  adresle aktifliği), `today-approvals.spec.ts` (`/?tab=approvals` onay listesi), `trip-form.spec.ts`
+  (yeni görünümde tek sayfa iki sütun, klasikte eski düzen), `trip-form-mobile.spec.ts` (telefonda tek
+  sütun ve pencere içinde yatay kaydırma yok), `mobile-cards.spec.ts` (kart görünümü, alt şeritte beş
+  yuva, tam ekran süzgeç, yatay taşma yok).
 - **Yardımcılar:** `client/e2e/helpers.ts` — `API_URL`/`DRIVER_APP_URL` (4-5), `login` (9-15),
   `expectPdfOpens` (24-29), `pick` (32-41), **`useNewUi`** (44-46; `localStorage: yes.uiMode='new'`).
 - **Playwright yapılandırması:** `client/playwright.config.ts` — `testDir ./e2e` (5), `workers: 1`,
@@ -114,8 +119,9 @@ belgede 1.155 mojibake oluştu ve tersine çevirmeyle onarıldı) — yalnız `w
 ## 7. Telefon davranışı (390×844)
 
 - `mobile.spec.ts` yatay kaydırmayı kontrol eder (var olan test).
-- Yeni kart görünümü (`DataTable.mobileCard`) eklendiğinde bu test genişletilir: kart başlığı
-  görünür, tablo başlığı gizli.
+- Yeni kart görünümü (`DataTable.mobileCard` + `shell/MobileCards`) **eklendi (6 Ekim)**; kart başlığı
+  görünürlüğü, alt şeridin beş yuvası, tam ekran süzgeç ve yatay taşma olmaması artık
+  `new-ui/mobile-cards.spec.ts` içinde sınanıyor.
 
 ## 8. Erişilebilirlik ve klavye testleri
 
@@ -148,12 +154,13 @@ Toplam: her adım için ~15 dk CI + geliştirme süresi (ekran belgelerindeki ta
 
 ## 11. Kabul ölçütü (ölçüm)
 
-| Ölçüm | Bugün | Hedef |
+| Ölçüm | Bugün (6 Ekim) | Hedef |
 |---|---|---|
-| e2e test sayısı | 53 | ≥60 (yeni görünüm spec'leri) |
+| e2e test sayısı | 58 (24 spec) | ≥60 (yeni görünüm spec'leri) |
+| Yeni görünüm spec'i | 8 (`client/e2e/new-ui/`) | her ekran belgesi için en az bir senaryo |
 | CI süresi | 9-11 dk | ≤15 dk |
 | Bozuk referans | 0 | 0 |
-| Kelime (plan seti) | ~60.000 | ≥50.000 |
+| Kelime (plan seti) | ~75.300 (35 belge) | ≥50.000 |
 
 ## 12. Riskler ve geri dönüş
 
