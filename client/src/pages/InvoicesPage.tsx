@@ -5,6 +5,7 @@ import { Ban, Download, Eye, FileCheck2, FileText, Mail, Plus, Printer, Wallet }
 import { download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
 import type { CompanySettings, EInvoiceInfo, EInvoiceStatus, Invoice, InvoiceStatus, InvoiceTotals, PagedResult, Trip } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
+import { MobileCards } from '../components/shell/MobileCards'
 import { useRowSelection } from '../lib/selection'
 import { ExportButton, PdfButton } from '../components/Exports'
 import { SumStrip } from '../components/SumStrip'
@@ -122,18 +123,21 @@ export default function InvoicesPage() {
                 Teslim edilen sevkiyatları “Yeni Fatura” ile faturalayın. Eski programda kestiğiniz faturalar için “Excel'den Aktar” düğmesini kullanın.
               </FirstUse>)}
           mobileCard={(i) => (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-fg">{i.invoiceNo}</span>
-                <Badge tone={paymentStatusTone(i.paymentStatus)}>{i.paymentStatus}</Badge>
-              </div>
-              <div className="text-sm">{i.customerTitle}</div>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="min-w-0 text-muted">{date(i.date)} · vade {date(i.dueDate)}</span>
-                <span className="shrink-0 font-semibold tabular-nums">{tl2(i.total)}</span>
-              </div>
-              {i.remaining > 0 && <div className="text-right text-sm font-semibold text-bad">Kalan <span className="tabular-nums">{tl2(i.remaining)}</span></div>}
-            </div>
+            <MobileCards menuLabel={`${i.invoiceNo} işlemleri`} cards={[{
+              id: i.id,
+              title: i.invoiceNo,
+              badge: { tone: paymentStatusTone(i.paymentStatus), label: i.paymentStatus },
+              info: [
+                i.customerTitle,
+                [`Vade ${date(i.dueDate)}`, i.remaining > 0 ? `Kalan ${tl2(i.remaining)}` : 'Ödendi'].join(' · '),
+              ].join(' — '),
+              amount: tl2(i.total),
+              onOpen: () => setViewing(i.id),
+              menu: [
+                { label: 'Aç', icon: <Eye className="size-4" />, onClick: () => setViewing(i.id) },
+                { label: 'PDF', icon: <Printer className="size-4" />, onClick: () => pdf(i) },
+              ],
+            }]} />
           )} />
       </Card>
       )}

@@ -9,6 +9,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { SupplierForm } from '../components/SupplierForm'
 import { Badge, Button, Card } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { MobileCards } from '../components/shell/MobileCards'
 import type { MenuItem } from '../components/shell/Menu'
 import { tl } from '../lib/format'
 import { useDebounce, usePaged, usePage } from '../lib/hooks'
@@ -73,13 +74,18 @@ export default function SuppliersPage() {
           page={page} total={data?.total} onPage={setPage}
           empty={debounced || kind ? 'Aramanıza uyan kayıt yok.' : 'Henüz tedarikçi yok. Kiralık araç sahiplerini “Yeni Tedarikçi” ile ekleyin ya da “Excel\'den Aktar” ile yükleyin.'}
           mobileCard={(s) => (
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate font-medium text-navy-900">{s.title}</div>
-                <div className="truncate text-sm text-slate-500">{[supplierKindLabel[s.kind], s.phone].filter(Boolean).join(' · ')}</div>
-              </div>
-              <span className={s.balance > 0 ? 'shrink-0 font-medium text-red-600' : 'shrink-0 text-slate-500'}>{tl(s.balance)}</span>
-            </div>
+            <MobileCards cards={[{
+              id: s.id,
+              title: s.title,
+              badge: s.isActive ? undefined : { tone: 'gray', label: 'Pasif' },
+              info: [supplierKindLabel[s.kind], s.contactName, s.phone ?? s.city].filter(Boolean).join(' · '),
+              amount: <span className={s.balance > 0 ? 'text-bad' : 'text-muted'}>{tl(s.balance)}</span>,
+              onOpen: () => navigate(`/tedarikciler/${s.id}`),
+              menu: [
+                { label: 'Aç', onClick: () => navigate(`/tedarikciler/${s.id}`) },
+                ...(can('accounting') ? [{ label: 'Cari Tablosu', onClick: () => navigate('/cari/tedarikciler') }] : []),
+              ],
+            }]} />
           )} />
       </Card>
       </PageShell>

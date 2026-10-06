@@ -9,6 +9,7 @@ import type { Driver } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PlateBadge, Tabs } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { MobileCards } from '../components/shell/MobileCards'
 import type { MenuItem } from '../components/shell/Menu'
 import { DocumentsPanel, DriverLedgerPanel } from '../components/FleetPanels'
 import { ImportButton, useImportAction } from '../components/ImportDialog'
@@ -123,7 +124,24 @@ export default function DriversPage() {
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(d) => d.id}
           onRowClick={setEditing}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
-          page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz şoför yok. “Yeni Şoför” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."} />
+          page={page} total={data?.total} onPage={setPage} empty={debounced ? "Aramanıza uyan kayıt yok." : "Henüz şoför yok. “Yeni Şoför” ile ekleyin ya da “Excel'den Aktar” ile toplu yükleyin."}
+          mobileCard={(d) => (
+            <MobileCards menuLabel={`${d.fullName} işlemleri`} cards={[{
+              id: d.id,
+              title: d.fullName,
+              badge: d.isActive ? undefined : { tone: 'gray', label: 'Pasif' },
+              info: [
+                d.supplierTitle ? `Taşeron: ${d.supplierTitle}` : 'Kendi şoförümüz',
+                [d.phone, d.plate, d.licenseClass].filter(Boolean).join(' · ') || '—',
+                d.hasAppAccount ? 'Uygulama hesabı var' : 'Uygulama hesabı yok',
+              ],
+              onOpen: () => setEditing(d),
+              menu: [
+                { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, perm: 'operations', onClick: () => setEditing(d) },
+                { label: 'Sil', icon: <Trash2 className="size-4" />, write: true, perm: 'operations', onClick: () => setDeleting(d) },
+              ],
+            }]} />
+          )} />
       </Card>
       </PageShell>
       {imp.dialog}

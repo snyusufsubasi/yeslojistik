@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import {
-  Plus, Bell, CalendarDays, CreditCard, Home, LogOut, Menu, Truck, UserCircle2, Users, X, ShieldCheck, LayoutTemplate, HelpCircle, Type,
+  Plus, Bell, CalendarDays, CreditCard, FileText, Home, LogOut, Menu, Truck, UserCircle2, Users, X, ShieldCheck, LayoutTemplate, HelpCircle, Type,
 } from 'lucide-react'
 import { get } from '../api/client'
 import { GlobalSearch } from './GlobalSearch'
@@ -233,38 +233,77 @@ function UiModePicker() {
   </>)
 }
 
-/** Telefonda altta sabit çubuk: en çok gidilen yerler ve ortada büyük "+ Yeni". */
+/**
+ * Telefonda altta sabit çubuk: en çok gidilen yerler ve ortada büyük "+ Yeni".
+ *
+ * Yeni görünümde beş yuva (Bugün · Sevkiyatlar · Faturalar · Cariler · Diğer), etkin yuva vurgulu ve
+ * `aria-current="page"` taşır; yuva başına en az 56px yükseklik, `min-w-0 truncate` etiket sarmalı ve
+ * iPhone ana göstergesi için `env(safe-area-inset-bottom)` (docs/plan/27-TELEFON.md §7-8).
+ * Klasik görünümde bugünkü çubuk (Ana Sayfa · Sevkiyat · (+) · Cariler · Menü) aynen kalır.
+ */
 function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) {
   const { can } = useAuth()
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const [openAt, setOpenAt] = useState(location.pathname)
+  const [uiMode] = useUiMode()
   if (openAt !== location.pathname) { setOpenAt(location.pathname); if (open) setOpen(false) }
   const items = quickActions.filter((a) => !a.perm || can(a.perm))
+  // Klasik görünümdeki bağlantı: bugünkü hâli aynen korunur (aria-current YALNIZ yeni çubukta).
   const link = (to: string, label: string, Icon: typeof Home, end = false) => (
     <NavLink to={to} end={end} aria-label={`${label} (kısayol)`}
       className={({ isActive }) => clsx('flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium', isActive ? 'text-brand-700' : 'text-slate-600')}>
       <Icon className="size-6" />{label}
     </NavLink>
   )
+  /**
+   * Yeni görünümün beş yuvası: adresler klasik çubukla aynı, adlar pratikortam'daki gibi.
+   * "Diğer" sol çekmeceyi açar; ortadaki yuva artık "+" değil Faturalar'dır.
+   */
+  const navSlots = [
+    { to: '/', label: 'Bugün', Icon: Home, end: true },
+    { to: '/seferler', label: 'Sevkiyatlar', Icon: Truck, end: false },
+    { to: '/faturalar', label: 'Faturalar', Icon: FileText, end: false },
+    { to: can('accounting') ? '/cari/musteriler' : '/musteriler', label: 'Cariler', Icon: Users, end: false },
+  ]
+  const newLink = (to: string, label: string, Icon: typeof Home, end: boolean) => (
+    <NavLink key={to} to={to} end={end} aria-label={`${label} (kısayol)`} aria-current={location.pathname === to ? 'page' : undefined}
+      className={({ isActive }) => clsx('flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[0.8125rem] font-medium transition',
+        isActive ? 'bg-accent-soft font-semibold text-brand-700' : 'text-slate-600')}>
+      <Icon className="size-[1.375rem] shrink-0" />
+      <span className="w-full truncate text-center">{label}</span>
+    </NavLink>
+  )
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={() => setOpen(false)} />}
       {open && <QuickActionMenu items={items} mirror={mirror} onPick={() => setOpen(false)} className="fixed inset-x-3 bottom-24 z-50 max-h-[70vh] overflow-y-auto lg:hidden" />}
-      <nav aria-label="Alt kısayollar" className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {link('/', 'Ana Sayfa', Home, true)}
-        {link('/seferler', 'Sevkiyat', Truck)}
-        <div className="flex flex-1 items-center justify-center">
-          <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
-            className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white ring-4 ring-white">
-            {open ? <X className="size-7" /> : <Plus className="size-8" />}
+      {uiMode === 'new' ? (
+        <nav aria-label="Alt kısayollar"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-stretch border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+          {navSlots.map((s) => newLink(s.to, s.label, s.Icon, s.end))}
+          <button type="button" onClick={onMenu} aria-label="Tüm menü"
+            className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[0.8125rem] font-medium text-slate-600 transition hover:bg-surface-2">
+            <Menu className="size-[1.375rem] shrink-0" />
+            <span className="w-full truncate text-center">Diğer</span>
           </button>
-        </div>
-        {link(can('accounting') ? '/cari/musteriler' : '/musteriler', 'Cariler', Users)}
-        <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium text-slate-600">
-          <Menu className="size-6" />Menü
-        </button>
-      </nav>
+        </nav>
+      ) : (
+        <nav aria-label="Alt kısayollar" className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+          {link('/', 'Ana Sayfa', Home, true)}
+          {link('/seferler', 'Sevkiyat', Truck)}
+          <div className="flex flex-1 items-center justify-center">
+            <button onClick={() => setOpen((o) => !o)} aria-label="Yeni kayıt ekle" aria-expanded={open}
+              className="-mt-6 flex size-14 items-center justify-center rounded-full bg-brand-600 text-white ring-4 ring-white">
+              {open ? <X className="size-7" /> : <Plus className="size-8" />}
+            </button>
+          </div>
+          {link(can('accounting') ? '/cari/musteriler' : '/musteriler', 'Cariler', Users)}
+          <button onClick={onMenu} aria-label="Tüm menü" className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-sm font-medium text-slate-600">
+            <Menu className="size-6" />Menü
+          </button>
+        </nav>
+      )}
     </>
   )
 }
