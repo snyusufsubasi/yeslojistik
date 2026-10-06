@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import type { AuditLogEntry } from '../api/types'
 import { dateTime } from '../lib/format'
+import type { Tone } from '../lib/labels'
 import { useDebounce, usePage, usePaged } from '../lib/hooks'
+import { useIsNewUi } from '../lib/uiMode'
 import { DataTable, SearchBox, type Column } from './DataTable'
+import { MobileCards } from './shell/MobileCards'
 import { Badge, Select } from './ui'
 
 const auditEntityLabel: Record<string, string> = {
   Trip: 'Sevkiyat', Invoice: 'Fatura', Payment: 'Tahsilat', Customer: 'Müşteri', Vehicle: 'Araç', Driver: 'Şoför',
   Expense: 'Gider', User: 'Kullanıcı', TripAttachment: 'Sevkiyat dosyası', CompanySettings: 'Ayarlar',
 }
-const actionLabel: Record<string, { text: string; tone: 'green' | 'blue' | 'red' | 'orange' }> = {
+const actionLabel: Record<string, { text: string; tone: Tone }> = {
   Created: { text: 'Oluşturdu', tone: 'green' },
   Updated: { text: 'Değiştirdi', tone: 'blue' },
   Deleted: { text: 'Sildi', tone: 'red' },
@@ -27,6 +30,7 @@ const actionLabel: Record<string, { text: string; tone: 'green' | 'blue' | 'red'
 
 /** İşlem geçmişi listesi. entityType/entityId verilirse yalnızca o kaydın geçmişi gösterilir. */
 export function AuditLogTable({ entityType, entityId }: { entityType?: string; entityId?: number }) {
+  const isNew = useIsNewUi()
   const [search, setSearch] = useState('')
   const [type, setType] = useState<string>('')
   const debounced = useDebounce(search)
@@ -56,7 +60,26 @@ export function AuditLogTable({ entityType, entityId }: { entityType?: string; e
         </div>
       )}
       <DataTable columns={cols} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(a) => a.id}
-        page={page} pageSize={fixed ? 50 : 30} total={data?.total} onPage={setPage} empty="Kayıt yok." />
+        page={page} pageSize={fixed ? 50 : 30} total={data?.total} onPage={setPage} empty="Kayıt yok."
+        mobileCard={isNew ? (a) => (
+          /*
+           * Telefon kartı — YALNIZ yeni görünüm (`isNew`). Klasik görünümde `mobileCard` hiç verilmez;
+           * tablo, süzgeç ve sayfalama davranışı değişmez (docs/plan/27-TELEFON.md §10.8).
+           * Kartta satır menüsü yoktur (geçmiş kaydı salt okunur); başlık zaman, sağda kişi, tek rozet işlem.
+           */
+          <div className="-my-3.5">
+            <MobileCards cards={[{
+              id: a.id,
+              title: dateTime(a.at),
+              badge: { tone: actionLabel[a.action]?.tone ?? 'blue', label: actionLabel[a.action]?.text ?? a.action },
+              info: [
+                `${a.userName ?? '—'}${fixed ? '' : ` · ${auditEntityLabel[a.entityType] ?? a.entityType}`}`,
+                fixed ? '' : (a.label ?? `#${a.entityId}`),
+                a.changes ?? '—',
+              ].filter(Boolean),
+            }]} />
+          </div>
+        ) : undefined} />
     </>
   )
 }

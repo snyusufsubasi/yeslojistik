@@ -57,8 +57,11 @@ test('Araçlar listesi telefonda kart olur, kart ≤120px, ⋯ ≥44px ve taşma
   expect(box?.height ?? 0, '/araclar kart yüksekliği').toBeLessThanOrEqual(120)
 
   // ⋯ düğmesinin erişilebilir adı plakayı taşır: "34 ABC 123 işlemleri".
-  const menu = first.getByRole('button', { name: /işlemleri$/ })
+  // NOT: doğrudan düğümü seçiyoruz — kart gövdesi de (role="button") içindeki bu düğmenin adını
+  // erişilebilir adının SONUNA ekler, bu yüzden serbest metin araması iki ögeyle eşleşir.
+  const menu = first.locator('button[aria-label$="işlemleri"]')
   await expect(menu).toBeVisible()
+  await expect(menu).toHaveAttribute('aria-label', /işlemleri$/)
   const menuBox = await menu.boundingBox()
   expect(menuBox?.width ?? 0).toBeGreaterThanOrEqual(44)
   expect(menuBox?.height ?? 0).toBeGreaterThanOrEqual(44)
@@ -121,8 +124,8 @@ test('Alınan Faturalar listesi telefonda kart olur; kart satır menüsü öge a
   expect(box?.height ?? 0, '/alinan-faturalar kart yüksekliği').toBeLessThanOrEqual(120)
 
   // "⋯" düğmesinin erişilebilir adı öge adını (fatura no) taşır ve dokunma hedefi ≥44px.
-  const menu = card.getByRole('button', { name: `${invoiceNo} işlemleri` })
-  await expect(menu).toBeVisible()
+  const menu = card.locator('button[aria-label$="işlemleri"]')
+  await expect(menu).toHaveAttribute('aria-label', `${invoiceNo} işlemleri`)
   const menuBox = await menu.boundingBox()
   expect(menuBox?.width ?? 0).toBeGreaterThanOrEqual(44)
   expect(menuBox?.height ?? 0).toBeGreaterThanOrEqual(44)
@@ -140,6 +143,19 @@ test('Klasik görünümde telefon kartı çizilmez: tablo davranışı değişme
   }
 })
 
+test('Ayarlar → İşlem Geçmişi listesi telefonda kart olur', async ({ page }) => {
+  await useNewUi(page)
+  await login(page)
+  await page.goto('/ayarlar?tab=audit')
+  await page.waitForLoadState('networkidle')
+  const cards = await expectCardsNoOverflow(page, '/ayarlar?tab=audit')
+  const card = cards.locator('> li').first()
+  // Kart: başlık + tek işlem rozeti; geçmiş kaydı salt okunur olduğu için "⋯" satır menüsü yoktur.
+  const action = /^(Oluşturdu|Değiştirdi|Sildi|Sıfırladı|Lisans|2 adımlı doğrulamayı açtı|2 adımlı doğrulamayı kapattı|Hatalı giriş|Kurtarma koduyla girdi|Hesap kilitlendi|Verileri indirdi|Kapatma talebi|Kapatma talebinden vazgeçti)$/
+  expect(await card.getByText(action).count(), 'işlem rozeti').toBeGreaterThan(0)
+  expect(await card.locator('button').count(), 'salt okunur kartta düğme olmamalı').toBe(0)
+})
+
 test('Raporlar liste bölümleri telefonda kart olur; sayfa yana kaymaz', async ({ page }) => {
   await useNewUi(page)
   await login(page)
@@ -147,9 +163,10 @@ test('Raporlar liste bölümleri telefonda kart olur; sayfa yana kaymaz', async 
   await page.waitForLoadState('networkidle')
 
   // Rapor sekmeleri: her liste bölümü telefonda tablo yerine kart gösterir.
+  // NOT: `Tabs` (components/ui.tsx) role="tab" kullanmaz; sekmeler normal düğmedir.
   const sections = ['Aylık Özet', 'Müşteri Kârlılığı', 'Alacak Yaşlandırma', 'Gider Dağılımı'] as const
   for (const tab of sections) {
-    await page.getByRole('tab', { name: tab }).click()
+    await page.getByRole('button', { name: tab, exact: true }).click()
     await page.waitForLoadState('networkidle')
     const list = page.locator('main ul.divide-y').first()
     await expect(list, `Raporlar/${tab}: kart listesi`).toBeVisible()
