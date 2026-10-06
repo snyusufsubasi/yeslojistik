@@ -6,9 +6,11 @@ import { z } from 'zod'
 import { Ban, FileInput, Paperclip, Pencil, Plus } from 'lucide-react'
 import { api as apiClient, errorMessage, get, openPdf, post } from '../api/client'
 import type { PurchaseInvoice, PurchaseInvoiceKind, PurchaseInvoiceTotals, UninvoicedCarrierTrip } from '../api/types'
-import { ExportButton, TotalsStrip } from '../components/Exports'
+import { ExportButton } from '../components/Exports'
+import { SumStrip } from '../components/SumStrip'
+import { PageShell } from '../components/shell/PageShell'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
-import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, IconButton, Modal, PageHeader, PlateBadge, Select } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, DateFilter, Field, IconButton, Modal, PlateBadge, Select } from '../components/ui'
 import { FormSelect } from '../components/FormSelect'
 import { ControlledChoice } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
@@ -67,11 +69,12 @@ export default function PurchaseInvoicesPage() {
 
   return (
     <>
-      <PageHeader title="Alınan Faturalar" subtitle="Taşerondan ve tedarikçilerden gelen faturalar; bağlanan sevkiyatlar fatura bekleyenlerden düşer"
+      <PageShell title="Alınan Faturalar" subtitle="Taşerondan ve tedarikçilerden gelen faturalar; bağlanan sevkiyatlar fatura bekleyenlerden düşer"
+        primary={can('accounting') ? <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button> : undefined}
         actions={<>
           <ExportButton url="/purchase-invoices/export" params={query} fileName="alinan-faturalar.xlsx" />
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button>}
-        </>} />
+        >}>
       <Card title="Fatura Listesi" icon={<FileInput className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, tedarikçi, VKN..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -81,7 +84,7 @@ export default function PurchaseInvoicesPage() {
           <DateFilter label="Başlangıç" value={from} onChange={setFrom} />
           <DateFilter label="Bitiş" value={to} onChange={setTo} />
         </div>
-        {totals && totals.count > 0 && <TotalsStrip items={[
+        {totals && totals.count > 0 && <SumStrip label="Alınan fatura toplamları" items={[
           { label: 'Fatura', value: totals.count },
           { label: 'Matrah', value: tl2(totals.subtotal) },
           { label: 'KDV', value: tl2(totals.vatAmount) },
@@ -93,6 +96,7 @@ export default function PurchaseInvoicesPage() {
           page={page} total={data?.total} onPage={setPage}
           empty={debounced || supplierId || kind || from || to ? 'Aramanıza uyan fatura yok.' : 'Henüz alınan fatura yok. Taşerondan fatura gelince “Fatura Ekle” ile sevkiyatlara bağlayın.'} />
       </Card>
+      </PageShell>
       {editing && <PurchaseInvoiceForm invoice={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog open={!!cancelling} title="Faturayı iptal et" loading={cancelMut.isPending} confirmText="İptal et"
         message={<>{cancelling?.supplierTitle} – {cancelling?.invoiceNo} iptal edilecek. Bağlı sevkiyatlar yeniden “fatura bekleyen” olur ve borç sevkiyat tutarından hesaplanır.</>}
