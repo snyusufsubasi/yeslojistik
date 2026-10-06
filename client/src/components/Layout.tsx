@@ -234,6 +234,18 @@ function UiModePicker() {
 }
 
 /**
+ * Alt çubuk yuvasının etkin olup olmadığı: yol öneki kuralı (SectionTabs.isActive gibi).
+ * `to` sorgu taşıyorsa yalnız yol karşılaştırılır. `paths` birden çok adres kabul eder:
+ * Cari yuvası yetkiye göre `/cari/musteriler` ya da `/musteriler` olur, kullanıcı hangisindeyse
+ * o yuva etkin sayılır. Önek kuralı sayesinde `/musteriler/42` gibi ayrıntı sayfaları da
+ * ait olduğu yuvayı işaretler.
+ */
+function slotActive(slot: { to: string; paths?: string[]; end?: boolean }, pathname: string): boolean {
+  const candidates = slot.paths ?? [slot.to.split('?')[0]]
+  return candidates.some((p) => (slot.end ? pathname === p : p === '/' ? pathname === '/' : pathname === p || pathname.startsWith(`${p}/`)))
+}
+
+/**
  * Telefonda altta sabit çubuk: en çok gidilen yerler ve ortada büyük "+ Yeni".
  *
  * Yeni görünümde beş yuva (Bugün · Sevkiyatlar · Faturalar · Cariler · Diğer), etkin yuva vurgulu ve
@@ -259,21 +271,33 @@ function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) 
   /**
    * Yeni görünümün beş yuvası: adresler klasik çubukla aynı, adlar pratikortam'daki gibi.
    * "Diğer" sol çekmeceyi açar; ortadaki yuva artık "+" değil Faturalar'dır.
+   *
+   * Bağlantılar bilerek `Link`'tir, `NavLink` değil: `NavLink` kendi `aria-current` değerini yazar
+   * (`ariaCurrent = isActive ? ariaCurrentProp : undefined`, react-router chunk-HQO5H5CC.js:498) ve
+   * kendi eşleşmesi Cari yuvasında tutmaz (yuva `/cari/musteriler`, liste `/musteriler`). Bu yüzden
+   * etkinlik tek kaynaktan (`slotActive`) hesaplanır ve `aria-current` doğrudan verilir.
    */
   const navSlots = [
-    { to: '/', label: 'Bugün', Icon: Home, end: true },
+    { to: '/', label: 'Bugün', Icon: Home, end: true, paths: ['/'] },
     { to: '/seferler', label: 'Sevkiyatlar', Icon: Truck, end: false },
     { to: '/faturalar', label: 'Faturalar', Icon: FileText, end: false },
-    { to: can('accounting') ? '/cari/musteriler' : '/musteriler', label: 'Cariler', Icon: Users, end: false },
+    {
+      to: can('accounting') ? '/cari/musteriler' : '/musteriler', label: 'Cariler', Icon: Users, end: false,
+      // Cari listesi iki adreste yaşar (`/cari/musteriler` yetkili, `/musteriler` yetkisiz kullanıcı).
+      paths: ['/cari/musteriler', '/musteriler'],
+    },
   ]
-  const newLink = (to: string, label: string, Icon: typeof Home, end: boolean) => (
-    <NavLink key={to} to={to} end={end} aria-label={`${label} (kısayol)`} aria-current={location.pathname === to ? 'page' : undefined}
-      className={({ isActive }) => clsx('flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[0.8125rem] font-medium transition',
-        isActive ? 'bg-accent-soft font-semibold text-brand-700' : 'text-slate-600')}>
-      <Icon className="size-[1.375rem] shrink-0" />
-      <span className="w-full truncate text-center">{label}</span>
-    </NavLink>
-  )
+  const newLink = (slot: (typeof navSlots)[number]) => {
+    const active = slotActive(slot, location.pathname)
+    return (
+      <Link key={slot.to} to={slot.to} aria-label={`${slot.label} (kısayol)`} aria-current={active ? 'page' : undefined}
+        className={clsx('flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[0.8125rem] font-medium transition',
+          active ? 'bg-accent-soft font-semibold text-brand-700' : 'text-slate-600')}>
+        <slot.Icon className="size-[1.375rem] shrink-0" />
+        <span className="w-full truncate text-center">{slot.label}</span>
+      </Link>
+    )
+  }
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={() => setOpen(false)} />}
@@ -281,7 +305,7 @@ function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) 
       {uiMode === 'new' ? (
         <nav aria-label="Alt kısayollar"
           className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-stretch border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-          {navSlots.map((s) => newLink(s.to, s.label, s.Icon, s.end))}
+          {navSlots.map((s) => newLink(s))}
           <button type="button" onClick={onMenu} aria-label="Tüm menü"
             className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-[0.8125rem] font-medium text-slate-600 transition hover:bg-surface-2">
             <Menu className="size-[1.375rem] shrink-0" />
