@@ -9,7 +9,8 @@ import { Badge } from '../ui'
  * Telefon kartı — şartname: docs/plan/27-TELEFON.md.
  *
  * Liste ekranları 640px altında tablo yerine bu kartları gösterir (DataTable'ın `mobileCard` prop'u).
- * Kart: başlık + 2-3 satır bilgi + sağda mono tutar + "⋯" satır menüsü. Dokunma hedefleri ≥44px.
+ * Kart: başlık + 2-3 satır bilgi + sağda mono tutar + "⋯" satır menüsü. Dokunma hedefleri ≥44px
+ * (kart gövdesi en az 4.5rem, "⋯" düğmesi `size-11` = 2.75rem, menü maddeleri `min-h-11`).
  * Masaüstünde kart hiç çizilmez: `DataTable` kart listesini `sm:hidden`, tabloyu `hidden sm:block` ile
  * ayırır (DataTable.tsx). Bu dosya yalnız kart gövdesini tanımlar; veri ve süzgeç sayfanın kendisindedir.
  *
@@ -72,7 +73,8 @@ function MobileCardBody({ card: c, menuLabel }: { card: MobileCard; menuLabel: s
         {c.info && <div className="line-clamp-3 break-words text-[0.8125rem] leading-snug text-muted">{c.info}</div>}
       </div>
       {(c.amount != null || c.menu || Icon) && (
-        <div className="flex shrink-0 items-center gap-1.5">
+        // min-h-11: sağdaki işlem sütunu (⋯ düğmesi) her durumda ≥44px kalsın; dokunma hedefi ölçüsü kart gövdesine bağlı olmasın.
+        <div className="flex min-h-11 shrink-0 items-center gap-1.5">
           {c.amount != null && <span className="text-[0.9375rem] font-semibold tabular-nums text-fg">{c.amount}</span>}
           {c.menu && c.menu.length > 0
             ? <RowMenu items={c.menu} label={menuLabel} />
