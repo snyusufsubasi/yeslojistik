@@ -13,9 +13,10 @@ import { Badge, Button, Card, ConfirmDialog, IconButton, Loading, PageHeader, Se
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton, ImportDialog } from '../components/ImportDialog'
 import { useIsNewUi } from '../lib/uiMode'
-import { MoreMenu, RowMenu } from '../components/shell/Menu'
+import { MoreMenu, RowMenu, type MenuItem } from '../components/shell/Menu'
 import { FilterBar, FilterPanel, type FilterChip } from '../components/shell/FilterPanel'
 import { DetailDrawer } from '../components/shell/DetailDrawer'
+import { MobileCards } from '../components/shell/MobileCards'
 import { FirstUse } from '../components/FirstUse'
 import { TripForm } from '../components/TripForm'
 import { TripBoard } from '../components/TripBoard'
@@ -207,6 +208,20 @@ export default function TripsPage() {
     }
   }
 
+  /**
+   * Satır "⋯" menüsü: masaüstü tablosu (`RowMenu`) ve telefon kartı (`MobileCards`) aynı listeyi kullanır.
+   * `write` maddeleri ayna modunda gizlenir; yetkisi olmayan kullanıcıda yalnız "Detay" kalır (`useVisibleItems`).
+   */
+  const rowMenuItems = (t: Trip): MenuItem[] => [
+    { label: 'Detay', icon: <Eye />, onClick: () => openDetail(t) },
+    ...(can('operations') ? [
+      { label: 'Düzenle', icon: <Pencil />, write: true, onClick: () => setEditing(t) },
+      { label: 'Kopyala (aynısından yeni sevkiyat)', icon: <Copy />, write: true, onClick: () => { setCopyOf(t); setEditing('new') } },
+      { label: 'Şoför bilgisini kopyala', icon: <ClipboardCopy />, onClick: () => copyDriver(t) },
+      { label: 'Sil', icon: <Trash2 />, write: true, danger: true, onClick: () => setDeleting(t) },
+    ] : []),
+  ]
+
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sevkiyat durumu güncellendi.' })
   const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sevkiyat silindi.', onSuccess: () => { setDeleting(null); if (isNew) closeDetail() } })
@@ -267,13 +282,7 @@ export default function TripsPage() {
               onClick={() => statusMut.mutate({ id: t.id, s })}>{tripStatusAction[s]}</Button>
           ))}
           {isNew ? (
-            <RowMenu items={[
-              { label: 'Detay', icon: <Eye />, onClick: () => openDetail(t) },
-              { label: 'Düzenle', icon: <Pencil />, write: true, onClick: () => setEditing(t) },
-              { label: 'Kopyala (aynısından yeni sevkiyat)', icon: <Copy />, write: true, onClick: () => { setCopyOf(t); setEditing('new') } },
-              { label: 'Şoför bilgisini kopyala', icon: <ClipboardCopy />, onClick: () => copyDriver(t) },
-              { label: 'Sil', icon: <Trash2 />, write: true, danger: true, onClick: () => setDeleting(t) },
-            ]} />
+            <RowMenu items={rowMenuItems(t)} />
           ) : (<>
             <IconButton label="Şoför bilgisini kopyala" onClick={() => copyDriver(t)}><ClipboardCopy className="size-4" /></IconButton>
             <IconButton write label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
@@ -446,7 +455,25 @@ export default function TripsPage() {
               <FirstUse title="İlk sevkiyatınızı ekleyin" addLabel="Yeni sevkiyat" onAdd={can('operations') ? () => setEditing('new') : undefined}>
                 Müşteri, araç ve şoförünüzü seçip ilk sevkiyatı oluşturun. Sevkiyat teslim edilince tek tıkla faturalanır. Henüz müşteri ya da araç eklemediyseniz önce onları ekleyin.
               </FirstUse>)}
-          mobileCard={(t) => (
+          mobileCard={(t) => (isNew ? (
+            /*
+             * Telefon kartı (yalnız yeni görünüm; klasik görünümde aşağıdaki eski kart aynen kalır).
+             * Kart ≤120px: müşteri + durum rozeti, tarih ve güzergâh (2 satıra kırpılır), sağda mono tutar ve "⋯".
+             * `DataTable` kartı `<li>` içine kendi `py-3.5` boşluğuyla koyar; `-my-3.5` o boşluğu geri alır,
+             * böylece toplam yükseklik 120px'i aşmaz (MobileCards kendi iç boşluğunu taşır).
+             */
+            <div className="-my-3.5">
+              <MobileCards menuLabel={`Sevkiyat ${t.terms?.externalRef ?? t.id} işlemleri`} cards={[{
+                id: t.id,
+                title: t.customerTitle,
+                badge: { tone: tripStatusTone[t.status], label: tripStatusLabel[t.status] },
+                info: <span className="line-clamp-2">{date(t.loadingDate)} · {route(t.loadingCity, t.loadingAddress)} <span className="text-muted">→</span> {route(t.deliveryCity, t.deliveryAddress)}</span>,
+                amount: tl(t.salePrice),
+                onOpen: () => openDetail(t),
+                menu: rowMenuItems(t),
+              }]} />
+            </div>
+          ) : (
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2 text-sm text-muted">{date(t.loadingDate)}<PlateBadge plate={t.vehiclePlate} /></span>
@@ -459,7 +486,7 @@ export default function TripsPage() {
                 <span className="ml-auto tabular-nums"><span className="font-semibold">{tl(t.salePrice)}</span> <span className={t.profit < 0 ? 'text-bad' : 'text-good'}>({tl(t.profit)})</span></span>
               </div>
             </div>
-          )} />
+          ))} />
       </Card>}
 
       {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? sourceRequest?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
