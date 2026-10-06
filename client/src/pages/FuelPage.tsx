@@ -81,6 +81,11 @@ export default function FuelPage() {
   const openNew = () => navigate(`/giderler?new=1&kategori=Fuel${vehicleQuery}`)
   const openEdit = (e: Expense) => navigate(`/giderler?id=${e.id}&kategori=Fuel`)
   const openReceipt = (id: number) => { openPdf(`/expenses/${id}/receipt`, `fis-${id}`).catch(() => undefined) }
+  /** Satır menüsü (masaüstü tablo ve telefon kartı aynı listeyi kullanır): Düzenle · Fişi gör. */
+  const rowMenu = (e: Expense): MenuItem[] => [
+    { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, onClick: () => openEdit(e) },
+    ...(e.hasReceipt ? [{ label: 'Fişi gör', icon: <Paperclip className="size-4" />, onClick: () => openReceipt(e.id) }] : []),
+  ]
   /** Şerit kalemleri: litre ve km toplamı sunucudan; ortalama ve km başı maliyet bu iki toplamdan. */
   const fuelItems = (t: FuelTotals, pendingTone: string): TotalItem[] => {
     const l = t.liters ?? 0
@@ -138,10 +143,7 @@ export default function FuelPage() {
     {
       key: 'actions', header: '', align: 'right', render: (e) => (
         <div className="flex justify-end" onClick={(ev) => ev.stopPropagation()}>
-          <RowMenu items={[
-            { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, onClick: () => openEdit(e) },
-            ...(e.hasReceipt ? [{ label: 'Fişi gör', icon: <Paperclip className="size-4" />, onClick: () => openReceipt(e.id) }] : []),
-          ]} />
+          <RowMenu items={rowMenu(e)} />
         </div>
       ),
     },
@@ -219,10 +221,7 @@ export default function FuelPage() {
                 {e.approvalStatus === 'Rejected' && <Badge tone="red">Reddedildi</Badge>}
                 <div className="flex items-center gap-2 pt-0.5">
                   <Button size="sm" variant="secondary" icon={<Pencil className="size-4" />} write onClick={() => openEdit(e)}>Düzenle</Button>
-                  {e.hasReceipt && (
-                    <button type="button" className="min-h-11 text-sm font-medium text-brand-700 underline"
-                      onClick={(ev) => { ev.stopPropagation(); openReceipt(e.id) }}>Fişi gör</button>
-                  )}
+                  <RowMenu items={rowMenu(e)} />
                 </div>
               </div>
             )} />
