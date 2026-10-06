@@ -11,6 +11,7 @@ import { DataTable, type Column } from '../components/DataTable'
 import { ImportButton, useImportAction } from '../components/ImportDialog'
 import { Badge, Button, Card, ConfirmDialog, Empty, Field, IconButton, Modal, Spinner, StatCard } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { MobileCards } from '../components/shell/MobileCards'
 import type { MenuItem } from '../components/shell/Menu'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
@@ -72,10 +73,19 @@ export default function StaffPage() {
         <DataTable columns={columns} rows={rows} loading={staff.isFetching} error={staff.error} onRetry={staff.refetch} rowKey={(s) => s.id} onRowClick={setOpen}
           empty="Henüz personel yok. “Personel Ekle” ile ekleyin. Şoförler bu listeye değil Şoförler sayfasına girilir."
           mobileCard={(s) => (
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0"><div className="truncate font-medium">{s.fullName}</div><div className="text-sm text-slate-500">Maaş {tl(s.salary)}</div></div>
-              <span className="shrink-0 font-semibold">{tl(s.remaining)}</span>
-            </div>
+            <MobileCards menuLabel={`${s.fullName} işlemleri`} cards={[{
+              id: s.id,
+              title: s.fullName,
+              badge: s.isActive ? undefined : { tone: 'gray', label: 'Çalışmıyor' },
+              info: [
+                [s.phone, s.notes].filter(Boolean).join(' · ') || (s.startDate ? `Başlangıç ${date(s.startDate)}` : '—'),
+                `Maaş ${tl(s.salary)} · Avans ${s.advances ? `−${tl(s.advances)}` : '—'} · Prim ${s.bonuses ? `+${tl(s.bonuses)}` : '—'}`,
+                `Ödenen ${s.paid ? tl(s.paid) : '—'}`,
+              ],
+              amount: <span className={s.remaining > 0 ? 'text-fg' : 'text-good'}>{tl(s.remaining)}</span>,
+              onOpen: () => setOpen(s),
+              menu: [{ label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, onClick: () => setEditing(s) }],
+            }]} />
           )} />
       </Card>
       </PageShell>

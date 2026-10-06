@@ -9,6 +9,7 @@ import type { ExpenseCategory, RecurringPayment } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, ConfirmDialog, Card, Field, IconButton, Modal, StatCard } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { MobileCards } from '../components/shell/MobileCards'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
 import { applyServerErrors, nullify, optId, optStr, req } from '../lib/forms'
@@ -67,10 +68,23 @@ export default function RecurringPaymentsPage() {
         <DataTable columns={columns} rows={rows} loading={list.isFetching} error={list.error} onRetry={list.refetch} rowKey={(r) => r.id} onRowClick={setEditing}
           empty="Henüz sabit ödeme yok. Kira, sigorta taksiti, muhasebe ücreti gibi her ay ödenenleri ekleyin."
           mobileCard={(r) => (
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0"><div className="truncate font-medium">{r.title}</div><div className="text-sm text-slate-500">{date(r.dueDate)} · {tl(r.amount)}</div></div>
-              {r.paidDate ? <Badge tone="green">Ödendi</Badge> : <Badge tone="orange">Bekliyor</Badge>}
-            </div>
+            <MobileCards menuLabel={`${r.title} işlemleri`} cards={[{
+              id: r.id,
+              title: r.title,
+              badge: r.paidDate ? { tone: 'green', label: `Ödendi · ${date(r.paidDate)}` }
+                : !r.isActive ? { tone: 'gray', label: 'Pasif' }
+                : r.dueDate < today ? { tone: 'red', label: 'Gecikti' } : { tone: 'orange', label: 'Bekliyor' },
+              info: [
+                [expenseCategoryLabel[r.category], r.detail, r.cashAccountName].filter(Boolean).join(' · ') || '—',
+                `Ödeme günü ${date(r.dueDate)}`,
+              ].join(' · '),
+              amount: tl(r.amount),
+              onOpen: () => setEditing(r),
+              menu: [
+                ...(r.isActive && !r.paidDate ? [{ label: 'Ödendi', icon: <CheckCircle2 className="size-4" />, write: true, onClick: () => setPaying(r) }] : []),
+                { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, onClick: () => setEditing(r) },
+              ],
+            }]} />
           )} />
       </Card>
       </PageShell>

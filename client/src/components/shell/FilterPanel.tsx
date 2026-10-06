@@ -62,7 +62,7 @@ export function FilterPanel({ open, onClose, children, title = 'Süzgeç', onCle
         className="absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-xl sm:w-[400px]">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-5">
           <h2 id="filter-panel-title" className="text-[1.0625rem] font-bold">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Kapat" className="rounded-[3px] p-2 hover:bg-surface-2"><X className="size-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Kapat" className="flex size-11 items-center justify-center rounded-[3px] hover:bg-surface-2"><X className="size-5" /></button>
         </div>
         <div className="flex-1 space-y-3.5 overflow-y-auto px-5 py-4">{children}</div>
         <div className="flex shrink-0 justify-between gap-2 border-t border-line px-5 py-3">

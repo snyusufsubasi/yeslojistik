@@ -10,6 +10,7 @@ import { ExportButton, useExportAction } from '../components/Exports'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Button, Card } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { MobileCards } from '../components/shell/MobileCards'
 import type { MenuItem } from '../components/shell/Menu'
 import { tl } from '../lib/format'
 import { useDebounce, usePaged, usePage, useOpenNewFromUrl } from '../lib/hooks'
@@ -72,13 +73,17 @@ export default function CustomersPage() {
               Sevkiyat ve fatura için önce müşteri kartı gerekir. Tek tek ekleyin ya da elinizdeki listeyi Excel'den aktarın.
             </FirstUse>)}
           mobileCard={(c) => (
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate font-medium text-navy-900">{c.title}</div>
-                <div className="truncate text-sm text-slate-500">{[c.phone, c.address].filter(Boolean).join(' · ') || `No ${c.customerNo}`}</div>
-              </div>
-              <span className={c.balance > 0 ? 'shrink-0 font-medium text-red-600' : 'shrink-0 text-slate-500'}>{tl(c.balance)}</span>
-            </div>
+            <MobileCards cards={[{
+              id: c.id,
+              title: c.title,
+              info: [`No ${c.customerNo}`, c.taxNumber && `VKN ${c.taxNumber}`, c.phone ?? c.email].filter(Boolean).join(' · '),
+              amount: <span className={c.balance > 0 ? 'text-bad' : c.balance < 0 ? 'text-good' : 'text-muted'}>{tl(c.balance)}</span>,
+              onOpen: () => navigate(`/musteriler/${c.id}`),
+              menu: [
+                { label: 'Aç', onClick: () => navigate(`/musteriler/${c.id}`) },
+                ...(can('accounting') ? [{ label: 'Cari Tablosu', onClick: () => navigate('/cari/musteriler') }] : []),
+              ],
+            }]} />
           )} />
       </Card>
       </PageShell>
