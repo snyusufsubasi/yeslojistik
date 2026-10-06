@@ -1,6 +1,6 @@
 import {
   Handshake, HandCoins, BarChart3, Building2, FileText, Home, Receipt, Settings, Truck, Users, Wallet, IdCard, Map as MapIcon,
-  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun,
+  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun, Fuel, Wrench,
 } from 'lucide-react'
 import type { Alert, Dashboard } from '../api/types'
 import type { Permission } from './auth'
@@ -51,6 +51,9 @@ export const classicNav: NavGroup[] = [
       badge: (_, a) => badge(alertsAt(a, '/araclar'), 'belge veya bakım uyarısı') },
     { to: '/giderler', label: 'Giderler', icon: Receipt,
       badge: (d) => badge(d?.pendingExpenseCount ?? 0, 'onay bekleyen masraf') },
+    // Mazotlar ve Araç Masrafları F4'te kendi sayfalarıyla geldi (docs/KOLAYLASTIRMA-UYGULAMA.md F4.2-F4.3).
+    { to: '/mazotlar', label: 'Mazotlar', icon: Fuel },
+    { to: '/arac-masraflari', label: 'Araç Masrafları', icon: Wrench },
   ] },
   { title: 'Banka & Çek', items: [
     { to: '/kasa-banka', label: 'Kasa / Banka', icon: Landmark, perm: 'accounting' },
@@ -96,9 +99,10 @@ export const newNav: NavGroup[] = [
     { to: '/sabit-odemeler', label: 'Sabit Ödeme Listesi', icon: Repeat, perm: 'accounting' },
   ] },
   { title: 'Öz Mal', items: [
-    // Mazotlar ve Araç Masrafları kendi sayfalarıyla F4'te eklenir (docs/KOLAYLASTIRMA-UYGULAMA.md F4.2-F4.3).
     { to: '/giderler', label: 'Giderler', icon: Receipt,
       badge: (d) => badge(d?.pendingExpenseCount ?? 0, 'onay bekleyen masraf') },
+    { to: '/mazotlar', label: 'Mazotlar', icon: Fuel },
+    { to: '/arac-masraflari', label: 'Araç Masrafları', icon: Wrench },
     { to: '/araclar', label: 'Araçlar', icon: Building2,
       badge: (_, a) => badge(alertsAt(a, '/araclar'), 'belge veya bakım uyarısı') },
   ] },

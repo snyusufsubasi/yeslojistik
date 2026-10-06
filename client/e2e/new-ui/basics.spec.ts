@@ -21,8 +21,8 @@ test('yeni menü pratikortam sırasında; bölüm sekmeleri sayfalar arasında g
   const labels = await menu.getByRole('link').allInnerTexts()
   const names = labels.map((l) => l.replace(/\d+$/, '').trim())
   expect(names).toEqual(['Bugün', 'e-Fatura', 'Müşteriler Cari', 'Tedarikçiler Cari', 'Tedarikçi Ödemeleri', 'Analiz', 'Sevkiyatlar',
-    'Müşteri Listesi', 'Tedarikçi Listesi', 'Şoför Listesi', 'Personel Listesi', 'Sabit Ödeme Listesi', 'Giderler', 'Araçlar',
-    'Yönetici', 'Bankalar', 'Çekler'])
+    'Müşteri Listesi', 'Tedarikçi Listesi', 'Şoför Listesi', 'Personel Listesi', 'Sabit Ödeme Listesi', 'Giderler', 'Mazotlar',
+    'Araç Masrafları', 'Araçlar', 'Yönetici', 'Bankalar', 'Çekler'])
 
   await menu.getByRole('link', { name: 'Müşteriler Cari' }).click()
   const tabs = page.getByRole('navigation', { name: 'Bölüm sekmeleri' })

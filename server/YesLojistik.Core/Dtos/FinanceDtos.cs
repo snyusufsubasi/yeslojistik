@@ -141,8 +141,13 @@ public record InvoiceTotalsDto(int Count, decimal Subtotal, decimal VatAmount, d
 /// <summary>Alınan faturalar (iptaller yalnızca "iptalleri göster" seçiliyse girer).</summary>
 public record PurchaseInvoiceTotalsDto(int Count, decimal Subtotal, decimal VatAmount, decimal WithholdingAmount, decimal Total);
 
-/// <summary>Giderler: Total filtredeki bütün giderler; Approved onaylı, Pending onay bekleyen kısım.</summary>
-public record ExpenseTotalsDto(int Count, decimal Total, decimal Approved, decimal Pending);
+/// <summary>
+/// Giderler: Total filtredeki bütün giderler; Approved onaylı, Pending onay bekleyen kısım.
+/// Mazot şeridi için (docs/plan/19-OZ-MAL-MAZOTLAR.md §6, §13.2): Liters filtredeki kayıtların toplam litresi,
+/// Km ise "yeni km − önceki km" farklarının toplamıdır (ölçülmüş mesafe). Hiç kayıt yoksa ikisi de null'dır
+/// (ekranda "—" yazılır; uydurma sıfır gösterilmez).
+/// </summary>
+public record ExpenseTotalsDto(int Count, decimal Total, decimal Approved, decimal Pending, decimal? Liters = null, int? Km = null);
 
 /// <summary>Tahsilat / tedarikçi ödemesi: Total net tutar (iadeler düşülmüş), Refunds iadelerin toplamı (pozitif).</summary>
 public record PaymentTotalsDto(int Count, decimal Total, decimal Refunds);

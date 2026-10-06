@@ -73,16 +73,25 @@ public class ExpensesController(AppDbContext db) : ControllerBase
 
     /// <summary>
     /// Filtrenin tamamının toplamı (yalnızca sayfanın değil). Onay durumu seçilmediyse reddedilen giderler tutara girmez;
-    /// onaylı ve onay bekleyen kısımlar ayrıca verilir.
+    /// onaylı ve onay bekleyen kısımlar ayrıca verilir. Mazot şeridi için litre ve ölçülmüş km toplamı da döner:
+    /// km, satırlardaki "yeni km − önceki km" farklarının (yalnız pozitif olanlar) toplamıdır; hiç yoksa null gelir.
     /// </summary>
     [HttpGet("totals")]
     public async Task<ExpenseTotalsDto> Totals([FromQuery] ExpenseQuery q, CancellationToken ct)
     {
-        var rows = await Filter(q with { Sort = null }).GroupBy(e => e.ApprovalStatus)
+        var filters = q with { Sort = null };
+        var rows = await Filter(filters).GroupBy(e => e.ApprovalStatus)
             .Select(g => new { Status = g.Key, Count = g.Count(), Sum = g.Sum(e => e.Amount) }).ToListAsync(ct);
+        // Litre yalnız yakıt kayıtlarında doludur (ExpenseService); km ise iki okuma arasındaki farktır.
+        // İkisi de "veri yoksa null" olsun diye önce nullable alana çevrilir (SUM boş kümede NULL döner).
+        var fuel = Filter(filters);
+        var liters = await fuel.Where(e => e.Liters != null).Select(e => e.Liters).SumAsync(ct);
+        var km = await fuel.Where(e => e.Odometer != null && e.PreviousOdometer != null && e.Odometer - e.PreviousOdometer > 0)
+            .Select(e => e.Odometer - e.PreviousOdometer).SumAsync(ct);
         return new ExpenseTotalsDto(rows.Sum(r => r.Count),
             rows.Where(r => q.ApprovalStatus != null || r.Status != ApprovalStatus.Rejected).Sum(r => r.Sum),
-            rows.Where(r => r.Status == ApprovalStatus.Approved).Sum(r => r.Sum), rows.Where(r => r.Status == ApprovalStatus.Pending).Sum(r => r.Sum));
+            rows.Where(r => r.Status == ApprovalStatus.Approved).Sum(r => r.Sum), rows.Where(r => r.Status == ApprovalStatus.Pending).Sum(r => r.Sum),
+            liters, km);
     }
 
     [HttpGet("export")]

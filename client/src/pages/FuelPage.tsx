@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Download, FileSpreadsheet, Fuel, Receipt } from 'lucide-react'
+import { Download, FileSpreadsheet, Fuel, Paperclip, Pencil, Receipt } from 'lucide-react'
 import type { ApprovalStatus, Expense, ExpenseTotals } from '../api/types'
 import { openPdf } from '../api/client'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Chip, DateFilter, PlateBadge, Select } from '../components/ui'
-import { ExportButton, TotalsStrip, useExportAction } from '../components/Exports'
+import { ExportButton, TotalsStrip, useExportAction, type TotalItem } from '../components/Exports'
 import { ImportButton, useImportAction } from '../components/ImportDialog'
 import { FilterBar, FilterPanel, type FilterChip } from '../components/shell/FilterPanel'
-import type { MenuItem } from '../components/shell/Menu'
+import { RowMenu, type MenuItem } from '../components/shell/Menu'
 import { PageShell } from '../components/shell/PageShell'
 import { SumStrip } from '../components/SumStrip'
 import { date, monthEndIso, monthStartIso, tl2 } from '../lib/format'
@@ -26,6 +26,13 @@ import { useIsNewUi } from '../lib/uiMode'
  * Süzgeçler adreste durur (`?plaka=`, `?arac=`, `?bas=`, `?bit=`, `?onay=`): yenilenince ve link
  * paylaşılınca kaybolmaz. Klasik görünümde ekran bugünkü dille çalışır (PageHeader + Card +
  * TotalsStrip + tablo); yeni görünümde PageShell + FilterBar + SumStrip kullanılır.
+ *
+ * Şerit (şartname §6): Kayıt · Toplam litre · Tutar · Km · Ortalama litre/100km · Km başı maliyet ·
+ * Bu ay · onay bekleyen. Litre ve km toplamı sunucudan gelir (`ExpenseTotalsDto.Liters`, `.Km`);
+ * ortalama ve km başı maliyet bu iki toplamdan burada hesaplanır. Veri yoksa "—" yazılır.
+ *
+ * "+ Mazot Ekle" ve satır menüsündeki "Düzenle", gider formunu `/giderler?kategori=Fuel` ile
+ * **kilitli kategori** (ve süzgeçte araç seçiliyse ön seçili araçla) açar.
  */
 export default function FuelPage() {
   const navigate = useNavigate()
@@ -50,9 +57,9 @@ export default function FuelPage() {
 
   const query = { page, pageSize: 20, search: debounced, category: 'Fuel', vehicleId, from, to, approvalStatus: approval, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Expense>('expenses', query)
-  const { data: totals } = useListTotals<ExpenseTotals>('expenses', query)
+  const { data: totals } = useListTotals<FuelTotals>('expenses', query)
   // "Bu ay" kutusu: tarih süzgeci dışındaki süzgeçlerle bu ayın toplamı (sayfanın değil, filtrenin tamamı).
-  const { data: monthTotals } = useListTotals<ExpenseTotals>('expenses',
+  const { data: monthTotals } = useListTotals<FuelTotals>('expenses',
     { search: debounced, category: 'Fuel', vehicleId, approvalStatus: approval, from: monthStartIso(), to: monthEndIso() })
 
   // Süzgeçleri adrese yaz (yalnızca değişince; başka parametrelere dokunmadan).
@@ -69,7 +76,26 @@ export default function FuelPage() {
   const anyFilter = !!(search || vehicleId || approval || from !== defaultFrom || to !== defaultTo)
   const onlyVehicle = !!vehicleId && !search && !approval && from === defaultFrom && to === defaultTo
   const clearFilters = () => { setSearch(''); setVehicleId(''); setFrom(defaultFrom); setTo(defaultTo); setApproval('') }
-  const openNew = () => navigate('/giderler?new=1')
+  // Gider formu `/giderler?kategori=Fuel` ile açılır: kategori Yakıt olarak kilitlenir, süzgeçte araç seçiliyse o araç ön seçilir.
+  const vehicleQuery = vehicleId ? `&arac=${vehicleId}` : ''
+  const openNew = () => navigate(`/giderler?new=1&kategori=Fuel${vehicleQuery}`)
+  const openEdit = (e: Expense) => navigate(`/giderler?id=${e.id}&kategori=Fuel`)
+  const openReceipt = (id: number) => { openPdf(`/expenses/${id}/receipt`, `fis-${id}`).catch(() => undefined) }
+  /** Şerit kalemleri: litre ve km toplamı sunucudan; ortalama ve km başı maliyet bu iki toplamdan. */
+  const fuelItems = (t: FuelTotals, pendingTone: string): TotalItem[] => {
+    const l = t.liters ?? 0
+    const k = t.km ?? 0
+    return [
+      { label: 'Kayıt', value: t.count },
+      { label: 'Toplam litre', value: liters(t.liters) },
+      { label: 'Tutar', value: tl2(t.total) },
+      { label: 'Km', value: t.km == null ? '—' : `${km(t.km)} km` },
+      { label: 'Ortalama litre/100km', value: l > 0 && k > 0 ? (l / k * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 }) : '—' },
+      { label: 'Km başı maliyet', value: k > 0 && t.total > 0 ? tl2(t.total / k) : '—' },
+      { label: 'Bu ay', value: monthTotals ? tl2(monthTotals.total) : '—' },
+      ...(t.pending > 0 ? [{ label: 'Onay bekleyen', value: tl2(t.pending), tone: pendingTone }] : []),
+    ]
+  }
   const exp = useExportAction()
   const imp = useImportAction('expenses')
 
@@ -109,6 +135,16 @@ export default function FuelPage() {
     { key: 'previous', header: 'Eski km', align: 'right', render: (e) => km(e.details?.previousOdometer) },
     { key: 'diff', header: 'Fark km', align: 'right', render: (e) => km(kmDiff(e)) },
     { key: 'perKm', header: 'Km başı maliyet', align: 'right', render: (e) => { const p = perKmCost(e); return p == null ? '—' : tl2(p) } },
+    {
+      key: 'actions', header: '', align: 'right', render: (e) => (
+        <div className="flex justify-end" onClick={(ev) => ev.stopPropagation()}>
+          <RowMenu items={[
+            { label: 'Düzenle', icon: <Pencil className="size-4" />, write: true, onClick: () => openEdit(e) },
+            ...(e.hasReceipt ? [{ label: 'Fişi gör', icon: <Paperclip className="size-4" />, onClick: () => openReceipt(e.id) }] : []),
+          ]} />
+        </div>
+      ),
+    },
   ]
 
   const empty = anyFilter
@@ -158,19 +194,9 @@ export default function FuelPage() {
             </div>
           )}
           {totals && totals.count > 0 && (isNew ? (
-            <SumStrip label="Mazot toplamları" items={[
-              { label: 'Kayıt', value: totals.count },
-              { label: 'Tutar', value: tl2(totals.total) },
-              { label: 'Bu ay', value: monthTotals ? tl2(monthTotals.total) : '—' },
-              ...(totals.pending > 0 ? [{ label: 'Onay bekleyen', value: tl2(totals.pending), tone: 'text-warn' }] : []),
-            ]} />
+            <SumStrip label="Mazot toplamları" items={fuelItems(totals, 'text-warn')} />
           ) : (
-            <TotalsStrip items={[
-              { label: 'Kayıt', value: totals.count },
-              { label: 'Toplam', value: tl2(totals.total) },
-              { label: 'Bu ay', value: monthTotals ? tl2(monthTotals.total) : '—' },
-              ...(totals.pending > 0 ? [{ label: 'Onay bekleyen', value: tl2(totals.pending), tone: 'text-amber-700' }] : []),
-            ]} note={approval ? undefined : 'Reddedilen mazot kayıtları toplama girmez.'} />
+            <TotalsStrip items={fuelItems(totals, 'text-amber-700')} note={approval ? undefined : 'Reddedilen mazot kayıtları toplama girmez.'} />
           ))}
           <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(e) => e.id}
             sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
@@ -191,10 +217,13 @@ export default function FuelPage() {
                 </div>
                 {e.approvalStatus === 'Pending' && <Badge tone="yellow">Onay bekliyor</Badge>}
                 {e.approvalStatus === 'Rejected' && <Badge tone="red">Reddedildi</Badge>}
-                {e.hasReceipt && (
-                  <button type="button" className="text-sm font-medium text-brand-700 underline"
-                    onClick={(ev) => { ev.stopPropagation(); openPdf(`/expenses/${e.id}/receipt`, `fis-${e.id}`).catch(() => undefined) }}>Fişi gör</button>
-                )}
+                <div className="flex items-center gap-2 pt-0.5">
+                  <Button size="sm" variant="secondary" icon={<Pencil className="size-4" />} write onClick={() => openEdit(e)}>Düzenle</Button>
+                  {e.hasReceipt && (
+                    <button type="button" className="min-h-11 text-sm font-medium text-brand-700 underline"
+                      onClick={(ev) => { ev.stopPropagation(); openReceipt(e.id) }}>Fişi gör</button>
+                  )}
+                </div>
               </div>
             )} />
         </Card>
@@ -209,6 +238,12 @@ export default function FuelPage() {
     </>
   )
 }
+
+/**
+ * Filtre toplamları + Mazot şeridi için sunucunun verdiği litre ve km toplamı (bkz. `ExpenseTotalsDto`).
+ * Yalnızca bu sayfada kullanılır; `api/types.ts` ortak tipi değiştirilmeden eklendi.
+ */
+type FuelTotals = ExpenseTotals & { liters?: number | null; km?: number | null }
 
 /** Litre: iki ondalık, "L" son ekiyle; girilmemişse "—". */
 function liters(v: number | null | undefined) {

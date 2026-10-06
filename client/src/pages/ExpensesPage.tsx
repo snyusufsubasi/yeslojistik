@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,7 +20,7 @@ import { AmountInput, DateQuick, MoreFields } from '../components/Inputs'
 import { choices } from '../lib/choices'
 import { expenseCategoryIcon } from '../lib/icons'
 import { date, tl2, todayIso } from '../lib/format'
-import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
+import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { approvalStatusLabel, expenseCategoryLabel, expenseVatDefault, options, vatRateChoices } from '../lib/labels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
@@ -43,6 +43,14 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 const api = crud<Expense, FormValues>('expenses')
 
+/**
+ * Giderler (`/giderler`) — bütün masraf türleri tek listede (Mazotlar ve Araç Masrafları ayrı ekran).
+ *
+ * Adres parametreleri formu da yönetir: `?new=1` yeni gider penceresini, `?id=<gider>` kaydın mevcut
+ * düzenleme penceresini açar; `?kategori=Fuel` kategoriyi **kilitler**, `?arac=<id>` aracı ön seçer
+ * (Mazotlar sayfasındaki "+ Mazot Ekle" ve satır menüsündeki "Düzenle" bu adreslerle gelir —
+ * docs/plan/19-OZ-MAL-MAZOTLAR.md §10.3). İstek işlenince parametreler adresten silinir.
+ */
 export default function ExpensesPage() {
   const [params, setParams] = useSearchParams()
   const tripId = params.get('tripId') ? Number(params.get('tripId')) : undefined
@@ -56,11 +64,58 @@ export default function ExpensesPage() {
   const [to, setTo] = useState('')
   const [sort, setSort] = useState({ key: 'date', desc: true })
   const [editing, setEditing] = useState<Expense | 'new' | null>(null)
-  useOpenNewFromUrl(() => setEditing('new'))
+  /** Adresten gelen form kilidi ve ön seçim (`?kategori=`, `?arac=`); listeden açılan formda boşaltılır. */
+  const [preset, setPreset] = useState<{ category?: ExpenseCategory; vehicleId?: number }>({})
+  /** `?id=` ile açılacak kayıt; adres temizlendikten sonra da istek sürebilsin diye ayrı tutulur. */
+  const [openId, setOpenId] = useState<number | undefined>(() => Number(params.get('id')) || undefined)
+  const [openNonce, setOpenNonce] = useState(0)
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const debounced = useDebounce(search)
   const vehicles = useLookup('vehicles')
   const [page, setPage] = usePage([debounced, category, vehicleId, from, to, tripId, approvalStatus])
+
+  const categoryFromUrl = (Object.keys(expenseCategoryLabel) as ExpenseCategory[]).find((k) => k === params.get('kategori'))
+  const vehicleFromUrl = Number(params.get('arac')) || undefined
+  const idFromUrl = Number(params.get('id')) || undefined
+
+  /**
+   * Adresten gelen form isteğini uygular. Ref üzerinden çağrılır: efekt gövdesinde doğrudan setState
+   * çağırmak gereksiz render zinciri başlatır (projedeki `useOpenNewFromUrl` ile aynı desen).
+   */
+  const applyUrlRequest = (req: { id?: number; category?: ExpenseCategory; vehicleId?: number }) => {
+    setPreset({ category: req.category, vehicleId: req.vehicleId })
+    if (req.id) { setOpenId(req.id); setOpenNonce((n) => n + 1) }
+    else setEditing('new')
+  }
+  const applyUrlRequestRef = useRef(applyUrlRequest)
+  useEffect(() => { applyUrlRequestRef.current = applyUrlRequest })
+
+  // Adresteki istek: kaydı düzenlemeye (`?id=`) ya da yeni forma (`?new=1`, `?kategori=`) açar.
+  useEffect(() => {
+    if (!idFromUrl && !categoryFromUrl && params.get('new') === null) return
+    applyUrlRequestRef.current({ id: idFromUrl, category: categoryFromUrl, vehicleId: vehicleFromUrl })
+    const next = new URLSearchParams(params)
+    for (const k of ['new', 'kategori', 'arac', 'id']) next.delete(k)
+    setParams(next, { replace: true })
+  }, [idFromUrl, categoryFromUrl, vehicleFromUrl, params, setParams])
+
+  const { data: urlExpense, isError: urlExpenseError } = useQuery({
+    queryKey: ['expenses', 'detail', openId],
+    queryFn: () => get<Expense>(`/expenses/${openId}`),
+    enabled: !!openId,
+  })
+  /** Getirilen kayıt mevcut düzenleme penceresinde açılır; `openNonce` aynı kaydın tekrar açılmasını sağlar. */
+  const applyFetched = (expense: Expense | undefined, failed: boolean) => {
+    if (expense && openNonce > 0) setEditing(expense)
+    else if (failed) setOpenId(undefined)
+  }
+  const applyFetchedRef = useRef(applyFetched)
+  useEffect(() => { applyFetchedRef.current = applyFetched })
+  useEffect(() => { applyFetchedRef.current(urlExpense, urlExpenseError) }, [urlExpense, urlExpenseError, openNonce])
+
+  /** Listeden açılan formda adres kilidi kalmaz. */
+  const startNew = () => { setPreset({}); setEditing('new') }
+  const startEdit = (e: Expense) => { setPreset({}); setEditing(e) }
 
   const query = { page, pageSize: 20, search: debounced, category, vehicleId, tripId, from, to, approvalStatus, sort: sort.key, desc: sort.desc }
   const { data, isFetching, error, refetch } = usePaged<Expense>('expenses', query)
@@ -86,7 +141,7 @@ export default function ExpensesPage() {
             <Button size="sm" icon={<Check className="size-4" />} loading={approveMut.isPending && approveMut.variables === e.id} onClick={() => approveMut.mutate(e.id)}>Onayla</Button>
             <Button size="sm" variant="secondary" onClick={() => setRejecting(e)}>Reddet</Button>
           </>}
-          <IconButton write label="Düzenle" onClick={() => setEditing(e)}><Pencil className="size-4" /></IconButton>
+          <IconButton write label="Düzenle" onClick={() => startEdit(e)}><Pencil className="size-4" /></IconButton>
           <IconButton write label="Sil" onClick={() => setDeleting(e)}><Trash2 className="size-4" /></IconButton>
         </div>
       ),
@@ -100,7 +155,7 @@ export default function ExpensesPage() {
         actions={<>
           <ExportButton url="/expenses/export" params={query} fileName="giderler.xlsx" />
           <ImportButton entity="expenses" />
-          <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Gider Ekle</Button>
+          <Button write icon={<Plus className="size-4" />} onClick={startNew}>Gider Ekle</Button>
         </>} />
       {tripId && (
         <div className="mb-3 flex items-center gap-2 rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-700">
@@ -123,11 +178,12 @@ export default function ExpensesPage() {
           { label: 'Toplam', value: tl2(totals.total) },
           ...(totals.pending > 0 ? [{ label: 'Onaylı', value: tl2(totals.approved) }, { label: 'Onay bekleyen', value: tl2(totals.pending), tone: 'text-amber-700' }] : []),
         ]} note={approvalStatus ? undefined : 'Reddedilen giderler toplama girmez.'} />}
-        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(e) => e.id} onRowClick={setEditing}
+        <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(e) => e.id} onRowClick={startEdit}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} total={data?.total} onPage={setPage} empty={debounced || category || vehicleId || from || to || approvalStatus ? "Aramanıza uyan kayıt yok." : "Henüz gider yok. Yakıt, otoyol gibi masrafları “Gider Ekle” ile girin."} />
       </Card>
-      {editing && <ExpenseForm expense={editing === 'new' ? null : editing} defaultTripId={tripId} onClose={() => setEditing(null)} />}
+      {editing && <ExpenseForm expense={editing === 'new' ? null : editing} defaultTripId={tripId}
+        lockCategory={preset.category} defaultVehicleId={preset.vehicleId} onClose={() => setEditing(null)} />}
       {rejecting && <RejectDialog expense={rejecting} onClose={() => setRejecting(null)} />}
       <ConfirmDialog open={!!deleting} title="Gideri sil" loading={deleteMut.isPending} confirmText="Sil"
         message={<>{tl2(deleting?.amount)} tutarındaki gider silinecek. Emin misiniz?</>}
@@ -153,7 +209,13 @@ function RejectDialog({ expense, onClose }: { expense: Expense; onClose: () => v
   )
 }
 
-function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | null; defaultTripId?: number; onClose: () => void }) {
+/**
+ * Gider penceresi (ekle/düzenle). `lockCategory` verilirse kategori **değiştirilemez** ve yalnız o
+ * kategori görünür (Mazotlar ekranından `?kategori=Fuel` ile gelinir); `defaultVehicleId` yeni kayıtta
+ * aracı ön seçer (docs/plan/19-OZ-MAL-MAZOTLAR.md §10.3).
+ */
+function ExpenseForm({ expense, defaultTripId, lockCategory, defaultVehicleId, onClose }:
+  { expense: Expense | null; defaultTripId?: number; lockCategory?: ExpenseCategory; defaultVehicleId?: number; onClose: () => void }) {
   const vehicles = useLookup('vehicles')
   const drivers = useLookup('drivers')
   const suppliers = useLookup('suppliers')
@@ -169,10 +231,10 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const { register, handleSubmit, control, setError, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: expense
-      ? { ...expense, vehicleId: expense.vehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
+      ? { ...expense, category: lockCategory ?? expense.category, vehicleId: expense.vehicleId ?? defaultVehicleId ?? null, tripId: expense.tripId ?? null, description: expense.description ?? '',
         driverId: expense.driverId ?? null, liters: expense.liters ?? null, odometer: expense.odometer ?? null,
         supplierId: expense.supplierId ?? null, isOnCredit: expense.isOnCredit ?? false, cashAccountId: expense.cashAccountId ?? null }
-      : { category: 'Fuel', date: todayIso(), vehicleId: null, tripId: defaultTripId ?? null, description: '', driverId: null, liters: null, odometer: null,
+      : { category: lockCategory ?? 'Fuel', date: todayIso(), vehicleId: defaultVehicleId ?? null, tripId: defaultTripId ?? null, description: '', driverId: null, liters: null, odometer: null,
         supplierId: null, isOnCredit: false, cashAccountId: null },
   })
   const amount = useWatch({ control, name: 'amount' })
@@ -225,9 +287,15 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
     <Modal open onClose={onClose} title={expense ? 'Gider Düzenle' : 'Gider Ekle'}
       footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
       <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-        <Field group className="sm:col-span-2" label="Ne için harcandı?" required error={errors.category?.message}>
-          <ControlledChoice control={control} name="category" label="Kategori" columns={3}
-            options={choices(expenseCategoryLabel, expenseCategoryIcon)} />
+        <Field group className="sm:col-span-2" label="Ne için harcandı?" required error={errors.category?.message}
+          hint={lockCategory ? `Kategori ${expenseCategoryLabel[lockCategory]} olarak sabit; Mazotlar ekranından açıldı.` : undefined}>
+          {lockCategory ? (
+            <ControlledChoice control={control} name="category" label="Kategori" columns={3} disabled
+              options={choices(expenseCategoryLabel, expenseCategoryIcon).filter((o) => o.value === lockCategory)} />
+          ) : (
+            <ControlledChoice control={control} name="category" label="Kategori" columns={3}
+              options={choices(expenseCategoryLabel, expenseCategoryIcon)} />
+          )}
         </Field>
         <div className="grid grid-cols-[1fr_7rem] gap-2">
           <Field label="Tutar (TL)" required error={errors.amount?.message}>
