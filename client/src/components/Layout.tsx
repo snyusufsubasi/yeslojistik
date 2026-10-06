@@ -39,9 +39,9 @@ export function Layout() {
   return (
     <div className="flex min-h-full">
       {open && <div className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />}
-      <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-[236px] flex-col bg-side text-side-fg transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+      <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-side text-side-fg transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
         open ? 'translate-x-0' : '-translate-x-full')}>
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 pl-4 pr-2">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 pl-4 pr-2">
           <Link to="/" className="rounded-[3px]" aria-label={brand.name} title="Ana sayfaya dön"><Logo /></Link>
           <button className="rounded-[3px] p-2 text-side-muted hover:bg-side-active hover:text-white lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
         </div>
@@ -51,13 +51,13 @@ export function Layout() {
             const items = g.items.filter((n) => !n.perm || can(n.perm))
             if (items.length === 0) return null
             return (
-              <div key={gi} className={gi > 0 ? 'mt-2.5' : ''}>
+              <div key={gi} className={gi > 0 ? 'mt-3' : ''}>
                 {g.title && <div className="mb-0.5 px-4 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-side-muted">{g.title}</div>}
                 {items.map((n) => {
                   const b = n.badge?.(dashboard, alerts) ?? null
                   return (
                     <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                      className={({ isActive }) => clsx('flex min-h-[28px] items-center gap-2.5 border-l-[3px] pl-[13px] pr-3 text-[0.84375rem] transition',
+                      className={({ isActive }) => clsx('flex min-h-[40px] items-center gap-3 border-l-4 pl-4 pr-3 text-[0.9rem] transition',
                         isActive ? 'border-hl bg-side-active font-bold text-white' : 'border-transparent text-side-fg hover:bg-side-active/60 hover:text-white')}>
                       {({ isActive }) => (<>
                         <n.icon className={clsx('size-4 shrink-0', isActive ? 'text-hl' : 'text-side-muted')} />
@@ -83,7 +83,7 @@ export function Layout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-white px-3 text-[0.8125rem] sm:gap-3 lg:px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-line bg-white px-3 text-[0.8125rem] sm:gap-3 lg:px-6">
           <button className="flex min-h-11 items-center gap-2 rounded-[3px] px-2 font-semibold text-fg hover:bg-surface-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Menüyü aç"><Menu className="size-6" /><span className="hidden sm:inline">Menü</span></button>
           <GlobalSearch />
           <div className="flex-1" />
@@ -111,7 +111,7 @@ export function Layout() {
             {mirrorStatus?.lastAt && <> Son güncelleme {ago(mirrorStatus.lastAt)}.</>}
           </div>
         )}
-        <main className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 pb-28 pt-5 lg:px-7 lg:py-6">
+        <main className="mx-auto w-full min-w-0 max-w-[1680px] flex-1 px-4 pb-28 pt-5 lg:px-8 lg:py-7">
           <MirrorContext.Provider value={mirror}><Outlet /></MirrorContext.Provider>
         </main>
       </div>
@@ -142,7 +142,7 @@ function NewMenu({ mirror }: { mirror: boolean }) {
   return (
     <div className="relative hidden sm:block" ref={ref}>
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" title="Yeni kayıt (kısayol: N)"
-        className="inline-flex min-h-9 items-center gap-1.5 rounded-[3px] bg-brand-600 px-3.5 text-[0.875rem] font-semibold text-white hover:bg-brand-700">
+        className="inline-flex min-h-11 items-center gap-2 rounded-[4px] bg-brand-600 px-4 text-[0.9rem] font-semibold text-white hover:bg-brand-700">
         <Plus className="size-[1.125rem]" /> Yeni
       </button>
       {open && <QuickActionMenu items={items} mirror={mirror} onPick={() => setOpen(false)} className="absolute right-0 top-11 w-72" />}
