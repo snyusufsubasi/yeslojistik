@@ -1,6 +1,6 @@
 import {
   Handshake, HandCoins, BarChart3, Building2, FileText, Home, Receipt, Settings, Truck, Users, Wallet, IdCard, Map as MapIcon,
-  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun,
+  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun, Fuel, Wrench,
 } from 'lucide-react'
 import type { Alert, Dashboard } from '../api/types'
 import type { Permission } from './auth'
@@ -96,9 +96,10 @@ export const newNav: NavGroup[] = [
     { to: '/sabit-odemeler', label: 'Sabit Ödeme Listesi', icon: Repeat, perm: 'accounting' },
   ] },
   { title: 'Öz Mal', items: [
-    // Mazotlar ve Araç Masrafları kendi sayfalarıyla F4'te eklenir (docs/KOLAYLASTIRMA-UYGULAMA.md F4.2-F4.3).
+    { to: '/mazotlar', label: 'Mazotlar', icon: Fuel },
     { to: '/giderler', label: 'Giderler', icon: Receipt,
       badge: (d) => badge(d?.pendingExpenseCount ?? 0, 'onay bekleyen masraf') },
+    { to: '/arac-masraflari', label: 'Araç Masrafları', icon: Wrench },
     { to: '/araclar', label: 'Araçlar', icon: Building2,
       badge: (_, a) => badge(alertsAt(a, '/araclar'), 'belge veya bakım uyarısı') },
   ] },
