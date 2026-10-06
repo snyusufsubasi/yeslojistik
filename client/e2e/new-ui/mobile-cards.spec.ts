@@ -40,7 +40,10 @@ test('telefonda liste kart olur, alt şerit beş yuva taşır, süzgeç tam ekra
   await expect(bar).toBeVisible()
   const slots = ['Bugün', 'Sevkiyatlar', 'Faturalar', 'Cariler', 'Diğer']
   for (const label of slots) await expect(bar.getByText(label, { exact: true })).toBeVisible()
+  // Etkin yuva: `/musteriler` listesindeyken Cari yuvası işaretli olur. Yuva adresi yetkiye göre
+  // `/cari/musteriler` ya da `/musteriler` olabilir; ikisi de kabul. Her zaman TAM 1 yuva aktif.
   await expect(bar.locator('[aria-current="page"]')).toHaveCount(1)
+  expect(await bar.locator('[aria-current="page"]').getAttribute('href')).toMatch(/^\/(cari\/)?musteriler$/)
   for (const label of ['Bugün', 'Sevkiyatlar', 'Faturalar', 'Cariler']) {
     const box = await bar.getByRole('link', { name: `${label} (kısayol)` }).boundingBox()
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(56)
