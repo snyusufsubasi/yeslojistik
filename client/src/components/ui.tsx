@@ -150,6 +150,9 @@ export function Field({ label, error, required, children, className, hint, group
 
 const modalStack: object[] = []
 
+/** Açık bir Modal var mı? Alt katmanlar (DetailDrawer) Esc'i yalnız üstteki pencereye bırakmak için sorar. */
+export function hasOpenModal() { return modalStack.length > 0 }
+
 export function Modal({ open, onClose, title, children, footer, size = 'md', guard = true }:
   { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl'
     /** Alanlara bir şey yazıldıysa Esc, dışarı tıklama ve X kapatmadan önce sorar. Arama gibi pencerelerde kapatılır. */

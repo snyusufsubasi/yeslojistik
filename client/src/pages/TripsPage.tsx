@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ClipboardCopy, Columns3, Copy, Download, FileSpreadsheet, Trash2, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, Rows3, SlidersHorizontal, StepForward, TableProperties, Truck, X } from 'lucide-react'
+import { ClipboardCopy, Columns3, Copy, Download, Eye, FileSpreadsheet, Trash2, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, Rows3, SlidersHorizontal, StepForward, TableProperties, Truck, X } from 'lucide-react'
 import { download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
 import { ExportButton, PdfButton } from '../components/Exports'
 import type { BulkResult, Dashboard, Driver, JobRequest, Trip, TripStatus, TripTotals, VehicleOwnership } from '../api/types'
@@ -9,12 +9,13 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
 import { useBulkResult } from '../lib/useBulkResult'
-import { Badge, Button, Card, ConfirmDialog, IconButton, PageHeader, Select, DateFilter } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, IconButton, Loading, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
 import { ImportButton, ImportDialog } from '../components/ImportDialog'
 import { useIsNewUi } from '../lib/uiMode'
 import { MoreMenu, RowMenu } from '../components/shell/Menu'
 import { FilterBar, FilterPanel, type FilterChip } from '../components/shell/FilterPanel'
+import { DetailDrawer } from '../components/shell/DetailDrawer'
 import { FirstUse } from '../components/FirstUse'
 import { TripForm } from '../components/TripForm'
 import { TripBoard } from '../components/TripBoard'
@@ -132,15 +133,39 @@ export default function TripsPage() {
   const bulkResult = useBulkResult()
   const [advancing, setAdvancing] = useState<Trip[] | null>(null)
   const [paying, setPaying] = useState<number[] | null>(null)
+  // Detay çekmecesi adresle eşlenir: `?id=<kayıt>` açıkken görünür (docs/plan/28-ORTAK-PARCALAR.md §4).
+  const detailId = Number(params.get('id')) || 0
+  /** Satıra tıklama ya da "⋯ → Detay": kaydı adrese yazar, çekmece sağdan açılır. */
+  const openDetail = useCallback((t: Trip) => {
+    const next = new URLSearchParams(params)
+    next.set('id', String(t.id))
+    setParams(next)
+  }, [params, setParams])
+  /** Kapanışta `?id=` adresten silinir (bağlantı paylaşılırsa çekmece yine açılır). */
+  const closeDetail = useCallback(() => {
+    const next = new URLSearchParams(params)
+    next.delete('id')
+    setParams(next, { replace: true })
+  }, [params, setParams])
   useEffect(() => {
-        // Başka sayfadan (ör. tedarikçi detayı) belirli bir seferi açmak için ?id=
+    // Klasik görünüm: bugünkü davranış aynen korunur — başka sayfadan (ör. tedarikçi detayı) gelen ?id=
+    // sefer düzenleme penceresini açar ve parametre hemen adresten silinir.
+    // Yeni görünümde aynı parametre DetailDrawer'ı açar; adres kapanışa kadar korunur.
+    if (isNew) return
     const openId = Number(params.get('id'))
     if (openId) {
       params.delete('id')
       setParams(params, { replace: true })
       get<Trip>(`/trips/${openId}`).then(setEditing).catch(() => undefined)
     }
-  }, [params, setParams])
+  }, [isNew, params, setParams])
+  // Çekmece içeriği mevcut uçtan gelir (`/trips/{id}`); liste sorgusundan ayrı anahtar kullanır.
+  const detailTrip = useQuery({
+    queryKey: ['trips', 'detail', detailId],
+    queryFn: () => get<Trip>(`/trips/${detailId}`),
+    enabled: detailId > 0,
+    retry: false,
+  })
   useEffect(() => {
     const requestId = Number(params.get('requestId'))
     if (!requestId) return
@@ -184,7 +209,7 @@ export default function TripsPage() {
 
   const statusMut = useSave(({ id, s }: { id: number; s: TripStatus }) => post<Trip>(`/trips/${id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sevkiyat durumu güncellendi.' })
-  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sevkiyat silindi.', onSuccess: () => setDeleting(null) })
+  const deleteMut = useSave((id: number) => api.remove(id), { invalidate: ['trips', 'vehicles', 'suppliers', 'job-requests'], success: 'Sevkiyat silindi.', onSuccess: () => { setDeleting(null); if (isNew) closeDetail() } })
 
   // Toplu işlemler (alttaki seçim çubuğu).
   const approveMut = useSave((ids: number[]) => post<BulkResult>('/trips/bulk/approve-delivery-documents', { tripIds: ids }), {
@@ -243,6 +268,7 @@ export default function TripsPage() {
           ))}
           {isNew ? (
             <RowMenu items={[
+              { label: 'Detay', icon: <Eye />, onClick: () => openDetail(t) },
               { label: 'Düzenle', icon: <Pencil />, write: true, onClick: () => setEditing(t) },
               { label: 'Kopyala (aynısından yeni sevkiyat)', icon: <Copy />, write: true, onClick: () => { setCopyOf(t); setEditing('new') } },
               { label: 'Şoför bilgisini kopyala', icon: <ClipboardCopy />, onClick: () => copyDriver(t) },
@@ -410,7 +436,7 @@ export default function TripsPage() {
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
           onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id}
-          onRowClick={can('operations') ? (t) => setEditing(t) : undefined}
+          onRowClick={isNew ? openDetail : can('operations') ? (t) => setEditing(t) : undefined}
           sort={sort.key} desc={sort.desc} onSort={(key, desc) => setSort({ key, desc })}
           page={page} pageSize={20} total={data?.total} onPage={setPage}
           selectable selection={selection} bulkActions={bulkActions} rowLabel={(t) => `Sevkiyat ${t.terms?.externalRef ?? t.id}, ${t.customerTitle}`}
@@ -466,6 +492,21 @@ export default function TripsPage() {
       <FilterPanel open={filterOpen} onClose={() => setFilterOpen(false)} onClearAll={anyFilter ? clearFilters : undefined}>
         <div className="grid gap-3">{mainFilters}{moreFilters}</div>
       </FilterPanel>
+      {/* Yeni görünüm: satıra tıklama ya da "⋯ → Detay" sağdan çekmeceyi açar; adres `?id=` ile eşlenir. */}
+      {isNew && detailId > 0 && (
+        <DetailDrawer open onClose={closeDetail} tabs={detailTabs}
+          title={detailTrip.data ? `Sevkiyat #${detailTrip.data.terms?.externalRef ?? detailTrip.data.id}` : `Sevkiyat #${detailId}`}
+          footer={<>
+            {can('operations') && <Button write variant="danger" className="mr-auto" icon={<Trash2 />}
+              onClick={() => detailTrip.data && setDeleting(detailTrip.data)}>Sil</Button>}
+            {can('operations') && <Button write icon={<Pencil />}
+              onClick={() => detailTrip.data && setEditing(detailTrip.data)}>Düzenle</Button>}
+          </>}>
+          {(tab) => detailTrip.data
+            ? <TripDetail trip={detailTrip.data} tab={tab} />
+            : <Loading error={detailTrip.error} onRetry={() => detailTrip.refetch()} />}
+        </DetailDrawer>
+      )}
       {importOpen && <ImportDialog entity="trips" onClose={() => setImportOpen(false)} />}
       <ConfirmDialog open={!!deleting} title="Sevkiyatı sil" loading={deleteMut.isPending}
         message={<>“{deleting?.customerTitle} – {deleting?.loadingAddress} → {deleting?.deliveryAddress}” sevkiyatı silinecek. Emin misiniz?</>}
@@ -491,6 +532,78 @@ function AdvanceSummary({ trips }: { trips: Trip[] }) {
     {stay > 0 && <p className="mt-2 text-slate-600">{stay} sevkiyat değişmeyecek (teslim edilmiş ya da iptal).</p>}
     {counts.has('Delivered') && <p className="mt-2 text-slate-600">Teslim tarihi boş olanlara bugünün tarihi yazılır.</p>}
   </>
+}
+
+/** Çekmecedeki sekmeler (docs/plan/28-ORTAK-PARCALAR.md §3 çizimi: Özet │ Evrak │ Kazanç). */
+const detailTabs: { value: string; label: string }[] = [
+  { value: 'ozet', label: 'Özet' },
+  { value: 'evrak', label: 'Evrak' },
+  { value: 'kazanc', label: 'Kazanç' },
+]
+
+/** Çekmecedeki etiket–değer satırı. */
+const DetailRow = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className="grid grid-cols-[8.5rem_1fr] items-baseline gap-2 border-b border-slate-100 py-2 last:border-0">
+    <dt className="text-[0.8125rem] text-muted">{label}</dt>
+    <dd className="min-w-0">{children}</dd>
+  </div>
+)
+
+/**
+ * Sevkiyat çekmecesinin içeriği: hepsi listenin kullandığı `TripDto` alanları; ek istek yok.
+ * Özet sekmelerin ilkidir; Evrak ve Kazanç sekmeleri listenin "Detay" sütunlarındaki bilgileri toplar.
+ */
+function TripDetail({ trip: t, tab }: { trip: Trip; tab: string }) {
+  const terms = t.terms
+  const commission = terms?.commission ?? 0
+  const extraCharge = terms?.extraCharge ?? 0
+  const driverBonus = terms?.driverBonus ?? 0
+  if (tab === 'evrak') return (
+    <dl className="text-[0.9375rem]">
+      <DetailRow label="Teslim evrakı">{terms?.deliveryDocumentNo || <Empty />}</DetailRow>
+      <DetailRow label="Evrak onayı">{terms?.deliveryDocumentApproved
+        ? <Badge tone="green">Onaylandı</Badge> : <Badge tone="yellow">Onay bekliyor</Badge>}</DetailRow>
+      <DetailRow label="İrsaliye no">{terms?.waybillNo || <Empty />}</DetailRow>
+      <DetailRow label="e-İrsaliye">{terms?.eWaybillNo
+        ? <>{terms.eWaybillNo}{terms.eWaybillDate && <span className="block text-sm text-muted">{date(terms.eWaybillDate)}</span>}</> : <Empty />}</DetailRow>
+      <DetailRow label="Fatura"><InvoiceInfo t={t} /></DetailRow>
+      {UETDS_READINESS && <DetailRow label="U-ETDS">{t.uetdsMissing == null ? <Empty /> : <UetdsBadge missing={t.uetdsMissing} />}</DetailRow>}
+    </dl>
+  )
+  if (tab === 'kazanc') return (
+    <dl className="text-[0.9375rem]">
+      <DetailRow label="Satış">{tl(t.salePrice)}</DetailRow>
+      <DetailRow label="Araç / taşeron">{tl(t.vehicleCost)}</DetailRow>
+      {commission > 0 && <DetailRow label="Komisyon">{tl(commission)}
+        <span className="block text-sm text-muted">{commissionStatusLabel[terms?.commissionStatus ?? 'Pending']}{t.commissionAccountName && ` · ${t.commissionAccountName}`}</span></DetailRow>}
+      {extraCharge > 0 && <DetailRow label="Ek masraf">{tl(extraCharge)}{terms?.extraChargeInvoiced && <span className="text-sm text-muted"> (faturalı)</span>}</DetailRow>}
+      {driverBonus > 0 && <DetailRow label="Şoför primi">{tl(driverBonus)}</DetailRow>}
+      <DetailRow label="Giderler">{tl(t.expenseTotal)}</DetailRow>
+      <DetailRow label="Kâr"><span className={t.profit < 0 ? 'text-bad' : 'text-good'}>{tl(t.profit)}</span></DetailRow>
+    </dl>
+  )
+  return (
+    <dl className="text-[0.9375rem]">
+      <DetailRow label="Durum"><span className="flex flex-wrap items-center gap-1.5">
+        <Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>
+        {t.isLegacy && <Badge tone="gray">Eski kayıt</Badge>}
+        {terms?.customerPays && <Badge tone="teal">Müşteri öder</Badge>}
+      </span></DetailRow>
+      <DetailRow label="Müşteri"><span className="font-medium">{t.customerTitle}</span>
+        {t.customerReference && <span className="block text-sm text-muted">Ref: {t.customerReference}</span>}
+        {terms?.customerGroup && <span className="block text-sm text-muted">Firma grubu: {terms.customerGroup}</span>}</DetailRow>
+      <DetailRow label="Güzergâh">{route(t.loadingCity, t.loadingAddress)} <span className="text-muted">→</span> {route(t.deliveryCity, t.deliveryAddress)}</DetailRow>
+      <DetailRow label="Araç / Şoför">
+        <span className="flex flex-wrap items-center gap-1.5"><PlateBadge plate={t.vehiclePlate} />{t.carrierSupplierTitle && <Badge tone="purple">Kiralık</Badge>}</span>
+        <span className="block text-sm text-muted">{t.carrierSupplierTitle ?? t.driverName}{t.trailerPlate && ` · ${t.trailerPlate}`}</span></DetailRow>
+      <DetailRow label="Yükleme tarihi">{date(t.loadingDate)}</DetailRow>
+      {(t.deliveryDate || t.deliveredAt) && <DetailRow label="Teslim tarihi">{date(t.deliveryDate ?? t.deliveredAt ?? '')}</DetailRow>}
+      <DetailRow label="Tutar">{tl(t.salePrice)}</DetailRow>
+      {(t.cargoType || t.cargoQuantity != null) && <DetailRow label="Yük">
+        {t.cargoType ?? ''}{t.cargoQuantity != null && ` ${t.cargoQuantity.toLocaleString('tr-TR')} ${t.cargoUnit ?? ''}`.trimEnd()}{t.cargoWeightKg != null && ` · ${t.cargoWeightKg.toLocaleString('tr-TR')} kg`}</DetailRow>}
+      {t.description && <DetailRow label="Açıklama"><span className="whitespace-pre-line">{t.description}</span></DetailRow>}
+    </dl>
+  )
 }
 
 type Preset = 'price' | 'document' | 'commission'
