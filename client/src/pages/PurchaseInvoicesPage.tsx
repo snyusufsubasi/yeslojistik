@@ -74,7 +74,7 @@ export default function PurchaseInvoicesPage() {
         actions={<>
           <ExportButton url="/purchase-invoices/export" params={query} fileName="alinan-faturalar.xlsx" />
           {can('accounting') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Fatura Ekle</Button>}
-        >}>
+        }>
       <Card title="Fatura Listesi" icon={<FileInput className="size-4" />} bodyClassName="p-0"
         actions={<SearchBox value={search} onChange={setSearch} placeholder="Fatura no, tedarikçi, VKN..." />}>
         <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
