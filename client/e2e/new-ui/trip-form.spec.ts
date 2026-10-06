@@ -17,16 +17,17 @@ async function fixtures(request: APIRequestContext, id: string) {
 
 const dialogOf = (page: Page) => page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
 
-/** Arama kutusu: tıklanır, klavyeyle yazılır (gerçek kullanıcı gibi; doldurma olayı değil), liste açılır. */
+/**
+ * Arama kutusu: tıklanır, klavyeyle yazılır (gerçek kullanıcı gibi; doldurma olayı değil), çıkan seçenek SEÇİLİR.
+ * Esc listeyi kapatır ama seçim yapmaz (SearchSelect.tsx:89-92); bu yüzden seçenek tıklanır ve değer ancak o zaman yerleşir.
+ */
 async function typeSelect(input: ReturnType<Page['locator']>, text: string, option: string) {
   await input.click()
   await input.pressSequentially(text, { delay: 10 })
-  await expect(input.page().getByRole('option', { name: option, exact: true })).toBeVisible()
-}
-
-/** Açık seçenek listesini kapatır; Esc varsayılanı engellenir, pencere kapanmaz (SearchSelect.tsx:89-92). */
-async function closeList(input: ReturnType<Page['locator']>) {
-  await input.press('Escape')
+  const choice = input.page().getByRole('option', { name: option, exact: true })
+  await expect(choice).toBeVisible()
+  await choice.click()
+  await expect(choice).toBeHidden()
 }
 
 test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümde bugünkü düzen', async ({ page }) => {
@@ -47,9 +48,7 @@ test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümd
   const customerInput = dialog.locator('input[name=customerId]')
   const vehicleInput = dialog.locator('input[name=vehicleId]')
   await typeSelect(customerInput, customerTitle, customerTitle)
-  await closeList(customerInput)
   await typeSelect(vehicleInput, plate, `${plate} - Kamyon`)
-  await closeList(vehicleInput)
 
   const customerBox = await customerInput.boundingBox()
   const vehicleBox = await vehicleInput.boundingBox()
@@ -83,7 +82,6 @@ test('Sevkiyat formu: yeni görünümde tek sayfa iki sütun, klasik görünümd
   await expect(classic.locator('h3', { hasText: 'Fiyat' })).toHaveText('Fiyat')
   // Tek sütun akış: araç kutusu müşterinin çok altında.
   await typeSelect(classic.locator('input[name=customerId]'), customerTitle, customerTitle)
-  await closeList(classic.locator('input[name=customerId]'))
   const classicCustomer = await classic.locator('input[name=customerId]').boundingBox()
   const classicVehicle = await classic.locator('input[name=vehicleId]').boundingBox()
   expect(classicCustomer).not.toBeNull()

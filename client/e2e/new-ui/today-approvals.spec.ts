@@ -44,7 +44,8 @@ test('Bugün: "Onay Bekleyenler" sekmesi adresi değiştirir ve onay bekleyen te
   await expect(page.getByRole('heading', { name: 'Onay Bekleyenler', level: 1 })).toBeVisible()
 
   // Onay bekleyen kayıt listede: müşteri adı, "Onay bekliyor" rozeti ve onaylama ekranına giden yol.
-  const docs = page.getByRole('region', { name: 'Teslim evrakları · onay bekliyor' })
+  // Kart bir `<section>`tır ve erişilebilir adı olmadığı için `role=region` DEĞİLDİR; başlığından bulunur (ui.tsx Card).
+  const docs = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Teslim evrakları · onay bekliyor' }) })
   await expect(docs).toBeVisible()
   await expect(docs.getByText(trip.customerTitle)).toBeVisible()
   await expect(docs.getByText('Onay bekliyor').first()).toBeVisible()
