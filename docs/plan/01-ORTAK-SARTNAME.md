@@ -141,11 +141,15 @@ Bölüm içerikleri:
 - `client/src/components/shell/SectionTabs.tsx` — yeni görünümde sekmeler (8-32); klasikte `null`.
 - `PageHeader` `client/src/components/ui.tsx:108-134` içinde (yeni başlık 112, alt başlık gizleme 113,
   `SectionTabs` 132, `HelpTip` gizleme 126).
-- **Kullanım çok dar:** `MoreMenu`/`RowMenu` yalnız `client/src/pages/TripsPage.tsx` (16-17, 245, 341);
-  `FilterBar`/`FilterPanel` yalnız aynı dosyada (379, 466); `SectionTabs` yalnız `ui.tsx:132` ve
-  `client/src/pages/DashboardPage.tsx:65`.
-- Dokümanda adı geçen **`PageShell` ve `DetailDrawer` kodda YOK**; `docs/plan/28-ORTAK-PARCALAR.md`
-  bunların şartnamesini yazar.
+- **Kullanım (6 Ekim 2026 itibarıyla):** `PageShell` 7 sayfada (`CustomersPage`, `SuppliersPage`,
+  `DriversPage`, `StaffPage`, `RecurringPaymentsPage`, `FuelPage`, `VehicleExpensesPage`); `MobileCards`
+  7 sayfada (aynıları + `InvoicesPage` + `TripsPage`); `FilterBar`/`FilterPanel` `TripsPage`, `FuelPage`,
+  `VehicleExpensesPage`; `MoreMenu` `PageShell` ve `TripsPage`; `RowMenu` `TripsPage` ve `MobileCards`;
+  `SectionTabs` `ui.tsx` ve `DashboardPage`.
+- **`PageShell` ve `DetailDrawer` artık KODDA VAR:** `client/src/components/shell/PageShell.tsx` ve
+  `client/src/components/shell/DetailDrawer.tsx` (şartname: `docs/plan/28-ORTAK-PARCALAR.md`).
+  `DetailDrawer` şu an yalnız `client/src/pages/TripsPage.tsx` içinde kullanılıyor; diğer detay
+  ekranlarına yaygınlaştırma işi açıktır.
 - Dokümanda geçen `client/src/pages/TodayPage.tsx` **YOK**; "Bugün" ekranı
   `client/src/pages/DashboardPage.tsx:56-93` içinde.
 
