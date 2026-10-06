@@ -299,6 +299,14 @@ ERP için genişletilir:
 Toplam kaba büyüklük **150-230 kişi-gün**; bu, sıfırdan yazmaya göre yaklaşık **üçte bir**dir
 (gerekçe §12).
 
+> **Düzeltme (6 Ekim 2026, `39-YOL-HARITASI-EFOR.md` §11.4):** Yukarıdaki 150-230 kişi-gün, bu doküman
+> yazılırken **henüz yazılmamış 12 modülü** (rapor tasarımcısı, CRM, doküman arşivi, muhasebeci paketi,
+> müşteri/tedarikçi portalı, çok şirketli konsolidasyon, ayarlar/kurulum, veri göçü, bildirim/KEP,
+> lisans-kontör, test/CI genişletmesi, güvenlik) kapsamıyordu. Yazılı 38 dokümanın §11 toplamı
+> **~1.900-2.400 kişi-gün** (orta nokta ~2.150) çıkıyor; yani gerçek büyüklük buradaki rakamın
+> **~9-10 katı**. Hesaplama ve takvim senaryoları için `39-YOL-HARITASI-EFOR.md` esas alınır; bu
+> satırdaki rakam **yalnız "mevcut kodun üstüne lojistik-dışı ilk dilim"** olarak okunmalıdır.
+
 **Sıra kuralı:** `06-MUHASEBE-MOTORU.md` ürün dökümünden önce bitmeli; fiş kuralları netleşmeden stok
 ve sipariş modülü yazılmaz (yanlış hareket üretir).
 
