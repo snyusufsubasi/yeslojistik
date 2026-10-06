@@ -7,8 +7,9 @@ import { CalendarClock, CheckCircle2, Pencil, Plus, Repeat, Trash2 } from 'lucid
 import { del, get, post, put } from '../api/client'
 import type { ExpenseCategory, RecurringPayment } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
-import { Badge, Button, ConfirmDialog, Card, Field, IconButton, Modal, StatCard } from '../components/ui'
+import { Badge, Button, ConfirmDialog, Card, Field, IconButton, Modal } from '../components/ui'
 import { PageShell } from '../components/shell/PageShell'
+import { Figures, Figure } from '../components/ui'
 import { MobileCards } from '../components/shell/MobileCards'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
 import { AmountInput, DateQuick } from '../components/Inputs'
@@ -57,10 +58,12 @@ export default function RecurringPaymentsPage() {
       <PageShell title="Sabit Ödemeler" subtitle="Her ay tekrarlanan ödemeler. “Ödendi” deyince gider olarak yazılır, seçilen hesaptan düşer."
         primary={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>}
         actions={<Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sabit Ödeme Ekle</Button>}>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard title="Bu ayın toplamı" value={tl(active.reduce((s, r) => s + r.amount, 0))} icon={<Repeat />} color="blue" sub={`${active.length} kalem`} />
-        <StatCard title="Ödenmeyen" value={tl(unpaid.reduce((s, r) => s + r.amount, 0))} icon={<CalendarClock />} color="orange" sub={`${unpaid.length} kalem`} />
-        <StatCard title="Ödenen" value={tl(rows.reduce((s, r) => s + (r.paidAmount ?? 0), 0))} icon={<CheckCircle2 />} color="green" />
+      <div className="mb-4 border border-line bg-white">
+        <Figures>
+          <Figure label="Bu ayın toplamı" value={tl(active.reduce((s, r) => s + r.amount, 0))} />
+          <Figure label="Ödenmeyen" value={tl(unpaid.reduce((s, r) => s + r.amount, 0))} />
+          <Figure label="Ödenen" value={tl(rows.reduce((s, r) => s + (r.paidAmount ?? 0), 0))} />
+        </Figures>
       </div>
       <Card bodyClassName="p-0" title="Ödeme listesi" icon={<Repeat className="size-4" />}
         actions={<label className="input flex items-center gap-2"><span className="shrink-0 text-sm text-slate-500">Ay</span>
