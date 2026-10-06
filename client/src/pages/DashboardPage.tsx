@@ -1,12 +1,12 @@
 import { useContext, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileText, Plus, Rocket, Route, Truck } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle, Circle, X, CheckCircle2, CircleDollarSign, FileCheck2, FileText, Plus, Rocket, Route, Truck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { get } from '../api/client'
-import type { Alert, CashFlow, Dashboard, Invoice, Trip, Vehicle } from '../api/types'
+import type { Alert, CashFlow, Dashboard, Expense, Invoice, PagedResult, Trip, Vehicle } from '../api/types'
 import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Figure, Figures, Loading, MirrorContext, PlateBadge } from '../components/ui'
 import { useIsNewUi } from '../lib/uiMode'
@@ -17,15 +17,38 @@ import { useAuth } from '../lib/auth'
 import { quickActions } from '../lib/quickActions'
 import { chart as palette, chartTick } from '../lib/chart'
 import { date, daysUntil, longDate, MONTHS, tl } from '../lib/format'
-import { paymentStatusTone, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
+import { expenseCategoryLabel, paymentStatusTone, tripStatusLabel, tripStatusTone, vehicleStatusLabel, vehicleStatusTone } from '../lib/labels'
+
+/**
+ * "Onay Bekleyenler" sekmesinin adres parametresi. Depoda sekme/görünüm seçimi `?tab=` ile yazılıyor
+ * (ör. `/ayarlar?tab=data`), zaman süzgeçleri de `?when=` olacak; bu yüzden `?tab=approvals` seçildi.
+ */
+const APPROVALS_TAB = 'approvals'
 
 export default function DashboardPage() {
   const { user, can } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const { data, error, refetch } = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), refetchInterval: 60_000 })
   const isNew = useIsNewUi()
-  usePageTitle(isNew ? 'Bugün' : 'Ana Sayfa')
+  const tab = params.get('tab')
+  // Sekme yalnız muhasebe yetkisi olan kullanıcıya açıktır; yetkisiz adrese giderse normal Bugün ekranı kalır.
+  const approvals = isNew && tab === APPROVALS_TAB && can('accounting')
+  usePageTitle(approvals ? 'Onay Bekleyenler' : isNew ? 'Bugün' : 'Ana Sayfa')
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
+  // "Onay Bekleyenler" sekmesi açıkken onay bekleyen kayıtlar mevcut uçlardan gelir:
+  // teslim evrakı onayı bekleyen sevkiyatlar (`/trips?pendingDeliveryDocument=true`) ve şoförün
+  // girdiği onay bekleyen masraflar (`/expenses?approvalStatus=Pending`). Yeni bir uç eklenmez.
+  const pendingDocs = useQuery({
+    queryKey: ['trips', 'pending-delivery-documents'],
+    queryFn: () => get<PagedResult<Trip>>('/trips', { pendingDeliveryDocument: true, pageSize: 50, sort: 'loadingDate', desc: true }),
+    enabled: approvals,
+  })
+  const pendingExpenses = useQuery({
+    queryKey: ['expenses', 'pending-approval'],
+    queryFn: () => get<PagedResult<Expense>>('/expenses', { approvalStatus: 'Pending', pageSize: 50, sort: 'date', desc: true }),
+    enabled: approvals && can('accounting'),
+  })
 
   if (!data) return <Loading error={error} onRetry={refetch} className={error ? 'card mx-auto mt-10 max-w-md' : undefined} />
 
@@ -63,6 +86,10 @@ export default function DashboardPage() {
         {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/seferler?new=1')}>Sevkiyat Ekle</Button>}
       </div>
       <SectionTabs />
+      <TodayTabBar approvals={approvals} showApprovals={can('accounting')} pendingCount={data.pendingExpenseCount} />
+      {approvals ? (
+        <ApprovalsList tripCols={tripCols} pendingDocs={pendingDocs} pendingExpenses={pendingExpenses} canApproveExpenses={can('accounting')} />
+      ) : <>
       {can('admin') && !data.setup.companyInfo && !readOnboarding().cardHidden && !readOnboarding().finished && <OnboardingCard />}
       <Figures label="Sevkiyat durumu" className="sm:grid-cols-3">
         <Figure label="Yüklenmeyi bekleyen" value={data.plannedTripCount} sub="Planlandı" onClick={() => navigate('/seferler?status=Planned')} />
@@ -89,6 +116,7 @@ export default function DashboardPage() {
       {can('admin') && data.setup.sampleData && (
         <p className="text-[0.8125rem] text-muted">Şu an örnek (demo) veriler görünüyor. Temizlemek için: Yönetici → Veriler.</p>
       )}
+      </>}
     </div>
   )
 
@@ -207,6 +235,88 @@ function Row({ label, value, strong, tone }: { label: string; value: string; str
       <dt className="text-muted">{label}</dt>
       <dd className={clsx('font-mono tracking-[-0.02em]', strong ? 'font-semibold' : 'font-medium', tone ?? 'text-fg')}>{value}</dd>
     </div>
+  )
+}
+
+/**
+ * Bugün ekranının zaman/onay sekmeleri. Bölüm sekmeleri (`SectionTabs`) adresleri değiştirir; buradaki
+ * sekmeler aynı sayfada sorgu parametresi yazar (`?tab=approvals`). "Onay Bekleyenler" sekmesi yalnız
+ * muhasebe yetkisi olan kullanıcıya görünür; sayaç, onay bekleyen masraf sayısıdır (varsa).
+ */
+function TodayTabBar({ approvals, showApprovals, pendingCount }: { approvals: boolean; showApprovals: boolean; pendingCount: number }) {
+  const items = [
+    { to: '/', label: 'Bugün', active: !approvals },
+    ...(showApprovals ? [{ to: '/?tab=approvals', label: pendingCount > 0 ? `Onay Bekleyenler (${pendingCount})` : 'Onay Bekleyenler', active: approvals }] : []),
+  ]
+  return (
+    <nav aria-label="Bugün sekmeleri" className="-mt-2 overflow-x-auto border-b border-line">
+      <div role="tablist" className="flex min-w-max gap-1">
+        {items.map((t) => (
+          <Link key={t.to} to={t.to} role="tab" aria-selected={t.active}
+            className={clsx('whitespace-nowrap border-b-2 px-3.5 py-2.5 text-[0.9375rem] font-semibold transition',
+              t.active ? 'border-accent text-fg' : 'border-transparent text-muted hover:border-slate-300 hover:text-fg')}>
+            {t.label}
+          </Link>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+/**
+ * "Onay Bekleyenler": onay bekleyen teslim evrakları (sevkiyat) ve şoför masrafları tek ekranda.
+ * Liste mevcut uçlarla kurulur (`/trips?pendingDeliveryDocument=true`, `/expenses?approvalStatus=Pending`);
+ * onaylama işlemi kaydın kendi ekranında yapılır (Sevkiyatlar'daki toplu onay, Giderler'deki Onayla).
+ */
+function ApprovalsList({ tripCols, pendingDocs, pendingExpenses, canApproveExpenses }: {
+  tripCols: Column<Trip>[]
+  pendingDocs: { data?: PagedResult<Trip>; isFetching: boolean; error: unknown; refetch: () => void }
+  pendingExpenses: { data?: PagedResult<Expense>; isFetching: boolean }
+  canApproveExpenses: boolean
+}) {
+  const navigate = useNavigate()
+  const docCols: Column<Trip>[] = [...tripCols, {
+    key: 'document', header: 'Evrak',
+    render: () => <Badge tone="yellow">Onay bekliyor</Badge>,
+  }]
+  const expenseCols: Column<Expense>[] = [
+    { key: 'date', header: 'Tarih', render: (e) => date(e.date) },
+    { key: 'category', header: 'Masraf', className: 'whitespace-normal! min-w-28', render: (e) => expenseCategoryLabel[e.category] },
+    { key: 'driver', header: 'Şoför', className: 'whitespace-normal! min-w-32', render: (e) => e.driverName ?? '—' },
+    { key: 'vehicle', header: 'Araç', render: (e) => (e.vehiclePlate ? <PlateBadge plate={e.vehiclePlate} /> : '—') },
+    { key: 'description', header: 'Açıklama', className: 'whitespace-normal! min-w-40', render: (e) => e.description || '—' },
+    { key: 'amount', header: 'Tutar', align: 'right', render: (e) => <span className="font-mono">{tl(e.amount)}</span> },
+  ]
+  const docCount = pendingDocs.data?.items.length ?? 0
+  const expenseCount = canApproveExpenses ? pendingExpenses.data?.items.length ?? 0 : 0
+  const total = docCount + expenseCount
+  if (total === 0 && !pendingDocs.isFetching && !(canApproveExpenses && pendingExpenses.isFetching)) {
+    return (
+      <Card title="Onay bekleyenler" icon={<FileCheck2 className="size-4" />}>
+        <p className="text-[0.9375rem] text-muted">Onay bekleyen kayıt yok.</p>
+      </Card>
+    )
+  }
+  return (
+    <>
+      <p className="text-[0.875rem] text-muted">
+        {docCount} teslim evrakı ve {expenseCount} şoför masrafı onay bekliyor. <b className="font-semibold text-fg">Toplu onay: {total}</b>
+      </p>
+      {canApproveExpenses && (
+        <Card title="Şoför masrafları · onay bekliyor" icon={<CircleDollarSign className="size-4" />} bodyClassName="p-0"
+          actions={<Button size="sm" variant="ghost" onClick={() => navigate('/giderler?onay=Pending')}>Giderlerde onayla →</Button>}>
+          <DataTable columns={expenseCols} rows={pendingExpenses.data?.items} loading={pendingExpenses.isFetching}
+            rowKey={(e) => e.id} onRowClick={() => navigate('/giderler?onay=Pending')}
+            empty="Onay bekleyen şoför masrafı yok." />
+        </Card>
+      )}
+      <Card title="Teslim evrakları · onay bekliyor" icon={<FileCheck2 className="size-4" />} bodyClassName="p-0"
+        actions={<Button size="sm" variant="ghost" onClick={() => navigate('/seferler?list=document')}>Sevkiyatlarda onayla →</Button>}>
+        <DataTable columns={docCols} rows={pendingDocs.data?.items} loading={pendingDocs.isFetching} error={pendingDocs.error}
+          onRetry={pendingDocs.refetch} rowKey={(t) => t.id} onRowClick={(t) => navigate(`/seferler?id=${t.id}`)}
+          empty="Onay bekleyen teslim evrakı yok." />
+      </Card>
+    </>
   )
 }
 
