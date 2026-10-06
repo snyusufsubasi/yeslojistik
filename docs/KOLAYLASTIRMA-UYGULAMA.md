@@ -181,8 +181,9 @@ export function applySavedUiMode(): void // main.tsx'te çağrılır; <html data
 - Sağdan 560px genişliğinde panel; telefonda tam ekran. Başlık, sekmeler ve içerik içerir.
 - Adrese `?id=` yazılır. Sunucu bildirimleri `/seferler?id=5` gibi adresler kullanıyor; bunlar paneli açmalı.
 - **F2'de yalnız Sevkiyatlar'da kullanılır.** İçeriği bugünkü sevkiyat düzenleme penceresiyle (TripForm modal) aynıdır; yalnız kap değişir. İstersen ilk sürümde mevcut `Modal`'ı kullan, panele geçiş F6'da yapılabilir.
+  - **(bitti: 6 Ekim — `components/shell/DetailDrawer.tsx`, Sevkiyatlar'da `?id=` adresiyle açılır; diğer sayfalarda henüz kullanılmıyor.)**
 
-### 4.8 Görünüm jetonları (yalnız yeni görünüm)
+### 4.8 Görünüm jetonları (yalnız yeni görünüm) — **kısmen bitti (6 Ekim)**
 `index.css` içinde `html[data-ui="new"]` altında:
 - **Kart köşesi:** `--radius-xl: 6px`, `--radius-2xl: 8px`. Açılır pencerelerde mevcut gölge.
 - **Boşluk:** sayfa içerik genişliği değişmez. Bölümler arası boşluk `space-y-6` → `space-y-7`.
@@ -192,15 +193,16 @@ export function applySavedUiMode(): void // main.tsx'te çağrılır; <html data
   - Profilim → Görünüm'de "Tablo yazısı: Tırnaklı / Düz" seçimi. Varsayılan **Tırnaklı**.
   - Müşteri F1 sonunda seçer; seçim varsayılan yapılır.
 - **Satır sıklığı:** `data-density="compact"` iken `.td` dikey dolgusu 7px → 4px. Profilim → Görünüm'de "Rahat / Sık".
+- **Durum (6 Ekim):** renk, tablo başlığı, satır sıklığı (7px → 5px), başlık ve süzgeç boşluğu jetonları `client/src/index.css` içinde `html[data-ui="new"]` altında **var**. "Tablo yazısı: Tırnaklı / Düz" seçimi ve `data-density` anahtarı **yok** (kodda 0 eşleşme); müşteri seçimi bekleniyor.
 
 ---
 
 ## 5. Aşamalar ve görev kartları
 Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sırayla yap. Bir kart bitince commit + push, sonra sonraki kart.
 
-### F1 — Temel: anahtar, menü, sekmeler, ortak parçalar
+### F1 — Temel: anahtar, menü, sekmeler, ortak parçalar — **bitti (5 Ekim)**
 
-**F1.1 Görünüm anahtarı**
+**F1.1 Görünüm anahtarı — bitti (5 Ekim)**
 - **Dosyalar:** `lib/uiMode.ts` (yeni), `main.tsx`, `Layout.tsx` (UserMenu), `index.css`.
 - **Adımlar:**
   1. 4.1'deki kodu yaz.
@@ -209,7 +211,7 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
 - **Kabul:** seçim sayfa yenilenince korunur ve `<html data-ui>` değişir.
 - **Test:** e2e `ui-mode.spec.ts`: Yeni seç → `data-ui="new"`, sayfa yenile → hâlâ yeni.
 
-**F1.2 Yeni menü**
+**F1.2 Yeni menü — bitti (5 Ekim)**
 - **Dosyalar:** `Layout.tsx`, yeni `lib/nav.ts`.
 - **Adımlar:**
   1. Bugünkü `navGroups` dizisini `lib/nav.ts`'ye `classicNav` adıyla taşı (davranış aynı).
@@ -223,7 +225,7 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
   - Sayaçlar doğru maddede.
 - **Test:** e2e yeni spec, menü sırası. **Klasik görünüm testleri hiç değişmeden geçmeli.**
 
-**F1.3 Sekmeler**
+**F1.3 Sekmeler — bitti (5 Ekim; "Faturalandırılacaklar" sekmesi 6 Ekim)**
 - **Dosyalar:** `components/shell/SectionTabs.tsx`, `lib/sections.ts`.
 - **Adımlar:**
   1. Bölüm 3 tablosunu kodla.
@@ -233,12 +235,12 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
      - `/seferler?gorunum=pano` → pano.
 - **Kabul:** her bölümde sekmeler görünür, adres değişir, geri tuşu çalışır.
 
-**F1.4 Ortak parçalar**
+**F1.4 Ortak parçalar — bitti (5 Ekim; `DetailDrawer` 6 Ekim)**
 - **Dosyalar:** `components/shell/{PageShell,MoreMenu,RowMenu,FilterBar,FilterPanel,DetailDrawer}.tsx`.
 - **Adımlar:** 4.3-4.7'yi yaz. Henüz sayfalara uygulama; yalnız bir örnek sayfada (Çekler) kullanıp dene.
 - **Kabul:** klavye ile açılır/kapanır; telefonda tam ekran; ayna modunda `write` maddeleri gizli.
 
-**F1.5 Terim değişikliği ("Sefer" → "Sevkiyat")**
+**F1.5 Terim değişikliği ("Sefer" → "Sevkiyat") — bitti (5 Ekim; görünen metinlerde "sefer" kalmadı, kod adları ve yorumlar duruyor)**
 - **Kapsam:** yalnız **ekranda görünen** Türkçe metinler:
   - `client/src`: başlıklar, düğmeler, toast mesajları, boş durum yazıları, yardım sayfası;
   - `docs/KULLANIM.md`.
@@ -256,7 +258,7 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
 
 ### F2 — Bugün + Sevkiyatlar + Sevkiyat Ekle
 
-**F2.1 Bugün ekranı** (`/`, yeni görünümde)
+**F2.1 Bugün ekranı** (`/`, yeni görünümde) — **kısmen bitti (6 Ekim: "Onay Bekleyenler" sekmesi; ayrı `TodayPage.tsx` yok, sekme `DashboardPage.tsx` içinde)**
 - **Dosyalar:** `pages/TodayPage.tsx` (yeni). `App.tsx` index rotası `uiMode==='new' ? <TodayPage/> : <DashboardPage/>` olur.
 - **İçerik:**
   1. Başlık "Bugün" ve tarih. Sağda ana düğme "+ Sevkiyat Ekle" (`/seferler?new=1`).
@@ -266,11 +268,11 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
      - "N masraf onay bekliyor → İncele".
      Veri mevcut `/dashboard` cevabında var.
   4. **Liste**: bugünün sevkiyatları ve iş talepleri. Zaman sekmeleri Bugün · Gelecek · Geçmiş · Hepsi (`Chip`). Görünüm "Tablo / Kart". Kayda tıklayınca sevkiyat açılır (`/seferler?id=`).
-  5. `?sekme=onay`: onay bekleyen teslim evrakları + şoför masrafları tek listede. Toplu onay için mevcut uçlar kullanılır (Sevkiyatlar'daki toplu "Teslim evrakını onayla" ve Giderler'deki onay).
+  5. `?sekme=onay`: onay bekleyen teslim evrakları + şoför masrafları tek listede. Toplu onay için mevcut uçlar kullanılır (Sevkiyatlar'daki toplu "Teslim evrakını onayla" ve Giderler'deki onay). **(bitti: 6 Ekim — adreste `?tab=approvals`; sekme yalnız `accounting` yetkisine açık.)**
 - **Kaldırılanlar** (yalnız yeni görünümde; klasikte aynen kalır): 7 kısayol kutusu, nakit akışı, "Bu ay", demo uyarısı (demo uyarısı yalnız Yönetici sayfasında görünür).
 - **Kabul:** 1440×900'de liste ilk ekranda başlar (başlık + rakamlar + liste başlığı ≤ 320px).
 
-**F2.2 Sevkiyatlar yeni yerleşim** (`pages/TripsPage.tsx`)
+**F2.2 Sevkiyatlar yeni yerleşim** (`pages/TripsPage.tsx`) — **kısmen bitti (6 Ekim: `MoreMenu`, `FilterBar`/`FilterPanel`, satır menüsü ve mobil kart var; başlıkta `PageShell` yerine `PageHeader` duruyor, kazanç şeridi hâlâ `EarningsStrip`)**
 - **Adımlar:**
   1. `PageShell` kullan:
      - ana düğme "+ Sevkiyat Ekle";
@@ -303,7 +305,7 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
   - Süzgeçler adreste kalır (mevcut davranış).
 - **Test:** `e2e/trips.spec.ts` ve `bulk.spec.ts` yeni görünüm için de çalışsın (bkz. bölüm 9).
 
-**F2.3 Sevkiyat Ekle formu** (`components/TripForm.tsx`)
+**F2.3 Sevkiyat Ekle formu** (`components/TripForm.tsx`) — **bitti (6 Ekim)**
 - **Hedef:** pratikortam "İş Ekle" gibi tek sayfa, iki sütun, adım numarası yok.
 - **Alan sırası:**
   - Sol sütun: Firma (Müşteri) · Yükleme ili/adresi · Yükleme tarihi · İndirme ili/adresi · Teslim tarihi.
@@ -320,9 +322,9 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
 
 ### F3 — e-Fatura + Cari + Banka & Çek
 
-**F3.1 e-Fatura** (`InvoicesPage`, `InvoiceCreatePage`, `PurchaseInvoicesPage`)
+**F3.1 e-Fatura** (`InvoicesPage`, `InvoiceCreatePage`, `PurchaseInvoicesPage`) — **kısmen bitti (6 Ekim: "Faturalandırılacaklar" sekmesi; `PageShell` yok, liste `PageHeader` ile duruyor; sayaç kutuları ve `FilterPanel`'e taşıma açık)**
 - `PageShell` ve sekmeler (bölüm 3).
-- **`?sekme=bekleyen`:**
+- **`?sekme=bekleyen`:** — bitti (6 Ekim; teslim edilmiş ve faturasız sevkiyatlar müşteriye göre gruplanır, gruptan "Fatura Kes" seçili sevkiyatları forma taşır; sunucu değişikliği yok)
   - teslim edilmiş, faturasız sevkiyatlar müşteriye göre gruplu (mevcut `/trips?invoiced=false&status=Delivered` gibi süzgeçlerle);
   - her grupta "Fatura Kes" → `/faturalar/yeni?customerId=X&tripIds=…` (bu parametreler zaten destekleniyor).
 - **Kesilen Faturalar:** üstte sayaç kutuları (Taslak / Kesilen / İptal / Vadesi geçen; mevcut veriden). Süzgeçler `FilterPanel`'e. İcmal/Excel/PDF `MoreMenu`'ye.
@@ -346,7 +348,7 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
 
 ### F4 — Listeler + Öz Mal + Analiz + Yönetici/Profilim
 
-**F4.1 Listeler** (`CustomersPage`, `SuppliersPage`, `DriversPage`, `StaffPage`, `RecurringPaymentsPage`)
+**F4.1 Listeler** (`CustomersPage`, `SuppliersPage`, `DriversPage`, `StaffPage`, `RecurringPaymentsPage`) — **kısmen bitti (6 Ekim: Müşteriler, Tedarikçiler, Şoförler, Personel ve Sabit Ödemeler listeleri `PageShell`'e geçti; `MoreMenu` dışa aktarma, arşiv/pasif görünümü ve `StatCard` → `Figures` açık, Personel ve Sabit Ödemeler hâlâ `StatCard` kullanıyor)**
 - Hepsi aynı iskelet:
   - `PageShell` (ana düğme "+ Ekle");
   - `MoreMenu`: Excel'e aktar, Excel'den aktar (`/aktar?tur=…`);
@@ -355,13 +357,13 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
 - **Excel'e aktar** yoksa ekle. Önce sunucuda hazır bir uç var mı bak (`grep -rn "export" server/YesLojistik.Api/Controllers`). Yoksa **istemci tarafında** CSV üret (yeni bağımlılık ekleme; `;` ayraç, UTF-8 BOM).
 - Personel ve Sabit Ödemeler: `StatCard` → `Figures`.
 
-**F4.2 Mazotlar** (`/mazotlar`, yeni sayfa)
+**F4.2 Mazotlar** (`/mazotlar`, yeni sayfa) — **bitti (6 Ekim: `pages/FuelPage.tsx`)**
 - `pages/FuelPage.tsx`. Veri: mevcut gider uçları, `category=Fuel` süzgeciyle (`grep -n "category" client/src/pages/ExpensesPage.tsx` ile mevcut parametreyi bul).
 - **Sütunlar:** Plaka · Tarih · Yakıt cinsi · İstasyon · Litre · Tutar · Yeni KM · Eski KM · Fark KM · KM başı maliyet (= Tutar / Fark KM; fark yoksa "—").
 - Altta toplam. Ana düğme "+ Mazot Ekle": mevcut gider formunu `Fuel` kategorisiyle açar.
 - Giderler sayfası yeni görünümde varsayılan olarak yakıt dışını gösterir (kategori süzgeci).
 
-**F4.3 Araç Masrafları** (`/arac-masraflari`, yeni sayfa)
+**F4.3 Araç Masrafları** (`/arac-masraflari`, yeni sayfa) — **bitti (6 Ekim: `pages/VehicleExpensesPage.tsx`)**
 - `ExpensesPage`'in araç seçili görünümü: araç süzgeci üstte zorunlu değil, "Araca bağlı giderler" (vehicleId dolu olanlar).
 - Gerekirse `ExpensesPage`'e `mode` prop'u ekle ve aynı bileşeni yeniden kullan; kodu kopyalama.
 
@@ -387,18 +389,20 @@ Her kartta: **Amaç · Dosyalar · Adımlar · Kabul · Test**. Kartları sıray
   - sekmeleri: Bilgilerim · Şifre · Güvenlik (2 adımlı) · Bildirimler · Görünüm (yazı boyutu, klasik/yeni, tablo yazısı, satır sıklığı);
   - admin olmayan kullanıcı `/ayarlar`'a gelince doğrudan Profilim'i görür.
 
-### F5 — Diğer formlar ve telefon
+### F5 — Diğer formlar ve telefon — **kısmen bitti (6 Ekim: telefon kısmı; "Diğer formlar" açık)**
 - **Gider, Tahsilat, Tedarikçi Ödemesi, Müşteri, Tedarikçi, Araç, Şoför formları:**
   - önce zorunlu alanlar, sonra tek "Diğer bilgiler";
   - pencere altında sabit "Kaydet" ve "Kaydet ve yeni";
   - "Formu açık tut" yalnız Gider ve Tahsilat'ta.
-- **Telefon:**
+- **Telefon:** — bitti (6 Ekim, yalnız yeni görünüm)
   - alt çubuk: Bugün · Sevkiyatlar · (+) · Cari · Menü;
-  - listeler 640px altında **kart** olarak görünür (DataTable'a `mobileCard` render prop'u ekle);
-  - `FilterPanel` tam ekran.
+  - listeler 640px altında **kart** olarak görünür (`components/shell/MobileCards.tsx` + `DataTable.mobileCard`; Müşteriler, Tedarikçiler, Şoförler, Personel, Sabit Ödemeler, Faturalar, Mazotlar ve Araç Masrafları'nda bağlı);
+  - `FilterPanel` telefonda tam ekran (`components/shell/FilterPanel.tsx`);
+  - 44px dokunma hedefleri (`min-h-11` / `min-h-[4.5rem]`).
+- **Telefon — açık kalan:** detay sayfaları, Yönetici (Ayarlar), Analiz (Raporlar), Çekler, Tedarikçi Ödemeleri ve Alınan Faturalar listelerinde mobil kart görünümü **yok**.
 - **Kabul:** 390×844'te yatay kaydırma yok (`mobile.spec.ts` zaten kontrol ediyor).
 
-### F6 — Cila, yardım, varsayılan yapma
+### F6 — Cila, yardım, varsayılan yapma — **açık (6 Ekim: `DEFAULT_UI_MODE = 'classic'`, müşteri onayı bekleniyor)**
 1. Boş ekranlar, yükleniyor iskeletleri, hata ekranları yeni iskelete uygun olsun.
 2. `HelpPage`: yeni menü adlarıyla güncelle. En üste "Eski adı → Yeni yeri" tablosu ekle (bölüm 2'deki tablo).
 3. Yeni görünüm jetonları (4.8) son hâlini alır. Müşterinin F1 sonunda seçtiği tablo yazısı varsayılan yapılır.
@@ -466,6 +470,7 @@ export async function useNewUi(page: Page) {
 **Strateji:**
 - F1–F5 boyunca **mevcut testler klasik görünümde aynen geçmeli.** Varsayılan klasik olduğu için zaten geçerler; yalnız F1.5 (terim değişikliği) metinleri günceller.
 - Her aşamada yeni görünüm için **ayrı** spec eklenir: `e2e/new-ui/*.spec.ts`. Her spec `useNewUi(page)` ile başlar.
+  - Bugün var olanlar (6 Ekim): `basics`, `cari-invoice`, `trip-copies`, `faturalandirilacaklar`, `mobile-cards`, `today-approvals`, `trip-form`, `trip-form-mobile`. Toplam `client/e2e` altında **24 spec, 58 `test(...)`**.
 - F6'da varsayılan `new` olunca eski spec'lerdeki menü seçicileri güncellenir. Bugün kullanılanlar (sayılar kullanım adedi):
 
 | Eski | Yeni |
