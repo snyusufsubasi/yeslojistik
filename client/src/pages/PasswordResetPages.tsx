@@ -7,8 +7,8 @@ import { usePageTitle } from '../lib/usePageTitle'
 
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-side p-4">
-      <div className="w-full max-w-sm rounded-[4px] border-t-[3px] border-hl bg-white p-6 shadow-lg sm:p-8">
+    <div className="flex min-h-full items-center justify-center bg-canvas p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-lg sm:p-8">
         <Logo dark size="lg" className="mb-5 justify-center" />
         {children}
         <p className="mt-6 text-center text-[0.875rem]"><Link className="font-semibold text-accent hover:underline" to="/giris">Girişe dön</Link></p>
@@ -51,7 +51,7 @@ export function ForgotPasswordPage() {
             <span className="label">E-posta</span>
             <input className="input" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
-          {error && <div role="alert" className="mb-3 rounded-[3px] bg-bad-soft px-3 py-2 text-sm font-semibold text-bad">{error}</div>}
+          {error && <div role="alert" className="mb-3 rounded-lg bg-bad-soft px-3 py-2 text-sm font-semibold text-bad">{error}</div>}
           <Button type="submit" className="w-full" loading={state === 'loading'}>Bağlantı Gönder</Button>
         </form>
       )}
@@ -101,7 +101,7 @@ export function ResetPasswordPage() {
               <input className="input" type="password" required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             </label>
             <p className="mb-3 text-sm text-slate-500">En az 8 karakter; harf ve rakam içermeli.</p>
-            {error && <div role="alert" className="mb-3 rounded-[3px] bg-bad-soft px-3 py-2 text-sm font-semibold text-bad">{error}</div>}
+            {error && <div role="alert" className="mb-3 rounded-lg bg-bad-soft px-3 py-2 text-sm font-semibold text-bad">{error}</div>}
             <Button type="submit" className="w-full" loading={loading}>Şifreyi Değiştir</Button>
           </form>
         )}

@@ -44,10 +44,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-side p-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-[4px] border-t-[3px] border-hl bg-white p-6 shadow-lg sm:p-8">
+    <div className="flex min-h-full items-center justify-center bg-canvas p-4">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-lg sm:p-8">
         <Logo dark size="lg" className="mb-1.5 justify-center" />
-        <p className="mb-7 text-center text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-muted">Nakliye Takip Sistemi</p>
+        <p className="mb-7 text-center text-[0.75rem] font-medium text-muted">Nakliye Takip Sistemi</p>
         {challenge ? (
           <>
             <p className="mb-4 text-[0.9375rem] text-slate-700">Telefonunuzdaki doğrulama uygulamasının 6 haneli kodunu yazın. Telefonunuza ulaşamıyorsanız kurtarma kodlarından birini yazın.</p>
@@ -76,7 +76,7 @@ export default function LoginPage() {
           </div>
         </label>
         </>)}
-        {error && <div role="alert" className="mb-4 rounded-[3px] bg-bad-soft px-3 py-2.5 text-[0.875rem] font-semibold text-bad">{error}</div>}
+        {error && <div role="alert" className="mb-4 rounded-lg bg-bad-soft px-3 py-2.5 text-[0.875rem] font-semibold text-bad">{error}</div>}
         <Button type="submit" className="min-h-11 w-full text-[0.9375rem]" loading={loading}>{challenge ? 'Doğrula' : 'Giriş Yap'}</Button>
         {challenge && <p className="mt-4 text-center text-[0.875rem]"><button type="button" className="font-semibold text-accent hover:underline" onClick={() => { setChallenge(null); setCode(''); setError('') }}>Geri dön</button></p>}
         <p className="mt-5 text-center text-[0.875rem]"><Link className="font-semibold text-accent hover:underline" to="/sifremi-unuttum">Şifremi unuttum</Link></p>

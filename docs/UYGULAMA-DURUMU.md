@@ -1,3 +1,25 @@
+# Uygulama durumu — 7 Ekim 2026: "Hark tarzı" görünüm + akıllı alanlar
+
+Dal: `hark/redesign-1` → PR ile `main`'e (squash). Kullanıcı onayı: "uygula, hepsini canlıya al" (7 Ekim).
+
+## Ne değişti
+0. **CI kırmızıydı (yalnız e2e):** `e2e/new-ui/basics.spec.ts` menü listesini "Mazotlar" ve "Araç Masrafları" eklenmeden önceki hâliyle bekliyordu (6 Ekim "V2: complete Pratikortam navigation"). Beklenen liste güncellendi; uygulama kodu doğruydu.
+1. **Tasarım "Otoyol" → "Hark tarzı"** (`TASARIM-HARK.md`): `index.css` jetonları (sıcak nötr griler, tek vurgu rengi çivit `#4652c9`, yumuşak gölgeler, 16/12/10px köşeler, 160ms geçişler), her yerde Inter (Source Serif 4 ve Overpass Mono kaldırıldı; rakamlar `tabular-nums`), beyaz sol menü + hap şeklinde seçili satır, yarı saydam üst çubuk, yuvarlak durum etiketleri/çipler, yeni bildirim (toast) ve boş liste görünümü, BÜYÜK HARF başlıklar sade başlığa döndü. Aa yazı boyutu ve klavye kısayolları aynen duruyor.
+2. **Akıllı alan** (`components/SmartField.tsx`, `lib/sectorOptions.ts`, `GET /api/options/{alan}`): en sık 5-6 seçenek çip, aranabilir tam liste (bu kayıt için önerilen → sık kullandıklarınız (kaç kez) → sektörde yaygın), "Diğer…" ile serbest yazı aynen kaydedilir. Yeni tablo/migration yok; sayım mevcut kayıtlardan.
+   - Uygulandığı alanlar: Sevkiyat → Yük Cinsi, Birim, Ödeme Şekli; Araç → Araç Tipi, Taşıma Kapasitesi, Yakıt Türü; Gider → Gider Adı, Kategori (kendi listeniz), Yakıt Türü; Sabit Ödeme → Başlık; Masraf reddetme gerekçesi.
+   - Panelde "taşıma şekli", "dorse/kasa tipi" ve "iptal/sorun nedeni" alanı yok (eklemek ek sütun ister); sektör listeleri hazır bekliyor.
+3. **Küçük kolaylıklar:** boş listelerde simgeli açıklama; bildirimler tek tip (beyaz kart, yeşil/kırmızı ikon); yazdıktan sonraki ilk Enter yazılanı onaylar, formu göndermez.
+
+## Yerel test kanıtı (7 Ekim)
+| Kontrol | Sonuç |
+|---|---|
+| Sunucu testleri (yeni `OptionsTests` dahil) | 313 geçti, 0 başarısız |
+| EF modeli/migration uyumu | Değişiklik yok |
+| Panel lint / build | 0 hata (8 eski uyarı) / geçti |
+| Şoför uygulaması typecheck | Geçti |
+| Tarayıcı (e2e) testleri, boş veritabanıyla | 62 geçti, 0 başarısız (yeni `smart-field.spec.ts` dahil) |
+| Aktarım (Python) / dışa aktarım (Node) testleri | 16 / 3 geçti |
+
 # Uygulama durumu — 5 Ekim 2026
 
 Başlangıç commit'i: `41cc8898350715d454d7c4c1205ff51d0e576197`.

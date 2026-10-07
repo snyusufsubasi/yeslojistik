@@ -7,6 +7,7 @@ import { Button, Field, Modal, Tabs } from './ui'
 import { DocumentsPanel, MaintenancePanel } from './FleetPanels'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from './FormSelect'
+import { ControlledSmartField, SmartField } from './SmartField'
 import { crud, useLookup, useSave } from '../lib/hooks'
 import { vehicleOwnershipLabel, vehicleStatusLabel } from '../lib/labels'
 import { SupplierForm } from './SupplierForm'
@@ -14,8 +15,6 @@ import { ControlledChoice } from './Choice'
 import { DateQuick, MoreFields } from './Inputs'
 import { choices } from '../lib/choices'
 import { vehicleOwnershipIcon } from '../lib/icons'
-
-const vehicleTypes = ['Tır', 'Kamyon', 'Kamyonet', 'Panelvan', 'Lowbed', 'Frigorifik']
 
 const schema = z.object({
   plate: req('Plaka zorunlu.').regex(/^(0[1-9]|[1-7]\d|8[01])\s*[a-zA-ZçğıöşüÇĞİÖŞÜ]{1,3}\s*\d{2,5}$/, 'Geçerli bir plaka girin (ör. 34 ABC 123).'),
@@ -64,7 +63,6 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
   })
   const submit = handleSubmit((v) => save.mutate(v))
   const ownership = useWatch({ control, name: 'ownership' })
-  const type = useWatch({ control, name: 'type' })
   const km = useWatch({ control, name: 'km' })
   const [tab, setTab] = useState<'info' | 'docs' | 'maint'>('info')
 
@@ -93,13 +91,7 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
           <Field label="Km" required error={errors.km?.message}><input className="input" type="number" min="0" inputMode="numeric" {...register('km', { valueAsNumber: true })} /></Field>
         </div>
         <Field label="Araç Tipi" required error={errors.type?.message}>
-          <input className="input" placeholder="Kamyon" {...register('type')} />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {vehicleTypes.map((t) => (
-              <button key={t} type="button" onClick={() => setValue('type', t, { shouldValidate: true })}
-                className={`min-h-9 rounded-[3px] border px-3 text-sm font-medium transition ${type === t ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{t}</button>
-            ))}
-          </div>
+          <ControlledSmartField control={control} name="type" field="vehicleType" label="Araç Tipi" placeholder="Seçin veya yazın (ör. Tır)" maxLength={100} />
         </Field>
         <Field label="Varsayılan Şoför" error={errors.defaultDriverId?.message}>
           <FormSelect control={control} name="defaultDriverId" placeholder="—" options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.label }))} />
@@ -125,7 +117,7 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {[10000, 15000, 20000].map((k) => (
                   <button key={k} type="button" onClick={() => setValue('nextMaintenanceKm', (Number.isFinite(km) ? km : 0) + k, { shouldValidate: true })}
-                    className="min-h-9 rounded-[3px] border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
+                    className="min-h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">+{k.toLocaleString('tr-TR')} km</button>
                 ))}
               </div>
             </Field>
@@ -133,8 +125,8 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
         </MoreFields>
         <MoreFields title="Kapasite, yakıt, sigorta, kasko, muayene ve egzoz bilgileri (isteğe bağlı)" defaultOpen={!!vehicle?.card?.capacity || !!vehicle?.card?.cascoExpiry}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Taşıma Kapasitesi"><input className="input" placeholder="3,5 ton" value={card.capacity ?? ''} onChange={setC('capacity')} /></Field>
-            <Field label="Yakıt Türü"><input className="input" placeholder="Dizel" value={card.fuelType ?? ''} onChange={setC('fuelType')} /></Field>
+            <Field label="Taşıma Kapasitesi"><SmartField field="vehicleCapacity" label="Taşıma Kapasitesi" placeholder="3,5 ton" chips={5} maxLength={50} value={card.capacity} onChange={(v) => setCard((c) => ({ ...c, capacity: v }))} /></Field>
+            <Field label="Yakıt Türü"><SmartField field="fuelType" label="Yakıt Türü" placeholder="Dizel" chips={5} maxLength={30} value={card.fuelType} onChange={(v) => setCard((c) => ({ ...c, fuelType: v }))} /></Field>
             <Field label="Sigorta Bilgisi" hint="Şirket, poliçe no"><input className="input" value={card.insuranceInfo ?? ''} onChange={setC('insuranceInfo')} /></Field>
             <Field label="Kasko Bilgisi"><input className="input" value={card.cascoInfo ?? ''} onChange={setC('cascoInfo')} /></Field>
             <Field label="Kasko Bitiş"><input className="input" type="date" value={card.cascoExpiry ?? ''} onChange={setC('cascoExpiry')} /></Field>

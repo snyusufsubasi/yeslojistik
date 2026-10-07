@@ -4,8 +4,8 @@ import clsx from 'clsx'
 export interface SumItem { label: ReactNode; value: ReactNode; tone?: string }
 
 /**
- * Otoyol "kazanç şeridi" (docs/TASARIM-OTOYOL.md): yan yana kutular, aralarında dikey çizgi.
- * Etiket 10.5px BÜYÜK HARF, değer Overpass Mono 15px. `end` kutusu sağa yaslı durur; `highlight` ise bill-soft zeminli
+ * "Kazanç şeridi" (docs/TASARIM-HARK.md): yan yana kutular, aralarında ince dikey çizgi.
+ * Etiket 12px sakin, değer eşit genişlikli rakamlarla 15px. `end` kutusu sağa yaslı durur; `highlight` ise bill-soft zeminli
  * ("Faturası kesilecek" gibi yapılacak iş). Telefonda iki sütunlu ızgara olur, sağdaki kutu tam satır.
  * Sevkiyatlar ve Faturalar listelerinde kullanılır.
  */
@@ -19,7 +19,7 @@ export function SumStrip({ items, end, label }: {
     <div aria-label={label} className="grid grid-cols-2 border-b border-line bg-white sm:flex sm:flex-wrap sm:items-stretch">
       {items.map((i, n) => (
         <div key={n} className={box}>
-          <div className="text-[0.65625rem] font-bold uppercase leading-tight tracking-[0.07em] text-muted">{i.label}</div>
+          <div className="text-[0.75rem] font-medium leading-tight text-muted">{i.label}</div>
           <div className={clsx('mt-0.5 truncate font-mono text-[0.9375rem] font-semibold leading-snug tracking-[-0.02em]', i.tone ?? 'text-fg')}>{i.value}</div>
         </div>
       ))}
@@ -29,7 +29,7 @@ export function SumStrip({ items, end, label }: {
         const body = end.note
           ? <div className="text-[0.78125rem] leading-snug">{end.label}</div>
           : <>
-            <div className="text-[0.65625rem] font-bold uppercase leading-tight tracking-[0.07em]">{end.label}</div>
+            <div className="text-[0.75rem] font-medium leading-tight">{end.label}</div>
             <div className="mt-0.5 truncate font-mono text-[0.9375rem] font-semibold leading-snug tracking-[-0.02em]">{end.value}</div>
           </>
         return end.onClick

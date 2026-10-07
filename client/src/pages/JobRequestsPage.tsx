@@ -138,7 +138,7 @@ function RequestForm({ request, onClose, readOnly }: { request: JobRequest | nul
       : <><Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button></>}>
     <fieldset disabled={readOnly} className="min-w-0 space-y-6">
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Müşteri Bilgileri</h3>
+      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">Müşteri Bilgileri</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Müşteri" required group><SearchSelect ariaLabel="Müşteri" value={values.customerId || null}
             onChange={(id) => set('customerId', id ?? 0)} options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} placeholder="Müşteri ara"
@@ -151,7 +151,7 @@ function RequestForm({ request, onClose, readOnly }: { request: JobRequest | nul
           </label>
         </div>
       </section>
-      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Yer Bilgileri</h3>
+      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">Yer Bilgileri</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Yükleme Yeri" required><input className="input" value={values.loadingAddress} onChange={(e) => set('loadingAddress', e.target.value)} /></Field>
           <Field label="İndirme Yeri" required><input className="input" value={values.deliveryAddress} onChange={(e) => set('deliveryAddress', e.target.value)} /></Field>
@@ -163,7 +163,7 @@ function RequestForm({ request, onClose, readOnly }: { request: JobRequest | nul
           </div>
         </MoreFields>
       </section>
-      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Sevkiyat ve Evrak</h3>
+      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">Sevkiyat ve Evrak</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {textField('Yükün Cinsi', 'cargoType')}{numberField('Yükün Miktarı', 'cargoQuantity')}
           {textField('Araç Cinsi', 'vehicleType')}{textField('Yükleme Evrak No', 'loadingDocumentNo')}
@@ -172,7 +172,7 @@ function RequestForm({ request, onClose, readOnly }: { request: JobRequest | nul
         <Field label="Fatura Altı Not"><textarea className="input min-h-16" value={values.invoiceFooterNote ?? ''} onChange={(e) => set('invoiceFooterNote', e.target.value)} /></Field>
         <Field label="İş Açıklaması"><textarea className="input min-h-20" value={values.description ?? ''} onChange={(e) => set('description', e.target.value)} /></Field>
       </section>
-      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Fiyat Bilgileri</h3>
+      <section className="space-y-3"><h3 className="border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">Fiyat Bilgileri</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {numberField('Müşteri Fiyatı (TL)', 'salePrice')}{numberField('Sevkiyat Fiyatı (TL)', 'carrierPrice')}
           {numberField('Komisyon (TL)', 'commission')}{numberField('Şoför Primi (TL)', 'driverBonus')}

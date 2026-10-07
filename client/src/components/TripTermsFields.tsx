@@ -5,6 +5,7 @@ import { useLookup } from '../lib/hooks'
 import { commissionStatusLabel, options, vatRateChoices, withholdingOptions } from '../lib/labels'
 import { tl } from '../lib/format'
 import { ControlledChoice } from './Choice'
+import { ControlledSmartField } from './SmartField'
 import { Field } from './ui'
 import { AmountInput } from './Inputs'
 import { commissionNet, emptyTerms, extraCost, grossAmount, margin, type TermsForm, type TermsValues } from '../lib/tripTerms'
@@ -131,7 +132,7 @@ export function CommissionFields({ control, register, errors }: { control: AnyCo
  * Evrak ve fatura bilgileri (sefer formundaki "Ayrıntılar" bölümünün "Belgeler" kısmı).
  * `lead` en başa (ör. müşteri referans no), `carrier` evrak numaralarının ardına (kiralık araçta taşeron faturası) eklenir.
  */
-export function DocumentFields({ register, errors, groups, lead, carrier }: { register: AnyRegister; errors: AnyErrors; groups?: string[]; lead?: ReactNode; carrier?: ReactNode }) {
+export function DocumentFields({ control, register, errors, groups, lead, carrier }: { control?: AnyControl; register: AnyRegister; errors: AnyErrors; groups?: string[]; lead?: ReactNode; carrier?: ReactNode }) {
   const e = errors.terms ?? {}
   return (
     <div className="space-y-4">
@@ -150,7 +151,11 @@ export function DocumentFields({ register, errors, groups, lead, carrier }: { re
       </div>
       {carrier}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Ödeme Şekli" error={e.paymentTerms?.message}><input className="input" placeholder="Peşin, 30 gün…" {...register('terms.paymentTerms')} /></Field>
+        <Field label="Ödeme Şekli" error={e.paymentTerms?.message}>
+          {control
+            ? <ControlledSmartField control={control} name="terms.paymentTerms" field="paymentTerms" label="Ödeme Şekli" placeholder="Peşin, 30 gün…" chips={5} maxLength={100} />
+            : <input className="input" placeholder="Peşin, 30 gün…" {...register('terms.paymentTerms')} />}
+        </Field>
         <Field className="sm:col-span-2" label="Fatura Altı Not" error={e.invoiceFooterNote?.message}>
           <textarea className="input min-h-14" {...register('terms.invoiceFooterNote')} />
         </Field>

@@ -32,10 +32,10 @@ export function GlobalSearch() {
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Ara (Ctrl+K)"
-        className="flex min-h-9 items-center gap-2 rounded-[3px] border border-line bg-slate-50 px-3 text-[0.8125rem] text-muted hover:border-slate-300 hover:bg-white sm:min-w-80">
+        className="flex min-h-9 items-center gap-2 rounded-lg border border-line bg-slate-50 px-3 text-[0.8125rem] text-muted hover:border-slate-300 hover:bg-white sm:min-w-80">
         <Search className="size-4" />
         <span className="hidden sm:inline">Ne arıyorsunuz? (plaka, müşteri, fatura…)</span>
-        <kbd className="ml-auto hidden rounded-[2px] border border-line bg-white px-1.5 font-mono text-[0.6875rem] text-muted lg:inline">Ctrl K</kbd>
+        <kbd className="ml-auto hidden rounded-md border border-line bg-white px-1.5 font-mono text-[0.6875rem] text-muted lg:inline">Ctrl K</kbd>
       </button>
       {open && <SearchDialog onClose={() => setOpen(false)} />}
     </>

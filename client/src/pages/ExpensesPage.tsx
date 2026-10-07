@@ -14,6 +14,7 @@ import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { Badge, Button, Card, ConfirmDialog, Field, IconButton, Modal, PageHeader, PlateBadge, Select, DateFilter } from '../components/ui'
 import { applyServerErrors, nullify, optStr, req } from '../lib/forms'
 import { FormSelect } from '../components/FormSelect'
+import { SmartField } from '../components/SmartField'
 import { SupplierForm } from '../components/SupplierForm'
 import { ChoiceChips, ControlledChoice } from '../components/Choice'
 import { AmountInput, DateQuick, MoreFields } from '../components/Inputs'
@@ -147,7 +148,7 @@ function RejectDialog({ expense, onClose }: { expense: Expense; onClose: () => v
       <p className="mb-3 text-sm text-slate-600">{expense.driverName ?? 'Şoför'} · {expenseCategoryLabel[expense.category]} · {tl2(expense.amount)}.
         Reddedilen masraf raporlara ve şoför hesabına girmez; gerekçe şoföre bildirim olarak gider.</p>
       <Field label="Gerekçe" required>
-        <input className="input" maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ör. Fiş okunmuyor, tekrar çekin." autoFocus />
+        <SmartField field="expenseRejectionReason" label="Gerekçe" chips={4} maxLength={300} value={reason} onChange={setReason} placeholder="Ör. Fiş okunmuyor, tekrar çekin." autoFocus />
       </Field>
     </Modal>
   )
@@ -163,6 +164,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
   const [receipt, setReceipt] = useState<File | null>(null)
   // Eski paneldeki ayrıntılar (gider adı, kullanıcı kategorisi, dönem, istasyon…) ayrı tutulur, kayıtta "details" olarak gider.
   const [details, setDetails] = useState<ExpenseDetails>({ ...expense?.details })
+  const setV = (k: keyof ExpenseDetails) => (v: string) => setDetails((d) => ({ ...d, [k]: v === '' ? null : v }))
   const setD = (k: keyof ExpenseDetails, num = false) => (e: { target: { value: string } }) =>
     setDetails((d) => ({ ...d, [k]: e.target.value === '' ? null : num ? Number(e.target.value) : e.target.value }))
   const categoryNames = useQuery({ queryKey: ['expenses', 'categories'], queryFn: () => get<ExpenseCategoryTotal[]>('/expenses/categories'), staleTime: 60_000 })
@@ -257,7 +259,7 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
             <input className="input text-right" type="number" step="1" min="0" inputMode="numeric" {...register('odometer', { valueAsNumber: true })} />
           </Field>
           <Field label="İstasyon"><input className="input" placeholder="Shell Gebze" value={details.fuelStation ?? ''} onChange={setD('fuelStation')} /></Field>
-          <Field label="Yakıt Türü"><input className="input" placeholder="Dizel" value={details.fuelType ?? ''} onChange={setD('fuelType')} /></Field>
+          <Field label="Yakıt Türü"><SmartField field="fuelType" label="Yakıt Türü" placeholder="Dizel" chips={4} maxLength={30} value={details.fuelType} onChange={setV('fuelType')} /></Field>
           <Field label="Önceki km" hint={kmDiff && kmDiff > 0 ? `Fark ${kmDiff.toLocaleString('tr-TR')} km${amount ? ` · km başı ${(amount / kmDiff).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL` : ''}` : 'Km başı maliyet için önceki depodaki km.'}>
             <input className="input text-right" type="number" min="0" inputMode="numeric" value={details.previousOdometer ?? ''} onChange={setD('previousOdometer', true)} />
           </Field>
@@ -271,10 +273,10 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
                 options={(trips.data?.items ?? []).map((t) => ({ value: t.id, label: `${date(t.loadingDate)} · ${t.customerTitle} · ${t.loadingAddress} → ${t.deliveryAddress} (${t.vehiclePlate})` }))} />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Gider Adı" hint="Ör. Ofis kirası, HGS"><input className="input" value={details.title ?? ''} onChange={setD('title')} /></Field>
+              <Field label="Gider Adı" hint="Gider kalemi: seçin ya da yazın."><SmartField field="expenseTitle" label="Gider Adı" placeholder="Ör. HGS, ofis kirası" chips={5} maxLength={150} value={details.title} onChange={setV('title')} /></Field>
               <Field label="Kategori (kendi listeniz)" hint="Kategori analizinde bu ada göre toplanır.">
-                <input className="input" list="expense-category-names" value={details.categoryName ?? ''} onChange={setD('categoryName')} />
-                <datalist id="expense-category-names">{(categoryNames.data ?? []).map((c) => <option key={c.name} value={c.name} />)}</datalist>
+                <SmartField field="expenseCategoryName" label="Kategori (kendi listeniz)" chips={5} maxLength={100} value={details.categoryName}
+                  onChange={setV('categoryName')} preferred={categoryNames.data?.map((c) => c.name)} />
               </Field>
             </div>
             <Field label="Tedarikçi (servis, istasyon)" error={errors.supplierId?.message}>

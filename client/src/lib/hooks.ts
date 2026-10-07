@@ -66,7 +66,8 @@ export function useSave<TBody, TResult = unknown>(
   return useMutation({
     mutationFn: fn,
     onSuccess: (r) => {
-      for (const key of [...opts.invalidate, 'dashboard', 'alerts']) qc.invalidateQueries({ queryKey: [key] })
+      // 'options': akıllı alan önerileri (sık kullanılanlar) yeni kayıttan sonra güncellensin.
+      for (const key of [...opts.invalidate, 'dashboard', 'alerts', 'options']) qc.invalidateQueries({ queryKey: [key] })
       if (opts.success) toast.success(opts.success)
       opts.onSuccess?.(r)
     },

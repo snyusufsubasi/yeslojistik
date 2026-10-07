@@ -94,13 +94,13 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
         <div className="flex flex-wrap gap-1.5">
           {chips.map((c) => (
             <button key={c.label} type="button" tabIndex={-1} onClick={() => onChange(c.v)}
-              className={clsx('min-h-9 rounded-[3px] border px-3 text-sm font-medium transition',
+              className={clsx('min-h-9 rounded-full border px-3.5 text-sm font-medium transition',
                 value === c.v ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
               {c.label}
             </button>
           ))}
           {value && quick !== 'today' && (
-            <button type="button" tabIndex={-1} onClick={() => onChange('')} className="inline-flex min-h-9 items-center gap-1 rounded-[3px] px-2 text-sm text-slate-600 hover:bg-slate-100">
+            <button type="button" tabIndex={-1} onClick={() => onChange('')} className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-sm text-slate-600 hover:bg-slate-100">
               <X className="size-4" /> Temizle
             </button>
           )}
@@ -110,7 +110,7 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
   )
 }
 
-const chip = (active: boolean) => clsx('min-h-9 rounded-[3px] border px-3 text-sm font-semibold transition',
+const chip = (active: boolean) => clsx('min-h-9 rounded-full border px-3.5 text-sm font-semibold transition',
   active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')
 
 interface DaysProps<F extends FieldValues> {
@@ -167,14 +167,14 @@ export function SuggestChips({ values, value, onPick, disabled }: { values: stri
   )
 }
 
-/** Form grup başlığı (tarif: 11px, BÜYÜK HARF, accent renk); numaralıysa solda küçük kare numara: "1 · Müşteri ve güzergâh". */
-const groupHeading ='text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent'
+/** Form grup başlığı (Hark tarzı: 14px yarı kalın, ana yazı rengi); numaralıysa solda küçük yuvarlak numara: "1 · Müşteri ve güzergâh". */
+const groupHeading = 'text-[0.875rem] font-semibold text-fg'
 
 export function Section({ n, title, hint, children, className }: { n?: number; title: string; hint?: string; children: ReactNode; className?: string }) {
   return (
     <section className={clsx('space-y-4', className)}>
-      <header className="flex items-start gap-2 border-b border-line pb-1.5">
-        {n != null && <span className="mt-px flex size-[18px] shrink-0 items-center justify-center rounded-[2px] bg-accent pt-px font-mono text-[0.6875rem] font-semibold leading-none text-white">{n}</span>}
+      <header className="flex items-start gap-2.5 border-b border-line pb-2">
+        {n != null && <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent-soft font-mono text-[0.6875rem] font-semibold leading-none text-brand-700">{n}</span>}
         <div className="min-w-0">
           <h3 className={clsx(groupHeading, 'leading-[18px]')}>{title}</h3>
           {hint && <p className="text-[0.8125rem] text-muted">{hint}</p>}

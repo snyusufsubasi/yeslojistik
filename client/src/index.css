@@ -1,127 +1,142 @@
 @import "tailwindcss";
 
 /*
- * "Otoyol" görünümü (docs/TASARIM-OTOYOL.md): koyu çam yeşili sol menü, açık gri-yeşil zemin, beyaz tablolar,
- * sarı yalnızca dikkat isteyen yerde. Sayfalar slate/brand/navy adlarını kullanır; burada yeniden eşlenince bütün ekranlar birlikte değişir.
+ * "Hark tarzı" görünüm (docs/TASARIM-HARK.md; 7 Ekim 2026'da "Otoyol"un yerini aldı):
+ * aydınlık, ferah, sakin. Sıcak kırık beyaz zemin, beyaz yüzeyler, ince çizgiler, yumuşak gölge, yuvarlak köşeler,
+ * tek vurgu rengi (sakin çivit mavisi), her yerde Inter. Sayfalar slate/brand/navy adlarını kullanır; burada
+ * yeniden eşlenince bütün ekranlar birlikte değişir.
  */
 @theme {
-  /* Yazı: Claude'un cevap yazısına benzeyen tırnaklı Source Serif 4 (kullanıcı seçimi). Tutar ve plakalar Overpass Mono: alt alta hizalı. */
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-  --font-mono: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* Yazı: her yerde Inter (başlıklar dahil). Tutar ve plakalar da Inter; rakamlar eşit genişlikte (tabular-nums) olduğu için alt alta hizalanır. */
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-serif: var(--font-sans);
 
-  /* Otoyol jetonları */
-  --color-canvas: #f2f5f4;
+  /* Hark jetonları */
+  --color-canvas: #f7f7f5;
   --color-surface: #ffffff;
-  --color-surface-2: #e8eeec;
-  --color-line: #d3ddd9;
-  --color-fg: #14231e;
-  --color-muted: #56685f;
-  --color-accent: #0d6a51;
-  --color-accent-soft: #dbeee7;
-  --color-side: #0f3a31;
-  --color-side-fg: #e4efeb;
-  --color-side-muted: #8db1a6;
-  --color-side-active: #1a5145;
-  --color-sidebar: #0f3a31;
-  --color-hl: #f0c02c;
+  --color-surface-2: #f3f3f0;
+  --color-line: #e6e5e1;
+  --color-fg: #1c1b19;
+  --color-muted: #6b6a65;
+  --color-accent: #4652c9;
+  --color-accent-soft: #eceefb;
+  /* Sol menü açık: beyaz zemin, seçili satır vurgu renginde hap */
+  --color-side: #ffffff;
+  --color-side-fg: #3b3a36;
+  --color-side-muted: #8b8a84;
+  --color-side-active: #eceefb;
+  --color-sidebar: #ffffff;
+  --color-hl: #f2b632;
   --color-plate: #1d4f9e;
-  --color-good: #1b7442;
-  --color-good-soft: #def2e5;
-  --color-warn: #9a5d00;
-  --color-warn-soft: #fbeed6;
-  --color-bad: #b2302a;
-  --color-bad-soft: #fae2df;
-  --color-info: #2b5c99;
-  --color-info-soft: #e2ecf8;
-  --color-bill: #6e5100;
-  --color-bill-soft: #fcefc4;
+  --color-good: #157a3c;
+  --color-good-soft: #e6f5eb;
+  --color-warn: #9a5800;
+  --color-warn-soft: #fdf3e0;
+  --color-bad: #c0362c;
+  --color-bad-soft: #fdecea;
+  --color-info: #0b6c99;
+  --color-info-soft: #e3f2f9;
+  --color-bill: #765600;
+  --color-bill-soft: #fdf4d5;
 
-  /* Gri tonları yeşil-gri: zemin, çizgi, ikincil yazı, ana yazı */
-  --color-slate-50: #f2f5f4;
-  --color-slate-100: #e8eeec;
-  --color-slate-200: #d3ddd9;
-  --color-slate-300: #bccac4;
-  --color-slate-400: #8a9c94;
-  --color-slate-500: #617369;
-  --color-slate-600: #56685f;
-  --color-slate-700: #3a4b43;
-  --color-slate-800: #23332c;
-  --color-slate-900: #14231e;
-  --color-slate-950: #0b1612;
-  --color-navy-950: #0a2621;
-  --color-navy-900: #0f3a31;
-  --color-navy-800: #14473c;
-  --color-navy-700: #1a5145;
-  /* Vurgu rengi: #0d6a51 çevresinde yeşil */
-  --color-brand-50: #edf6f2;
-  --color-brand-100: #dbeee7;
-  --color-brand-200: #b5dccd;
-  --color-brand-300: #84c3ab;
-  --color-brand-400: #4fa486;
-  --color-brand-500: #1f8565;
-  --color-brand-600: #0d6a51;
-  --color-brand-700: #0a5642;
-  --color-brand-800: #084434;
-  --color-brand-900: #063328;
-  --color-brand-950: #04241c;
+  /* Gri tonları sıcak nötr: zemin, çizgi, ikincil yazı, ana yazı */
+  --color-slate-50: #f7f7f5;
+  --color-slate-100: #f0efec;
+  --color-slate-200: #e6e5e1;
+  --color-slate-300: #d6d4cf;
+  --color-slate-400: #a9a7a0;
+  --color-slate-500: #7d7b75;
+  --color-slate-600: #64625d;
+  --color-slate-700: #484743;
+  --color-slate-800: #2f2e2b;
+  --color-slate-900: #1c1b19;
+  --color-slate-950: #0f0f0e;
+  /* "navy" eskiden koyu başlık rengiydi: artık ana yazı rengi (neredeyse siyah) */
+  --color-navy-950: #0f0f0e;
+  --color-navy-900: #1c1b19;
+  --color-navy-800: #2f2e2b;
+  --color-navy-700: #484743;
+  /* Tek vurgu rengi: #4652c9 çevresinde sakin çivit mavisi; az ve yerinde kullanılır */
+  --color-brand-50: #f2f3fd;
+  --color-brand-100: #e5e8fb;
+  --color-brand-200: #cdd2f6;
+  --color-brand-300: #a9b1ef;
+  --color-brand-400: #7f89e4;
+  --color-brand-500: #5d68d7;
+  --color-brand-600: #4652c9;
+  --color-brand-700: #3a43ab;
+  --color-brand-800: #31388a;
+  --color-brand-900: #2b316e;
+  --color-brand-950: #1b1e42;
 
-  /* Köşeler neredeyse keskin: kart 4px, düğme/alan 3px, etiket 2px */
-  --radius-xs: 2px;
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 3px;
-  --radius-xl: 4px;
-  --radius-2xl: 4px;
-  --radius-3xl: 6px;
+  /* Köşeler yumuşak: kart 16px, alan/düğme 10-12px, çip tam yuvarlak */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
 
-  /* Gölge yok; yalnız açılır pencere ve açılır menüde */
-  --shadow-2xs: 0 0 #0000;
-  --shadow-xs: 0 0 #0000;
-  --shadow-sm: 0 0 #0000;
-  --shadow-md: 0 0 #0000;
-  --shadow-lg: 0 8px 24px rgb(10 40 30 / 0.14);
-  --shadow-xl: 0 8px 24px rgb(10 40 30 / 0.14);
-  --shadow-2xl: 0 8px 24px rgb(10 40 30 / 0.14);
+  /* Gölge hafif ve yumuşak: kartta neredeyse yok, açılır pencerede belirgin */
+  --shadow-2xs: 0 1px 1px rgb(28 27 25 / 0.03);
+  --shadow-xs: 0 1px 2px rgb(28 27 25 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(28 27 25 / 0.04), 0 1px 3px rgb(28 27 25 / 0.05);
+  --shadow-md: 0 2px 4px rgb(28 27 25 / 0.04), 0 6px 16px -4px rgb(28 27 25 / 0.08);
+  --shadow-lg: 0 4px 8px rgb(28 27 25 / 0.04), 0 16px 36px -8px rgb(28 27 25 / 0.16);
+  --shadow-xl: 0 8px 16px rgb(28 27 25 / 0.05), 0 24px 48px -12px rgb(28 27 25 / 0.2);
+  --shadow-2xl: 0 8px 16px rgb(28 27 25 / 0.05), 0 24px 48px -12px rgb(28 27 25 / 0.2);
+
+  /* Bildirim (toast) aşağıdan yumuşakça girer */
+  --animate-toast-in: toast-in 180ms cubic-bezier(0.2, 0, 0, 1);
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Geçişler kısa ve yumuşak */
+  --default-transition-duration: 160ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @layer base {
   html, body, #root { height: 100%; }
+  @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 1ms !important; transition-duration: 1ms !important; } }
   /* Yazı boyutu ayarı (Normal / Büyük / Çok büyük): her şey rem ile birlikte büyür */
   html { font-size: 18px; }
   html[data-text="lg"] { font-size: 20px; }
   html[data-text="xl"] { font-size: 22px; }
   body { @apply bg-canvas font-sans text-[0.9375rem] leading-[1.5] text-fg antialiased; }
-  h1, h2, h3 { font-family: var(--font-sans); font-weight: 650; letter-spacing: -0.01em; }
-  /* Rakamlar eşit genişlikte, alt alta hizalı */
-  .tabular-nums, td { font-variant-numeric: tabular-nums; }
-  /* Tutar ve sayılar Overpass Mono; form alanlarında tutar kutusu da öyle */
-  .tabular-nums { font-family: var(--font-mono); letter-spacing: -0.02em; }
+  h1, h2, h3 { font-family: var(--font-sans); font-weight: 650; letter-spacing: -0.015em; }
+  /* Rakamlar eşit genişlikte, alt alta hizalı (tutar, plaka, sayaç) */
+  .tabular-nums, .font-mono, td { font-variant-numeric: tabular-nums; }
+  .tabular-nums { letter-spacing: -0.005em; }
   input, select, textarea, button { font: inherit; }
   /* Klavyeyle gezinirken odak net görünsün */
   a:focus-visible, button:focus-visible, [role="button"]:focus-visible, summary:focus-visible {
-    outline: 3px solid var(--color-brand-500);
+    outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
-    border-radius: 3px;
+    border-radius: 8px;
   }
 }
 
 @layer components {
   .input {
-    @apply min-h-11 w-full rounded-[4px] border border-slate-300 bg-white px-3.5 py-2 text-[0.9375rem] text-slate-900 outline-none transition
-      placeholder:text-slate-500 hover:border-slate-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600;
+    @apply min-h-11 w-full rounded-[10px] border border-slate-300 bg-white px-3.5 py-2 text-[0.9375rem] text-slate-900 shadow-2xs outline-none transition
+      placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 disabled:bg-slate-100 disabled:text-slate-600 disabled:shadow-none;
   }
   /* Telefonda 16px: iPhone form kutusuna dokununca sayfayı büyütmesin */
   @media (pointer: coarse) { .input { font-size: max(16px, 1rem); } }
   .input-error { @apply border-red-500 focus:border-red-500 focus:ring-red-100; }
-  .label { @apply mb-1.5 block text-[0.8125rem] font-semibold text-slate-700; }
-  .card { @apply min-w-0 rounded-[4px] border border-line bg-white; }
-  .th { @apply border-b border-line bg-surface-2 px-3.5 py-2.5 text-left text-[0.75rem] font-bold uppercase tracking-[0.04em] text-slate-700; }
+  .label { @apply mb-1.5 block text-[0.8125rem] font-medium text-slate-700; }
+  .card { @apply min-w-0 rounded-2xl border border-line bg-white shadow-xs; }
+  .th { @apply border-b border-line bg-slate-50 px-3.5 py-2.5 text-left text-[0.75rem] font-semibold text-muted; }
   .td { @apply break-words border-b border-slate-100 px-3.5 py-2.5 text-[0.875rem] text-fg; }
-  /* Tablodaki tutar ve sayılar (sağa yaslı sütunlar) Overpass Mono */
-  td.text-right { font-family: var(--font-mono); letter-spacing: -0.02em; }
-  /* Sayı hücresindeki düğmeler (ör. "Yüklendi yap") normal yazıyla kalır */
-  :is(td.text-right, .tabular-nums) :is(button, a[role="button"]) { font-family: var(--font-sans); letter-spacing: normal; }
+  /* Tablodaki tutar ve sayılar (sağa yaslı sütunlar): eşit genişlikli rakamlar */
+  td.text-right { font-variant-numeric: tabular-nums; }
+  /* Satır üzerine gelince yumuşak geçiş */
+  tbody tr { transition: background-color 150ms ease; }
   /* Sıralanabilir başlıklar düğme içinde: büyük harf ve aralık başlıktan gelsin */
   .th button { text-transform: inherit; letter-spacing: inherit; font-weight: inherit; }
 }
@@ -143,14 +158,6 @@
  *   • üst kısım (başlık + sekmeler + süzgeç) en fazla 260px.
  */
 @layer components {
-  /* Yeni görünümde yüzeyler biraz daha açık; klasik değerler @theme içinde kalır */
-  html[data-ui="new"] {
-    --color-canvas: #f5f7f6;
-    --color-surface-2: #edf1ef;
-    --color-line: #cfd9d5;
-    --color-muted: #475a51;
-  }
-
   /* Tablo başlığı: büyük harf ve geniş harf aralığı yok, daha küçük ve sakin */
   html[data-ui="new"] .th {
     text-transform: none;
@@ -162,7 +169,6 @@
   /* Satır yoğunluğu: 7px → 5px dikey iç boşluk (satır ~44px) */
   html[data-ui="new"] .td { padding-top: 9px; padding-bottom: 9px; }
 
-  html[data-ui="new"] .card { border-color: #cfd9d5; }
   html[data-ui="new"] .input { min-height: 46px; }
   html[data-ui="new"] button, html[data-ui="new"] a { text-underline-offset: 3px; }
 

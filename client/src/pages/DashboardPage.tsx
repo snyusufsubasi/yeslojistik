@@ -97,13 +97,13 @@ export default function DashboardPage() {
         <Figure label="Teslim edilen" value={data.monthDeliveredCount} sub="Bu ay" onClick={() => navigate('/seferler?status=Delivered')} />
       </Figures>
       {can('accounting') && data.uninvoicedTripCount > 0 && (
-        <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd896] bg-bill-soft px-4 py-2.5 text-[0.9375rem] text-bill hover:bg-[#f8e3a0]">
+        <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-xl border border-[#f3e3b0] bg-bill-soft px-4 py-2.5 text-[0.9375rem] text-bill hover:bg-[#fbecc0]">
           <span><b>{data.uninvoicedTripCount} teslim edilmiş sevkiyat faturalanmadı</b> · <span className="font-mono">{tl(data.uninvoicedTripTotal)}</span> + KDV</span>
           <span className="whitespace-nowrap font-semibold">Fatura kes →</span>
         </Link>
       )}
       {data.pendingExpenseCount > 0 && (
-        <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd3a6] bg-warn-soft px-4 py-2.5 text-[0.9375rem] text-warn hover:bg-[#f7e2bd]">
+        <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-xl border border-[#f2dfbd] bg-warn-soft px-4 py-2.5 text-[0.9375rem] text-warn hover:bg-[#f7e2bd]">
           <span><b>{data.pendingExpenseCount} şoför masrafı onay bekliyor</b> · <span className="font-mono">{tl(data.pendingExpenseTotal)}</span></span>
           <span className="whitespace-nowrap font-semibold">İncele →</span>
         </Link>
@@ -127,7 +127,7 @@ export default function DashboardPage() {
       <QuickActions />
 
       {data.setup.sampleData && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-[#ecd3a6] bg-warn-soft px-4 py-3 text-[0.875rem] text-[#6b4200]">
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f2dfbd] bg-warn-soft px-4 py-3 text-[0.875rem] text-[#6b4200]">
           <span><b>Şu an örnek (demo) veriler görüntüleniyor.</b> Gerçek kullanıma başlamadan önce bunları temizleyin.</span>
           {can('admin') && <Button size="sm" variant="secondary" onClick={() => navigate('/ayarlar?tab=data')}>Demo verilerini temizle</Button>}
         </div>
@@ -149,17 +149,17 @@ export default function DashboardPage() {
       {can('accounting') && (data.uninvoicedTripCount > 0 || data.pendingExpenseCount > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.uninvoicedTripCount > 0 && (
-            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd896] bg-bill-soft px-4 py-3 text-[0.875rem] text-bill hover:bg-[#f8e3a0]">
+            <Link to="/faturalar/yeni" className="flex items-center justify-between gap-3 rounded-xl border border-[#f3e3b0] bg-bill-soft px-4 py-3 text-[0.875rem] text-bill hover:bg-[#fbecc0]">
               <span><span className="font-semibold">{data.uninvoicedTripCount} teslim edilmiş sevkiyat faturalanmadı</span>
                 <span className="block text-[0.8125rem]">Toplam <span className="font-mono font-semibold">{tl(data.uninvoicedTripTotal)}</span> + KDV</span></span>
-              <span className="whitespace-nowrap rounded-[3px] bg-accent px-3 py-1.5 font-semibold text-white">Fatura kes →</span>
+              <span className="whitespace-nowrap rounded-lg bg-accent px-3 py-1.5 font-semibold text-white">Fatura kes →</span>
             </Link>
           )}
           {data.pendingExpenseCount > 0 && (
-            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-[4px] border border-[#ecd3a6] bg-warn-soft px-4 py-3 text-[0.875rem] text-warn hover:bg-[#f7e2bd]">
+            <Link to="/giderler?onay=Pending" className="flex items-center justify-between gap-3 rounded-xl border border-[#f2dfbd] bg-warn-soft px-4 py-3 text-[0.875rem] text-warn hover:bg-[#f7e2bd]">
               <span><span className="font-semibold">{data.pendingExpenseCount} şoför masrafı onay bekliyor</span>
                 <span className="block text-[0.8125rem]">Toplam <span className="font-mono font-semibold">{tl(data.pendingExpenseTotal)}</span></span></span>
-              <span className="whitespace-nowrap rounded-[3px] border border-line bg-white px-3 py-1.5 font-semibold text-fg">İncele →</span>
+              <span className="whitespace-nowrap rounded-lg border border-line bg-white px-3 py-1.5 font-semibold text-fg">İncele →</span>
             </Link>
           )}
         </div>
@@ -326,7 +326,7 @@ function TrendChart({ rows }: { rows: Dashboard['trend'] }) {
   if (rows.every((r) => r.revenue === 0 && r.cost === 0)) return null
   return (
     <div className="mt-4 border-t border-line pt-3">
-      <div className="mb-1 flex items-center justify-between text-[0.6875rem] font-bold uppercase tracking-[0.07em] text-muted">
+      <div className="mb-1 flex items-center justify-between text-[0.75rem] font-medium text-muted">
         <span>Son 6 ay</span>
         <span className="flex gap-3">
           <span className="flex items-center gap-1"><span className="size-2" style={{ background: palette.accent }} />Ciro</span>
@@ -352,14 +352,14 @@ function OnboardingCard() {
   const [hidden, setHidden] = useState(false)
   if (hidden) return null
   return (
-    <section aria-label="Kuruluma başlayın" className="rounded-[4px] border-2 border-accent bg-accent-soft p-5">
+    <section aria-label="Kuruluma başlayın" className="rounded-xl border-2 border-accent bg-accent-soft p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 max-w-2xl">
           <h2 className="flex items-center gap-2 text-[1.125rem] font-extrabold text-fg"><Rocket className="size-5 text-accent" /> Kuruluma başlayın</h2>
           <p className="mt-1 text-[0.9375rem] text-fg">Firma bilgilerinizi girin, müşteri ve araç listelerinizi Excel'den aktarın, çalışanlarınızı ekleyin. Yaklaşık 10 dakika sürer; istediğiniz adımı atlayabilirsiniz.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/kurulum" className="inline-flex min-h-10 items-center rounded-[3px] bg-accent px-4 text-[0.9375rem] font-semibold text-white hover:opacity-90">Kurulum sihirbazını aç</Link>
+          <Link to="/kurulum" className="inline-flex min-h-10 items-center rounded-lg bg-accent px-4 text-[0.9375rem] font-semibold text-white hover:opacity-90">Kurulum sihirbazını aç</Link>
           <Button variant="ghost" onClick={() => { writeOnboarding({ cardHidden: true }); setHidden(true) }}>Şimdilik gizle</Button>
         </div>
       </div>
@@ -397,7 +397,7 @@ function SetupCard({ setup }: { setup: Dashboard['setup'] }) {
       <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {steps.map((s, i) => (
           <li key={s.title}>
-            <Link to={s.to} className={clsx('flex h-full gap-3 rounded-[4px] border p-3 transition hover:border-accent hover:bg-accent-soft',
+            <Link to={s.to} className={clsx('flex h-full gap-3 rounded-xl border p-3 transition hover:border-accent hover:bg-accent-soft',
               s.done ? 'border-line bg-surface-2/50' : 'border-line bg-white')}>
               {s.done ? <CheckCircle2 className="size-5 shrink-0 text-good" /> : <Circle className="size-5 shrink-0 text-muted" />}
               <span>
@@ -450,13 +450,13 @@ function QuickActions() {
   const mirror = useContext(MirrorContext)
   const [picked, setPicked] = useState<string | null>(null)
   const actions = quickActions.filter((a) => a.main && (!a.perm || can(a.perm)))
-  const box = 'group flex min-h-12 items-center gap-2.5 rounded-[4px] border border-line bg-white px-3 py-2 text-left transition hover:border-slate-300 hover:bg-surface-2'
+  const box = 'group flex min-h-12 items-center gap-2.5 rounded-xl border border-line bg-white px-3 py-2 text-left transition hover:border-slate-300 hover:bg-surface-2'
   return (
     <div className="space-y-2">
       <nav aria-label="Hızlı işlemler" className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
         {actions.map((a) => {
           const inner = (<>
-            <span className={clsx('flex size-8 shrink-0 items-center justify-center rounded-[3px]', a.tone)}>
+            <span className={clsx('flex size-8 shrink-0 items-center justify-center rounded-lg', a.tone)}>
               <a.icon className="size-4" />
             </span>
             <span className="text-[0.875rem] font-semibold leading-tight text-fg">{a.label}</span>
@@ -467,7 +467,7 @@ function QuickActions() {
         })}
       </nav>
       {mirror && picked && (
-        <div role="status" className="rounded-[3px] bg-warn-soft px-3 py-2 text-[0.8125rem] text-warn">
+        <div role="status" className="rounded-lg bg-warn-soft px-3 py-2 text-[0.8125rem] text-warn">
           <b>{picked}</b>: ayna açıkken bu kaydı pratikortam'a girin. Bir sonraki senkronda buraya da gelir.
         </div>
       )}

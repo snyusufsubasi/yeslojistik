@@ -151,11 +151,11 @@ export function DataTable<T>({ columns, rows, loading, rowKey, onRowClick, sort,
         <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 text-[0.8125rem] text-muted">
           <span>Toplam <b>{total}</b> kayıt</span>
           <div className="flex items-center gap-2">
-            <button className="inline-flex min-h-11 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40 sm:min-h-8" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
+            <button className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-white px-3 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40 sm:min-h-8" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Önceki sayfa">
               <ChevronLeft className="size-5" /><span className="hidden sm:inline">Önceki</span>
             </button>
             <span className="px-1">Sayfa {page} / {pages}</span>
-            <button className="inline-flex min-h-11 items-center gap-1 rounded-[3px] border border-line bg-white px-2.5 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40 sm:min-h-8" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
+            <button className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-line bg-white px-2.5 font-semibold text-fg hover:bg-surface-2 disabled:opacity-40 sm:min-h-8" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Sonraki sayfa">
               <span className="hidden sm:inline">Sonraki</span><ChevronRight className="size-5" />
             </button>
           </div>

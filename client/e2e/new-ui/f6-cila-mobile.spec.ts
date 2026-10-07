@@ -52,9 +52,13 @@ test('telefonda sevkiyat kartları: ≤120px, ⋯ menülü, karta dokunma çekme
   await expect(first).toContainText(/\d{2}\.\d{2}\.\d{4}/)
   await expect(first).toContainText('→')
   await expect(first.getByText(/Planlandı|Yüklendi|Yolda|Teslim Edildi|İptal/).first()).toBeVisible()
-  // Sağdaki tutar Overpass Mono (`.tabular-nums` yazı tipini mono yapar).
-  const amountFont = await first.locator('.tabular-nums').first().evaluate((el) => getComputedStyle(el).fontFamily)
-  expect(amountFont.toLowerCase()).toContain('overpass')
+  // Sağdaki tutar eşit genişlikli rakamlarla (Hark tarzı: Inter + tabular-nums, alt alta hizalı).
+  const amountStyle = await first.locator('.tabular-nums').first().evaluate((el) => {
+    const cs = getComputedStyle(el)
+    return { font: cs.fontFamily, numeric: cs.fontVariantNumeric }
+  })
+  expect(amountStyle.font.toLowerCase()).toContain('inter')
+  expect(amountStyle.numeric).toContain('tabular-nums')
 
   // "⋯" düğmesi ve açılan menü maddeleri ≥44px dokunma hedefi.
   const menu = first.locator(menuButton)

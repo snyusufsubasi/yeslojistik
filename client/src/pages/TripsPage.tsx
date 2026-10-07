@@ -723,7 +723,7 @@ function EarningsStrip({ totals, showMoney, onUninvoiced }: { totals: TripTotals
 }
 
 /** Otoyol köşeli seçim düğmeleri: yan yana, aralarında çizgi; seçili olan accent zeminli. */
-const segmentGroup = 'overflow-hidden rounded-[3px] border border-line bg-white divide-x divide-line'
+const segmentGroup = 'overflow-hidden rounded-lg border border-line bg-white divide-x divide-line'
 const segment = (on: boolean, pad = 'px-4') => clsx(pad, 'inline-flex min-h-8 items-center justify-center gap-1.5 whitespace-nowrap text-[0.8125rem] font-semibold transition [&_svg]:size-4',
   on ? 'bg-accent text-white' : 'text-muted hover:bg-surface-2 hover:text-fg')
 

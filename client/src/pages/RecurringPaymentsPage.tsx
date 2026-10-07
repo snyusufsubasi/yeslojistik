@@ -11,6 +11,7 @@ import { Badge, Button, ConfirmDialog, Card, Field, IconButton, Modal, Figures, 
 import { PageShell } from '../components/shell/PageShell'
 import { MobileCards } from '../components/shell/MobileCards'
 import { ControlledChoice, ControlledToggle } from '../components/Choice'
+import { ControlledSmartField } from '../components/SmartField'
 import { AmountInput, DateQuick } from '../components/Inputs'
 import { applyServerErrors, nullify, optId, optStr, req } from '../lib/forms'
 import { date, tl, todayIso } from '../lib/format'
@@ -136,7 +137,9 @@ function RecurringForm({ item, onClose }: { item: RecurringPayment | null; onClo
         <Button variant="secondary" onClick={onClose}>Vazgeç</Button><Button loading={save.isPending} onClick={submit}>Kaydet</Button>
       </>}>
       <form onSubmit={submit} className="grid gap-4">
-        <Field label="Başlık" required error={errors.title?.message}><input className="input" placeholder="Ofis kirası, kasko taksiti" {...register('title')} /></Field>
+        <Field label="Başlık" required error={errors.title?.message}>
+          <ControlledSmartField control={control} name="title" field="expenseTitle" label="Başlık" placeholder="Ofis kirası, kasko taksiti" chips={5} maxLength={100} />
+        </Field>
         <Field label="Aylık tutar" required error={errors.amount?.message}><AmountInput control={control} name="amount" /></Field>
         <Field label="Ayın kaçında ödenir?" error={errors.dueDay?.message}><input className="input" type="number" min={1} max={28} {...register('dueDay', { valueAsNumber: true })} /></Field>
         <Field group label="Gider türü">

@@ -72,7 +72,7 @@ function StatusCard({ s }: { s: LicenseStatus }) {
 function Item({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-muted">{label}</dt>
+      <dt className="text-[0.75rem] font-medium text-muted">{label}</dt>
       <dd className="mt-0.5 text-[1.0625rem] font-semibold text-fg">{children}</dd>
     </div>
   )
@@ -111,7 +111,7 @@ function PlansCard({ current }: { current: string | null }) {
     <Card title="Paketler" icon={<ListChecks className="size-4" />} bodyClassName="p-0">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[40rem] text-left text-[0.875rem]">
-          <thead className="bg-surface-2 text-[0.6875rem] uppercase tracking-[0.07em] text-slate-700">
+          <thead className="bg-slate-50 text-[0.75rem] font-semibold text-muted">
             <tr><th className="px-4 py-2">Paket</th><th className="px-4 py-2">Araç</th><th className="px-4 py-2 text-right">Aylık fiyat</th><th className="px-4 py-2">İçerik</th></tr>
           </thead>
           <tbody>

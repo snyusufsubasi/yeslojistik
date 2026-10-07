@@ -220,7 +220,7 @@ export default function InvoiceCreatePage() {
               <div className="border-t border-slate-200 pt-1 text-[0.9375rem] font-semibold text-navy-900"><Line label="Ödenecek Tutar" value={total} /></div>
             </div>
             {mixedVat && (
-              <p role="alert" className="rounded-[3px] border border-[#ecd3a6] bg-warn-soft px-3 py-2 text-[0.875rem] text-warn">
+              <p role="alert" className="rounded-lg border border-[#f2dfbd] bg-warn-soft px-3 py-2 text-[0.875rem] text-warn">
                 Seçilen sevkiyatların KDV oranları farklı ({tripRates.map((r) => `%${r}`).join(', ')}). Ayrı fatura kesin: aynı orandaki sevkiyatları seçin.
               </p>
             )}

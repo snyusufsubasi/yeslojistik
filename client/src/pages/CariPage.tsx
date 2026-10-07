@@ -183,7 +183,7 @@ export default function CariPage({ kind }: { kind: Kind }) {
         <div role="radiogroup" aria-label="Gösterilecek hesaplar" className="flex flex-wrap gap-1.5 border-b border-line px-4 py-3 sm:px-6">
           {([['open', 'Bakiyesi olanlar'], ['overdue', 'Vadesi geçenler'], ['all', 'Hepsi']] as const).filter(([v]) => !mirror || v !== 'overdue').map(([v, label]) => (
             <button key={v} role="radio" aria-checked={filter === v} onClick={() => setFilter(v)}
-              className={clsx('min-h-8 rounded-[3px] border px-3 text-[0.8125rem] font-semibold transition',
+              className={clsx('min-h-8 rounded-full border px-3.5 text-[0.8125rem] font-semibold transition',
                 filter === v ? 'border-accent bg-accent text-white' : 'border-line bg-white text-muted hover:border-slate-300 hover:bg-surface-2 hover:text-fg')}>
               {label}
             </button>
@@ -229,7 +229,7 @@ function Figures({ items }: { items: Figure[] }) {
     <div className={clsx('card mb-6 grid divide-y divide-line overflow-hidden sm:divide-x sm:divide-y-0', items.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
       {items.map((f) => {
         const body = <>
-          <div className={clsx('flex items-center gap-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.07em] [&_svg]:size-3.5', f.highlight ? 'text-bill' : 'text-muted')}>
+          <div className={clsx('flex items-center gap-1.5 text-[0.75rem] font-medium [&_svg]:size-3.5', f.highlight ? 'text-bill' : 'text-muted')}>
             {f.icon}{f.title}
           </div>
           <div className={clsx('mt-1 truncate font-mono text-[1.375rem] font-semibold leading-tight tracking-[-0.02em]', f.highlight ? 'text-bill' : f.tone ?? 'text-fg')}>{f.value}</div>

@@ -1,6 +1,9 @@
 # YES Lojistik — Yol Haritası (uçtan uca)
 
-> **5 Ekim — kullanıcı kararları ve uygulama:** YES'in tam geçişi ve satış hazırlığı birlikte planlandı. Önce hesap doğruluğu ve kullanım; Otoyol tasarımı korunacak. YES'in müşterileri kendi kayıtlarını görüp taşıma/teklif talebi açabilecek. Ayrıntı: `TAM-GELISTIRME-PLANI.md`. İlk güvenlik paketi tamamlandı ve tüm CI kontrolleri geçti; kanıt ve kalan işler `UYGULAMA-DURUMU.md` içinde. Aşağıdaki eski “Kaldığımız yer” bölümü güncel görev sırası olarak kullanılmamalı.
+> **7 Ekim — yeni görünüm ve akıllı alanlar (canlıda):** Kullanıcı "Otoyol" görünümünü bıraktı; yerine **"Hark tarzı"** geldi (aydınlık, ferah, yuvarlak köşeli, tek vurgu rengi çivit mavisi, her yerde Inter; spec: `TASARIM-HARK.md`). Serbest yazılan alanlar **"akıllı alan"** oldu: en sık 5-6 seçenek tek dokunuşla çip, bütün seçenekler aranabilir listede (önce firmanın kendi kullandıkları, sonra sektörde yaygın olanlar), listede olmayan değer aynen kaydedilir. Ayrıca CI'daki kırmızı e2e (menü testi Mazotlar/Araç Masrafları eklenmesine uymuyordu) düzeltildi. Ayrıntı ve test kanıtı: `UYGULAMA-DURUMU.md` (7 Ekim bölümü).
+> Sırada: sevkiyata "taşıma şekli" ve "iptal/sorun nedeni", araca "dorse/kasa tipi" alanları (ek sütun ister; sektör listeleri hazır).
+
+> **5 Ekim — kullanıcı kararları ve uygulama:** YES'in tam geçişi ve satış hazırlığı birlikte planlandı. Önce hesap doğruluğu ve kullanım; Otoyol tasarımı korunacak (7 Ekim: yerini "Hark tarzı" aldı, `TASARIM-HARK.md`). YES'in müşterileri kendi kayıtlarını görüp taşıma/teklif talebi açabilecek. Ayrıntı: `TAM-GELISTIRME-PLANI.md`. İlk güvenlik paketi tamamlandı ve tüm CI kontrolleri geçti; kanıt ve kalan işler `UYGULAMA-DURUMU.md` içinde. Aşağıdaki eski “Kaldığımız yer” bölümü güncel görev sırası olarak kullanılmamalı.
 
 *2 Ekim 2026'da kullanıcıyla soru-cevapla belirlendi. Bu belgeye veri, şifre ya da kişisel bilgi yazılmaz.*
 *Her aşama bitince burada işaretlenir. Teknik ayrıntılar: `GELISTIRME-PLANI.md`, pratikortam tarafı: `PRATIKORTAM-GECIS.md`.*

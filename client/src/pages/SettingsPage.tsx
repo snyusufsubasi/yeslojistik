@@ -175,7 +175,7 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             </Field>
             <Field label="Varsayılan Vade (gün)" error={errors.defaultPaymentTermDays?.message}><input className="input" type="number" {...register('defaultPaymentTermDays', { valueAsNumber: true })} /></Field>
           </div>
-          <h3 className="mb-2 mt-5 border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">e-Fatura / e-Arşiv</h3>
+          <h3 className="mb-2 mt-5 border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">e-Fatura / e-Arşiv</h3>
           <label className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('eInvoiceEnabled')} />
             <span>
@@ -210,7 +210,7 @@ function CompanyFormInner({ settings }: { settings: CompanySettings }) {
             </span>
           </label>
           <p className="mt-3 text-sm text-slate-600">Müşterilere sevkiyat durumu e-postası, her müşterinin kartından ayrı ayrı açılır.</p>
-          <h3 className="mb-2 mt-5 border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Şoför uygulaması: teslim kuralları</h3>
+          <h3 className="mb-2 mt-5 border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">Şoför uygulaması: teslim kuralları</h3>
           <label className="flex items-start gap-3">
             <input type="checkbox" className="mt-1 size-4 accent-brand-600" {...register('requireDeliveryPhoto')} />
             <span className="text-[0.9375rem] text-slate-800">Teslimde en az bir fotoğraf zorunlu</span>
