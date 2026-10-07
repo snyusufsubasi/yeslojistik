@@ -185,7 +185,7 @@ function QuickActionMenu({ items, mirror, onPick, className }: { items: typeof q
   )
 }
 
-/** Üst çubukta "Aa": yazı boyutu tek tıkla (Normal / Büyük / Çok büyük). Aynı ayar kullanıcı menüsünde de var. */
+/** Üst çubukta "Aa": yazı boyutu tek tıkla (Normal / Büyütülmüş / Ekstra). Aynı ayar kullanıcı menüsünde de var. */
 function TextSizeButton() {
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
@@ -205,7 +205,7 @@ function TextSizePicker() {
   return (<>
     <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700"><Type className="size-4" /> Yazı boyutu</div>
     <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Yazı boyutu">
-      {([['md', 'Normal', 'text-sm'], ['lg', 'Büyük', 'text-[0.9375rem]'], ['xl', 'Çok büyük', 'text-lg']] as const).map(([v, l, cls]) => (
+      {([['md', 'Normal', 'text-sm'], ['lg', 'Büyütülmüş', 'text-[0.9375rem]'], ['xl', 'Ekstra', 'text-lg']] as const).map(([v, l, cls]) => (
         <button key={v} role="radio" aria-checked={textSize === v} onClick={() => setTextSize(v)}
           className={clsx('min-h-11 rounded-[10px] border px-1 font-medium leading-tight transition-colors', cls,
             textSize === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>

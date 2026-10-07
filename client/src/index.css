@@ -103,10 +103,10 @@
 @layer base {
   html, body, #root { height: 100%; }
   @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 1ms !important; transition-duration: 1ms !important; } }
-  /* Yazı boyutu ayarı (Normal / Büyük / Çok büyük): her şey rem ile birlikte büyür */
-  html { font-size: 18px; }
-  html[data-text="lg"] { font-size: 20px; }
-  html[data-text="xl"] { font-size: 22px; }
+  /* Yazı boyutu ayarı (Normal 16px / Büyütülmüş 18px / Ekstra 20px): her şey rem ile birlikte büyür */
+  html { font-size: 16px; }
+  html[data-text="lg"] { font-size: 18px; }
+  html[data-text="xl"] { font-size: 20px; }
   body { @apply bg-canvas font-sans text-[0.9375rem] leading-[1.5] text-fg antialiased; }
   h1, h2, h3 { font-family: var(--font-sans); font-weight: 650; letter-spacing: -0.015em; }
   /* Rakamlar eşit genişlikte, alt alta hizalı (tutar, plaka, sayaç) */

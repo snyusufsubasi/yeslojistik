@@ -18,7 +18,7 @@ function apply(size: TextSize) {
 /** Açılışta kayıtlı yazı boyutunu uygular (main.tsx). */
 export function applySavedTextSize() { apply(read()) }
 
-/** Kullanıcı menüsündeki "Yazı boyutu" seçimi: Normal / Büyük / Çok büyük. Tarayıcıda saklanır. */
+/** Kullanıcı menüsündeki "Yazı boyutu" seçimi: Normal / Büyütülmüş / Ekstra. Tarayıcıda saklanır. */
 export function useTextSize() {
   const [size, setSize] = useState<TextSize>(read)
   const change = (s: TextSize) => {
