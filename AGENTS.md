@@ -113,6 +113,8 @@ Spec: `docs/TASARIM-HARK.md` (`docs/TASARIM-OTOYOL.md` geçersiz, yalnız geçmi
 - Veritabanı: Render'ın ücretsiz DB'si **28 Ekim'de silinir**. Ekim ortasında ücretli plana geçilmeli ya da yenisi açılıp ayna yeniden doldurulmalı (kullanıcı karar verir).
 - Gece yedeği için GitHub secret'ları (`BACKUP_*`) ve Render `Backup__Token`.
 
+**Güncel plan (7 Ekim):** `docs/GELISTIRME-PLANI-2026-EKIM.md` (kararlar bölüm 14, görev kartları T1-T22 bölüm 15). Hark tasarımı üzerine kurulur.
+
 **Öncelik (5 Ekim):** kolaylaştırma planı (`docs/KOLAYLASTIRMA-PLANI.md`). Yeni düzen "Yeni görünüm" anahtarının arkasında geliştirilir; müşteri onaylayınca varsayılan olur.
 
 **Bilgi beklemeyen, yapılabilir işler:** tam geçmişi taşıma (fatura, tahsilat, tedarikçi ödemesi, banka hareketi; A8), müşteri portalı, otomatik "yükünüz yolda" bildirimleri, teklif hazırlama, iyzico abonelik ödemesi, Ödemeler/Giderler/Alınan Faturalar/Çekler üstündeki toplam şeritlerini `SumStrip`'e çevirme, Personel/Sabit Ödemeler `StatCard`'ları, "Kiralık" etiket rengi, `PRATIKORTAM-HARITA.md` orta öncelik 7-16.

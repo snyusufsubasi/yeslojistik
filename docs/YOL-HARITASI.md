@@ -125,6 +125,9 @@ Müşteri paneli pratikortam'a göre çok zor buldu. Plan: menü ve sekmeler pra
 - Detay sayfaları, Yönetici, Analiz, Çekler, Ödemeler ve Alınan Faturalar'da mobil kart görünümü.
 - F4.4 (Araçlar), F4.5 (Analiz "Genel Bakış"), F4.6 (Yönetici/Profilim) ve F6 (`DEFAULT_UI_MODE = 'new'` yapılacak — **müşteri onayı bekliyor**).
 
+## Ekim 2026 geliştirme planı (7 Ekim)
+Rakip panelleri ve sektör UX'i ile hazırlanmış kapsamlı plan: `docs/GELISTIRME-PLANI-2026-EKIM.md`. Önce bölüm 14'teki kararlar, sonra Faz 0.
+
 ## Satışa hazırlık
 Panel başka firmalara satılacak ürün olarak da düşünülüyor. Rakipler, eksikler, fiyat ve aşamalar: `docs/SATIS-PLANI.md` (başında 4 Ekim durumu var: lisans, 2FA, kurulum otomasyonu, sihirbaz, UETDS hazırlığı, hukuk taslakları yapıldı).
 
