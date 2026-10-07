@@ -30,7 +30,7 @@ test('ayna açıkken "+ Yeni" görünür ama kaydı pratikortam\'a yönlendirir'
 test('üst çubuktaki "Aa" ile yazı boyutu değişir', async ({ page }) => {
   await login(page)
   await page.getByRole('button', { name: 'Yazı boyutu' }).click()
-  await page.getByRole('radio', { name: 'Büyük', exact: true }).click()
+  await page.getByRole('radio', { name: 'Büyütülmüş', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-text', 'lg')
   await page.getByRole('radio', { name: 'Normal' }).click()
   await expect(page.locator('html')).not.toHaveAttribute('data-text', /.+/)

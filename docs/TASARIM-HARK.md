@@ -31,7 +31,7 @@ Aydınlık, ferah, sakin; telefon uygulaması kalitesinde "premium" his.
 ## Yazı
 - **Inter** (değişken, `@fontsource-variable/inter`), başlıklar dahil her yerde. Google Fonts bağlantısı yok.
 - Tutar, plaka, sayaç: yine Inter, **eşit genişlikli rakamlar** (`tabular-nums`) ile alt alta hizalı. Ayrı mono yazı tipi kalktı (`font-mono` sınıfı Inter + eşit rakam demek).
-- Taban 18px (yazı boyutu ayarı **Aa**: Normal / Büyük / Çok büyük; üst çubukta ve kullanıcı menüsünde, korunuyor).
+- Taban 16px (yazı boyutu ayarı **Aa**: Normal 16px / Büyütülmüş 18px / Ekstra 20px, 7 Eki 2026 kullanıcı isteği; üst çubukta ve kullanıcı menüsünde, korunuyor).
 - Tablo başlığı ve kart başlığı BÜYÜK HARF değil; küçük, yarı kalın, sakin gri.
 
 ## Ölçüler
