@@ -24,7 +24,7 @@ function useCompany() {
 function Page({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="min-h-full bg-slate-50">
-      <header className="border-b-[3px] border-hl bg-side px-4 py-3"><div className="mx-auto max-w-3xl"><Logo /></div></header>
+      <header className="border-b border-line bg-white px-4 py-3"><div className="mx-auto max-w-3xl"><Logo /></div></header>
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="mb-4 text-[1.5rem] font-extrabold tracking-[-0.01em] text-fg">{title}</h1>
         <div className="card space-y-4 p-5 text-[0.9375rem] leading-relaxed text-fg sm:p-7">{children}</div>

@@ -2,9 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import '@fontsource-variable/source-serif-4/opsz.css'
-import '@fontsource/overpass-mono/400.css'
-import '@fontsource/overpass-mono/600.css'
+import '@fontsource-variable/inter/wght.css'
 import './index.css'
 import App from './App'
 import { AuthProvider } from './lib/auth'
@@ -21,7 +19,9 @@ applySavedUiMode()
 const queryClient = new QueryClient({
   // Kalıcı yükleme hataları ekranın üstündeki şeritte gösterilir; geçici hatalarda "sunucu açılıyor" şeridi görünür.
   queryCache: new QueryCache({
-    onError: (err) => {
+    onError: (err, query) => {
+      // Öneri listeleri gibi "sessiz" sorgular hata şeridi göstermez (alan onlarsız da çalışır).
+      if (query.meta?.silent) return
       if (!isTransientError(err)) window.dispatchEvent(new CustomEvent(LOAD_ERROR_EVENT, { detail: errorMessage(err) }))
     },
   }),

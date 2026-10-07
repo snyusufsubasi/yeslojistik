@@ -104,7 +104,7 @@ export function ImportWizard({ entity, onImported }: { entity: WizardEntity; onI
       </ol>
 
       {fileError && (
-        <div role="alert" className="flex items-start gap-2 rounded-[4px] border border-[#e8b9b5] bg-bad-soft px-3 py-2.5 text-[0.875rem] text-bad">
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-[#e8b9b5] bg-bad-soft px-3 py-2.5 text-[0.875rem] text-bad">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" /><span>{fileError}</span>
         </div>
       )}
@@ -113,7 +113,7 @@ export function ImportWizard({ entity, onImported }: { entity: WizardEntity; onI
         <div className="space-y-3" aria-live="polite">
           <div className="font-semibold">{done ? '3. Sonuç' : '3. Kontrol sonucu'}</div>
           {done ? (
-            <div role="status" className="flex items-start gap-2 rounded-[4px] border border-[#b7dcc6] bg-good-soft px-3 py-2.5 text-[0.9375rem] text-good">
+            <div role="status" className="flex items-start gap-2 rounded-xl border border-[#b7dcc6] bg-good-soft px-3 py-2.5 text-[0.9375rem] text-good">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
               <span>
                 <b>{result.created} {meta.one} eklendi.</b>
@@ -141,7 +141,7 @@ export function ImportWizard({ entity, onImported }: { entity: WizardEntity; onI
                     onClick={() => saveText(`hata-raporu-${entity}.csv`, errorReportCsv(rows))}>Hata raporunu indir (CSV)</Button>
                 )}
               </div>
-              <div className="max-h-80 overflow-auto rounded-[4px] border border-line">
+              <div className="max-h-80 overflow-auto rounded-xl border border-line">
                 <table className="w-full">
                   <thead><tr><th className="th w-16">Satır</th><th className="th w-24">Durum</th><th className="th">Kayıt</th><th className="th">Açıklama</th></tr></thead>
                   <tbody>
@@ -168,7 +168,7 @@ export function ImportWizard({ entity, onImported }: { entity: WizardEntity; onI
             )}
             {!done && errorCount > 0 && <span className="text-[0.8125rem] text-muted">Hatalı satırlar atlanır; sonra düzeltip aynı dosyayı yükleyebilirsiniz (olanlar tekrar eklenmez).</span>}
             {!done && errorCount === 0 && count('ok') + count('warning') === 0 && <span className="text-[0.8125rem] text-muted">Aktarılacak yeni kayıt yok.</span>}
-            {done && <Link to={meta.list} className="inline-flex min-h-9 items-center rounded-[3px] bg-accent px-3.5 text-[0.875rem] font-semibold text-white hover:opacity-90">{meta.label} listesine git</Link>}
+            {done && <Link to={meta.list} className="inline-flex min-h-9 items-center rounded-lg bg-accent px-3.5 text-[0.875rem] font-semibold text-white hover:opacity-90">{meta.label} listesine git</Link>}
             <Button variant="secondary" icon={<RotateCcw className="size-3.5" />} onClick={reset}>{done ? 'Başka dosya aktar' : 'Vazgeç'}</Button>
           </div>
         </div>

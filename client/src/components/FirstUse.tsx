@@ -19,7 +19,7 @@ export function FirstUse({ title, children, addLabel, onAdd, importEntity }:
           {onAdd && <Button write icon={<Plus className="size-4" />} onClick={onAdd}>{addLabel}</Button>}
           {importEntity && (
             <Link to={`/aktar?tur=${importEntity}`}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-[3px] border border-slate-300 bg-white px-3.5 text-[0.875rem] font-semibold text-fg hover:bg-surface-2">
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-[0.875rem] font-semibold text-fg hover:bg-surface-2">
               <FileSpreadsheet className="size-4" /> Excel'den aktarın
             </Link>
           )}

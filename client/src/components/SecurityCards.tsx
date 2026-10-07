@@ -92,7 +92,7 @@ export function TwoFactorCard() {
           <>
             <p className="font-semibold text-slate-900">İki adımlı doğrulama açıldı. Kurtarma kodlarınızı şimdi kaydedin.</p>
             <p>Telefonunuza ulaşamazsanız bu kodlardan biriyle girebilirsiniz. Her kod yalnızca bir kez çalışır. <b>Bu kodlar bir daha gösterilmeyecek.</b></p>
-            <ul aria-label="Kurtarma kodları" className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-[3px] border border-line bg-surface-2 p-3 font-mono text-[0.9375rem]">
+            <ul aria-label="Kurtarma kodları" className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-line bg-surface-2 p-3 font-mono text-[0.9375rem]">
               {codes.map((c) => <li key={c}>{c}</li>)}
             </ul>
             <div className="flex flex-wrap gap-2">
@@ -202,7 +202,7 @@ export function DataOwnershipCard() {
       <Card title="Hesabı kapatma talebi" icon={<ShieldOff className="size-4" />} className="max-w-2xl">
         {!close.data ? <Loading error={close.error} onRetry={close.refetch} /> : close.data.requested ? (
           <div className="space-y-3 text-[0.9375rem] text-slate-700">
-            <p role="status" className="rounded-[3px] bg-warn-soft px-3 py-2.5 font-semibold">
+            <p role="status" className="rounded-lg bg-warn-soft px-3 py-2.5 font-semibold">
               Talebiniz alındı, 30 gün içinde verileriniz silinir; önce verilerinizi indirmenizi öneririz.
             </p>
             {close.data.requestedAt && <p className="text-sm">Talep tarihi: {dateTime(close.data.requestedAt)}</p>}

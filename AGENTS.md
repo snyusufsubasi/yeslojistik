@@ -83,11 +83,12 @@ Geliştirme girişi (yalnızca örnek veri): `admin@yeslojistik.com` / `Admin123
 - **Form hataları:** Türkçe, sade (`client/src/lib/zodTr.ts`).
 - **Pencere (Modal):** kaydedilmemiş değişiklikte kapatırken sorar, Ctrl+Enter kaydeder.
 
-## 6. Tasarım ("Otoyol", kullanıcı seçti)
-Spec: `docs/TASARIM-OTOYOL.md`. Koyu çam yeşili sol menü, **gruplar hep açık** (katlanmaz, daraltma düğmesi yok), açık gri-yeşil zemin, neredeyse keskin köşeler, gölge yok, sarı yalnız dikkat için.
-- Yazı: **Source Serif 4** (Claude yazısına benzer; kullanıcı seçti), tutar/plaka/sayı **Overpass Mono**. Taban 17,5px; yazı boyutu ayarı (Normal/Büyük/Çok büyük) üst çubuktaki **Aa** ve kullanıcı menüsünde; **bu seçenek kalmalı**.
-- Renkler Tailwind `@theme` jetonlarında (`client/src/index.css`); `slate`/`brand` yeniden eşlendi, sayfalar bunları kullanır.
-- Ortak parçalar: `client/src/components/ui.tsx` (Button, Card, Badge, PlateBadge, Figures, Chip, Modal), `Inputs.tsx`, `SumStrip.tsx`, `DataTable`.
+## 6. Tasarım ("Hark tarzı", 7 Ekim 2026'da kullanıcı seçti; "Otoyol"un yerini aldı)
+Spec: `docs/TASARIM-HARK.md` (`docs/TASARIM-OTOYOL.md` geçersiz, yalnız geçmiş). Aydınlık, ferah, sakin: sıcak kırık beyaz zemin, beyaz yüzeyler, 1px ince çizgi, hafif yumuşak gölge, yuvarlak köşeler (kart 16px, alan/düğme 10-12px, çip tam yuvarlak), **tek vurgu rengi** çivit mavisi `#4652c9` (az kullan). Sol menü beyaz, seçili satır açık çivit "hap"; **gruplar hep açık** (katlanmaz, daraltma düğmesi yok).
+- Yazı: her yerde **Inter**; tutar/plaka/sayı eşit genişlikli rakamlarla (`tabular-nums`; `font-mono` da Inter demek). Taban 18px; yazı boyutu ayarı (Normal/Büyük/Çok büyük) üst çubuktaki **Aa** ve kullanıcı menüsünde; **bu seçenek kalmalı**.
+- Renkler Tailwind `@theme` jetonlarında (`client/src/index.css`); `slate`/`brand`/`navy` yeniden eşlendi, sayfalar bunları kullanır. Sayfaya sabit renk/köşe yazma; jeton kullan.
+- Ortak parçalar: `client/src/components/ui.tsx` (Button, Card, Badge, PlateBadge, Figures, Chip, Modal, Empty), `Inputs.tsx`, `SumStrip.tsx`, `DataTable`, `Toast.tsx`.
+- **Akıllı alan** (`components/SmartField.tsx`): serbest yazılan alanlarda çip + aranabilir liste + "Diğer…" (yazılan aynen kaydedilir). Sıklık `GET /api/options/{alan}`, sektör listeleri `lib/sectorOptions.ts`. Yeni serbest yazı alanı eklerken bunu kullan.
 - **Araçlar sayfasında öz araçlar ve taşeron (kiralık) araçları ayrı sekmelerde** (kullanıcı özellikle istedi; varsayılan: öz araçlar).
 - **Terim tablosu** (`docs/TERIMLER.md`: "Sefer" yerine "Sevkiyat" vb.) **kullanıcı onayını bekliyor**. Onay gelmeden ekran yazılarını toplu değiştirme.
 
@@ -97,11 +98,11 @@ Spec: `docs/TASARIM-OTOYOL.md`. Koyu çam yeşili sol menü, **gruplar hep açı
 2. `docs/SATIS-PLANI.md`: ürünleştirme planı, rakipler, eksikler, fiyat, **4 Ekim durumu**.
 3. `docs/GELISTIRME-PLANI.md`: ayrıntılı iş listesi.
 4. `docs/PRATIKORTAM-HARITA.md`: eski programda olup panelde eksik olanlar (öncelikli liste).
-5. `docs/TASARIM-OTOYOL.md`, `docs/KDV-KURALLARI.md`, `docs/TERIMLER.md`.
+5. `docs/TASARIM-HARK.md`, `docs/KDV-KURALLARI.md`, `docs/TERIMLER.md`.
 6. Satış/işletme: `docs/LISANS.md`, `docs/MUSTERI-KURULUM.md`, `docs/PILOT-PAKETI.md`, `docs/UETDS.md`, `docs/ENTEGRATOR-EKLEME.md`, `docs/hukuk/` (avukat onaylı değil: TASLAK), `docs/TANITIM-ICERIK.md`, `site/` (tanıtım sitesi).
 
 ## 8. Durum (4 Ekim 2026) ve sıradaki işler
-**Canlıda:** Otoyol tasarımı bütün panelde, sektöre göre KDV, sade formlar, "+ Yeni" menüsü, pratikortam aynası (günde 4 kez), Sevkiyat süzgeçleri ve Detay görünümü, Cari sütunları/sıralama/dışa aktarma, öz/kiralık araç sekmeleri, 2FA, veri indirme, lisans/abonelik, müşteri kurulum betikleri, kurulum sihirbazı, Excel/CSV aktarma, UETDS hazırlık kontrolü, hukuk taslakları, tanıtım sitesi. CI yeşil.
+**Canlıda:** Hark tarzı tasarım ve akıllı alanlar bütün panelde (7 Ekim),  sektöre göre KDV, sade formlar, "+ Yeni" menüsü, pratikortam aynası (günde 4 kez), Sevkiyat süzgeçleri ve Detay görünümü, Cari sütunları/sıralama/dışa aktarma, öz/kiralık araç sekmeleri, 2FA, veri indirme, lisans/abonelik, müşteri kurulum betikleri, kurulum sihirbazı, Excel/CSV aktarma, UETDS hazırlık kontrolü, hukuk taslakları, tanıtım sitesi. CI yeşil.
 
 **Kullanıcıdan/dışarıdan bilgi bekleyenler (bunları uydurma):**
 - Terim tablosu onayı.

@@ -38,33 +38,33 @@ export function Layout() {
 
   return (
     <div className="flex min-h-full">
-      {open && <div className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden" onClick={() => setOpen(false)} />}
-      <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-side text-side-fg transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+      {open && <div className="fixed inset-0 z-30 bg-slate-900/30 backdrop-blur-[2px] lg:hidden" onClick={() => setOpen(false)} />}
+      <aside className={clsx('fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col border-r border-line bg-side text-side-fg transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
         open ? 'translate-x-0' : '-translate-x-full')}>
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 pl-4 pr-2">
-          <Link to="/" className="rounded-[3px]" aria-label={brand.name} title="Ana sayfaya dön"><Logo /></Link>
-          <button className="rounded-[3px] p-2 text-side-muted hover:bg-side-active hover:text-white lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
+        <div className="flex h-16 shrink-0 items-center justify-between pl-5 pr-2">
+          <Link to="/" className="rounded-lg" aria-label={brand.name} title="Ana sayfaya dön"><Logo /></Link>
+          <button className="rounded-lg p-2 text-side-muted hover:bg-surface-2 hover:text-fg lg:hidden" onClick={() => setOpen(false)} aria-label="Menüyü kapat"><X className="size-6" /></button>
         </div>
         {/* Gruplar hep açık: katlanmaz, menü daraltılmaz (kullanıcı isteği) */}
-        <nav className="flex-1 overflow-y-auto py-2" aria-label="Ana menü">
+        <nav className="flex-1 overflow-y-auto px-3 pb-3 pt-1" aria-label="Ana menü">
           {(uiMode === 'new' ? newNav : classicNav).map((g, gi) => {
             const items = g.items.filter((n) => !n.perm || can(n.perm))
             if (items.length === 0) return null
             return (
-              <div key={gi} className={gi > 0 ? 'mt-3' : ''}>
-                {g.title && <div className="mb-0.5 px-4 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-side-muted">{g.title}</div>}
+              <div key={gi} className={gi > 0 ? 'mt-4' : ''}>
+                {g.title && <div className="mb-1 px-3 text-[0.75rem] font-medium text-side-muted">{g.title}</div>}
                 {items.map((n) => {
                   const b = n.badge?.(dashboard, alerts) ?? null
                   return (
                     <NavLink key={n.to} to={n.to} end={n.to === '/'}
-                      className={({ isActive }) => clsx('flex min-h-[40px] items-center gap-3 border-l-4 pl-4 pr-3 text-[0.9rem] transition',
-                        isActive ? 'border-hl bg-side-active font-bold text-white' : 'border-transparent text-side-fg hover:bg-side-active/60 hover:text-white')}>
+                      className={({ isActive }) => clsx('flex min-h-[38px] items-center gap-3 rounded-[10px] px-3 text-[0.875rem] transition-colors',
+                        isActive ? 'bg-side-active font-semibold text-brand-700' : 'text-side-fg hover:bg-surface-2 hover:text-fg')}>
                       {({ isActive }) => (<>
-                        <n.icon className={clsx('size-4 shrink-0', isActive ? 'text-hl' : 'text-side-muted')} />
+                        <n.icon className={clsx('size-[1.0625rem] shrink-0', isActive ? 'text-brand-600' : 'text-side-muted')} />
                         <span className="min-w-0 flex-1 truncate">{n.label}</span>
                         {b && (
                           <span aria-hidden title={`${b.count} ${b.title}`}
-                            className="flex h-[18px] min-w-5 items-center justify-center rounded-[2px] bg-hl px-1 pt-px font-mono text-[0.6875rem] font-semibold text-side">
+                            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warn-soft px-1.5 font-mono text-[0.6875rem] font-semibold text-warn">
                             {b.count > 99 ? '99+' : b.count}
                           </span>
                         )}
@@ -76,15 +76,15 @@ export function Layout() {
             )
           })}
         </nav>
-        <div className="shrink-0 border-t border-white/10 px-4 py-2.5 text-[0.75rem] leading-snug text-side-muted">
+        <div className="shrink-0 border-t border-line px-5 py-3 text-[0.75rem] leading-snug text-side-muted">
           <div className="truncate font-semibold text-side-fg">{user!.fullName}</div>
           {brand.name} · v{health?.version ?? '2'}{health?.commit && ` (${health.commit.slice(0, 7)})`}
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-line bg-white px-3 text-[0.8125rem] sm:gap-3 lg:px-6">
-          <button className="flex min-h-11 items-center gap-2 rounded-[3px] px-2 font-semibold text-fg hover:bg-surface-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Menüyü aç"><Menu className="size-6" /><span className="hidden sm:inline">Menü</span></button>
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-line bg-white/85 px-3 text-[0.8125rem] backdrop-blur-md sm:gap-3 lg:px-6">
+          <button className="flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-fg hover:bg-surface-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Menüyü aç"><Menu className="size-6" /><span className="hidden sm:inline">Menü</span></button>
           <GlobalSearch />
           <div className="flex-1" />
           <div className="hidden items-center gap-2 text-[0.8125rem] text-muted xl:flex">
@@ -94,7 +94,7 @@ export function Layout() {
           <NewMenu mirror={mirror} />
           <TextSizeButton />
           {uiMode === 'new' && (
-            <Link to="/yardim" aria-label="Yardım" title="Yardım" className="rounded-[3px] p-2 text-slate-700 hover:bg-surface-2"><HelpCircle className="size-5" /></Link>
+            <Link to="/yardim" aria-label="Yardım" title="Yardım" className="rounded-lg p-2 text-slate-700 hover:bg-surface-2"><HelpCircle className="size-5" /></Link>
           )}
           <AlertsBell />
           <UserMenu name={user!.fullName} role={roleLabel[user!.role]} onLogout={logout} />
@@ -142,7 +142,7 @@ function NewMenu({ mirror }: { mirror: boolean }) {
   return (
     <div className="relative hidden sm:block" ref={ref}>
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" title="Yeni kayıt (kısayol: N)"
-        className="inline-flex min-h-11 items-center gap-2 rounded-[4px] bg-brand-600 px-4 text-[0.9rem] font-semibold text-white hover:bg-brand-700">
+        className="inline-flex min-h-10 items-center gap-2 rounded-full bg-brand-600 px-4 text-[0.875rem] font-semibold text-white shadow-xs transition hover:bg-brand-700">
         <Plus className="size-[1.125rem]" /> Yeni
       </button>
       {open && <QuickActionMenu items={items} mirror={mirror} onPick={() => setOpen(false)} className="absolute right-0 top-11 w-72" />}
@@ -157,9 +157,9 @@ function NewMenu({ mirror }: { mirror: boolean }) {
 function QuickActionMenu({ items, mirror, onPick, className }: { items: typeof quickActions; mirror: boolean; onPick: () => void; className?: string }) {
   const [picked, setPicked] = useState<string | null>(null)
   return (
-    <div role="menu" className={clsx('z-50 rounded-[4px] border border-line bg-white p-1 shadow-lg', className)}>
+    <div role="menu" className={clsx('z-50 rounded-2xl border border-line bg-white p-1.5 shadow-lg', className)}>
       {mirror && (
-        <div role="status" className={clsx('mb-1 rounded-[3px] px-2.5 py-2 text-[0.8125rem] leading-snug', picked ? 'bg-warn-soft text-warn' : 'bg-info-soft text-info')}>
+        <div role="status" className={clsx('mb-1 rounded-lg px-2.5 py-2 text-[0.8125rem] leading-snug', picked ? 'bg-warn-soft text-warn' : 'bg-info-soft text-info')}>
           {picked
             ? <><b>{picked}</b>: ayna açıkken bu kaydı pratikortam'a girin. Bir sonraki senkronda buraya da gelir.</>
             : <>Ayna açık: yeni kayıtları pratikortam'a girin. Panele geçince buradan açılır.</>}
@@ -167,16 +167,16 @@ function QuickActionMenu({ items, mirror, onPick, className }: { items: typeof q
       )}
       {items.map((a) => {
         const inner = (<>
-          <span className={clsx('flex size-7 shrink-0 items-center justify-center rounded-[3px]', a.tone)}><a.icon className="size-4" /></span>
+          <span className={clsx('flex size-7 shrink-0 items-center justify-center rounded-lg', a.tone)}><a.icon className="size-4" /></span>
           <span className="text-[0.875rem] text-fg">{a.label}</span>
         </>)
         return mirror ? (
           <button key={a.to} type="button" role="menuitem" onClick={() => setPicked(a.label)} title={a.hint}
-            className="flex w-full items-center gap-2.5 rounded-[3px] px-2 py-1.5 text-left opacity-60 hover:bg-surface-2">
+            className="flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left opacity-60 hover:bg-surface-2">
             {inner}
           </button>
         ) : (
-          <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-2.5 rounded-[3px] px-2 py-1.5 hover:bg-surface-2" title={a.hint}>
+          <Link key={a.to} to={a.to} role="menuitem" onClick={onPick} className="flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors hover:bg-surface-2" title={a.hint}>
             {inner}
           </Link>
         )
@@ -191,11 +191,11 @@ function TextSizeButton() {
   const ref = useClickOutside(() => setOpen(false))
   return (
     <div className="relative" ref={ref}>
-      <button className="flex min-h-9 items-center rounded-[3px] px-2 font-semibold text-slate-700 hover:bg-surface-2" onClick={() => setOpen((o) => !o)}
+      <button className="flex min-h-9 items-center rounded-lg px-2 font-semibold text-slate-700 hover:bg-surface-2" onClick={() => setOpen((o) => !o)}
         aria-label="Yazı boyutu" aria-expanded={open} title="Yazı boyutu">
         <span className="text-[0.8125rem]">A</span><span className="text-[1.0625rem]">a</span>
       </button>
-      {open && <div className="absolute right-0 top-11 z-50 w-72 rounded-[4px] border border-line bg-white px-4 py-3 shadow-lg"><TextSizePicker /></div>}
+      {open && <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-line bg-white px-4 py-3 shadow-lg"><TextSizePicker /></div>}
     </div>
   )
 }
@@ -207,7 +207,7 @@ function TextSizePicker() {
     <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Yazı boyutu">
       {([['md', 'Normal', 'text-sm'], ['lg', 'Büyük', 'text-[0.9375rem]'], ['xl', 'Çok büyük', 'text-lg']] as const).map(([v, l, cls]) => (
         <button key={v} role="radio" aria-checked={textSize === v} onClick={() => setTextSize(v)}
-          className={clsx('min-h-11 rounded-lg border px-1 font-medium leading-tight', cls,
+          className={clsx('min-h-11 rounded-[10px] border px-1 font-medium leading-tight transition-colors', cls,
             textSize === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>
           {l}
         </button>
@@ -224,7 +224,7 @@ function UiModePicker() {
     <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Görünüm">
       {([['classic', 'Klasik'], ['new', 'Yeni (sade)']] as const).map(([v, l]) => (
         <button key={v} role="radio" aria-checked={mode === v} onClick={() => setMode(v)}
-          className={clsx('min-h-11 rounded-lg border px-1 text-sm font-medium leading-tight',
+          className={clsx('min-h-11 rounded-[10px] border px-1 text-sm font-medium leading-tight transition-colors',
             mode === v ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}>
           {l}
         </button>
@@ -349,7 +349,7 @@ function AlertsBell() {
   const count = data?.length ?? 0
   return (
     <div className="relative" ref={ref}>
-      <button className="relative rounded-[3px] p-2 text-slate-700 hover:bg-surface-2" onClick={() => setOpen((o) => !o)} aria-label="Bildirimler">
+      <button className="relative rounded-lg p-2 text-slate-700 hover:bg-surface-2" onClick={() => setOpen((o) => !o)} aria-label="Bildirimler">
         <Bell className="size-5" />
         {count > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-semibold leading-5 text-white ring-2 ring-white">
@@ -358,12 +358,12 @@ function AlertsBell() {
         )}
       </button>
       {open && (
-        <div className="fixed inset-x-2 top-14 z-50 max-h-[70vh] overflow-y-auto rounded-[4px] border border-line bg-white shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-[26rem]">
-          <div className="border-b border-line bg-surface-2 px-4 py-2 text-[0.75rem] font-bold uppercase tracking-[0.08em] text-slate-700" role="heading" aria-level={2}>Bildirimler</div>
+        <div className="fixed inset-x-2 top-14 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-line bg-white shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-[26rem]">
+          <div className="border-b border-line px-4 py-2.5 text-[0.875rem] font-semibold text-fg" role="heading" aria-level={2}>Bildirimler</div>
           {count === 0 && <div className="px-4 py-8 text-center text-[0.9375rem] text-slate-600">Her şey yolunda, bildirim yok.</div>}
           {data?.map((a, i) => (
             <Link key={i} to={a.link} onClick={() => setOpen(false)} className="flex gap-3 border-b border-slate-100 px-5 py-3 hover:bg-slate-50">
-              <span className={clsx('mt-1.5 size-2 shrink-0', a.severity === 'danger' ? 'bg-bad' : 'bg-hl')} />
+              <span className={clsx('mt-1.5 size-2 shrink-0 rounded-full', a.severity === 'danger' ? 'bg-bad' : 'bg-hl')} />
               <span className="text-[0.9375rem]">
                 <span className="font-medium text-slate-800">{a.title}</span>
                 <span className="block text-slate-600">{a.message}</span>
@@ -381,7 +381,7 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
   const ref = useClickOutside(() => setOpen(false))
   return (
     <div className="relative" ref={ref}>
-      <button className="flex items-center gap-2 rounded-[3px] px-2 py-1 hover:bg-surface-2" onClick={() => setOpen((o) => !o)} aria-label="Hesabım">
+      <button className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-2" onClick={() => setOpen((o) => !o)} aria-label="Hesabım">
         <UserCircle2 className="size-7 text-muted" />
         <span className="hidden text-left leading-tight sm:block">
           <span className="block text-[0.8125rem] font-semibold text-fg">{name}</span>
@@ -389,7 +389,7 @@ function UserMenu({ name, role, onLogout }: { name: string; role: string; onLogo
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-72 rounded-[4px] border border-line bg-white py-2 shadow-lg">
+        <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-line bg-white py-2 shadow-lg">
           <div className="px-4 pb-2 pt-1"><TextSizePicker /></div>
           <div className="px-4 pb-2 pt-1"><UiModePicker /></div>
           <div className="my-1 border-t border-slate-100" />

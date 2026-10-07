@@ -41,7 +41,7 @@ export default function PublicTrackingPage() {
 
   return (
     <div className="min-h-full bg-slate-100">
-      <header className="border-b-[3px] border-hl bg-side px-4 py-3"><div className="mx-auto max-w-3xl"><Logo /></div></header>
+      <header className="border-b border-line bg-white px-4 py-3"><div className="mx-auto max-w-3xl"><Logo /></div></header>
       <main className="mx-auto max-w-3xl space-y-4 p-4">
         {isLoading && <Spinner />}
         {isError && (
@@ -71,7 +71,7 @@ export default function PublicTrackingPage() {
                 <li key={s.status} className="flex items-center gap-3">
                   {i <= current ? <CheckCircle2 className="size-7 shrink-0 text-good" /> : <Circle className="size-7 shrink-0 text-slate-500" />}
                   <span className={clsx('text-[0.9375rem]', i === current ? 'font-medium text-navy-900' : i < current ? 'text-slate-700' : 'text-slate-500')}>
-                    {s.label}{i === current && <span className="ml-2 rounded-[2px] bg-accent-soft px-1.5 py-0.5 text-[0.75rem] font-semibold text-accent">şu an</span>}
+                    {s.label}{i === current && <span className="ml-2 rounded-md bg-accent-soft px-1.5 py-0.5 text-[0.75rem] font-semibold text-accent">şu an</span>}
                     {i <= current && eventAt(s.status) && <span className="block text-sm font-normal text-slate-500">{dateTime(eventAt(s.status)!)}</span>}
                   </span>
                 </li>

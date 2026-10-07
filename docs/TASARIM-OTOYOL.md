@@ -1,3 +1,5 @@
+> **GEÇERSİZ (7 Ekim 2026):** Kullanıcı "Otoyol" görünümünü bıraktı. Geçerli tasarım: `TASARIM-HARK.md`. Bu belge yalnız geçmiş kaydıdır.
+
 # Seçilen tasarım: "Otoyol"
 
 *3 Ekim 2026'da kullanıcı seçti. Kaynak: tasarım seçim sayfası, A yönü.*

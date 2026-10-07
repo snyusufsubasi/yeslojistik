@@ -62,17 +62,17 @@ export default function OnboardingPage() {
   return (
     <>
       <PageHeader title="Kurulum Sihirbazı" subtitle="Birkaç adımda çalışmaya hazır olun. İstediğiniz adımı atlayabilir, sonra kaldığınız yerden devam edebilirsiniz."
-        actions={<Link to="/" className="inline-flex min-h-9 items-center rounded-[3px] border border-slate-300 bg-white px-3.5 text-[0.875rem] font-semibold text-fg hover:bg-surface-2">Ana sayfaya dön</Link>} />
+        actions={<Link to="/" className="inline-flex min-h-9 items-center rounded-lg border border-slate-300 bg-white px-3.5 text-[0.875rem] font-semibold text-fg hover:bg-surface-2">Ana sayfaya dön</Link>} />
 
       <nav aria-label="Kurulum adımları" className="mb-4">
         <div className="mb-2 flex items-center gap-3 text-[0.8125rem] text-muted">
           <div role="progressbar" aria-valuemin={0} aria-valuemax={STEPS.length} aria-valuenow={doneCount} aria-label="Kurulum ilerlemesi"
-            className="h-1.5 flex-1 overflow-hidden rounded-[2px] bg-line">
+            className="h-1.5 flex-1 overflow-hidden rounded-md bg-line">
             <div className="h-full bg-accent transition-all" style={{ width: `${(doneCount / STEPS.length) * 100}%` }} />
           </div>
           <span className="font-mono font-semibold text-fg">{doneCount}/{STEPS.length}</span> tamam
         </div>
-        <ol className="grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border border-line bg-line sm:grid-cols-5">
+        <ol className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-5">
           {STEPS.map((s, i) => (
             <li key={s.id} className="bg-white">
               <button type="button" onClick={() => go(s.id)} aria-current={s.id === current ? 'step' : undefined}
@@ -163,8 +163,8 @@ function CompanyStep({ settings, onSaved, onSkip }: { settings: CompanySettings;
         <div className="sm:col-span-2">
           <span className="label">Logo (PNG veya JPEG, en çok 500 KB)</span>
           <div className="flex flex-wrap items-center gap-3">
-            {logo ? <img src={logo} alt="Logo önizleme" className="h-12 max-w-40 rounded-[3px] border border-line object-contain p-1" /> : <span className="text-[0.875rem] text-muted">Logo yok</span>}
-            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-[3px] border border-slate-300 bg-white px-2.5 text-[0.8125rem] font-semibold text-fg hover:bg-surface-2">
+            {logo ? <img src={logo} alt="Logo önizleme" className="h-12 max-w-40 rounded-lg border border-line object-contain p-1" /> : <span className="text-[0.875rem] text-muted">Logo yok</span>}
+            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[0.8125rem] font-semibold text-fg hover:bg-surface-2">
               <Upload className="size-3.5" /> {logo ? 'Logoyu değiştir' : 'Logo yükle'}
               <input type="file" accept="image/png,image/jpeg" aria-label="Logo dosyası" className="sr-only" onChange={(e) => onLogo(e.target.files?.[0])} />
             </label>
@@ -296,7 +296,7 @@ function UsersStep({ onSkip, onNext }: { onSkip: () => void; onNext: () => void 
       {error && <p role="alert" className="mt-2 text-[0.8125rem] text-bad">{error}</p>}
       <div className="mt-3"><Button type="button" variant="secondary" loading={add.isPending} onClick={submit}>Kullanıcıyı ekle</Button></div>
 
-      <h3 className="mb-1.5 mt-5 border-b border-line pb-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-accent">Mevcut kullanıcılar</h3>
+      <h3 className="mb-1.5 mt-5 border-b border-line pb-1.5 text-[0.875rem] font-semibold text-fg">Mevcut kullanıcılar</h3>
       <ul className="divide-y divide-line text-[0.875rem]">
         {(users.data ?? []).map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-x-3 py-1.5"><span className="font-semibold">{u.fullName}</span><span className="text-muted">{u.email}</span>
@@ -335,13 +335,13 @@ function StartStep({ setup, onFinish }: { setup: Dashboard['setup']; onFinish: (
     <div>
       <p className="mb-4 text-[0.875rem] text-muted">Son adım: nasıl başlamak istersiniz? Seçiminizi sonra değiştirebilirsiniz.</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <section className="rounded-[4px] border border-line p-4">
+        <section className="rounded-xl border border-line p-4">
           <h3 className="mb-1 flex items-center gap-2 font-bold"><FlaskConical className="size-4 text-accent" /> Örnek veri ile dene</h3>
           <p className="mb-3 text-[0.875rem] text-muted">Örnek müşteri, araç, şoför, sevkiyat ve faturalar yüklenir; programı gerçek veri girmeden gezebilirsiniz. Girdiğiniz firma bilgileri korunur. Hazır olunca Ayarlar → Veriler'den tek tuşla temizlenir.</p>
           <Button variant="secondary" loading={load.isPending} disabled={!!sampleBlocked} onClick={() => load.mutate()}>Örnek verileri yükle</Button>
           {sampleBlocked && <p className="mt-2 text-[0.8125rem] text-muted">{sampleBlocked}</p>}
         </section>
-        <section className="rounded-[4px] border border-line p-4">
+        <section className="rounded-xl border border-line p-4">
           <h3 className="mb-1 flex items-center gap-2 font-bold"><Rocket className="size-4 text-accent" /> Boş başla</h3>
           <p className="mb-3 text-[0.875rem] text-muted">Kendi kayıtlarınızla çalışmaya başlayın. İlk müşterinizi, aracınızı ve şoförünüzü listelerden ekleyebilir ya da istediğiniz zaman “Veri Aktarımı”ndan Excel ile getirebilirsiniz.</p>
           <Button onClick={finish} icon={<CheckCircle2 className="size-4" />}>Kurulumu bitir</Button>

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type SyntheticEvent } from 'react'
 import clsx from 'clsx'
-import { AlertTriangle, ChevronLeft, Loader2, RefreshCw, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, Inbox, Loader2, RefreshCw, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { HelpTip } from './Inputs'
 import type { Tone } from '../lib/labels'
@@ -13,10 +13,10 @@ import { newTitles } from '../lib/sections'
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700',
-  secondary: 'bg-white text-fg border border-line hover:bg-surface-2 hover:border-slate-300',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-700',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
+  primary: 'bg-brand-600 text-white shadow-xs hover:bg-brand-700',
+  secondary: 'bg-white text-fg border border-line shadow-xs hover:bg-surface-2 hover:border-slate-300',
+  success: 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700',
+  danger: 'bg-red-600 text-white shadow-xs hover:bg-red-700',
   ghost: 'text-slate-700 hover:bg-slate-100',
 }
 
@@ -32,7 +32,7 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
   if (write && mirror) return null
   return (
     <button
-      className={clsx('inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[3px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-4',
+      className={clsx('inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] font-semibold transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 [&_svg]:size-4',
         size === 'sm' ? 'min-h-9 px-3 text-[0.8125rem]' : 'min-h-11 px-4 text-[0.875rem]', variants[variant], className)}
       disabled={disabled || loading}
       {...rest}
@@ -48,14 +48,14 @@ export function IconButton({ label, className, children, write, ...rest }: Butto
   if (write && mirror) return null
   return (
     <button title={label} aria-label={label}
-      className={clsx('inline-flex size-11 items-center justify-center rounded-[3px] text-slate-700 transition hover:bg-surface-2 hover:text-fg disabled:opacity-40', className)}
+      className={clsx('inline-flex size-11 items-center justify-center rounded-lg text-slate-700 transition hover:bg-surface-2 hover:text-fg disabled:opacity-40', className)}
       {...rest}>
       {children}
     </button>
   )
 }
 
-/** Durum etiketi tonları: soft zemin üstünde koyu yazı (Planlandı info, Yüklendi warn, Yolda accent, Teslim good, İptal muted). */
+/** Durum etiketi tonları (tam yuvarlak hap): soft zemin üstünde koyu yazı (Planlandı info, Yüklendi warn, Yolda accent, Teslim good, İptal muted). */
 const tones: Record<Tone, string> = {
   yellow: 'bg-warn-soft text-warn',
   green: 'bg-good-soft text-good',
@@ -70,17 +70,17 @@ const tones: Record<Tone, string> = {
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     // font-sans: tutar hücresinin (mono) içinde de durum etiketi normal yazıyla kalır
-    <span className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-[2px] px-1.5 py-[3px] font-sans text-[0.75rem] font-semibold leading-none tracking-normal', tones[tone])}>
-      <span aria-hidden className="size-1.5 shrink-0 bg-current" />{children}
+    <span className={clsx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 font-sans text-[0.75rem] font-medium leading-none tracking-normal', tones[tone])}>
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />{children}
     </span>
   )
 }
 
-/** Plaka rozeti: ince çerçeve, solda mavi "TR" şeridi, sağda Overpass Mono ile plaka. */
+/** Plaka rozeti: ince çerçeve, solda mavi "TR" şeridi, sağda eşit genişlikli rakamlarla plaka. */
 export function PlateBadge({ plate, className }: { plate?: string | null; className?: string }) {
   if (!plate) return null
   return (
-    <span className={clsx('inline-flex items-stretch overflow-hidden whitespace-nowrap rounded-[2px] border border-slate-400 bg-white align-middle leading-none', className)}>
+    <span className={clsx('inline-flex items-stretch overflow-hidden whitespace-nowrap rounded-md border border-slate-400 bg-white align-middle leading-none', className)}>
       <span aria-hidden className="flex items-center bg-plate px-[3px] pt-px text-[0.5625rem] font-bold text-white">TR</span>
       <span className="px-1.5 pb-[2px] pt-[4px] font-mono text-[0.8125rem] font-semibold uppercase text-fg">{plate}</span>
     </span>
@@ -92,8 +92,8 @@ export function Card({ title, icon, actions, children, className, bodyClassName 
   return (
     <section className={clsx('card', className)}>
       {(title || actions) && (
-        <header className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-t-[4px] border-b border-line bg-surface-2 px-4 py-2">
-          <h2 className="flex items-center gap-2 text-[0.8125rem] font-bold text-slate-800">
+        <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-t-2xl border-b border-line px-5 py-2.5">
+          <h2 className="flex items-center gap-2 text-[0.9375rem] font-semibold text-fg">
             {icon && <span className="flex text-muted [&_svg]:size-4">{icon}</span>}
             {title}
           </h2>
@@ -122,7 +122,7 @@ export function PageHeader({ title: pageTitle, subtitle, actions, back }: { titl
           </nav>
         )}
         <div className="flex items-center">
-          <h1 className="text-[1.625rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{title}</h1>
+          <h1 className="text-[1.625rem] font-bold leading-tight tracking-[-0.02em] text-fg">{title}</h1>
           {!back && !isNew && <HelpTip page={page} />}
         </div>
         {showSubtitle && <p className="mt-1.5 text-[0.9375rem] text-muted">{subtitle}</p>}
@@ -212,23 +212,23 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', gua
   const own = (e: SyntheticEvent) => (e.target as HTMLElement).closest('[role=dialog]') === ref.current
   const touch = (e: SyntheticEvent) => { if (!dirty && own(e)) setDirty(true) }
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-4" onMouseDown={requestClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/30 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={requestClose}>
       <div ref={ref} role="dialog" aria-modal="true" aria-label={title}
-        className={clsx('flex max-h-[95vh] w-full flex-col rounded-t-[4px] border border-line bg-white shadow-lg sm:rounded-[4px]', width)}
+        className={clsx('flex max-h-[95vh] w-full flex-col rounded-t-2xl border border-line bg-white shadow-xl sm:rounded-2xl', width)}
         onMouseDown={(e) => e.stopPropagation()}>
-        <header className="flex items-center justify-between border-b border-line px-5 py-2.5">
-          <h2 className="text-[1.0625rem] font-bold text-fg">{title}</h2>
+        <header className="flex items-center justify-between border-b border-line py-2.5 pl-6 pr-3">
+          <h2 className="text-[1.0625rem] font-semibold tracking-[-0.01em] text-fg">{title}</h2>
           <IconButton label="Kapat" onClick={requestClose}><X className="size-5" /></IconButton>
         </header>
-        <div data-modal-body className="flex-1 overflow-y-auto px-5 py-5" onInputCapture={touch} onChangeCapture={touch}
+        <div data-modal-body className="flex-1 overflow-y-auto px-6 py-5" onInputCapture={touch} onChangeCapture={touch}
           onSubmitCapture={(e) => { if (own(e)) setDirty(false) }}>{children}</div>
         {asking ? (
-          <footer role="alert" className="flex flex-wrap items-center justify-end gap-3 border-t border-amber-200 bg-warn-soft px-5 py-3 sm:rounded-b-[4px]">
+          <footer role="alert" className="flex flex-wrap items-center justify-end gap-3 border-t border-amber-200 bg-warn-soft px-6 py-3 sm:rounded-b-2xl">
             <span className="mr-auto text-[0.9375rem] text-amber-900">Kaydedilmemiş değişiklikler var. Kapatılsın mı?</span>
             <Button variant="secondary" onClick={() => setAsking(false)}>Forma dön</Button>
             <Button variant="danger" onClick={() => { setAsking(false); onClose() }}>Kaydetmeden kapat</Button>
           </footer>
-        ) : footer && <footer className="flex flex-wrap justify-end gap-2 border-t border-line bg-slate-50 px-5 py-3 sm:rounded-b-[4px]">{footer}</footer>}
+        ) : footer && <footer className="flex flex-wrap justify-end gap-2 border-t border-line bg-slate-50/70 px-6 py-3 sm:rounded-b-2xl">{footer}</footer>}
       </div>
     </div>
   )
@@ -268,11 +268,13 @@ export function Loading({ error, onRetry, className }: { error?: unknown; onRetr
   return error ? <ErrorState error={error} onRetry={onRetry} className={className} /> : <Spinner className={className} />
 }
 
-export function Empty({ children = 'Kayıt bulunamadı.', icon, action }: { children?: ReactNode; icon?: ReactNode; action?: ReactNode }) {
+/** Boş liste: yumuşak daire içinde simge, kısa açıklama, varsa ilk adım düğmesi. */
+export function Empty({ children = 'Kayıt bulunamadı.', icon, action, hint }: { children?: ReactNode; icon?: ReactNode; action?: ReactNode; hint?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-14 text-center text-[0.9375rem] text-slate-600">
-      {icon && <span className="text-muted" aria-hidden>{icon}</span>}
-      <div>{children}</div>
+      <span className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-muted [&_svg]:size-6" aria-hidden>{icon ?? <Inbox />}</span>
+      <div className="max-w-md text-fg">{children}</div>
+      {hint && <div className="-mt-1 max-w-md text-[0.875rem] text-muted">{hint}</div>}
       {action}
     </div>
   )
@@ -289,7 +291,7 @@ export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: nu
       {Array.from({ length: rows }).map((_, r) => (
         <div key={r} className="flex gap-3" aria-hidden>
           {Array.from({ length: cols }).map((_, c) => (
-            <div key={c} className={clsx('h-4 rounded-[2px] bg-surface-2', c === 0 ? 'w-24' : c === cols - 1 ? 'w-16' : 'flex-1')} />
+            <div key={c} className={clsx('h-4 animate-pulse rounded-md bg-surface-2', c === 0 ? 'w-24' : c === cols - 1 ? 'w-16' : 'flex-1')} />
           ))}
         </div>
       ))}
@@ -331,12 +333,12 @@ export function StatCard({ title, value, sub, icon, color, onClick }:
   { title: string; value: ReactNode; sub?: ReactNode; icon: ReactNode; color: 'blue' | 'green' | 'orange' | 'red'; onClick?: () => void }) {
   const tone = { blue: 'text-info', green: 'text-good', orange: 'text-warn', red: 'text-bad' }[color]
   return (
-    <button onClick={onClick} className="card group flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:border-slate-300 hover:bg-slate-50">
+    <button onClick={onClick} className="card group flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:border-slate-300 hover:shadow-sm">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.07em] text-muted">
+        <div className="flex items-center gap-1.5 text-[0.75rem] font-medium text-muted">
           <span className={clsx('flex [&_svg]:size-3.5', tone)}>{icon}</span>{title}
         </div>
-        <div className="mt-1 truncate font-mono text-[1.375rem] font-semibold leading-tight text-fg">{value}</div>
+        <div className="mt-1 truncate font-mono text-[1.375rem] font-semibold leading-tight tracking-[-0.02em] text-fg">{value}</div>
         {sub && <div className="mt-0.5 text-[0.8125rem] text-muted">{sub}</div>}
       </div>
     </button>
@@ -348,29 +350,29 @@ export function StatCard({ title, value, sub, icon, color, onClick }:
  * İçine `Figure` konur; sütun sayısı `className` ile verilir (ör. "sm:grid-cols-2 xl:grid-cols-4").
  */
 export function Figures({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
-  return <div aria-label={label} className={clsx('grid gap-px overflow-hidden rounded-[4px] border border-line bg-line', className)}>{children}</div>
+  return <div aria-label={label} className={clsx('grid gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-xs', className)}>{children}</div>
 }
 
-/** Tek rakam kutusu: 10.5px BÜYÜK HARF etiket, Overpass Mono 22px değer. `highlight` sarı (bill-soft) zeminli vurgu. */
+/** Tek rakam kutusu: küçük sakin etiket, eşit genişlikli rakamlarla 22px değer. `highlight` sarı (bill-soft) zeminli vurgu. */
 export function Figure({ label, value, sub, tone, highlight, onClick }:
   { label: ReactNode; value: ReactNode; sub?: ReactNode; tone?: string; highlight?: boolean; onClick?: () => void }) {
   const body = <>
-    <span className={clsx('block text-[0.65625rem] font-bold uppercase tracking-[0.08em]', highlight ? 'text-bill' : 'text-muted')}>{label}</span>
+    <span className={clsx('block text-[0.75rem] font-medium', highlight ? 'text-bill' : 'text-muted')}>{label}</span>
     <span className={clsx('mt-1 block truncate font-mono text-[1.375rem] font-semibold leading-tight tracking-[-0.02em]', tone ?? 'text-fg')}>{value}</span>
     {sub && <span className={clsx('mt-0.5 block text-[0.8125rem]', highlight ? 'text-bill' : 'text-muted')}>{sub}</span>}
   </>
-  const cls = clsx('block min-w-0 px-4 py-3 text-left', highlight ? 'bg-bill-soft' : 'bg-white')
+  const cls = clsx('block min-w-0 px-5 py-3.5 text-left', highlight ? 'bg-bill-soft' : 'bg-white')
   return onClick
-    ? <button type="button" onClick={onClick} className={clsx(cls, 'w-full transition', highlight ? 'hover:bg-[#f8e3a0]' : 'hover:bg-surface-2')}>{body}</button>
+    ? <button type="button" onClick={onClick} className={clsx(cls, 'w-full transition', highlight ? 'hover:bg-[#fbecc0]' : 'hover:bg-surface-2')}>{body}</button>
     : <div className={cls}>{body}</div>
 }
 
-/** Köşeli filtre çipi (Bugün / Hepsi gibi): seçiliyken accent zemin, beyaz yazı. Sekme gibi davranıyorsa `role="tab"` verilir. */
+/** Yuvarlak filtre çipi (Bugün / Hepsi gibi): seçiliyken accent zemin, beyaz yazı. Sekme gibi davranıyorsa `role="tab"` verilir. */
 export function Chip({ active, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
   return (
     <button type="button" {...rest}
-      className={clsx('inline-flex min-h-8 items-center gap-1.5 whitespace-nowrap rounded-[3px] border px-3 text-[0.8125rem] font-semibold transition [&_svg]:size-4',
-        active ? 'border-accent bg-accent text-white' : 'border-slate-300 bg-white text-fg hover:border-slate-400 hover:bg-surface-2', className)}>
+      className={clsx('inline-flex min-h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[0.8125rem] font-medium transition [&_svg]:size-4',
+        active ? 'border-accent bg-accent text-white shadow-xs' : 'border-line bg-white text-fg hover:border-slate-300 hover:bg-surface-2', className)}>
       {children}
     </button>
   )
@@ -379,7 +381,7 @@ export function Chip({ active, className, children, ...rest }: ButtonHTMLAttribu
 /** Filtre çubuklarındaki tarih kutusu: etiket kutunun içinde solda ("Başlangıç", "Bitiş"). */
 export function DateFilter({ label, value, onChange, className }: { label: string; value: string; onChange: (v: string) => void; className?: string }) {
   return (
-    <label className={clsx('input flex items-center gap-2 focus-within:border-brand-600 focus-within:ring-3 focus-within:ring-brand-100', className)}>
+    <label className={clsx('input flex items-center gap-2 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100', className)}>
       <span className="shrink-0 text-[0.8125rem] text-muted">{label}</span>
       <input className="min-w-0 flex-1 bg-transparent outline-none" type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
     </label>

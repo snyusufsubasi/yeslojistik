@@ -30,9 +30,13 @@ test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab v
 
   await dialog.getByRole('button', { name: /^Ayrıntılar/ }).click()
   // "Bugün / Dün / Yarın", "+1 gün" ve yük cinsi önerileri Tab sırasına girmez (fareyle tıklanır).
-  for (const name of ['Bugün', 'Yarın', '+1 gün', 'Mobilya', 'palet']) {
+  for (const name of ['Bugün', 'Yarın', '+1 gün', 'palet', 'Diğer…']) {
     await expect(dialog.getByRole('button', { name, exact: true }).first()).toHaveAttribute('tabindex', '-1')
   }
+  // Akıllı alanın (yük cinsi) bütün çipleri Tab sırası dışında.
+  const cargoChips = dialog.locator('[data-smart-field=cargoType]').getByRole('group', { name: 'Hızlı seçim' }).getByRole('button')
+  expect(await cargoChips.count()).toBeGreaterThanOrEqual(6)
+  for (const chip of await cargoChips.all()) await expect(chip).toHaveAttribute('tabindex', '-1')
   // Ayrıntılar tek bölüm: yük, belgeler, yetkililer ve konum aynı yerde.
   await expect(dialog.getByLabel('Teslim Evrak No')).toBeVisible()
   await expect(dialog.getByLabel('Yükleme Enlem')).toBeVisible()

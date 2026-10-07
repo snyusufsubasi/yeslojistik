@@ -22,6 +22,7 @@ import { Badge, Button, Card, Field, Modal, Tabs } from './ui'
 import { useIsNewUi } from '../lib/uiMode'
 import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
+import { ControlledSmartField } from './SmartField'
 import { CustomerForm } from './CustomerForm'
 import { SupplierForm } from './SupplierForm'
 import { VehicleForm } from './VehicleForm'
@@ -36,14 +37,12 @@ import { UETDS_READINESS } from '../lib/features'
 import { UetdsFields, UetdsPanel } from './UetdsPanel'
 import { vehicleOwnershipIcon } from '../lib/icons'
 
-const cargoUnits = ['palet', 'koli', 'adet', 'ton', 'kg', 'm³']
-const defaultCargoTypes = ['Genel kargo', 'Mobilya', 'Tekstil', 'Gıda', 'İnşaat malzemesi', 'Otomotiv parçası']
 
 /** Öneri düğmesi (adres, yük cinsi, birim): tek tıkla alanı doldurur. Tab sırasına girmez; klavyeyle kutuya yazılır. */
 function Chip({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: ReactNode; title?: string }) {
   return (
     <button type="button" tabIndex={-1} onClick={onClick} title={title}
-      className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-[3px] border px-3 text-sm transition ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
+      className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-full border px-3.5 text-sm transition ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
       <span className="truncate">{children}</span>
     </button>
   )
@@ -94,7 +93,7 @@ const detailTermKeys = ['customerPays', 'customerGroup', 'deliveryDocumentNo', '
 function SubGroup({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-3 border-t border-line pt-3 first:border-t-0 first:pt-0" role="group" aria-label={title}>
-      <h4 className="text-[0.6875rem] font-bold uppercase tracking-[0.08em] text-muted">
+      <h4 className="text-[0.75rem] font-medium text-muted">
         {title}{hint && <span className="ml-2 font-normal normal-case tracking-normal">{hint}</span>}
       </h4>
       {children}
@@ -214,8 +213,6 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const loadingAddress = useWatch({ control, name: 'loadingAddress' })
   const deliveryAddress = useWatch({ control, name: 'deliveryAddress' })
   const loadingDate = useWatch({ control, name: 'loadingDate' })
-  const cargoType = useWatch({ control, name: 'cargoType' })
-  const cargoUnit = useWatch({ control, name: 'cargoUnit' })
   const validCustomer = !!customerId && !Number.isNaN(customerId)
   const hints = useQuery({
     queryKey: ['trips', 'hints', validCustomer ? customerId : null, loadingCity || null, deliveryCity || null],
@@ -417,21 +414,14 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
     <SubGroup title="Yük" hint="Sevk belgesine yazılır.">
       <div className="grid gap-4 md:grid-cols-3">
         <Field className="md:col-span-3" label="Yük Cinsi" error={errors.cargoType?.message}>
-          <input className="input" placeholder="Mobilya" {...register('cargoType')} />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {[...new Set([...(hints.data?.cargoTypes ?? []), ...defaultCargoTypes])].slice(0, 6).map((t) => (
-              <Chip key={t} active={cargoType === t} onClick={() => setValue('cargoType', t, opts)}>{t}</Chip>
-            ))}
-          </div>
+          <ControlledSmartField control={control} name="cargoType" field="cargoType" label="Yük Cinsi" placeholder="Seçin veya yazın (ör. Mobilya)" maxLength={100}
+            preferred={hints.data?.cargoTypes} />
         </Field>
         <Field label="Miktar" error={errors.cargoQuantity?.message}>
           <input className="input tabular-nums" type="number" min="0" inputMode="numeric" {...register('cargoQuantity', { valueAsNumber: true })} />
         </Field>
         <Field label="Birim" error={errors.cargoUnit?.message}>
-          <input className="input" placeholder="palet" {...register('cargoUnit')} />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {cargoUnits.map((u) => <Chip key={u} active={cargoUnit === u} onClick={() => setValue('cargoUnit', u, opts)}>{u}</Chip>)}
-          </div>
+          <ControlledSmartField control={control} name="cargoUnit" field="cargoUnit" label="Birim" placeholder="palet, koli…" chips={5} maxLength={20} />
         </Field>
         <Field label="Ağırlık (kg)" error={errors.cargoWeightKg?.message}>
           <input className="input tabular-nums" type="number" min="0" step="1" inputMode="numeric" {...register('cargoWeightKg', { valueAsNumber: true })} />
@@ -442,7 +432,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       </div>
     </SubGroup>
     <SubGroup title="Belgeler">
-      <DocumentFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} groups={customerDetail.data?.customer.groups ?? undefined}
+      <DocumentFields control={termsControl} register={termsRegister} errors={errors as FieldErrors<TermsForm>} groups={customerDetail.data?.customer.groups ?? undefined}
         lead={
           <Field className="sm:col-span-2" label="Müşteri Referans No" error={errors.customerReference?.message} hint="Müşterinin sipariş / yük numarası (faturaya yazılır).">
             <input className="input" placeholder="4500123" {...register('customerReference')} />

@@ -84,7 +84,7 @@ function useReport<T>(name: string, params: object) {
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-[4px] border border-line bg-white px-3 py-2 text-[0.8125rem] shadow-lg">
+    <div className="rounded-xl border border-line bg-white px-3 py-2 text-[0.8125rem] shadow-lg">
       <div className="mb-1 font-semibold text-fg">{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2 text-muted">
@@ -294,7 +294,7 @@ function Expenses({ from, to }: { from: string; to: string }) {
             <BarChart data={chart} layout="vertical" margin={{ left: 8, right: 24 }}>
               <CartesianGrid horizontal={false} stroke={palette.grid} />
               <XAxis type="number" tickLine={false} axisLine={false} tick={chartTick} tickFormatter={(v: number) => compact.format(v)} />
-              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#14231e', fontSize: 13 }} width={110} />
+              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#1c1b19', fontSize: 13 }} width={110} />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: palette.cursor }} />
               <Bar dataKey="Tutar" fill={palette.info} radius={[0, 2, 2, 0]} maxBarSize={22} />
             </BarChart>

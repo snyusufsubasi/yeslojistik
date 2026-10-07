@@ -51,7 +51,7 @@ export function ChoiceCards<T extends string | number>({ options, value, onChang
           <button key={String(o.value)} type="button" role="radio" aria-checked={active} disabled={disabled}
             ref={(el) => { refs.current[i] = el }} tabIndex={tabIndex(i)} onKeyDown={(e) => onKeyDown(e, i)}
             onClick={() => onChange(o.value)}
-            className={clsx('relative flex min-h-12 items-center gap-3 rounded-[4px] border px-3 py-2 text-left transition disabled:opacity-50',
+            className={clsx('relative flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2 text-left transition disabled:opacity-50',
               active ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50')}>
             {o.icon && (
               <span className={clsx('flex size-9 shrink-0 items-center justify-center rounded-lg [&_svg]:size-5',
@@ -80,7 +80,7 @@ export function ChoiceChips<T extends string | number>({ options, value, onChang
           <button key={String(o.value)} type="button" role="radio" aria-checked={active} disabled={disabled}
             ref={(el) => { refs.current[i] = el }} tabIndex={tabIndex(i)} onKeyDown={(e) => onKeyDown(e, i)}
             onClick={() => onChange(o.value)}
-            className={clsx('inline-flex min-h-9 items-center gap-1.5 rounded-[3px] border px-3 text-[0.875rem] font-semibold transition disabled:opacity-50 [&_svg]:size-4',
+            className={clsx('inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] font-semibold transition disabled:opacity-50 [&_svg]:size-4',
               active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>
             {active ? <Check aria-hidden /> : o.icon}
             {o.label}

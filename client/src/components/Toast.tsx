@@ -23,10 +23,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6">
         {items.map((t) => (
           <div key={t.id} role="status"
-            className={`pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-lg px-4 py-3 text-sm text-white shadow-lg ${t.kind === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}>
-            {t.kind === 'success' ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <XCircle className="mt-0.5 size-4 shrink-0" />}
+            className="pointer-events-auto flex w-full max-w-sm animate-toast-in items-start gap-2.5 rounded-xl border border-line bg-white px-4 py-3 text-[0.875rem] text-fg shadow-lg">
+            {t.kind === 'success'
+              ? <CheckCircle2 aria-hidden className="mt-0.5 size-[1.125rem] shrink-0 text-good" />
+              : <XCircle aria-hidden className="mt-0.5 size-[1.125rem] shrink-0 text-bad" />}
             <span className="flex-1">{t.text}</span>
-            <button onClick={() => remove(t.id)} aria-label="Kapat"><X className="size-4" /></button>
+            <button onClick={() => remove(t.id)} aria-label="Kapat" className="rounded-md p-0.5 text-muted transition hover:bg-surface-2 hover:text-fg"><X className="size-4" /></button>
           </div>
         ))}
       </div>
