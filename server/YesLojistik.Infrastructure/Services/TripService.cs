@@ -473,6 +473,13 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             .Select(e => new TripEventDto(e.Id, e.Status, e.OccurredAt, e.RecordedAt, e.UserName, e.Source, e.Note, "status")).ToListAsync(ct);
         events = events.Select(e => e.Note != null && e.Note.StartsWith(ProblemPrefix) ? e with { Kind = "problem" } : e).ToList();
         // İlk olay her zaman "kayıt açıldı": panelden açılan seferde ilk "Planlandı" olayı, eski kayıtlarda kaydın oluşturulma anı.
+        // Gerçek bir açılış olayı varsa (not "Kayıt oluşturuldu") o işaretlenir; ikinci bir "kayıt açıldı" sentezlenmez.
+        var createdIdx = events.FindIndex(e => e.Note == CreatedNote);
+        if (createdIdx >= 0)
+        {
+            events[createdIdx] = events[createdIdx] with { Kind = "created" };
+            return events;
+        }
         var first = events.FirstOrDefault();
         if (first is { Status: TripStatus.Planned, Source: TripEventSource.Panel } && (first.Note == null || first.Note == CreatedNote))
             events[0] = first with { Note = CreatedNote, Kind = "created" };
