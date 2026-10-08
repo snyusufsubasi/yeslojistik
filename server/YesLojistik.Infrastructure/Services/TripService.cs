@@ -296,6 +296,74 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         return await GetAsync(id, ct);
     }
 
+    public const string AssignedNote = "Araç atandı";
+
+    /// <summary>
+    /// Planlama panosundan atama: planlanan sevkiyatı başka araca ve/veya güne taşır. Şoför: verilen, yoksa yeni aracın varsayılan
+    /// şoförü, o da yoksa mevcut şoför. Gün değişirse teslim tarihi de aynı gün sayısı kadar kayar (süre korunur).
+    /// Kiralık araçta taşeron ve dorse yeni araçtan gelir; araç maliyeti değişmez. Zaman çizelgesine "Araç atandı" yazılır.
+    /// </summary>
+    public async Task<TripDto> AssignAsync(int id, int vehicleId, int? driverId, DateOnly? loadingDate, CancellationToken ct = default)
+    {
+        var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id, ct) ?? throw new NotFoundException("Sefer bulunamadı.");
+        if (trip.Status != TripStatus.Planned)
+            throw new DomainException("Yalnızca planlanan (henüz yüklenmemiş) sevkiyat panodan başka araca ya da güne taşınabilir.");
+        var vehicle = await db.Vehicles.AsNoTracking().Where(v => v.Id == vehicleId)
+            .Select(v => new { v.Id, v.Plate, v.Ownership, v.SupplierId, v.TrailerPlate, v.DefaultDriverId }).FirstOrDefaultAsync(ct)
+            ?? throw new DomainException("Araç bulunamadı.");
+        var vehicleChanged = vehicle.Id != trip.VehicleId;
+        if (vehicleChanged && (trip.PurchaseInvoiceId != null || trip.CarrierInvoiceNo != null))
+            throw new DomainException("Taşeron faturası bağlı sevkiyatın aracı panodan değiştirilemez. Sevkiyatı düzenleyerek değiştirin.");
+        var newDriverId = driverId ?? (vehicleChanged ? vehicle.DefaultDriverId : null) ?? trip.DriverId;
+        var driver = await db.Drivers.AsNoTracking().Where(d => d.Id == newDriverId).Select(d => new { d.FullName, d.IsActive }).FirstOrDefaultAsync(ct)
+            ?? throw new DomainException("Şoför bulunamadı.");
+        if (!driver.IsActive && newDriverId != trip.DriverId) throw new DomainException("Pasif durumdaki şoföre sefer atanamaz.");
+
+        var newDate = loadingDate ?? trip.LoadingDate;
+        if (!vehicleChanged && newDriverId == trip.DriverId && newDate == trip.LoadingDate) return await GetAsync(id, ct);
+
+        var oldDriverId = trip.DriverId;
+        var oldDate = trip.LoadingDate;
+        if (vehicleChanged)
+        {
+            trip.VehicleId = vehicle.Id;
+            trip.CarrierSupplierId = vehicle.Ownership == VehicleOwnership.Rented ? vehicle.SupplierId : null;
+            trip.TrailerPlate = vehicle.TrailerPlate;
+        }
+        trip.DriverId = newDriverId;
+        if (newDate != oldDate)
+        {
+            var shift = newDate.DayNumber - oldDate.DayNumber;
+            trip.LoadingDate = newDate;
+            if (trip.DeliveryDate is { } d) trip.DeliveryDate = d.AddDays(shift);
+        }
+        var note = $"{AssignedNote}: {vehicle.Plate} · Şoför: {driver.FullName} · Yükleme: {trip.LoadingDate.ToString("dd.MM.yyyy", Formatters.Tr)}";
+        AddEvent(trip.Id, trip.Status, TripEventSource.Panel, note: note);
+        await db.SaveChangesAsync(ct);
+
+        var route = DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate);
+        if (oldDriverId != trip.DriverId)
+        {
+            await notifier.NotifyAsync(trip.DriverId, trip.Id, "Yeni sefer atandı", route, ct);
+            await notifier.NotifyAsync(oldDriverId, trip.Id, "Sefer başka şoföre aktarıldı", route, ct);
+        }
+        else if (oldDate != trip.LoadingDate || vehicleChanged)
+        {
+            await notifier.NotifyAsync(trip.DriverId, trip.Id, "Sefer bilgileri güncellendi", route, ct);
+        }
+        return await GetAsync(id, ct);
+    }
+
+    /// <summary>Panodan iş talebiyle açılan sevkiyatın zaman çizelgesine "Araç atandı" satırı.</summary>
+    public async Task AddAssignedEventAsync(int tripId, CancellationToken ct = default)
+    {
+        var t = await db.Trips.AsNoTracking().Where(x => x.Id == tripId)
+            .Select(x => new { x.Status, x.LoadingDate, Plate = x.Vehicle.Plate, Driver = x.Driver.FullName }).FirstAsync(ct);
+        AddEvent(tripId, t.Status, TripEventSource.Panel,
+            note: $"{AssignedNote}: {t.Plate} · Şoför: {t.Driver} · Yükleme: {t.LoadingDate.ToString("dd.MM.yyyy", Formatters.Tr)} (iş talebinden)");
+        await db.SaveChangesAsync(ct);
+    }
+
     public Task<TripDto> ChangeStatusAsync(int id, TripStatus status, CancellationToken ct = default) =>
         ChangeStatusAsync(id, status, TripEventSource.Panel, null, null, ct);
 
