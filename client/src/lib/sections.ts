@@ -23,7 +23,7 @@ export const sections: Section[] = [
     { to: '/cari/tedarikciler', label: 'Bakiyeler', perm: 'accounting' },
     { to: '/odemeler', label: 'Tedarikçi Ödemeleri' },
   ] },
-  { key: 'sevkiyat', tabs: [{ to: '/seferler', label: 'Sevkiyat Listesi' }, { to: '/harita', label: 'Harita' }] },
+  { key: 'sevkiyat', tabs: [{ to: '/seferler', label: 'Sevkiyat Listesi' }, { to: '/planlama', label: 'Planlama' }, { to: '/harita', label: 'Harita' }] },
   { key: 'ozmal', tabs: [
     { to: '/giderler', label: 'Giderler' },
     { to: '/mazotlar', label: 'Mazotlar' },
