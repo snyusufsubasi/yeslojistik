@@ -25,7 +25,7 @@ test('U-ETDS hazırlığı: TCKN eksik şoförlü sevkiyat "eksik" görünür, �
 
   // Sevkiyatlar: ayrıntılı süzgeçte "U-ETDS eksik olanlar" bu seferi gösterir.
   await page.goto(`/seferler?q=${encodeURIComponent(`UETDS Müşteri ${u}`)}`)
-  await page.getByRole('button', { name: /Ayrıntılı süzgeç/ }).click()
+  await page.locator('button[aria-controls=trip-filters]').click()
   await page.getByLabel('U-ETDS hazırlığı').selectOption({ label: 'U-ETDS eksik olanlar' })
   await expect(page).toHaveURL(/uetds=missing/)
   const row = page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })
@@ -82,7 +82,7 @@ test('U-ETDS hazırlığı: sevkiyat formundaki alanlar doldurulup kaydedilince 
   await page.getByLabel('Yükleme Saati').fill('08:30')
   await page.getByLabel('Alıcı Unvanı / Adı Soyadı').fill('Alıcı Ticaret A.Ş.')
   await page.getByLabel('Alıcı VKN / TCKN').fill('10000000146')
-  await page.getByRole('button', { name: 'Kaydet' }).click()
+  await page.getByRole('button', { name: 'Kaydet', exact: true }).click()
   await expect(page.getByText('Sevkiyat güncellendi.')).toBeVisible()
 
   await page.goto(`/seferler?id=${trip.id}`)

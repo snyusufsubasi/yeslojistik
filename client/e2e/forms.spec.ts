@@ -4,7 +4,7 @@ import { login, pick, unique } from './helpers'
 test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab vurgulananı seçer', async ({ page }) => {
   await login(page)
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
-  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  await page.getByRole('button', { name: 'Yeni Sevkiyat', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
 
   // "mar" yazıp Tab: vurgulanan müşteri seçilir, odak sonraki alana geçer.
@@ -45,7 +45,7 @@ test('klavye: öneri düğmeleri Tab sırasında değil, aranabilir kutuda Tab v
 test('sevkiyat formu sade: KDV tek satır özet, komisyon/prim katlanır bölümde', async ({ page }) => {
   await login(page)
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
-  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  await page.getByRole('button', { name: 'Yeni Sevkiyat', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
 
   // Fiyatlar zorunlu (yıldızlı); KDV ve tevkifat varsayılanda özet olarak görünür, "Değiştir" ile açılır.

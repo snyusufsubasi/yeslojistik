@@ -8,13 +8,16 @@ export function isoToTr(iso: string | null | undefined) {
   return `${d}.${m}.${y}`
 }
 
-/** "07.10.2026", "7.10.26", "07102026" → "2026-10-07"; geçersizse null. */
+/** "07.10.2026", "7.10.26", "07102026", "2026-10-07" → "2026-10-07"; geçersizse null. */
 export function trToIso(text: string): string | null {
   const t = text.trim()
   if (!t) return null
   let d: number, m: number, y: number
   const parts = t.split(/[./\-\s]+/).filter(Boolean)
-  if (parts.length === 3) {
+  if (parts.length === 3 && parts[0].length === 4) {
+    // Yapıştırılan ISO ("2026-10-07") da kabul edilir.
+    ;[y, m, d] = parts.map(Number)
+  } else if (parts.length === 3) {
     ;[d, m, y] = parts.map(Number)
     if (parts[2].length === 2) y += 2000
   } else if (/^\d{8}$/.test(t)) {

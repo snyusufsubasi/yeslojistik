@@ -70,7 +70,7 @@ export function DateInput({ value, onChange, onBlur, id, name, disabled, classNa
           setDraft(next)
           // Tam bir tarih yazıldıysa hemen iletilir (liste süzgeçleri beklemeden güncellensin).
           if (!next) onChange('')
-          else if (/^\d{1,2}[./\-\s]\d{1,2}[./\-\s]\d{4}$/.test(next)) { const p = trToIso(next); if (p && p !== iso) onChange(p) }
+          else if (/^(\d{1,2}[./\-\s]\d{1,2}[./\-\s]\d{4}|\d{4}-\d{2}-\d{2})$/.test(next)) { const p = trToIso(next); if (p && p !== iso) onChange(p) }
         }}
         onBlur={() => { if (draft !== null) commit(draft); setDraft(null); onBlur?.() }}
         onKeyDown={(e) => {
