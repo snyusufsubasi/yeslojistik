@@ -107,6 +107,8 @@ public record TripQuery : ListQuery
     public string? TrailerType { get; init; }
     /// <summary>İptal/sorun nedeni girilmiş (true) ya da girilmemiş (false) seferler.</summary>
     public bool? HasProblem { get; init; }
+    /// <summary>"Bugün" ekranının listeleri: late, loading, delivery, document, invoice, problem (bkz. <c>TripAgenda</c>).</summary>
+    public string? Agenda { get; init; }
 }
 
 /// <summary>Sevkiyat şablonu (sık tekrarlanan iş).</summary>
