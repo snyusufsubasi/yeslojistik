@@ -7,6 +7,7 @@ test('müşteri → araç → şoför → sevkiyat → fatura → PDF → kısmi
   const plate = `34 E ${id.slice(-4)}`
 
   await login(page)
+  await page.goto('/pano')
   const receivableBefore = await page.getByRole('button', { name: /Tahsilat Bekleyen/ }).innerText()
 
   // Müşteri
@@ -101,7 +102,7 @@ test('müşteri → araç → şoför → sevkiyat → fatura → PDF → kısmi
   await expect(page.getByText('19.000,00 TL').first()).toBeVisible()
 
   // Dashboard'daki tahsilat bekleyen tutarı değişmiş olmalı
-  await page.getByRole('link', { name: 'Ana Sayfa' }).click()
+  await page.getByRole('link', { name: 'Genel Bakış' }).click()
   await expect(page.getByRole('button', { name: /Tahsilat Bekleyen/ })).not.toHaveText(receivableBefore)
 })
 
@@ -362,6 +363,7 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
   await mobile.dispose()
 
   await login(page)
+  await page.goto('/pano')
   await expect(page.getByText(/şoför masrafı onay bekliyor/)).toBeVisible()
   await page.getByText(/şoför masrafı onay bekliyor/).click()
   await expect(page).toHaveURL(/giderler\?onay=Pending/)
@@ -410,6 +412,7 @@ test('şoför masrafı reddedilir; araç belgeleri, bakım kaydı ve şoför hes
 test('çek ciro edilir, kasa/banka virmanı ve nakit akışı', async ({ page }) => {
   const u = unique()
   await login(page)
+  await page.goto('/pano')
   await expect(page.getByText('Nakit Akışı: Önümüzdeki 30 Gün')).toBeVisible()
 
   // Yeni çek: tahsilat olarak girilir, portföye düşer.
