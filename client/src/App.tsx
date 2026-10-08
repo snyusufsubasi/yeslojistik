@@ -11,6 +11,7 @@ const TodayPage = lazy(() => import('./pages/TodayPage'))
 
 const TripsPage = lazy(() => import('./pages/TripsPage'))
 const JobRequestsPage = lazy(() => import('./pages/JobRequestsPage'))
+const PlanningPage = lazy(() => import('./pages/PlanningPage'))
 const VehiclesPage = lazy(() => import('./pages/VehiclesPage'))
 const DriversPage = lazy(() => import('./pages/DriversPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="pano" element={<DashboardPage />} />
           <Route path="seferler" element={<TripsPage />} />
           <Route path="is-talepleri" element={<JobRequestsPage />} />
+          <Route path="planlama" element={<PlanningPage />} />
           <Route path="araclar" element={<VehiclesPage />} />
           <Route path="harita" element={<MapPage />} />
           <Route path="soforler" element={<DriversPage />} />
