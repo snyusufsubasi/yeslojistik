@@ -53,10 +53,12 @@ test('U-ETDS hazırlığı: TCKN eksik şoförlü sevkiyat "eksik" görünür, �
   await expect(page.getByRole('region', { name: 'U-ETDS hazırlığı' }).getByText('Hazır', { exact: true })).toBeVisible()
   await expect(page.getByRole('region', { name: 'U-ETDS hazırlığı' }).getByText('eksik', { exact: false })).toHaveCount(0)
   await page.goto(`/seferler?q=${encodeURIComponent(`UETDS Müşteri ${u}`)}&uetds=missing`)
+  await page.locator('button[aria-controls=trip-filters]').click()
   await expect(page.getByLabel('U-ETDS hazırlığı')).toHaveValue('missing')
   await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })).toHaveCount(0)
   await page.getByRole('button', { name: 'Süzgeci temizle' }).click()
-  await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` }).getByText('UETDS hazır')).toBeVisible()
+  // Süzgeç kalkınca sefer yeniden listelenir (sade listede U-ETDS rozeti yok).
+  await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })).toHaveCount(1)
 })
 
 test('U-ETDS hazırlığı: sevkiyat formundaki alanlar doldurulup kaydedilince panel güncellenir', async ({ page, playwright }) => {
