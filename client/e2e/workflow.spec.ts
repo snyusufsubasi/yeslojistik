@@ -154,7 +154,7 @@ test('sevkiyat kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async
   await expectPdfOpens(page, () => edit.getByRole('button', { name: 'Sevk Belgesi' }).click(), /\/api\/trips\/\d+\/waybill$/)
 
   await edit.getByRole('button', { name: 'Tekrarla' }).click()
-  const copy = page.getByRole('dialog', { name: 'Sevkiyat Oluştur (kopya)' })
+  const copy = page.getByRole('dialog', { name: 'Sevkiyat Oluştur (tekrar)' })
   await expect(copy.getByLabel('Yükleme Adresi')).toHaveValue(from)
   await expect(copy.locator('input[name=customerId]')).not.toHaveValue('')
   await copy.getByRole('button', { name: 'Vazgeç' }).click()
@@ -282,7 +282,7 @@ test('tedarikçi → kiralık araç → taşeronlu sevkiyat; zaman çizelgesi ve
   await ed.getByRole('button', { name: 'Geçmiş' }).click()
   const timeline = ed.getByRole('list', { name: 'Durum geçmişi' })
   await expect(timeline.getByText('Yüklendi', { exact: true })).toBeVisible()
-  await expect(timeline.getByText('Kayıt açıldı', { exact: true })).toBeVisible()
+  await expect(timeline.getByText('Kayıt açıldı', { exact: true }).first()).toBeVisible()
   await ed.getByRole('button', { name: 'Kapat', exact: true }).last().click()
 
   // Taşeron borcu: yüklenen seferin maliyeti, KDV ve tevkifatıyla (15.000 + %20 KDV − 2/10 tevkifat = 17.400)

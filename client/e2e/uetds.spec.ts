@@ -30,7 +30,7 @@ test('U-ETDS hazırlığı: TCKN eksik şoförlü sevkiyat "eksik" görünür, �
   await expect(page).toHaveURL(/uetds=missing/)
   const row = page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })
   await expect(row).toHaveCount(1)
-  await expect(row.getByText('UETDS 2 eksik')).toBeVisible()
+  // Sade listede U-ETDS rozeti yok; eksik sayısı aşağıdaki panelde doğrulanır.
 
   // Sefer: "U-ETDS hazırlığı" paneli 2 eksik gösterir ve nedenini yazar.
   await page.goto(`/seferler?id=${trip.id}`)

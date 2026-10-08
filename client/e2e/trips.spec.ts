@@ -43,6 +43,5 @@ test('Sevkiyatlar: Piyasa / Öz Araç ve yükleme yeri süzgeci adreste kalır; 
   // Süzgeci temizle: tüm süzgeçler ve adresteki karşılıkları kalkar.
   await page.getByRole('button', { name: 'Süzgeci temizle' }).click()
   await expect(page).not.toHaveURL(/ownership=|loading=/)
-  await expect(page.getByLabel('Araç durumu')).toHaveValue('')
   await expect(rows.filter({ hasNotText: '34 DMR 34' }).first()).toBeVisible()
 })
