@@ -12,6 +12,7 @@ import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
 import { date, tl, todayIso } from '../lib/format'
 import { useDebounce, useLookup, useOpenNewFromUrl, usePage, usePaged, useSave } from '../lib/hooks'
+import { DateInput } from '../components/DateInput'
 
 type SaveValues = Omit<JobRequest, 'id' | 'customerTitle' | 'status' | 'tripId'>
 
@@ -143,7 +144,7 @@ function RequestForm({ request, onClose, readOnly }: { request: JobRequest | nul
           <Field label="Müşteri" required group><SearchSelect ariaLabel="Müşteri" value={values.customerId || null}
             onChange={(id) => set('customerId', id ?? 0)} options={(customers.data ?? []).map((c) => ({ value: c.id, label: c.label }))} placeholder="Müşteri ara"
             onCreate={(t) => setNewCustomer(t)} createLabel="Yeni müşteri olarak ekle" /></Field>
-          <Field label="Tarih" required><input className="input" type="date" value={values.date} onChange={(e) => set('date', e.target.value)} /></Field>
+          <Field label="Tarih" required><DateInput value={values.date} onChange={(v) => set('date', v)} /></Field>
           {textField('Teslim Süresi', 'deliveryWindow', 'Örn. 2 gün')}
           <label className="flex min-h-11 cursor-pointer items-center gap-3 self-end rounded-lg border border-slate-300 bg-white px-3">
             <input type="checkbox" className="size-5" checked={values.customerPays} onChange={(e) => set('customerPays', e.target.checked)} />

@@ -253,6 +253,54 @@ public class TripSaveRequestValidator : AbstractValidator<TripSaveRequest>
         RuleFor(x => x.CarrierInvoiceNo).MaximumLength(50);
         RuleFor(x => x.Terms!).SetValidator(new TripTermsValidator()).When(x => x.Terms != null);
         RuleFor(x => x.Uetds!).SetValidator(new TripUetdsValidator()).When(x => x.Uetds != null);
+        RuleFor(x => x.Ops!).SetValidator(new TripOpsValidator()).When(x => x.Ops != null);
+    }
+}
+
+public class TripOpsValidator : AbstractValidator<TripOps>
+{
+    public TripOpsValidator()
+    {
+        RuleFor(x => x.TransportMode).MaximumLength(60);
+        RuleFor(x => x.TrailerType).MaximumLength(60);
+        RuleFor(x => x.ProblemReason).MaximumLength(100);
+        RuleFor(x => x.ProblemNote).MaximumLength(500);
+    }
+}
+
+public class TripStatusRequestValidator : AbstractValidator<TripStatusRequest>
+{
+    public TripStatusRequestValidator()
+    {
+        RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.Note).MaximumLength(500);
+        RuleFor(x => x.ProblemReason).MaximumLength(100);
+    }
+}
+
+public class TripTemplateSaveRequestValidator : AbstractValidator<TripTemplateSaveRequest>
+{
+    public TripTemplateSaveRequestValidator()
+    {
+        RuleFor(x => x.Name).MaximumLength(100);
+        RuleFor(x => x.LoadingCity).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.DeliveryCity).Must(Cities.IsValid).WithMessage("Listeden geçerli bir il seçin.");
+        RuleFor(x => x.LoadingAddress).MaximumLength(300);
+        RuleFor(x => x.DeliveryAddress).MaximumLength(300);
+        RuleFor(x => x.LoadingDistrict).MaximumLength(60);
+        RuleFor(x => x.DeliveryDistrict).MaximumLength(60);
+        RuleFor(x => x.LoadingContact).MaximumLength(150);
+        RuleFor(x => x.DeliveryContact).MaximumLength(150);
+        RuleFor(x => x.CargoType).MaximumLength(100);
+        RuleFor(x => x.CargoUnit).MaximumLength(20);
+        RuleFor(x => x.TransportMode).MaximumLength(60);
+        RuleFor(x => x.TrailerType).MaximumLength(60);
+        RuleFor(x => x.PaymentTerms).MaximumLength(100);
+        RuleFor(x => x.Description).MaximumLength(1000);
+        RuleFor(x => x.CargoWeightKg).InclusiveBetween(0, 1_000_000).When(x => x.CargoWeightKg.HasValue);
+        RuleFor(x => x.CargoQuantity).InclusiveBetween(0, 1_000_000).When(x => x.CargoQuantity.HasValue);
+        RuleFor(x => x.SalePrice!.Value).Amount().When(x => x.SalePrice.HasValue);
+        RuleFor(x => x.VehicleCost!.Value).Amount().When(x => x.VehicleCost.HasValue);
     }
 }
 

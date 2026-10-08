@@ -9,6 +9,7 @@ import { errorMessage, isTransientError } from '../api/client'
 import { SectionTabs } from './shell/SectionTabs'
 import { useIsNewUi } from '../lib/uiMode'
 import { newTitles } from '../lib/sections'
+import { DateInput } from './DateInput'
 
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
 
@@ -383,7 +384,7 @@ export function DateFilter({ label, value, onChange, className }: { label: strin
   return (
     <label className={clsx('input flex items-center gap-2 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100', className)}>
       <span className="shrink-0 text-[0.8125rem] text-muted">{label}</span>
-      <input className="min-w-0 flex-1 bg-transparent outline-none" type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} />
+      <DateInput className="min-w-0 flex-1" inputClassName="w-full min-w-0 bg-transparent outline-none" aria-label={label} value={value} onChange={onChange} />
     </label>
   )
 }

@@ -1,6 +1,13 @@
 # Gece yedeği: canlı sunucudan yedek çeker, geçici bir PostgreSQL'e geri yükleyerek sağlamlığını test eder,
-# şifreleyip saklar. Gerekli secret'lar: BACKUP_URL (ör. https://yeslojistik.onrender.com), BACKUP_TOKEN, BACKUP_PASSPHRASE.
-# Şifre çözme: gpg -d yedek.dump.gpg > yedek.dump  →  pg_restore ile geri yükleme (docs/KURULUM.md).
+# şifreleyip saklar.
+#
+# Gizli değer (secret) GEREKMEZ (8 Eki 2026):
+#  - Giriş: GitHub Actions'ın kendi imzalı kimlik belgesi (OIDC). Sunucu yalnız bu deponun main dalındaki bu iş akışını kabul eder
+#    (Render'da Backup__GitHubRepository=snyusufsubasi/yeslojistik). BACKUP_TOKEN secret'ı tanımlıysa o da çalışır.
+#  - Şifreleme: deploy/backup-public-key.asc açık anahtarıyla (özel anahtar depoda DEĞİL; sahibinde). BACKUP_PASSPHRASE tanımlıysa
+#    onunla simetrik şifrelenir. Depo herkese açık olduğundan yedek dosyası mutlaka şifreli yüklenir.
+#  - Adres: BACKUP_URL secret'ı yoksa https://yeslojistik.onrender.com.
+# Şifre çözme: gpg --import ozel-anahtar.asc && gpg -d yedek.dump.gpg > yedek.dump  →  pg_restore (docs/YEDEK.md).
 name: Yedek
 
 on:
@@ -16,6 +23,7 @@ on:
 permissions:
   actions: write
   contents: read
+  id-token: write # GitHub OIDC kimlik belgesi (sunucuya secret'sız giriş)
 
 concurrency:
   group: backup
@@ -34,15 +42,21 @@ jobs:
         options: >-
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      BACKUP_URL: ${{ secrets.BACKUP_URL }}
+      BACKUP_URL: ${{ secrets.BACKUP_URL || 'https://yeslojistik.onrender.com' }}
       BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: deploy/backup-public-key.asc
+          sparse-checkout-cone-mode: false
+
       - name: Ayarları kontrol et
         run: |
-          if [ -z "$BACKUP_URL" ] || [ -z "$BACKUP_TOKEN" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::error::BACKUP_URL, BACKUP_TOKEN ve BACKUP_PASSPHRASE secret'ları tanımlanmalı."; exit 1
+          if [ -z "$BACKUP_PASSPHRASE" ] && [ ! -s deploy/backup-public-key.asc ]; then
+            echo "::error::Şifreleme için deploy/backup-public-key.asc ya da BACKUP_PASSPHRASE gerekli."; exit 1
           fi
+          echo "Sunucu: $BACKUP_URL · giriş: $( [ -n "$BACKUP_TOKEN" ] && echo yedek anahtarı || echo GitHub OIDC ) · şifreleme: $( [ -n "$BACKUP_PASSPHRASE" ] && echo parola || echo açık anahtar )"
 
       - name: Yedek türünü belirle
         id: kind
@@ -63,7 +77,15 @@ jobs:
 
       - name: Yedeği indir
         run: |
-          curl -fsS --retry 3 --retry-delay 20 --max-time 900 -H "X-Backup-Token: $BACKUP_TOKEN" \
+          if [ -n "$BACKUP_TOKEN" ]; then
+            AUTH="X-Backup-Token: $BACKUP_TOKEN"
+          else
+            OIDC=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=yeslojistik-backup" | jq -r .value)
+            echo "::add-mask::$OIDC"
+            AUTH="X-Backup-Oidc: $OIDC"
+          fi
+          curl -fsS --retry 3 --retry-delay 20 --max-time 900 -H "$AUTH" \
             "$BACKUP_URL/api/admin/backup?files=${{ steps.kind.outputs.full }}" -o yedek.dump
           SIZE=$(stat -c %s yedek.dump)
           echo "Yedek boyutu: $SIZE bayt"
@@ -82,8 +104,13 @@ jobs:
 
       - name: Şifrele
         run: |
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
-            --symmetric --cipher-algo AES256 -o "${{ steps.kind.outputs.name }}.dump.gpg" yedek.dump
+          if [ -n "$BACKUP_PASSPHRASE" ]; then
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+              --symmetric --cipher-algo AES256 -o "${{ steps.kind.outputs.name }}.dump.gpg" yedek.dump
+          else
+            gpg --batch --yes --trust-model always --recipient-file deploy/backup-public-key.asc \
+              -o "${{ steps.kind.outputs.name }}.dump.gpg" -e yedek.dump
+          fi
           rm yedek.dump
 
       - uses: actions/upload-artifact@v4

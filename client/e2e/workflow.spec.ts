@@ -43,7 +43,7 @@ test('müşteri → araç → şoför → sevkiyat → fatura → PDF → kısmi
 
   // Sefer
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
-  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  await page.getByRole('button', { name: 'Yeni Sevkiyat', exact: true }).click()
   const tripDialog = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
   await pick(tripDialog.locator('input[name=customerId]'), customer)
   await pick(tripDialog.locator('input[name=vehicleId]'), `${plate} - Kamyon`)
@@ -153,8 +153,8 @@ test('sevkiyat kopyalanır, sevk belgesi ve hesap ekstresi PDF açılır', async
 
   await expectPdfOpens(page, () => edit.getByRole('button', { name: 'Sevk Belgesi' }).click(), /\/api\/trips\/\d+\/waybill$/)
 
-  await edit.getByRole('button', { name: 'Kopyala' }).click()
-  const copy = page.getByRole('dialog', { name: 'Sevkiyat Oluştur (kopya)' })
+  await edit.getByRole('button', { name: 'Tekrarla' }).click()
+  const copy = page.getByRole('dialog', { name: 'Sevkiyat Oluştur (tekrar)' })
   await expect(copy.getByLabel('Yükleme Adresi')).toHaveValue(from)
   await expect(copy.locator('input[name=customerId]')).not.toHaveValue('')
   await copy.getByRole('button', { name: 'Vazgeç' }).click()
@@ -197,7 +197,7 @@ test('işlem geçmişi yapılan değişikliği gösterir', async ({ page }) => {
   const desc = dlg.getByLabel('Açıklama')
   const note = `Geçmiş testi ${Date.now()}`
   await desc.fill(note)
-  await dlg.getByRole('button', { name: 'Kaydet' }).click()
+  await dlg.getByRole('button', { name: 'Kaydet', exact: true }).click()
   await expect(page.getByText('Sevkiyat güncellendi.')).toBeVisible()
 
   await page.goto('/ayarlar?tab=audit')
@@ -247,7 +247,7 @@ test('tedarikçi → kiralık araç → taşeronlu sevkiyat; zaman çizelgesi ve
   await expect(page.getByText('Araç eklendi.')).toBeVisible()
 
   await page.getByRole('link', { name: 'Sevkiyatlar', exact: true }).click()
-  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  await page.getByRole('button', { name: 'Yeni Sevkiyat', exact: true }).click()
   const td = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
   await pick(td.locator('input[name=customerId]'), 'Yıldız Mobilya')
   await pick(td.locator('input[name=vehicleId]'), `${plate} - Tır (Kiralık: E2E Nakliyat ${u})`)
@@ -282,7 +282,7 @@ test('tedarikçi → kiralık araç → taşeronlu sevkiyat; zaman çizelgesi ve
   await ed.getByRole('button', { name: 'Geçmiş' }).click()
   const timeline = ed.getByRole('list', { name: 'Durum geçmişi' })
   await expect(timeline.getByText('Yüklendi', { exact: true })).toBeVisible()
-  await expect(timeline.getByText('Planlandı', { exact: true })).toBeVisible()
+  await expect(timeline.getByText('Kayıt açıldı', { exact: true })).toBeVisible()
   await ed.getByRole('button', { name: 'Kapat', exact: true }).last().click()
 
   // Taşeron borcu: yüklenen seferin maliyeti, KDV ve tevkifatıyla (15.000 + %20 KDV − 2/10 tevkifat = 17.400)

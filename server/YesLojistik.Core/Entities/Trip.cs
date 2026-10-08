@@ -108,6 +108,14 @@ public class Trip : BaseEntity
     /// <summary>Fatura altı not faturaya yansıtılsın.</summary>
     public bool ShowFooterNote { get; set; }
     public string? PaymentTerms { get; set; }
+    /// <summary>Taşıma şekli: komple (FTL), parsiyel (LTL), ekspres, frigorifik, proje… (serbest yazı, akıllı alan).</summary>
+    public string? TransportMode { get; set; }
+    /// <summary>Dorse / kasa tipi: tenteli, frigorifik, açık kasa, lowbed… (serbest yazı, akıllı alan).</summary>
+    public string? TrailerType { get; set; }
+    /// <summary>İptal ya da sorun nedeni (müşteri iptali, araç arızası…). Boşsa sorun yok.</summary>
+    public string? ProblemReason { get; set; }
+    /// <summary>İptal / sorun açıklaması.</summary>
+    public string? ProblemNote { get; set; }
     /// <summary>Başka sistemden aktarılan kaydın oradaki numarası (ör. Pratik Ortam sevkiyat no).</summary>
     public string? ExternalRef { get; set; }
     /// <summary>Taşerondan alınan fatura (bağlıysa sefer borcu bu faturadan gelir).</summary>

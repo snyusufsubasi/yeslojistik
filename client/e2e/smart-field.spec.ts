@@ -107,7 +107,7 @@ test('akıllı alan: sevkiyatta yük cinsi çiple, birim elle yazılıp Enter il
   await login(page)
   const { customerTitle, plate } = await fixtures(page.request, u)
   await page.goto('/seferler')
-  await page.getByRole('button', { name: 'Yeni Sevkiyat' }).click()
+  await page.getByRole('button', { name: 'Yeni Sevkiyat', exact: true }).click()
   const td = page.getByRole('dialog', { name: 'Sevkiyat Oluştur' })
   await typeSelect(td.locator('input[name=customerId]'), customerTitle, customerTitle)
   await typeSelect(td.locator('input[name=vehicleId]'), plate, `${plate} - Kamyon`)

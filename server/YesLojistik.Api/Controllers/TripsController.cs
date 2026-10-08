@@ -34,6 +34,9 @@ public class TripsController(TripService trips) : ControllerBase
             new("Satış", t => t.SalePrice, ExcelExporter.MoneyFormat),
             new("Araç Maliyeti", t => t.VehicleCost, ExcelExporter.MoneyFormat),
             new("Ürün", t => t.CargoType),
+            new("Taşıma Şekli", t => t.Ops?.TransportMode),
+            new("Dorse / Kasa Tipi", t => t.Ops?.TrailerType),
+            new("İptal / Sorun Nedeni", t => t.Ops?.ProblemReason),
             new("Açıklama", t => t.Description),
             new("Taşeron", t => t.CarrierSupplierTitle),
             new("Komisyon", t => t.Terms?.Commission ?? 0, ExcelExporter.MoneyFormat),
@@ -118,7 +121,7 @@ public class TripsController(TripService trips) : ControllerBase
     [Authorize(Policy = Policies.Operations)]
     [HttpPost("{id:int}/status")]
     public Task<TripDto> ChangeStatus(int id, TripStatusRequest req, CancellationToken ct) =>
-        trips.ChangeStatusAsync(id, req.Status, Core.Entities.TripEventSource.Panel, null, req.Note, ct, req.ReceivedBy);
+        trips.ChangeStatusAsync(id, req.Status, Core.Entities.TripEventSource.Panel, null, req.Note, ct, req.ReceivedBy, req.ProblemReason);
 
     /// <summary>Seçilen seferlerin teslim evrakını onaylar (eski paneldeki "Teslim Evrak Onayla", toplu).</summary>
     [Authorize(Policy = Policies.Operations)]

@@ -35,6 +35,7 @@ if (string.IsNullOrWhiteSpace(builder.Configuration["App:PublicUrl"]) && builder
 builder.Services.AddInfrastructure(connectionString, builder.Configuration["Storage:Path"] ?? "data/uploads",
     builder.Configuration["Storage:Provider"] ?? "Database", builder.Configuration["EInvoice:Provider"] ?? "manual");
 builder.Services.AddSingleton<MaintenanceState>();
+builder.Services.AddSingleton<GitHubOidcValidator>();
 builder.Services.AddHostedService<LocationRetentionService>();
 builder.Services.AddHostedService<DailyDigestWorker>();
 builder.Services.AddHostedService<EInvoiceStatusWorker>();

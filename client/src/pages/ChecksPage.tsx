@@ -12,6 +12,7 @@ import { useToast } from '../components/Toast'
 import { daysUntil, date, tl2, todayIso } from '../lib/format'
 import { useDebounce, useListTotals, useLookup, usePaged, usePage, useSave } from '../lib/hooks'
 import { instrumentStatusLabel, instrumentStatusTone, options, paymentMethodLabel } from '../lib/labels'
+import { DateInput } from '../components/DateInput'
 
 type Action = { payment: Payment; status: InstrumentStatus }
 
@@ -128,7 +129,7 @@ function InstrumentActionDialog({ action, onClose }: { action: Action; onClose: 
             <PlainSelect value={supplierId} onChange={setSupplierId} placeholder="Tedarikçi seçin"
               options={(suppliers.data ?? []).map((s) => ({ value: s.id, label: s.label }))} />
           </Field>
-          <Field label="Ciro tarihi"><input className="input" type="date" value={when} onChange={(e) => setWhen(e.target.value)} /></Field>
+          <Field label="Ciro tarihi"><DateInput value={when} onChange={setWhen} /></Field>
           <p className="text-slate-600">Tedarikçiye aynı tutarda ödeme yazılır, borcu düşer.</p>
         </>}
         {(status === 'Collected' || status === 'InCollection') && (accounts.data?.length ?? 0) > 0 && (

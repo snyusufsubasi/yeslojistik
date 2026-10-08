@@ -15,6 +15,7 @@ import { ControlledChoice } from './Choice'
 import { DateQuick, MoreFields } from './Inputs'
 import { choices } from '../lib/choices'
 import { vehicleOwnershipIcon } from '../lib/icons'
+import { DateInput } from './DateInput'
 
 const schema = z.object({
   plate: req('Plaka zorunlu.').regex(/^(0[1-9]|[1-7]\d|8[01])\s*[a-zA-ZçğıöşüÇĞİÖŞÜ]{1,3}\s*\d{2,5}$/, 'Geçerli bir plaka girin (ör. 34 ABC 123).'),
@@ -129,10 +130,10 @@ export function VehicleForm({ vehicle, onClose, onSaved, initialPlate }: { vehic
             <Field label="Yakıt Türü"><SmartField field="fuelType" label="Yakıt Türü" placeholder="Dizel" chips={5} maxLength={30} value={card.fuelType} onChange={(v) => setCard((c) => ({ ...c, fuelType: v }))} /></Field>
             <Field label="Sigorta Bilgisi" hint="Şirket, poliçe no"><input className="input" value={card.insuranceInfo ?? ''} onChange={setC('insuranceInfo')} /></Field>
             <Field label="Kasko Bilgisi"><input className="input" value={card.cascoInfo ?? ''} onChange={setC('cascoInfo')} /></Field>
-            <Field label="Kasko Bitiş"><input className="input" type="date" value={card.cascoExpiry ?? ''} onChange={setC('cascoExpiry')} /></Field>
+            <Field label="Kasko Bitiş"><DateInput value={card.cascoExpiry ?? ''} onChange={(v) => setC('cascoExpiry')({ target: { value: v } })} /></Field>
             <Field label="Muayene Bilgisi"><input className="input" value={card.inspectionInfo ?? ''} onChange={setC('inspectionInfo')} /></Field>
             <Field label="Egzoz Muayenesi Bilgisi"><input className="input" value={card.emissionInfo ?? ''} onChange={setC('emissionInfo')} /></Field>
-            <Field label="Egzoz Muayenesi Bitiş"><input className="input" type="date" value={card.emissionExpiry ?? ''} onChange={setC('emissionExpiry')} /></Field>
+            <Field label="Egzoz Muayenesi Bitiş"><DateInput value={card.emissionExpiry ?? ''} onChange={(v) => setC('emissionExpiry')({ target: { value: v } })} /></Field>
             <Field label="Bakım Bilgisi" hint="Servis / usta"><input className="input" value={card.maintenanceInfo ?? ''} onChange={setC('maintenanceInfo')} /></Field>
             <Field label="Ruhsat Sahibi"><input className="input" value={card.registrationOwner ?? ''} onChange={setC('registrationOwner')} /></Field>
           </div>

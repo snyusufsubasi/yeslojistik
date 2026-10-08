@@ -24,6 +24,7 @@ public class OptionsController(AppDbContext db) : ControllerBase
         "cargoType", "cargoUnit", "paymentTerms", "customerGroup",
         "vehicleType", "fuelType", "vehicleCapacity",
         "expenseTitle", "expenseCategoryName", "expenseRejectionReason",
+        "transportMode", "trailerType", "tripProblemReason",
     ];
 
     [HttpGet("{field}")]
@@ -35,6 +36,9 @@ public class OptionsController(AppDbContext db) : ControllerBase
             "cargoUnit" => db.Trips.AsNoTracking().Select(t => t.CargoUnit),
             "paymentTerms" => db.Trips.AsNoTracking().Select(t => t.PaymentTerms),
             "customerGroup" => db.Trips.AsNoTracking().Select(t => t.CustomerGroup),
+            "transportMode" => db.Trips.AsNoTracking().Select(t => t.TransportMode),
+            "trailerType" => db.Trips.AsNoTracking().Select(t => t.TrailerType),
+            "tripProblemReason" => db.Trips.AsNoTracking().Select(t => t.ProblemReason),
             "vehicleType" => db.Vehicles.AsNoTracking().Select(v => (string?)v.Type),
             "vehicleCapacity" => db.Vehicles.AsNoTracking().Select(v => v.Capacity),
             "expenseTitle" => db.Expenses.AsNoTracking().Select(e => e.Title),

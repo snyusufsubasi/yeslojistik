@@ -287,6 +287,8 @@ export interface Trip {
   uetds?: TripUetds | null
   /** U-ETDS hazırlığı eksik madde sayısı (liste için; teslim edilmiş/iptal/eski sefer için yok). */
   uetdsMissing?: number | null
+  /** Taşıma şekli, dorse/kasa tipi, iptal/sorun nedeni ve açıklaması. */
+  ops?: TripOps | null
 }
 
 export interface TripUetds {
@@ -392,6 +394,48 @@ export interface TripEvent {
   userName?: string | null
   source: TripEventSource
   note?: string | null
+  /** created: kayıt açıldı · status: durum değişti · problem: iptal/sorun nedeni girildi */
+  kind?: 'created' | 'status' | 'problem'
+}
+
+export interface TripOps {
+  transportMode?: string | null
+  trailerType?: string | null
+  problemReason?: string | null
+  problemNote?: string | null
+}
+
+/** Sevkiyat şablonu (sık tekrarlanan iş). */
+export interface TripTemplate {
+  id: number
+  name: string
+  customerId?: number | null
+  customerTitle?: string | null
+  vehicleId?: number | null
+  vehiclePlate?: string | null
+  driverId?: number | null
+  driverName?: string | null
+  loadingCity?: string | null
+  loadingDistrict?: string | null
+  loadingAddress: string
+  loadingContact?: string | null
+  deliveryCity?: string | null
+  deliveryDistrict?: string | null
+  deliveryAddress: string
+  deliveryContact?: string | null
+  cargoType?: string | null
+  cargoWeightKg?: number | null
+  cargoQuantity?: number | null
+  cargoUnit?: string | null
+  transportMode?: string | null
+  trailerType?: string | null
+  salePrice?: number | null
+  vehicleCost?: number | null
+  paymentTerms?: string | null
+  description?: string | null
+  useCount: number
+  lastUsedAt?: string | null
+  createdAt: string
 }
 
 export interface InvoiceLine {

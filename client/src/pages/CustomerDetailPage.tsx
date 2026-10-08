@@ -14,6 +14,7 @@ import { useAuth } from '../lib/auth'
 import { date, tl, tl2 } from '../lib/format'
 import { crud, usePaged, useSave } from '../lib/hooks'
 import { paymentMethodLabel, paymentStatusTone, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import { DateInput } from '../components/DateInput'
 
 type Tab = 'movements' | 'trips' | 'invoices' | 'payments'
 
@@ -203,9 +204,9 @@ function StatementDialog({ customerId, title, email, phone, reminder, onClose }:
         <p className="text-[0.9375rem] text-slate-700">Seçilen dönemdeki faturalar ve tahsilatlar, devreden bakiye ve güncel bakiyeyle listelenir. Mutabakat için müşteriye gönderebilirsiniz.</p>
         <div className="grid grid-cols-2 gap-3">
           <label className="block"><span className="label">Başlangıç</span>
-            <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+            <DateInput value={from} onChange={setFrom} /></label>
           <label className="block"><span className="label">Bitiş</span>
-            <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+            <DateInput value={to} onChange={setTo} /></label>
         </div>
         <p className="text-sm text-slate-600">Tarihleri boş bırakırsanız bütün hareketler alınır.</p>
         <label className="flex items-start gap-2 text-[0.9375rem] text-slate-700">

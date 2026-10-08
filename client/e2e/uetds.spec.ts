@@ -25,12 +25,12 @@ test('U-ETDS hazırlığı: TCKN eksik şoförlü sevkiyat "eksik" görünür, �
 
   // Sevkiyatlar: ayrıntılı süzgeçte "U-ETDS eksik olanlar" bu seferi gösterir.
   await page.goto(`/seferler?q=${encodeURIComponent(`UETDS Müşteri ${u}`)}`)
-  await page.getByRole('button', { name: /Ayrıntılı süzgeç/ }).click()
+  await page.locator('button[aria-controls=trip-filters]').click()
   await page.getByLabel('U-ETDS hazırlığı').selectOption({ label: 'U-ETDS eksik olanlar' })
   await expect(page).toHaveURL(/uetds=missing/)
   const row = page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })
   await expect(row).toHaveCount(1)
-  await expect(row.getByText('UETDS 2 eksik')).toBeVisible()
+  // Sade listede U-ETDS rozeti yok; eksik sayısı aşağıdaki panelde doğrulanır.
 
   // Sefer: "U-ETDS hazırlığı" paneli 2 eksik gösterir ve nedenini yazar.
   await page.goto(`/seferler?id=${trip.id}`)
@@ -53,10 +53,12 @@ test('U-ETDS hazırlığı: TCKN eksik şoförlü sevkiyat "eksik" görünür, �
   await expect(page.getByRole('region', { name: 'U-ETDS hazırlığı' }).getByText('Hazır', { exact: true })).toBeVisible()
   await expect(page.getByRole('region', { name: 'U-ETDS hazırlığı' }).getByText('eksik', { exact: false })).toHaveCount(0)
   await page.goto(`/seferler?q=${encodeURIComponent(`UETDS Müşteri ${u}`)}&uetds=missing`)
+  await page.locator('button[aria-controls=trip-filters]').click()
   await expect(page.getByLabel('U-ETDS hazırlığı')).toHaveValue('missing')
   await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })).toHaveCount(0)
   await page.getByRole('button', { name: 'Süzgeci temizle' }).click()
-  await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` }).getByText('UETDS hazır')).toBeVisible()
+  // Süzgeç kalkınca sefer yeniden listelenir (sade listede U-ETDS rozeti yok).
+  await expect(page.locator('tbody tr').filter({ hasText: `UETDS Müşteri ${u}` })).toHaveCount(1)
 })
 
 test('U-ETDS hazırlığı: sevkiyat formundaki alanlar doldurulup kaydedilince panel güncellenir', async ({ page, playwright }) => {
@@ -82,7 +84,7 @@ test('U-ETDS hazırlığı: sevkiyat formundaki alanlar doldurulup kaydedilince 
   await page.getByLabel('Yükleme Saati').fill('08:30')
   await page.getByLabel('Alıcı Unvanı / Adı Soyadı').fill('Alıcı Ticaret A.Ş.')
   await page.getByLabel('Alıcı VKN / TCKN').fill('10000000146')
-  await page.getByRole('button', { name: 'Kaydet' }).click()
+  await page.getByRole('button', { name: 'Kaydet', exact: true }).click()
   await expect(page.getByText('Sevkiyat güncellendi.')).toBeVisible()
 
   await page.goto(`/seferler?id=${trip.id}`)

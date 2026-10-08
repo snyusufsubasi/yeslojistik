@@ -8,6 +8,7 @@ import { useLookup, useSave } from '../lib/hooks'
 import { options, paymentMethodLabel } from '../lib/labels'
 import { useToast } from './Toast'
 import { Button, Field, Modal, Select, Spinner } from './ui'
+import { DateInput } from './DateInput'
 
 /** Değiştirilmeyen kayıtların listesi (nedeniyle). */
 function SkippedList({ title, items }: { title: string; items: BulkSkipped[] }) {
@@ -100,7 +101,7 @@ export function BulkSupplierPaymentDialog({ tripIds, onClose, onDone }: { tripId
           {data.skipped.length > 0 && <SkippedList title={`Ödemeye eklenmeyecek ${data.skipped.length} sevkiyat:`} items={data.skipped} />}
           {count > 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Tarih" required><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+              <Field label="Tarih" required><DateInput value={date} onChange={setDate} /></Field>
               <Field label="Nasıl ödediniz?" required>
                 <Select aria-label="Ödeme yöntemi" value={method} onChange={(v) => v && setMethod(v)} options={options(paymentMethodLabel)} />
               </Field>
