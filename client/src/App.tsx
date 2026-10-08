@@ -6,6 +6,7 @@ import { useAuth, type Permission } from './lib/auth'
 import LoginPage from './pages/LoginPage'
 import { useBranding } from './lib/branding'
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const TodayPage = lazy(() => import('./pages/TodayPage'))
 
 const TripsPage = lazy(() => import('./pages/TripsPage'))
 const JobRequestsPage = lazy(() => import('./pages/JobRequestsPage'))
@@ -64,6 +65,15 @@ function DriverNotice() {
   )
 }
 
+/**
+ * Girişten sonraki ilk ekran "Bugün" (istisna listesi). Rakam panosu "Genel Bakış" olarak /pano'da durur;
+ * yeni görünümdeki "Onay Bekleyenler" sekmesi eski adresinde (`/?tab=approvals`) kalır.
+ */
+function HomePage() {
+  const { search } = useLocation()
+  return new URLSearchParams(search).get('tab') === 'approvals' ? <DashboardPage /> : <TodayPage />
+}
+
 function Guard({ perm, children }: { perm: Permission; children: React.ReactNode }) {
   const { can } = useAuth()
   return can(perm) ? children : <Navigate to="/" replace />
@@ -85,7 +95,8 @@ export default function App() {
         <Route path="/gizlilik" element={<PrivacyPage />} />
         <Route path="/hesap-silme" element={<AccountDeletionPage />} />
         <Route element={<RequireAuth />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<HomePage />} />
+          <Route path="pano" element={<DashboardPage />} />
           <Route path="seferler" element={<TripsPage />} />
           <Route path="is-talepleri" element={<JobRequestsPage />} />
           <Route path="araclar" element={<VehiclesPage />} />
