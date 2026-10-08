@@ -38,6 +38,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/PasswordResetPages').then(
 const ResetPasswordPage = lazy(() => import('./pages/PasswordResetPages').then((m) => ({ default: m.ResetPasswordPage })))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
 const AccountDeletionPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.AccountDeletionPage })))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'))
 const ImportPage = lazy(() => import('./pages/ImportPage'))
 
@@ -46,6 +47,7 @@ function RequireAuth() {
   const location = useLocation()
   if (loading) return <Spinner className="h-screen items-center" />
   if (unreachable) return <ErrorState error={unreachable} onRetry={retry} className="h-screen justify-center" />
+  if (!user && location.pathname === '/') return <LandingPage />
   if (!user) return <Navigate to="/giris" replace state={{ from: location.pathname + location.search }} />
   if (user.role === 'Driver') return <DriverNotice />
   return <Layout />
