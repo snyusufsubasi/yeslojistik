@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookmarkPlus, ClipboardCopy, Columns3, Download, Eye, FileSpreadsheet, Trash2, FileCheck2, FileText, HandCoins, LayoutTemplate, List, Pencil, Plus, Printer, Repeat2, Rows3, SlidersHorizontal, StepForward, TableProperties, TriangleAlert, X } from 'lucide-react'
 import { del, download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
-import type { BulkResult, Dashboard, Driver, JobRequest, Trip, TripStatus, TripTemplate, TripTotals, VehicleOwnership } from '../api/types'
+import type { BulkResult, Dashboard, Driver, JobRequest, TodayAgenda, Trip, TripStatus, TripTemplate, TripTotals, VehicleOwnership } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
@@ -24,7 +24,7 @@ import clsx from 'clsx'
 import { useAuth } from '../lib/auth'
 import { addDaysIso, date, monthEndIso, monthStartIso, tl, todayIso } from '../lib/format'
 import { crud, useDebounce, useLookup, usePaged, usePage, useSave, useOpenNewFromUrl } from '../lib/hooks'
-import { commissionStatusLabel, options, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
+import { commissionStatusLabel, options, todayAgendaLabel, tripStatusAction, tripStatusLabel, tripStatusTone } from '../lib/labels'
 import { emptyTerms } from '../lib/tripTerms'
 import { UETDS_READINESS } from '../lib/features'
 import { useToast } from '../components/Toast'
@@ -77,8 +77,10 @@ export default function TripsPage() {
   const [transportMode, setTransportMode] = useState(textParam('transport'))
   const [trailerType, setTrailerType] = useState(textParam('trailer'))
   const [problem, setProblem] = useState<YesNo | ''>(oneOf<YesNo>(params.get('problem'), ['yes', 'no']))
+  // "Bugün" ekranından gelen liste (?bugun=late…): kartın sayısıyla aynı sunucu süzgeci.
+  const [agenda, setAgenda] = useState<TodayAgenda | ''>(oneOf(params.get('bugun'), Object.keys(todayAgendaLabel) as TodayAgenda[]))
   const advancedCount = [preset, group, commission, documentState, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo, uetdsMissing,
-    transportMode, trailerType, problem].filter(Boolean).length
+    transportMode, trailerType, problem, agenda].filter(Boolean).length
   // Süzgeç kutuları katlanır: liste ekranın üstünde başlasın. Açık süzgeçler çip olarak görünür.
   const [showMore, setShowMore] = useState(false)
   const toast = useToast()
@@ -116,7 +118,7 @@ export default function TripsPage() {
     carrierSupplierId: supplierId, vehicleId, ownership, hasCommission: yesNo(commission), hasDeliveryDocument: yesNo(documentState),
     loadingPlace: dLoading || undefined, deliveryPlace: dDelivery || undefined, tripNo: dTripNo || undefined,
     deliveryDocumentNo: dDocNo || undefined, invoiceNo: dInvoiceNo || undefined, uetdsMissing: uetdsMissing === 'missing' || undefined,
-    transportMode: dTransport || undefined, trailerType: dTrailer || undefined, hasProblem: yesNo(problem) }
+    transportMode: dTransport || undefined, trailerType: dTrailer || undefined, hasProblem: yesNo(problem), agenda: agenda || undefined }
   const [page, setPage] = usePage([filters])
   // Seçim sayfalar arasında korunur, filtre değişince boşalır.
   const selection = useRowSelection<Trip>((t) => t.id, [filters])
@@ -124,7 +126,7 @@ export default function TripsPage() {
   // Süzgeçleri adrese yaz (yalnızca değişince; diğer parametrelere dokunmadan).
   const urlState = JSON.stringify({ q: debounced, status, customerId, from, to, invoiced, list: preset, group: debouncedGroup, supplierId, vehicleId,
     ownership, commission, document: documentState, loading: dLoading, delivery: dDelivery, tripNo: dTripNo, docNo: dDocNo, invoiceNo: dInvoiceNo, uetds: uetdsMissing,
-    transport: dTransport, trailer: dTrailer, problem })
+    transport: dTransport, trailer: dTrailer, problem, bugun: agenda })
   useEffect(() => {
     const next = new URLSearchParams(params)
     next.delete('carrierInvoice')
@@ -138,7 +140,7 @@ export default function TripsPage() {
     setSearch(''); setStatus(''); setCustomerId(''); setFrom(''); setTo(''); setInvoiced(''); setPreset(''); setGroup('')
     setSupplierId(''); setVehicleId(''); setOwnership(''); setCommission(''); setDocumentState('')
     setLoadingPlace(''); setDeliveryPlace(''); setTripNo(''); setDocNo(''); setInvoiceNo(''); setUetdsMissing('')
-    setTransportMode(''); setTrailerType(''); setProblem('')
+    setTransportMode(''); setTrailerType(''); setProblem(''); setAgenda('')
   }
   // Gerçekten hiç sefer yoksa (yalnız süzgeç/sekme yüzünden boş değilse) ilk adım kartı gösterilir.
   const dash = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), staleTime: 30_000 })
@@ -344,6 +346,7 @@ export default function TripsPage() {
   const label = (list: { value: number; label: string }[] | undefined, id: number | '') => list?.find((x) => x.value === id)?.label ?? String(id)
   const lookupOpts = (d?: { id: number; label: string }[]) => d?.map((x) => ({ value: x.id, label: x.label }))
   const chips: FilterChip[] = [
+    agenda && { label: `Bugün: ${todayAgendaLabel[agenda]}`, onClear: () => setAgenda('') },
     status && { label: `Durum: ${tripStatusLabel[status]}`, onClear: () => setStatus('') },
     customerId !== '' && { label: `Müşteri: ${label(lookupOpts(customers.data), customerId)}`, onClear: () => setCustomerId('') },
     supplierId !== '' && { label: `Tedarikçi: ${label(lookupOpts(suppliers.data), supplierId)}`, onClear: () => setSupplierId('') },
