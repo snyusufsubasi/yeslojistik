@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PANEL_URL: https://yeslojistik.onrender.com
+      PANEL_URL: https://yeslojistik.net
     steps:
       - uses: actions/checkout@v4
       - name: Giriş bilgilerini hazırla

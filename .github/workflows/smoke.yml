@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      URL: ${{ vars.APP_URL || secrets.BACKUP_URL || 'https://yeslojistik.onrender.com' }}
+      URL: ${{ vars.APP_URL || secrets.BACKUP_URL || 'https://yeslojistik.net' }}
       EXPECTED: ${{ github.sha }}
     steps:
       - name: Yeni sürümün yayına çıkmasını bekle

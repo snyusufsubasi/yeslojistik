@@ -6,7 +6,7 @@
 #    (Render'da Backup__GitHubRepository=snyusufsubasi/yeslojistik). BACKUP_TOKEN secret'ı tanımlıysa o da çalışır.
 #  - Şifreleme: deploy/backup-public-key.asc açık anahtarıyla (özel anahtar depoda DEĞİL; sahibinde). BACKUP_PASSPHRASE tanımlıysa
 #    onunla simetrik şifrelenir. Depo herkese açık olduğundan yedek dosyası mutlaka şifreli yüklenir.
-#  - Adres: BACKUP_URL secret'ı yoksa https://yeslojistik.onrender.com.
+#  - Adres: BACKUP_URL secret'ı yoksa https://yeslojistik.net.
 # Canlı veritabanı Neon PostgreSQL 18 (8 Eki 2026); sunucu pg_dump 18 ile yedekler, tatbikat da 18 ile yapılır.
 # Şifre çözme: gpg --import ozel-anahtar.asc && gpg -d yedek.dump.gpg > yedek.dump  →  pg_restore (docs/YEDEK.md).
 name: Yedek
@@ -43,7 +43,7 @@ jobs:
         options: >-
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      BACKUP_URL: ${{ secrets.BACKUP_URL || 'https://yeslojistik.onrender.com' }}
+      BACKUP_URL: ${{ secrets.BACKUP_URL || 'https://yeslojistik.net' }}
       BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
