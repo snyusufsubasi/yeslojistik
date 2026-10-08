@@ -6,8 +6,8 @@
 name: Pratikortam aynası
 
 on:
-  schedule:
-    - cron: "7 4,9,14,19 * * *" # 07:07, 12:07, 17:07, 22:07 İstanbul
+  # schedule kapatıldı (Actions dakikası bitti; prototip, ayna kapalı)
+  # - cron: "7 4,9,14,19 * * *" # 07:07, 12:07, 17:07, 22:07 İstanbul
   workflow_dispatch:
     inputs:
       apply:

@@ -4,9 +4,9 @@
 name: Uyanık tut
 
 on:
-  schedule:
-    - cron: "*/10 3-19 * * *" # 06:00–22:50 İstanbul (UTC+3)
-    - cron: "0 20 * * *" # 23:00 İstanbul
+  # schedule kapatıldı (Actions dakikası bitti; prototip, ayna kapalı)
+  # - cron: "*/10 3-19 * * *" # 06:00–22:50 İstanbul (UTC+3)
+  # - cron: "0 20 * * *" # 23:00 İstanbul
   workflow_dispatch:
 
 permissions: {}
