@@ -17,6 +17,8 @@ interface AuthState {
   /** Sunucuya uzun süre ulaşılamadıysa son hata; oturum kapatılmaz, "Tekrar dene" ile `retry` çağrılır. */
   unreachable: unknown
   retry: () => void
+  /** Bu tarayıcıda daha önce oturum açıldı mı (yerel işaret). Ana sayfada ziyaretçiye tanıtımı beklemeden göstermek için. */
+  hadSession: boolean
   /** İki adımlı doğrulaması açık hesapta oturum açılmaz; ikinci adım için `challengeToken` döner. */
   login: (email: string, password: string) => Promise<{ challengeToken?: string }>
   completeTwoFactor: (challengeToken: string, code: string) => Promise<void>
@@ -26,12 +28,28 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null)
 
+/** Yerel işaret: yalnızca "bu tarayıcıda oturum vardı" bilgisi (kimlik bilgisi değil). */
+const SESSION_HINT_KEY = 'yl:had-session'
+function readSessionHint(): boolean {
+  try { return localStorage.getItem(SESSION_HINT_KEY) === '1' } catch { return false }
+}
+function writeSessionHint(on: boolean) {
+  try { if (on) localStorage.setItem(SESSION_HINT_KEY, '1'); else localStorage.removeItem(SESSION_HINT_KEY) } catch { /* gizli sekme vb. */ }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [unreachable, setUnreachable] = useState<unknown>(null)
   const [attemptKey, setAttemptKey] = useState(0)
+  const [hadSession] = useState(readSessionHint)
   const qc = useQueryClient()
+
+  // Oturum açıkken işareti koy; oturum kesin olarak yoksa (yükleme bitti, kullanıcı yok) kaldır.
+  useEffect(() => {
+    if (user) writeSessionHint(true)
+    else if (!loading && !unreachable) writeSessionHint(false)
+  }, [user, loading, unreachable])
 
   useEffect(() => {
     let cancelled = false
@@ -76,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const can = useCallback((p: Permission) => !!user && permissionRoles[p].includes(user.role), [user])
 
-  const value = useMemo(() => ({ user, loading, unreachable, retry, login, completeTwoFactor, logout, can }), [user, loading, unreachable, retry, login, completeTwoFactor, logout, can])
+  const value = useMemo(() => ({ user, loading, unreachable, retry, hadSession, login, completeTwoFactor, logout, can }), [user, loading, unreachable, retry, hadSession, login, completeTwoFactor, logout, can])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

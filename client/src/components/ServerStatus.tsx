@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 import { AlertTriangle, Loader2, RefreshCw, X } from 'lucide-react'
 import { LOAD_ERROR_EVENT, SERVER_STATUS_EVENT } from '../api/client'
 
@@ -9,6 +10,7 @@ import { LOAD_ERROR_EVENT, SERVER_STATUS_EVENT } from '../api/client'
  */
 export function ServerStatusBanner() {
   const qc = useQueryClient()
+  const { pathname } = useLocation()
   const [down, setDown] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +30,8 @@ export function ServerStatusBanner() {
   }, [])
 
   if (!down && !error) return null
+  // Tanıtım sayfasındaki ziyaretçiye sunucu şeridi gösterilmez (sayfa sunucuyu beklemeden çalışır).
+  if (pathname === '/' && !hadSessionHint()) return null
   const retry = () => { setError(null); void qc.refetchQueries({ type: 'active' }) }
 
   return (
@@ -41,4 +45,8 @@ export function ServerStatusBanner() {
       {!down && <button className="rounded p-0.5 hover:bg-white/60" aria-label="Kapat" onClick={() => setError(null)}><X className="size-4" /></button>}
     </div>
   )
+}
+
+function hadSessionHint(): boolean {
+  try { return localStorage.getItem('yl:had-session') === '1' } catch { return false }
 }

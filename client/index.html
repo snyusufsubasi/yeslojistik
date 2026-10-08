@@ -11,10 +11,60 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="YES Lojistik" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>YES Lojistik – Nakliye Takip Sistemi</title>
+    <title>YES Lojistik – Nakliye firmaları için sevkiyat, filo ve finans paneli</title>
+    <meta name="description" content="YES Lojistik; sevkiyat, araç, şoför, cari, fatura, tahsilat, mazot ve U-ETDS hazırlığını tek panelde toplar. Şoför mobil uygulaması ve müşteri takip linkiyle nakliye firmanızı Excel ve WhatsApp karmaşasından kurtarın." />
+    <link rel="canonical" href="https://yeslojistik.net/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:site_name" content="YES Lojistik" />
+    <meta property="og:url" content="https://yeslojistik.net/" />
+    <meta property="og:title" content="YES Lojistik – Sevkiyattan tahsilata nakliye işiniz tek panelde" />
+    <meta property="og:description" content="Sevkiyat, filo, şoför, cari, fatura ve tahsilat tek ekranda. Bugün ekranı, şoför mobil uygulaması, müşteri takip linki, U-ETDS hazırlığı." />
+    <meta property="og:image" content="https://yeslojistik.net/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <style>
+      /* JS yüklenmeden (ya da hiç yüklenmezse) görünen sade tanıtım. React açılınca #root içeriği değişir.
+         Kısa gecikmeyle görünür: JS hızlı açılırsa (oturum açık kullanıcı dahil) hiç fark edilmez. */
+      .yl-static{font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#1c1b19;background:#f7f7f5;min-height:100vh;opacity:0;animation:yl-in .2s ease 1.2s forwards}
+      @keyframes yl-in{to{opacity:1}}
+      .yl-static *{box-sizing:border-box}
+      .yl-static header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;background:#fff;border-bottom:1px solid #e6e5e1}
+      .yl-static .logo{font-weight:700;font-size:17px}.yl-static .logo b{background:#f2b632;border-radius:8px;padding:3px 6px;margin-right:6px;font-size:13px}
+      .yl-static a.btn{display:inline-block;background:#4652c9;color:#fff;text-decoration:none;font-weight:600;border-radius:10px;padding:10px 18px}
+      .yl-static a.btn2{display:inline-block;color:#4652c9;text-decoration:none;font-weight:600;border:1px solid #e6e5e1;background:#fff;border-radius:10px;padding:10px 18px}
+      .yl-static main{max-width:960px;margin:0 auto;padding:48px 20px}
+      .yl-static h1{font-size:clamp(28px,6vw,44px);line-height:1.15;margin:0 0 16px;letter-spacing:-.02em}
+      .yl-static p{font-size:17px;line-height:1.6;color:#484743;max-width:680px}
+      .yl-static ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding:0;list-style:none;margin:32px 0 0}
+      .yl-static li{background:#fff;border:1px solid #e6e5e1;border-radius:14px;padding:14px 16px;font-size:15px}
+      .yl-static .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="yl-static">
+        <header>
+          <span class="logo"><b>YES</b>Lojistik</span>
+          <a class="btn" href="/giris">Giriş Yap</a>
+        </header>
+        <main>
+          <h1>Sevkiyattan tahsilata, nakliye işiniz tek panelde.</h1>
+          <p>YES Lojistik; sevkiyat, araç, şoför, cari, fatura, tahsilat, mazot ve U-ETDS hazırlığını tek bir sade ekranda toplar. Ofis ekibi güne “Bugün” ekranıyla başlar, şoför mobil uygulamadan durum günceller, müşteri yükünü tek linkle takip eder.</p>
+          <div class="ctas">
+            <a class="btn" href="/giris">Giriş Yap</a>
+            <a class="btn2" href="mailto:ysufsubasi@yeslojistik.net?subject=YES%20Lojistik%20demo%20talebi">Demo iste</a>
+          </div>
+          <ul>
+            <li>Sevkiyatlar: şablon, tekrarla, durum geçmişi</li>
+            <li>Bugün ekranı: gecikenler, eksik evrak, faturalanacaklar</li>
+            <li>Araç, şoför ve belge bitiş uyarıları</li>
+            <li>Cari, fatura, tahsilat, ödeme, çek-senet, kasa-banka</li>
+            <li>Mazot, araç masrafları, giderler, personel</li>
+            <li>Şoför mobil uygulaması ve müşteri takip linki</li>
+          </ul>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
