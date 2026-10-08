@@ -176,8 +176,8 @@ app.UseAuthorization();
 app.UseMaintenanceMode();
 app.UseLicenseGuard();
 
-// Sürüm/commit: Render RENDER_GIT_COMMIT verir; diğer ortamlarda APP_COMMIT ayarlanabilir.
-var commit = app.Configuration["RENDER_GIT_COMMIT"] ?? app.Configuration["APP_COMMIT"];
+// Sürüm/commit: Render RENDER_GIT_COMMIT, Koyeb KOYEB_GIT_SHA verir; diğer ortamlarda APP_COMMIT ayarlanabilir.
+var commit = app.Configuration["RENDER_GIT_COMMIT"] ?? app.Configuration["KOYEB_GIT_SHA"] ?? app.Configuration["APP_COMMIT"];
 var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
 app.MapGet("/api/health", async (AppDbContext db, MaintenanceState maintenance) =>
     await db.Database.CanConnectAsync()
