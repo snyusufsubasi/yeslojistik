@@ -11,6 +11,7 @@ import { DataTable, type Column } from '../components/DataTable'
 import { Badge, Button, Card, Figure, Figures, Loading, MirrorContext, PlateBadge } from '../components/ui'
 import { useIsNewUi } from '../lib/uiMode'
 import { SectionTabs } from '../components/shell/SectionTabs'
+import { TodayTabBar } from '../components/TodayTabBar'
 import { usePageTitle } from '../lib/usePageTitle'
 import { readOnboarding, writeOnboarding } from '../lib/onboarding'
 import { useAuth } from '../lib/auth'
@@ -34,7 +35,7 @@ export default function DashboardPage() {
   const tab = params.get('tab')
   // Sekme yalnız muhasebe yetkisi olan kullanıcıya açıktır; yetkisiz adrese giderse normal Bugün ekranı kalır.
   const approvals = isNew && tab === APPROVALS_TAB && can('accounting')
-  usePageTitle(approvals ? 'Onay Bekleyenler' : isNew ? 'Bugün' : 'Ana Sayfa')
+  usePageTitle(approvals ? 'Onay Bekleyenler' : 'Genel Bakış')
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: () => get<Alert[]>('/dashboard/alerts'), refetchInterval: 5 * 60_000 })
   // "Onay Bekleyenler" sekmesi açıkken onay bekleyen kayıtlar mevcut uçlardan gelir:
   // teslim evrakı onayı bekleyen sevkiyatlar (`/trips?pendingDeliveryDocument=true`) ve şoförün
@@ -80,7 +81,7 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{approvals ? 'Onay Bekleyenler' : 'Bugün'}</h1>
+          <h1 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.01em] text-fg">{approvals ? 'Onay Bekleyenler' : 'Genel Bakış'}</h1>
           <p className="mt-1 text-[0.875rem] text-muted">{longDate()}</p>
         </div>
         {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => navigate('/seferler?new=1')}>Sevkiyat Ekle</Button>}
@@ -235,31 +236,6 @@ function Row({ label, value, strong, tone }: { label: string; value: string; str
       <dt className="text-muted">{label}</dt>
       <dd className={clsx('font-mono tracking-[-0.02em]', strong ? 'font-semibold' : 'font-medium', tone ?? 'text-fg')}>{value}</dd>
     </div>
-  )
-}
-
-/**
- * Bugün ekranının zaman/onay sekmeleri. Bölüm sekmeleri (`SectionTabs`) adresleri değiştirir; buradaki
- * sekmeler aynı sayfada sorgu parametresi yazar (`?tab=approvals`). "Onay Bekleyenler" sekmesi yalnız
- * muhasebe yetkisi olan kullanıcıya görünür; sayaç, onay bekleyen masraf sayısıdır (varsa).
- */
-function TodayTabBar({ approvals, showApprovals, pendingCount }: { approvals: boolean; showApprovals: boolean; pendingCount: number }) {
-  const items = [
-    { to: '/', label: 'Bugün', active: !approvals },
-    ...(showApprovals ? [{ to: '/?tab=approvals', label: pendingCount > 0 ? `Onay Bekleyenler (${pendingCount})` : 'Onay Bekleyenler', active: approvals }] : []),
-  ]
-  return (
-    <nav aria-label="Bugün sekmeleri" className="-mt-2 overflow-x-auto border-b border-line">
-      <div role="tablist" className="flex min-w-max gap-1">
-        {items.map((t) => (
-          <Link key={t.to} to={t.to} role="tab" aria-selected={t.active}
-            className={clsx('whitespace-nowrap border-b-2 px-3.5 py-2.5 text-[0.9375rem] font-semibold transition',
-              t.active ? 'border-accent text-fg' : 'border-transparent text-muted hover:border-slate-300 hover:text-fg')}>
-            {t.label}
-          </Link>
-        ))}
-      </div>
-    </nav>
   )
 }
 
