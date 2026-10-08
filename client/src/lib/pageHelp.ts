@@ -1,5 +1,11 @@
 /** Sayfa başlığının yanındaki "?" kutusunda gösterilen kısa ipuçları (adresin ilk parçasına göre). */
 export const pageHelp: Record<string, string[]> = {
+  planlama: [
+    'Satırlarda araçlar, sütunlarda günler: hangi araç hangi gün dolu, hangisi boş tek bakışta görünür.',
+    '"Atanmamış" listesindeki iş talebini araca ve güne sürükleyin ya da "Ata" ile seçin; sevkiyat kendiliğinden açılır.',
+    'Planlanan sevkiyat kartını başka araca ya da güne sürükleyerek taşıyın. Telefonda kartın altındaki "Taşı" düğmesini kullanın.',
+    'Kırmızı etiket çakışma (aynı araç ya da aynı şoför aynı günlerde), sarı etiket süresi dolan belge demektir. Uyarılar atamayı engellemez.',
+  ],
   sevkiyatlar: [
     'Yeni yük için sağ üstteki mavi "Yeni Sevkiyat" düğmesine basın; müşteri, araç ve güzergâhı seçin.',
     'Satırdaki "Yüklendi yap", "Yola çıktı yap" düğmeleriyle sevkiyatın durumunu ilerletin.',
