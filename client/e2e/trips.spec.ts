@@ -43,5 +43,9 @@ test('Sevkiyatlar: Piyasa / Öz Araç ve yükleme yeri süzgeci adreste kalır; 
   // Süzgeci temizle: tüm süzgeçler ve adresteki karşılıkları kalkar.
   await page.getByRole('button', { name: 'Süzgeci temizle' }).click()
   await expect(page).not.toHaveURL(/ownership=|loading=/)
+  await expect(filterBtn).toHaveText(/^\s*Süzgeç\s*$/)
+  if ((await filterBtn.getAttribute('aria-expanded')) !== 'true') await filterBtn.click()
+  await expect(page.getByLabel('Araç durumu')).toHaveValue('')
+  await expect(page.getByLabel('Yükleme yeri')).toHaveValue('')
   await expect(rows.filter({ hasNotText: '34 DMR 34' }).first()).toBeVisible()
 })
