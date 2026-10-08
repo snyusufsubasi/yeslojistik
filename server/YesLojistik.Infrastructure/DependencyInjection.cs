@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<DashboardService>();
         services.AddScoped<AlertService>();
         services.AddScoped<TodayService>();
+        services.AddScoped<PlanningService>();
         services.AddScoped<ReportService>();
         services.AddScoped<TripStatementService>();
         services.AddScoped<AttachmentService>();
