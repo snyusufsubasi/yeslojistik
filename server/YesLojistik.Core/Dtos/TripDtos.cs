@@ -12,7 +12,7 @@ public record TripDto(int Id, int CustomerId, string CustomerTitle, int VehicleI
     string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, string? ReceivedBy = null, DateTime? DeliveredAt = null,
     VehicleOwnership VehicleOwnership = VehicleOwnership.Own, int? JobRequestId = null, bool IsLegacy = false, TripTerms? Terms = null,
     string? CommissionAccountName = null, DateOnly? InvoiceDate = null, string? CreatedBy = null,
-    TripUetds? Uetds = null, int? UetdsMissing = null);
+    TripUetds? Uetds = null, int? UetdsMissing = null, TripOps? Ops = null);
 
 public record TripSaveRequest(int CustomerId, int VehicleId, int DriverId, string LoadingAddress, string DeliveryAddress,
     DateOnly LoadingDate, DateOnly? DeliveryDate, string? Description, decimal VehicleCost, decimal SalePrice,
@@ -20,7 +20,13 @@ public record TripSaveRequest(int CustomerId, int VehicleId, int DriverId, strin
     string? CargoUnit = null, string? TrailerPlate = null, string? LoadingCity = null, string? DeliveryCity = null,
     string? LoadingContact = null, string? DeliveryContact = null, int? CarrierSupplierId = null,
     string? CarrierInvoiceNo = null, DateOnly? CarrierInvoiceDate = null, int? JobRequestId = null, TripTerms? Terms = null,
-    TripUetds? Uetds = null);
+    TripUetds? Uetds = null, TripOps? Ops = null);
+
+/// <summary>
+/// Operasyon alanları: taşıma şekli, dorse/kasa tipi, iptal/sorun nedeni ve açıklaması (hepsi serbest yazı, akıllı alanla seçilir).
+/// Kayıtta boş (null) gelirse mevcut değerler korunur (eski istemciler silmesin).
+/// </summary>
+public record TripOps(string? TransportMode = null, string? TrailerType = null, string? ProblemReason = null, string? ProblemNote = null);
 
 /// <summary>
 /// Seferin ticari koşulları (eski paneldeki fiyat, komisyon, masraf ve evrak alanları). Tutarlar KDV hariç.
@@ -47,12 +53,15 @@ public record TripUetds(string? LoadingDistrict = null, string? DeliveryDistrict
     string? ConsigneeTitle = null, string? ConsigneeTaxNumber = null);
 
 /// <summary>Sefer durum zaman çizelgesi satırı.</summary>
+/// <param name="Kind">"created" (kayıt açıldı), "status" (durum değişti) ya da "problem" (iptal/sorun nedeni girildi).</param>
 public record TripEventDto(long Id, TripStatus Status, DateTime OccurredAt, DateTime RecordedAt, string? UserName,
-    TripEventSource Source, string? Note);
+    TripEventSource Source, string? Note, string Kind = "status");
 
 /// <param name="OccurredAt">Şoför uygulaması çevrimdışıyken durumun gerçekten değiştiği an.</param>
 /// <summary>Durum değişikliği. ReceivedBy: teslim alan kişi (yalnızca teslimde).</summary>
-public record TripStatusRequest(TripStatus Status, DateTime? OccurredAt = null, string? Note = null, string? ReceivedBy = null);
+/// <param name="ProblemReason">İptalde (ya da sorun bildiriminde) neden; seferin iptal/sorun nedeni alanına yazılır.</param>
+public record TripStatusRequest(TripStatus Status, DateTime? OccurredAt = null, string? Note = null, string? ReceivedBy = null,
+    string? ProblemReason = null);
 
 public record TripQuery : ListQuery
 {
@@ -92,7 +101,28 @@ public record TripQuery : ListQuery
     public bool? HasDeliveryDocument { get; init; }
     /// <summary>U-ETDS hazırlığı eksik olan, henüz teslim edilmemiş seferler (iptal ve eski kayıtlar sayılmaz).</summary>
     public bool? UetdsMissing { get; init; }
+    /// <summary>Taşıma şekli (büyük/küçük harf farkı gözetmeden tam eşleşme).</summary>
+    public string? TransportMode { get; init; }
+    /// <summary>Dorse / kasa tipi (büyük/küçük harf farkı gözetmeden tam eşleşme).</summary>
+    public string? TrailerType { get; init; }
+    /// <summary>İptal/sorun nedeni girilmiş (true) ya da girilmemiş (false) seferler.</summary>
+    public bool? HasProblem { get; init; }
 }
+
+/// <summary>Sevkiyat şablonu (sık tekrarlanan iş).</summary>
+public record TripTemplateDto(int Id, string Name, int? CustomerId, string? CustomerTitle, int? VehicleId, string? VehiclePlate,
+    int? DriverId, string? DriverName, string? LoadingCity, string? LoadingDistrict, string LoadingAddress, string? LoadingContact,
+    string? DeliveryCity, string? DeliveryDistrict, string DeliveryAddress, string? DeliveryContact,
+    string? CargoType, decimal? CargoWeightKg, int? CargoQuantity, string? CargoUnit, string? TransportMode, string? TrailerType,
+    decimal? SalePrice, decimal? VehicleCost, string? PaymentTerms, string? Description, int UseCount, DateTime? LastUsedAt, DateTime CreatedAt);
+
+/// <summary>Şablon kaydı: ya bir seferden (TripId) ya da alanlardan. Ad boşsa "Müşteri · A → B" yazılır.</summary>
+public record TripTemplateSaveRequest(string? Name = null, int? TripId = null, int? CustomerId = null, int? VehicleId = null, int? DriverId = null,
+    string? LoadingCity = null, string? LoadingDistrict = null, string? LoadingAddress = null, string? LoadingContact = null,
+    string? DeliveryCity = null, string? DeliveryDistrict = null, string? DeliveryAddress = null, string? DeliveryContact = null,
+    string? CargoType = null, decimal? CargoWeightKg = null, int? CargoQuantity = null, string? CargoUnit = null,
+    string? TransportMode = null, string? TrailerType = null, decimal? SalePrice = null, decimal? VehicleCost = null,
+    string? PaymentTerms = null, string? Description = null);
 
 /// <summary>Müşterinin daha önce kullanılmış bir yükleme / teslim adresi (kaç seferde geçtiğiyle).</summary>
 public record TripAddressHint(string Address, string? City, string? Contact, int Count);

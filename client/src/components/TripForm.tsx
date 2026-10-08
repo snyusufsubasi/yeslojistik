@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AlertTriangle, Copy, FileText, History, MapPin, Sparkles, Trash2 } from 'lucide-react'
+import { AlertTriangle, BookmarkPlus, FileText, History, MapPin, Repeat2, Sparkles, Trash2, TriangleAlert } from 'lucide-react'
 import { useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,7 +12,7 @@ function MissingHint({ show, to, text }: { show: boolean; to: string; text: stri
 }
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage, get, openPdf, post } from '../api/client'
-import type { CustomerRisk, CustomerSummary, Driver, Trip, TripAddressHint, TripEvent, TripHints, TripStatus, Vehicle } from '../api/types'
+import type { CustomerRisk, CustomerSummary, Driver, Trip, TripAddressHint, TripEvent, TripHints, TripStatus, TripTemplate, Vehicle } from '../api/types'
 import { applyServerErrors, idField, money, nullify, optStr, req } from '../lib/forms'
 import { date, dateTime, tl, todayIso } from '../lib/format'
 import { crud, useLookup, useSave } from '../lib/hooks'
@@ -22,7 +22,7 @@ import { Badge, Button, Card, Field, Modal, Tabs } from './ui'
 import { useIsNewUi } from '../lib/uiMode'
 import { useToast } from './Toast'
 import { FormSelect } from './FormSelect'
-import { ControlledSmartField } from './SmartField'
+import { ControlledSmartField, SmartField } from './SmartField'
 import { CustomerForm } from './CustomerForm'
 import { SupplierForm } from './SupplierForm'
 import { VehicleForm } from './VehicleForm'
@@ -31,6 +31,7 @@ import { AuditLogTable } from './AuditLog'
 import { useAuth } from '../lib/auth'
 import { AmountInput, DateQuick, MoreFields, Section } from './Inputs'
 import { CommissionFields, DocumentFields, LocationFields, MarginSummary, VatFields } from './TripTermsFields'
+import { emptyOps } from '../lib/tripTemplate'
 import { emptyTerms, termsSchema, termsToApi, termsToForm, type TermsForm } from '../lib/tripTerms'
 import { emptyUetds, uetdsApplies, uetdsFieldPath, uetdsSchema, uetdsToApi, uetdsToForm, type UetdsForm } from '../lib/tripUetds'
 import { UETDS_READINESS } from '../lib/features'
@@ -75,13 +76,14 @@ const schema = z.object({
   jobRequestId: z.number().nullable().optional(),
   terms: termsSchema,
   uetds: uetdsSchema,
+  ops: z.object({ transportMode: optStr, trailerType: optStr, problemReason: optStr, problemNote: optStr }),
 }).refine((v) => !v.deliveryDate || v.deliveryDate >= v.loadingDate, {
   path: ['deliveryDate'], message: 'Teslim tarihi yükleme tarihinden önce olamaz.',
 })
 
 type FormValues = z.infer<typeof schema>
+export type TripFormDefaults = Partial<FormValues>
 const api = crud<Trip, FormValues>('trips')
-
 /** Hata olunca ilgili katlanır bölümü açmak için: koşul (terms) alanlarının hangi bölümde durduğu. */
 const commissionTermKeys = ['commission', 'commissionAccountId', 'commissionStatus', 'commissionInvoiced', 'commissionVatIncluded',
   'extraCharge', 'extraChargeInvoiced', 'extraChargeVatIncluded', 'extraChargeTaxNo', 'extraChargeTitle', 'driverBonus'] as const
@@ -101,8 +103,10 @@ function SubGroup({ title, hint, children }: { title: string; hint?: string; chi
   )
 }
 
-export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: {
+export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf, fromTemplate }: {
   trip: Trip | null; onClose: () => void; defaults?: Partial<FormValues>; onDelete?: (trip: Trip) => void
+  /** Şablondan açıldıysa şablonun adı (başlıkta görünür). */
+  fromTemplate?: string
   /** Düzenlenen seferin kopyasıyla yeni sefer formu açar. */
   onCopy?: (trip: Trip) => void
   /** Yeni sefer bu seferden kopyalanır (tarih bugüne alınır). */
@@ -134,6 +138,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       carrierInvoiceNo: trip.carrierInvoiceNo ?? '', carrierInvoiceDate: trip.carrierInvoiceDate ?? '',
       jobRequestId: trip.jobRequestId ?? null,
       terms: termsToForm(trip.terms), uetds: uetdsToForm(trip.uetds),
+      ops: { transportMode: trip.ops?.transportMode ?? '', trailerType: trip.ops?.trailerType ?? '',
+        problemReason: trip.ops?.problemReason ?? '', problemNote: trip.ops?.problemNote ?? '' },
     } : copyOf ? {
       customerId: copyOf.customerId, vehicleId: copyOf.vehicleId, driverId: copyOf.driverId,
       loadingAddress: copyOf.loadingAddress, deliveryAddress: copyOf.deliveryAddress,
@@ -146,7 +152,9 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       carrierInvoiceNo: '', carrierInvoiceDate: '',
       jobRequestId: null,
       terms: termsToForm(copyOf.terms, false), uetds: { ...uetdsToForm(copyOf.uetds), loadingTime: '' },
-    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds }, ...defaults },
+      // Tekrarla: taşıma şekli ve dorse tipi gelir; iptal/sorun nedeni yeni sevkiyata taşınmaz.
+      ops: { ...emptyOps, transportMode: copyOf.ops?.transportMode ?? '', trailerType: copyOf.ops?.trailerType ?? '' },
+    } : { loadingDate: todayIso(), deliveryDate: '', description: '', loadingCity: '', deliveryCity: '', carrierSupplierId: null, jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds }, ops: { ...emptyOps }, ...defaults },
   })
 
   // Pratikortam "İş Ekle"deki gibi: aynı işten birden çok sevkiyat (kopya sayısı) ve kaydettikten sonra formu açık tutma.
@@ -155,8 +163,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
   const setKeepOpen = (on: boolean) => { setKeepOpenState(on); try { localStorage.setItem('yes.tripKeepOpen', on ? '1' : '0') } catch { /* gizli pencere */ } }
   const count = trip ? 1 : Math.min(20, Math.max(1, Math.trunc(copies) || 1))
   const save = useSave(async (v: FormValues) => {
-    const { terms, uetds, ...rest } = v
-    const body = { ...nullify(rest), terms: termsToApi(terms), uetds: uetdsToApi(uetds) } as unknown as FormValues
+    const { terms, uetds, ops, ...rest } = v
+    const body = { ...nullify(rest), terms: termsToApi(terms), uetds: uetdsToApi(uetds), ops: nullify(ops) } as unknown as FormValues
     if (trip) return api.update(trip.id, body)
     let last: Trip | undefined
     for (let i = 0; i < count; i++) last = await api.create(body)
@@ -172,7 +180,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
         vehicleId: undefined, driverId: undefined, loadingAddress: '', deliveryAddress: '', description: '', loadingCity: '', deliveryCity: '',
         vehicleCost: undefined, salePrice: undefined, customerReference: '', cargoType: '', cargoWeightKg: null, cargoQuantity: null, cargoUnit: '',
         trailerPlate: '', loadingContact: '', deliveryContact: '', carrierSupplierId: null, carrierInvoiceNo: '', carrierInvoiceDate: '',
-        jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds } } as unknown as FormValues)
+        jobRequestId: null, terms: { ...emptyTerms }, uetds: { ...emptyUetds }, ops: { ...emptyOps } } as unknown as FormValues)
       setCopies(1)
     },
     onError: (e) => applyServerErrors(e, setError),
@@ -180,6 +188,11 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
 
   const statusMut = useSave((s: TripStatus) => post<Trip>(`/trips/${trip!.id}/status`, { status: s }),
     { invalidate: ['trips', 'vehicles', 'suppliers'], success: 'Sevkiyat durumu güncellendi.', onSuccess: onClose })
+  // İptal: nedeni sorulur (zaman çizelgesine ve sevkiyatın "iptal/sorun nedeni" alanına yazılır).
+  const [cancelling, setCancelling] = useState(false)
+  const [savingTemplate, setSavingTemplate] = useState(false)
+  // "Sorun bildir": iptal etmeden sorun nedeni girilir (gecikme, arıza…). İptal edilmiş ya da nedeni olan sevkiyatta açık gelir.
+  const [problemOpen, setProblemOpen] = useState(() => trip?.status === 'Cancelled' || !!trip?.ops?.problemReason)
 
   const cost = useWatch({ control, name: 'vehicleCost' })
   const price = useWatch({ control, name: 'salePrice' })
@@ -463,10 +476,36 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
       <LocationFields register={termsRegister} errors={errors as FieldErrors<TermsForm>} />
     </SubGroup>
   </>)
+  const opsFields = (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Field label="Taşıma Şekli" error={errors.ops?.transportMode?.message}>
+        <ControlledSmartField control={control} name="ops.transportMode" field="transportMode" label="Taşıma Şekli" chips={4} maxLength={60}
+          placeholder="Komple, parsiyel…" />
+      </Field>
+      <Field label="Dorse / Kasa Tipi" error={errors.ops?.trailerType?.message}>
+        <ControlledSmartField control={control} name="ops.trailerType" field="trailerType" label="Dorse / Kasa Tipi" chips={4} maxLength={60}
+          placeholder="Tenteli, frigorifik…" />
+      </Field>
+    </div>
+  )
+  const problemBlock = trip && problemOpen && (
+    <div className="mb-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4" role="group" aria-label="İptal / sorun">
+      <div className="flex items-center gap-2 text-[0.875rem] font-semibold text-amber-900">
+        <TriangleAlert className="size-4" />{trip.status === 'Cancelled' ? 'İptal nedeni' : 'Sorun bildirimi'}
+        <span className="font-normal text-amber-800">Kaydedince durum geçmişine kim/ne zaman bilgisiyle yazılır.</span>
+      </div>
+      <Field label="İptal / Sorun Nedeni" error={errors.ops?.problemReason?.message}>
+        <ControlledSmartField control={control} name="ops.problemReason" field="tripProblemReason" label="İptal / Sorun Nedeni" chips={5} maxLength={100} />
+      </Field>
+      <Field label="Sorun Açıklaması" error={errors.ops?.problemNote?.message}>
+        <textarea className="input min-h-14" placeholder="Ne oldu, ne yapıldı?" maxLength={500} {...register('ops.problemNote')} />
+      </Field>
+    </div>
+  )
   const otherError = commissionError || detailsError
 
   return (
-    <Modal open onClose={onClose} title={trip ? 'Sevkiyat Düzenle' : copyOf ? 'Sevkiyat Oluştur (kopya)' : 'Sevkiyat Oluştur'} size={isNew ? 'xl' : 'lg'}
+    <Modal open onClose={onClose} title={trip ? 'Sevkiyat Düzenle' : copyOf ? 'Sevkiyat Oluştur (tekrar)' : fromTemplate ? `Sevkiyat Oluştur (şablon: ${fromTemplate})` : 'Sevkiyat Oluştur'} size={isNew ? 'xl' : 'lg'}
       footer={tab === 'info' ? <>
         {trip && (
           <div className="mr-auto flex flex-wrap gap-2">
@@ -475,7 +514,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             )}
             <Button variant="secondary" icon={<FileText className="size-4" />} title="Araçta taşınacak, teslimde imzalatılacak belge (fiyat içermez)"
               onClick={() => openPdf(`/trips/${trip.id}/waybill`, `S-${String(trip.id).padStart(6, '0')}.pdf`).catch((e) => toast.error(errorMessage(e)))}>Sevk Belgesi</Button>
-            {onCopy && <Button variant="secondary" icon={<Copy className="size-4" />} title="Aynı müşteri, güzergah ve fiyatla yeni sevkiyat" onClick={() => onCopy(trip)}>Kopyala</Button>}
+            {onCopy && <Button variant="secondary" icon={<Repeat2 className="size-4" />} title="Aynı müşteri, güzergâh, araç ve yükle yeni sevkiyat (tarih bugün; durum ve belge numaraları boş)" onClick={() => onCopy(trip)}>Tekrarla</Button>}
+            {can('operations') && <Button variant="ghost" icon={<BookmarkPlus className="size-4" />} title="Bu sevkiyatı şablon olarak kaydet: sonra “Şablondan” ile tek tıkla yeni sevkiyat" onClick={() => setSavingTemplate(true)}>Şablon olarak kaydet</Button>}
           </div>
         )}
         {!trip && (
@@ -500,7 +540,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
             { value: 'info', label: 'Sevkiyat Bilgileri' },
             { value: 'files', label: 'Dosyalar / Fotoğraflar' },
             { value: 'tracking', label: 'Takip ve Rota' },
-            { value: 'history' as const, label: 'Geçmiş' },
+            { value: 'history' as const, label: 'Durum geçmişi' },
           ]} />
         </div>
       )}
@@ -519,12 +559,16 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           {trip.nextStatuses.length > 0 && <span className="text-sm text-slate-600">Değiştir:</span>}
           {trip.nextStatuses.map((s) => (
             <Button key={s} size="sm" variant={s === 'Cancelled' ? 'danger' : s === 'Delivered' ? 'success' : 'secondary'}
-              loading={statusMut.isPending && statusMut.variables === s} onClick={() => statusMut.mutate(s)}>
+              loading={statusMut.isPending && statusMut.variables === s} onClick={() => (s === 'Cancelled' ? setCancelling(true) : statusMut.mutate(s))}>
               {tripStatusAction[s]}
             </Button>
           ))}
+          {!problemOpen && trip.status !== 'Cancelled' && (
+            <Button size="sm" variant="ghost" icon={<TriangleAlert className="size-4" />} onClick={() => setProblemOpen(true)}>Sorun bildir</Button>
+          )}
         </div>
       )}
+      {problemBlock}
       {UETDS_READINESS && trip && uetdsApplies(trip) && <UetdsPanel tripId={trip.id} onFixTrip={focusUetdsField} />}
       {trip?.isLegacy && (
         <p className="mb-3 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">
@@ -551,6 +595,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
               <Card title="Araç, şoför ve fiyat">
                 <div className="space-y-4">
                   {vehicleDriverFields}
+                  {opsFields}
                   {carrierBlock}
                   {priceFields}
                   {routeHintBlock}
@@ -580,6 +625,7 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
           <div className="grid gap-4 md:grid-cols-2">
             {vehicleDriverFields}
           </div>
+          {opsFields}
           {carrierBlock}
         </Section>
 
@@ -602,6 +648,8 @@ export function TripForm({ trip, onClose, defaults, onDelete, onCopy, copyOf }: 
         )}
       </form>
       </div>
+      {cancelling && trip && <CancelTripDialog trip={trip} onClose={() => setCancelling(false)} onDone={onClose} />}
+      {savingTemplate && trip && <SaveTemplateDialog trip={trip} onClose={() => setSavingTemplate(false)} />}
       {quickDriver !== null && <QuickDriverDialog initialName={quickDriver} supplierId={rented ? vehicle.data?.supplierId ?? null : null} onClose={() => setQuickDriver(null)}
         onSaved={(d) => { drivers.refetch(); setValue('driverId', d.id, { shouldValidate: true }) }} />}
       {newCustomer !== null && <CustomerForm customer={null} initialTitle={newCustomer} onClose={() => setNewCustomer(null)}
@@ -641,25 +689,76 @@ function QuickDriverDialog({ supplierId, onClose, onSaved, initialName = '' }: {
   )
 }
 
-/** Seferin durum zaman çizelgesi: ne zaman, kim, nereden (panel / şoför uygulaması / Excel). */
-function TripTimeline({ tripId }: { tripId: number }) {
+/** İptal: neden seçilir (zorunlu), isterse not; sunucu nedeni sevkiyata ve zaman çizelgesine yazar. */
+function CancelTripDialog({ trip, onClose, onDone }: { trip: Trip; onClose: () => void; onDone: () => void }) {
+  const [reason, setReason] = useState('')
+  const [note, setNote] = useState('')
+  const cancel = useSave(() => post<Trip>(`/trips/${trip.id}/status`, { status: 'Cancelled', problemReason: reason.trim(), note: note.trim() || null }), {
+    invalidate: ['trips', 'vehicles', 'suppliers', 'options'], success: 'Sevkiyat iptal edildi.', onSuccess: () => { onClose(); onDone() },
+  })
+  return (
+    <Modal open onClose={onClose} title="Sevkiyatı iptal et" size="sm"
+      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button>
+        <Button variant="danger" write disabled={!reason.trim()} loading={cancel.isPending} onClick={() => cancel.mutate(undefined)}>İptal et</Button></>}>
+      <div className="space-y-4">
+        <p className="text-[0.9375rem] text-slate-700">İptal nedeni raporlarda ve durum geçmişinde görünür; şoföre bildirim gider.</p>
+        <Field label="İptal Nedeni" required>
+          <SmartField field="tripProblemReason" label="İptal Nedeni" value={reason} onChange={setReason} chips={6} maxLength={100} autoFocus />
+        </Field>
+        <Field label="Not"><textarea className="input min-h-14" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="İsteğe bağlı" /></Field>
+      </div>
+    </Modal>
+  )
+}
+
+/** "Şablon olarak kaydet": müşteri, güzergâh, araç, yük, taşıma şekli ve fiyat saklanır (tarih, durum, belge numaraları saklanmaz). */
+export function SaveTemplateDialog({ trip, onClose }: { trip: Trip; onClose: () => void }) {
+  const from = trip.loadingCity || trip.loadingAddress
+  const to = trip.deliveryCity || trip.deliveryAddress
+  const [name, setName] = useState(`${trip.customerTitle} · ${from} → ${to}`.slice(0, 100))
+  const save = useSave(() => post<TripTemplate>('/trip-templates', { tripId: trip.id, name: name.trim() || null }), {
+    invalidate: ['trip-templates'], success: 'Şablon kaydedildi. “Şablondan” düğmesiyle yeni sevkiyat açabilirsiniz.', onSuccess: onClose,
+  })
+  return (
+    <Modal open onClose={onClose} title="Şablon olarak kaydet" size="sm"
+      footer={<><Button variant="secondary" onClick={onClose}>Vazgeç</Button>
+        <Button write disabled={!name.trim()} loading={save.isPending} onClick={() => save.mutate(undefined)}>Şablonu kaydet</Button></>}>
+      <div className="space-y-3">
+        <Field label="Şablon adı" required><input className="input" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoFocus /></Field>
+        <p className="text-[0.875rem] text-muted">Müşteri, güzergâh, araç-şoför, yük, taşıma şekli, dorse tipi ve fiyat saklanır. Tarih, durum ve belge numaraları her seferinde yeniden girilir.</p>
+      </div>
+    </Modal>
+  )
+}
+
+const eventKindLabel = { created: 'Kayıt açıldı', status: 'Durum değişti', problem: 'Sorun bildirildi' } as const
+
+/** Seferin durum zaman çizelgesi: kayıt açılışı, her durum değişikliği ve sorun bildirimi; ne zaman, kim, nereden (panel / şoför / aktarım). */
+export function TripTimeline({ tripId }: { tripId: number }) {
   const { data } = useQuery({ queryKey: ['trips', 'events', tripId], queryFn: () => get<TripEvent[]>(`/trips/${tripId}/events`) })
   if (!data) return null
   if (data.length === 0) return <p className="text-sm text-slate-500">Henüz durum kaydı yok.</p>
   return (
-    <ol className="relative space-y-3 border-l-2 border-slate-200 pl-4" aria-label="Durum geçmişi">
-      {data.map((e) => (
-        <li key={e.id}>
-          <span className="absolute -left-[7px] mt-1.5 size-3 rounded-full bg-brand-600" />
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={tripStatusTone[e.status]}>{tripStatusLabel[e.status]}</Badge>
-            <span className="text-sm font-medium text-slate-800">{dateTime(e.occurredAt)}</span>
-          </div>
-          <div className="text-sm text-slate-500">
-            {[e.userName, tripEventSourceLabel[e.source]].filter(Boolean).join(' · ')}{e.note && ` · ${e.note}`}
-          </div>
-        </li>
-      ))}
+    <ol className="relative ml-1.5 space-y-4 border-l-2 border-line pl-5" aria-label="Durum geçmişi">
+      {data.map((e, i) => {
+        const kind = e.kind ?? 'status'
+        return (
+          <li key={`${e.id}-${i}`} className="relative">
+            <span className={`absolute -left-[27px] top-1 size-3 rounded-full ring-4 ring-white ${kind === 'problem' ? 'bg-amber-500' : kind === 'created' ? 'bg-slate-400' : 'bg-brand-600'}`} />
+            <div className="flex flex-wrap items-center gap-2">
+              {kind === 'created' ? <span className="text-[0.875rem] font-semibold text-fg">Kayıt açıldı</span>
+                : kind === 'problem' ? <span className="inline-flex items-center gap-1 text-[0.875rem] font-semibold text-amber-800"><TriangleAlert className="size-4" />Sorun bildirildi</span>
+                : <Badge tone={tripStatusTone[e.status]}>{tripStatusLabel[e.status]}</Badge>}
+              <span className="text-sm tabular-nums text-slate-700">{dateTime(e.occurredAt)}</span>
+            </div>
+            <div className="text-sm text-slate-500">
+              {[e.userName ?? 'Bilinmiyor', tripEventSourceLabel[e.source]].filter(Boolean).join(' · ')}
+              {e.note && e.note !== 'Kayıt oluşturuldu' && <span className="block text-slate-700">{e.note.replace(/^Sorun \/ iptal nedeni: /, '')}</span>}
+            </div>
+            <span className="sr-only">{eventKindLabel[kind]}</span>
+          </li>
+        )
+      })}
     </ol>
   )
 }

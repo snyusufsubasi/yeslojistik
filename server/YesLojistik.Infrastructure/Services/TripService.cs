@@ -46,7 +46,8 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             t.CargoQuantity, t.CargoUnit, t.TrailerPlate, t.LoadingCity, t.DeliveryCity, t.LoadingContact, t.DeliveryContact,
             t.CarrierSupplierId, r.CarrierTitle, t.CarrierInvoiceNo, t.CarrierInvoiceDate, t.ReceivedBy, t.DeliveredAt, r.Ownership,
             t.JobRequestId, t.IsLegacy, TermsOf(t), r.CommissionAccountName, r.InvoiceDate, t.CreatedBy,
-            new TripUetds(t.LoadingDistrict, t.DeliveryDistrict, t.LoadingTime, t.ConsigneeTitle, t.ConsigneeTaxNumber));
+            new TripUetds(t.LoadingDistrict, t.DeliveryDistrict, t.LoadingTime, t.ConsigneeTitle, t.ConsigneeTaxNumber),
+            Ops: new TripOps(t.TransportMode, t.TrailerType, t.ProblemReason, t.ProblemNote));
     }
 
     private static TripTerms TermsOf(Trip t) => new(t.SaleVatRate, t.SaleWithholdingTenths, t.CostVatRate, t.CostWithholdingTenths,
@@ -86,6 +87,17 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             query = query.Where(t => t.Status == TripStatus.Delivered && !t.DeliveryDocumentApproved);
         if (q.CommissionStatus is { } cst) query = query.Where(t => t.Commission > 0 && t.CommissionStatus == cst);
         if (!string.IsNullOrWhiteSpace(q.CustomerGroup)) query = query.Where(t => t.CustomerGroup == q.CustomerGroup.Trim());
+        if (!string.IsNullOrWhiteSpace(q.TransportMode))
+        {
+            var mode = q.TransportMode.Trim().ToLower();
+            query = query.Where(t => t.TransportMode != null && t.TransportMode.ToLower() == mode);
+        }
+        if (!string.IsNullOrWhiteSpace(q.TrailerType))
+        {
+            var type = q.TrailerType.Trim().ToLower();
+            query = query.Where(t => t.TrailerType != null && t.TrailerType.ToLower() == type);
+        }
+        if (q.HasProblem is { } hp) query = hp ? query.Where(t => t.ProblemReason != null) : query.Where(t => t.ProblemReason == null);
         if (q.CarrierInvoiced is { } ci)
             query = ci ? query.Where(t => t.CarrierInvoiceNo != null) : query.Where(t => t.CarrierSupplierId != null && t.CarrierInvoiceNo == null);
         if (q.Ownership is { } own)
@@ -237,7 +249,8 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         await ApplyVehicleDefaultsAsync(trip, req, ct);
         db.Trips.Add(trip);
         await db.SaveChangesAsync(ct);
-        AddEvent(trip.Id, TripStatus.Planned, TripEventSource.Panel);
+        AddEvent(trip.Id, TripStatus.Planned, TripEventSource.Panel, note: CreatedNote);
+        if (trip.ProblemReason != null) AddEvent(trip.Id, trip.Status, TripEventSource.Panel, note: ProblemEventNote(trip));
         await db.SaveChangesAsync(ct);
         await notifier.NotifyAsync(trip.DriverId, trip.Id, "Yeni sefer atandı",
             DriverNotifier.Route(trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate), ct);
@@ -254,7 +267,11 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         var oldVehicleId = trip.VehicleId;
         var oldDriverId = trip.DriverId;
         var oldRoute = (trip.LoadingAddress, trip.DeliveryAddress, trip.LoadingDate);
+        var oldProblem = (trip.ProblemReason, trip.ProblemNote);
         Apply(trip, req);
+        // İptal/sorun nedeni girildi ya da değişti: zaman çizelgesine kim/ne zaman yazılır.
+        if (trip.ProblemReason != null && (trip.ProblemReason, trip.ProblemNote) != oldProblem)
+            AddEvent(trip.Id, trip.Status, TripEventSource.Panel, note: ProblemEventNote(trip));
         await ApplyVehicleDefaultsAsync(trip, req, ct);
         if (oldVehicleId != trip.VehicleId && TripStatusRules.OccupiesVehicle(trip.Status))
         {
@@ -283,7 +300,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
 
     /// <param name="occurredAt">Olayın gerçek zamanı (şoför çevrimdışıyken). Gelecekteki ya da 7 günden eski saatler yok sayılır.</param>
     public async Task<TripDto> ChangeStatusAsync(int id, TripStatus status, TripEventSource source, DateTime? occurredAt, string? note,
-        CancellationToken ct = default, string? receivedBy = null)
+        CancellationToken ct = default, string? receivedBy = null, string? problemReason = null)
     {
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id, ct) ?? throw new NotFoundException("Sefer bulunamadı.");
         if (!TripStatusRules.CanTransition(trip.Status, status))
@@ -293,6 +310,12 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
         if (TripStatusRules.OccupiesVehicle(status))
             await EnsureVehicleUsableAsync(trip.VehicleId, ct);
 
+        // İptalde (ya da sorun bildiriminde) neden seferin alanına yazılır ve olayın notunda görünür.
+        if (Clean(problemReason) is { } reason)
+        {
+            trip.ProblemReason = reason.Length > 100 ? reason[..100] : reason;
+            note = string.Join(" · ", new[] { $"Neden: {trip.ProblemReason}", Clean(note) }.Where(x => x != null));
+        }
         ApplyStatus(trip, status, source, ClampOccurredAt(occurredAt), note, receivedBy);
         await db.SaveChangesAsync(ct);
         await SyncVehicleStatusAsync(trip.VehicleId, ct);
@@ -443,9 +466,28 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
 
     public async Task<List<TripEventDto>> EventsAsync(int id, CancellationToken ct = default)
     {
-        if (!await db.Trips.AnyAsync(t => t.Id == id, ct)) throw new NotFoundException("Sefer bulunamadı.");
-        return await db.TripEvents.AsNoTracking().Where(e => e.TripId == id).OrderBy(e => e.OccurredAt).ThenBy(e => e.Id)
-            .Select(e => new TripEventDto(e.Id, e.Status, e.OccurredAt, e.RecordedAt, e.UserName, e.Source, e.Note)).ToListAsync(ct);
+        var trip = await db.Trips.AsNoTracking().Where(t => t.Id == id)
+            .Select(t => new { t.CreatedAt, t.CreatedBy, t.IsLegacy, t.ExternalRef }).FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException("Sefer bulunamadı.");
+        var events = await db.TripEvents.AsNoTracking().Where(e => e.TripId == id).OrderBy(e => e.OccurredAt).ThenBy(e => e.Id)
+            .Select(e => new TripEventDto(e.Id, e.Status, e.OccurredAt, e.RecordedAt, e.UserName, e.Source, e.Note, "status")).ToListAsync(ct);
+        events = events.Select(e => e.Note != null && e.Note.StartsWith(ProblemPrefix) ? e with { Kind = "problem" } : e).ToList();
+        // İlk olay her zaman "kayıt açıldı": panelden açılan seferde ilk "Planlandı" olayı, eski kayıtlarda kaydın oluşturulma anı.
+        var first = events.FirstOrDefault();
+        if (first is { Status: TripStatus.Planned, Source: TripEventSource.Panel } && (first.Note == null || first.Note == CreatedNote))
+            events[0] = first with { Note = CreatedNote, Kind = "created" };
+        else
+            events.Insert(0, new TripEventDto(0, TripStatus.Planned, trip.CreatedAt, trip.CreatedAt, trip.CreatedBy,
+                trip.IsLegacy || trip.ExternalRef != null ? TripEventSource.Import : TripEventSource.Panel, CreatedNote, "created"));
+        return events;
+    }
+
+    public const string CreatedNote = "Kayıt oluşturuldu";
+    private const string ProblemPrefix = "Sorun / iptal nedeni: ";
+    private static string ProblemEventNote(Trip t)
+    {
+        var text = ProblemPrefix + t.ProblemReason + (t.ProblemNote != null ? $" · {t.ProblemNote}" : "");
+        return text.Length > 500 ? text[..500] : text;
     }
 
     public static DateTime ClampOccurredAt(DateTime? occurredAt)
@@ -498,6 +540,14 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             t.LoadingTime = u.LoadingTime;
             t.ConsigneeTitle = Clean(u.ConsigneeTitle);
             t.ConsigneeTaxNumber = Clean(u.ConsigneeTaxNumber);
+        }
+        // Operasyon alanları: göndermeyen istemciler (eski sürüm, şoför uygulaması) mevcut değerleri silmez.
+        if (r.Ops is { } o)
+        {
+            t.TransportMode = Clean(o.TransportMode);
+            t.TrailerType = Clean(o.TrailerType);
+            t.ProblemReason = Clean(o.ProblemReason);
+            t.ProblemNote = t.ProblemReason == null ? null : Clean(o.ProblemNote);
         }
         t.LoadingContact = Clean(r.LoadingContact);
         t.DeliveryContact = Clean(r.DeliveryContact);

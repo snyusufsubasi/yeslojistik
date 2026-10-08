@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<TripEvent> TripEvents => Set<TripEvent>();
+    public DbSet<TripTemplate> TripTemplates => Set<TripTemplate>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<DriverSettlement> DriverSettlements => Set<DriverSettlement>();
     public DbSet<Staff> Staff => Set<Staff>();
@@ -227,6 +228,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser? 
             e.Property(x => x.ExternalRef).HasMaxLength(40);
             e.HasIndex(x => x.ExternalRef);
             e.HasIndex(x => x.CustomerGroup);
+            e.Property(x => x.TransportMode).HasMaxLength(60);
+            e.Property(x => x.TrailerType).HasMaxLength(60);
+            e.Property(x => x.ProblemReason).HasMaxLength(100);
+            e.Property(x => x.ProblemNote).HasMaxLength(500);
+        });
+        b.Entity<TripTemplate>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(100);
+            e.HasOne(x => x.Customer).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Vehicle).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Driver).WithMany().OnDelete(DeleteBehavior.SetNull);
+            e.Property(x => x.LoadingCity).HasMaxLength(30);
+            e.Property(x => x.DeliveryCity).HasMaxLength(30);
+            e.Property(x => x.LoadingDistrict).HasMaxLength(60);
+            e.Property(x => x.DeliveryDistrict).HasMaxLength(60);
+            e.Property(x => x.LoadingAddress).HasMaxLength(300);
+            e.Property(x => x.DeliveryAddress).HasMaxLength(300);
+            e.Property(x => x.LoadingContact).HasMaxLength(150);
+            e.Property(x => x.DeliveryContact).HasMaxLength(150);
+            e.Property(x => x.CargoType).HasMaxLength(100);
+            e.Property(x => x.CargoWeightKg).HasPrecision(12, 2);
+            e.Property(x => x.CargoUnit).HasMaxLength(20);
+            e.Property(x => x.TransportMode).HasMaxLength(60);
+            e.Property(x => x.TrailerType).HasMaxLength(60);
+            e.Property(x => x.PaymentTerms).HasMaxLength(100);
+            e.Property(x => x.Description).HasMaxLength(1000);
+            e.HasIndex(x => x.CustomerId);
         });
         b.Entity<JobRequest>(e =>
         {

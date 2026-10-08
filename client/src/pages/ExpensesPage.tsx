@@ -25,6 +25,7 @@ import { crud, useDebounce, useListTotals, useLookup, usePaged, usePage, useSave
 import { approvalStatusLabel, expenseCategoryLabel, expenseVatDefault, options, vatRateChoices } from '../lib/labels'
 import { ImportButton } from '../components/ImportDialog'
 import { useAuth } from '../lib/auth'
+import { DateInput } from '../components/DateInput'
 
 const schema = z.object({
   category: z.enum(['Fuel', 'Maintenance', 'Toll', 'DriverAllowance', 'DriverAdvance', 'Tire', 'Insurance', 'Tax', 'Other']),
@@ -296,8 +297,8 @@ function ExpenseForm({ expense, defaultTripId, onClose }: { expense: Expense | n
               </Field>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Dönem başlangıcı" hint="Kira, sigorta gibi dönemsel giderlerde"><input className="input" type="date" value={details.periodStart ?? ''} onChange={setD('periodStart')} /></Field>
-              <Field label="Dönem bitişi"><input className="input" type="date" value={details.periodEnd ?? ''} onChange={setD('periodEnd')} /></Field>
+              <Field label="Dönem başlangıcı" hint="Kira, sigorta gibi dönemsel giderlerde"><DateInput value={details.periodStart ?? ''} onChange={(v) => setD('periodStart')({ target: { value: v } })} /></Field>
+              <Field label="Dönem bitişi"><DateInput value={details.periodEnd ?? ''} onChange={(v) => setD('periodEnd')({ target: { value: v } })} /></Field>
             </div>
             <Field label="Fiş / fatura görseli" hint={expense?.hasReceipt ? 'Bu giderin fişi var; yeni dosya seçerseniz yerine geçer.' : 'Fotoğraf veya PDF (en fazla 10 MB).'}>
               <input className="input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />

@@ -7,7 +7,7 @@ import { tl } from '../lib/format'
 import { ControlledChoice } from './Choice'
 import { ControlledSmartField } from './SmartField'
 import { Field } from './ui'
-import { AmountInput } from './Inputs'
+import { AmountInput, DateQuick } from './Inputs'
 import { commissionNet, emptyTerms, extraCost, grossAmount, margin, type TermsForm, type TermsValues } from '../lib/tripTerms'
 
 type AnyControl = Control<TermsForm>
@@ -145,7 +145,8 @@ export function DocumentFields({ control, register, errors, groups, lead, carrie
         <Field label="Teslim Evrak No" error={e.deliveryDocumentNo?.message}><input className="input" {...register('terms.deliveryDocumentNo')} /></Field>
         <Field label="İrsaliye No" error={e.waybillNo?.message}><input className="input" {...register('terms.waybillNo')} /></Field>
         <Field label="e-İrsaliye No" error={e.eWaybillNo?.message}><input className="input" {...register('terms.eWaybillNo')} /></Field>
-        <Field label="e-İrsaliye Tarihi" error={e.eWaybillDate?.message}><input className="input" type="date" {...register('terms.eWaybillDate')} /></Field>
+        <Field label="e-İrsaliye Tarihi" error={e.eWaybillDate?.message}>{control ? <DateQuick control={control} name="terms.eWaybillDate" quick="none" />
+          : <input className="input" placeholder="gg.aa.yyyy" {...register('terms.eWaybillDate')} />}</Field>
         <Field label="Teslim Eden" error={e.deliveredBy?.message}><input className="input" {...register('terms.deliveredBy')} /></Field>
         <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="size-4" {...register('terms.deliveryDocumentApproved')} />Teslim evrakı onaylandı</label>
       </div>

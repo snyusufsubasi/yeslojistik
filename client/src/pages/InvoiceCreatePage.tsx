@@ -11,6 +11,7 @@ import { useLookup, useSave } from '../lib/hooks'
 import { tripStatusLabel, tripStatusTone, vatExemptionOptions, vatRateChoices, withholdingOptions } from '../lib/labels'
 import { autoWithholding } from '../lib/tripTerms'
 import { ChoiceChips } from '../components/Choice'
+import { DateInput } from '../components/DateInput'
 
 const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100
 /** Tevkifat seçiminde "Otomatik" (sunucuya boş gider, tutara ve müşteriye göre belirlenir). */
@@ -181,9 +182,9 @@ export default function InvoiceCreatePage() {
 
         <Card title="Fatura Bilgileri" className="h-fit xl:sticky xl:top-20">
           <div className="space-y-3">
-            <Field label="Fatura Tarihi" required><input className="input" type="date" value={invDate} onChange={(e) => setInvDate(e.target.value)} /></Field>
+            <Field label="Fatura Tarihi" required><DateInput value={invDate} onChange={setInvDate} /></Field>
             <Field group label="Vade">
-              <input className="input" type="date" aria-label="Vade Tarihi" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <DateInput aria-label="Vade Tarihi" value={dueDate} onChange={setDueDate} />
               <div className="mt-2">
                 <ChoiceChips label="Vade günü" value={dueDays.find((d) => addDaysIso(invDate, d) === dueDate) ?? ''}
                   onChange={(d) => setDueDate(addDaysIso(invDate, d))}

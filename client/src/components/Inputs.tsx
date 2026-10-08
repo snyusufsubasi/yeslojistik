@@ -5,6 +5,7 @@ import { useController, type Control, type FieldPath, type FieldValues } from 'r
 import { amountWords, parseAmount } from '../lib/amountWords'
 import { todayIso } from '../lib/format'
 import { pageHelp } from '../lib/pageHelp'
+import { DateInput } from './DateInput'
 
 const moneyFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 
@@ -88,8 +89,7 @@ export function DateQuick<F extends FieldValues>({ control, name, quick = 'today
     : []
   return (
     <div className="space-y-2">
-      <input id={id} ref={ref} name={name} type="date" className="input" disabled={disabled}
-        value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
+      <DateInput id={id} inputRef={ref} name={name} disabled={disabled} value={value} onChange={onChange} onBlur={onBlur} />
       {chips.length > 0 && !disabled && (
         <div className="flex flex-wrap gap-1.5">
           {chips.map((c) => (

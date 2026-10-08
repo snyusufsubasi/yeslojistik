@@ -18,6 +18,7 @@ export type OptionField =
   | 'cargoType' | 'cargoUnit' | 'paymentTerms' | 'customerGroup'
   | 'vehicleType' | 'fuelType' | 'vehicleCapacity'
   | 'expenseTitle' | 'expenseCategoryName' | 'expenseRejectionReason'
+  | 'transportMode' | 'trailerType' | 'tripProblemReason'
 
 const o = (value: string, hint?: string): SectorOption => (hint ? { value, hint } : { value })
 
@@ -79,7 +80,21 @@ export const expenseRejectionReasonOptions: SectorOption[] = [
   o('Firmaya ait değil'), o('Onaysız harcama'), o('Yanlış araç / sevkiyat'),
 ]
 
-/** Sevkiyat iptal / sorun nedeni. Panelde henüz neden alanı yok; alan eklendiğinde bu liste kullanılır. */
+/** Taşıma şekli (sevkiyat): yükün nasıl taşındığı. */
+export const transportModeOptions: SectorOption[] = [
+  o('Komple (FTL)', 'aracın tamamı tek müşteriye'), o('Parsiyel (LTL)', 'araç paylaşımlı'), o('Ekspres', 'acil / aynı gün'),
+  o('Frigorifik (soğuk zincir)'), o('Proje / gabari dışı', 'ağır, geniş yük'), o('Konteyner', "20' / 40'"),
+  o('Tehlikeli madde (ADR)'), o('Dökme'), o('Dönüş yükü'), o('Dağıtım (çok noktalı)'), o('Yurt dışı (TIR karnesi)'),
+]
+
+/** Dorse / kasa tipi (sevkiyat): aracın taşıdığı kasa. */
+export const trailerTypeOptions: SectorOption[] = [
+  o('Tenteli'), o('Frigorifik'), o('Açık kasa'), o('Kapalı kasa'), o('Lowbed'), o('Damperli'), o('Tanker'),
+  o('Konteyner taşıyıcı', 'şasi'), o('Mega', 'yüksek hacim'), o('Jumbo'), o('Silobas'), o('Platform / sal'), o('Oto taşıyıcı'),
+  o('Yana açılır (perdeli)'), o('Kamyon kasası'),
+]
+
+/** Sevkiyat iptal / sorun nedeni (iptalde ve "Sorun bildir"de seçilir). */
 export const tripProblemReasonOptions: SectorOption[] = [
   o('Müşteri iptal etti'), o('Yük hazır değil'), o('Araç bulunamadı'), o('Araç arızası'), o('Kaza'), o('Şoför gelmedi / değişti'),
   o('Fiyat anlaşmazlığı'), o('Hava / yol kapanması'), o('Evrak eksik'), o('Hasar / eksik teslim'), o('Alıcı teslim almadı'),
@@ -97,6 +112,9 @@ export const sectorOptions: Record<OptionField, SectorOption[]> = {
   expenseTitle: expenseTitleOptions,
   expenseCategoryName: expenseCategoryNameOptions,
   expenseRejectionReason: expenseRejectionReasonOptions,
+  transportMode: transportModeOptions,
+  trailerType: trailerTypeOptions,
+  tripProblemReason: tripProblemReasonOptions,
 }
 
 /** Firma kullanımı + sektör listesi birleşimi (sunucudan gelen satır). */

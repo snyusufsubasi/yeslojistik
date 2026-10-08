@@ -32,3 +32,5 @@ services:
       # Canlıda demo veri yüklenmez (gerçek veriye sahte müşteri karışmasın).
       - key: Seed__SampleData
         value: "false"
+      # Gece yedeği (GitHub Actions, secret'sız OIDC girişi): YALNIZ kendi panelimizde, Render panelinden elle
+      # Backup__GitHubRepository=snyusufsubasi/yeslojistik yazılır. Müşteri kurulumlarında boş kalır (bkz. docs/YEDEK.md).

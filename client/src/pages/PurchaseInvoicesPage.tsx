@@ -205,7 +205,7 @@ function PurchaseInvoiceForm({ invoice, onClose, supplierId: fixedSupplier }: { 
           <Field group label="Tür">
             <ControlledChoice control={control} name="kind" label="Fatura türü" variant="chips" options={options(purchaseInvoiceKindLabel)} />
           </Field>
-          <Field label="Vade Tarihi" hint="Boşsa tedarikçinin vade günü kullanılır." error={errors.dueDate?.message}><input className="input" type="date" {...register('dueDate')} /></Field>
+          <Field label="Vade Tarihi" hint="Boşsa tedarikçinin vade günü kullanılır." error={errors.dueDate?.message}><DateQuick control={control} name="dueDate" quick="none" /></Field>
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-navy-900">Tutarlar</span>

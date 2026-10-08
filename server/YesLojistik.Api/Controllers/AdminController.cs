@@ -18,7 +18,7 @@ namespace YesLojistik.Api.Controllers;
 [Route("api/admin")]
 [AllowAnonymous]
 public class AdminController(BackupService backups, AppDbContext db, IConfiguration config, MaintenanceState maintenance,
-    IHostApplicationLifetime lifetime, ILogger<AdminController> log) : ControllerBase
+    IHostApplicationLifetime lifetime, ILogger<AdminController> log, GitHubOidcValidator oidc) : ControllerBase
 {
     public const string TokenHeader = "X-Backup-Token";
 
@@ -32,13 +32,17 @@ public class AdminController(BackupService backups, AppDbContext db, IConfigurat
         return given.Length > 0 && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(given), Encoding.UTF8.GetBytes(expected));
     }
 
-    private string Actor => User.Identity?.Name ?? "otomatik yedek";
+    private string Actor => User.Identity?.Name ?? (Request.Headers.ContainsKey(GitHubOidcValidator.Header) ? "otomatik yedek (GitHub)" : "otomatik yedek");
+
+    /// <summary>Yedek indirme: yönetici, yedek anahtarı ya da GitHub Actions kimlik belgesi (yalnız ayarlı depo ve yedek iş akışı).</summary>
+    private async Task<bool> BackupAuthorizedAsync(CancellationToken ct) =>
+        Authorized() || await oidc.ValidateAsync(Request.Headers[GitHubOidcValidator.Header].ToString(), ct);
 
     [EnableRateLimiting("backup")]
     [HttpGet("backup")]
     public async Task Backup([FromQuery] bool files = true, CancellationToken ct = default)
     {
-        if (!Authorized()) { Response.StatusCode = StatusCodes.Status401Unauthorized; return; }
+        if (!await BackupAuthorizedAsync(ct)) { Response.StatusCode = StatusCodes.Status401Unauthorized; return; }
         var name = $"yeslojistik-{Clock.Now:yyyyMMdd-HHmm}{(files ? "" : "-dosyasiz")}.dump";
         Response.ContentType = "application/octet-stream";
         Response.Headers.ContentDisposition = $"attachment; filename=\"{name}\"";
@@ -52,7 +56,7 @@ public class AdminController(BackupService backups, AppDbContext db, IConfigurat
     [HttpGet("stats")]
     public async Task<ActionResult<DataStats>> Stats(CancellationToken ct)
     {
-        if (!Authorized()) return Unauthorized();
+        if (!await BackupAuthorizedAsync(ct)) return Unauthorized();
         return await backups.StatsAsync(ct);
     }
 

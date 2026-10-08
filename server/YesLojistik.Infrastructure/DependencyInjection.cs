@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<BalanceService>();
         services.AddScoped<UetdsService>();
         services.AddScoped<TripService>();
+        services.AddScoped<TripTemplateService>();
         services.AddScoped<JobRequestService>();
         services.AddScoped<InvoiceService>();
         services.AddScoped<DataResetService>();

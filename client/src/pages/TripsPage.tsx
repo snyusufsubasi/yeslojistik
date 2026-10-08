@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ClipboardCopy, Columns3, Copy, Download, Eye, FileSpreadsheet, Trash2, FileCheck2, FileText, HandCoins, List, Pencil, Plus, Printer, Rows3, SlidersHorizontal, StepForward, TableProperties, Truck, X } from 'lucide-react'
-import { download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
-import { ExportButton, PdfButton } from '../components/Exports'
-import type { BulkResult, Dashboard, Driver, JobRequest, Trip, TripStatus, TripTotals, VehicleOwnership } from '../api/types'
+import { BookmarkPlus, ClipboardCopy, Columns3, Download, Eye, FileSpreadsheet, Trash2, FileCheck2, FileText, HandCoins, LayoutTemplate, List, Pencil, Plus, Printer, Repeat2, Rows3, SlidersHorizontal, StepForward, TableProperties, TriangleAlert, X } from 'lucide-react'
+import { del, download, errorMessage, get, openPdf, post, withQuery } from '../api/client'
+import type { BulkResult, Dashboard, Driver, JobRequest, Trip, TripStatus, TripTemplate, TripTotals, VehicleOwnership } from '../api/types'
 import { DataTable, SearchBox, type Column } from '../components/DataTable'
 import { useRowSelection } from '../lib/selection'
 import { BulkSupplierPaymentDialog } from '../components/BulkDialogs'
 import { useBulkResult } from '../lib/useBulkResult'
-import { Badge, Button, Card, ConfirmDialog, IconButton, Loading, PageHeader, Select, DateFilter } from '../components/ui'
+import { Badge, Button, Card, ConfirmDialog, IconButton, Loading, Modal, PageHeader, Select, DateFilter } from '../components/ui'
 import { SearchSelect } from '../components/FormSelect'
-import { ImportButton, ImportDialog } from '../components/ImportDialog'
+import { ImportDialog } from '../components/ImportDialog'
 import { useIsNewUi } from '../lib/uiMode'
 import { MoreMenu, RowMenu, type MenuItem } from '../components/shell/Menu'
 import { FilterBar, FilterPanel, type FilterChip } from '../components/shell/FilterPanel'
 import { DetailDrawer } from '../components/shell/DetailDrawer'
 import { MobileCards } from '../components/shell/MobileCards'
 import { FirstUse } from '../components/FirstUse'
-import { TripForm } from '../components/TripForm'
+import { SaveTemplateDialog, TripForm, TripTimeline, type TripFormDefaults } from '../components/TripForm'
+import { templateToDefaults } from '../lib/tripTemplate'
 import { TripBoard } from '../components/TripBoard'
 import clsx from 'clsx'
 import { useAuth } from '../lib/auth'
@@ -30,6 +30,7 @@ import { UETDS_READINESS } from '../lib/features'
 import { useToast } from '../components/Toast'
 import { PlateBadge } from '../components/ui'
 import { SumStrip, type SumItem } from '../components/SumStrip'
+import { trailerTypeOptions, transportModeOptions, type SectorOption } from '../lib/sectorOptions'
 
 const api = crud<Trip, unknown>('trips')
 
@@ -72,9 +73,14 @@ export default function TripsPage() {
   const [invoiceNo, setInvoiceNo] = useState(textParam('invoiceNo'))
   // U-ETDS hazırlığı eksik olanlar (yalnızca hazırlık kontrolü; Bakanlığa bir şey gönderilmez).
   const [uetdsMissing, setUetdsMissing] = useState<'missing' | ''>(UETDS_READINESS && params.get('uetds') === 'missing' ? 'missing' : '')
-  const advancedCount = [preset, group, commission, documentState, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo, uetdsMissing].filter(Boolean).length
-  // Seyrek kullanılan süzgeçler "Ayrıntılı süzgeç" altında; adreste dolu bir tanesi varsa açık gelir.
-  const [showMore, setShowMore] = useState(advancedCount > 0)
+  // Faz 1 alanları: taşıma şekli, dorse/kasa tipi, iptal/sorun nedeni olanlar.
+  const [transportMode, setTransportMode] = useState(textParam('transport'))
+  const [trailerType, setTrailerType] = useState(textParam('trailer'))
+  const [problem, setProblem] = useState<YesNo | ''>(oneOf<YesNo>(params.get('problem'), ['yes', 'no']))
+  const advancedCount = [preset, group, commission, documentState, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo, uetdsMissing,
+    transportMode, trailerType, problem].filter(Boolean).length
+  // Süzgeç kutuları katlanır: liste ekranın üstünde başlasın. Açık süzgeçler çip olarak görünür.
+  const [showMore, setShowMore] = useState(false)
   const toast = useToast()
   const [sort, setSort] = useState({ key: 'loadingDate', desc: true })
   const [editing, setEditing] = useState<Trip | 'new' | null>(null)
@@ -86,6 +92,10 @@ export default function TripsPage() {
   const setDetail = (on: boolean) => { setDetailState(on); try { localStorage.setItem('yes.tripColumns', on ? 'detail' : 'summary') } catch { /* gizli pencere */ } }
   useOpenNewFromUrl(() => setEditing('new'))
   const [copyOf, setCopyOf] = useState<Trip | null>(null)
+  // Şablon: "Şablondan" seçici, seçilen şablonun formu ve "Şablon olarak kaydet".
+  const [pickingTemplate, setPickingTemplate] = useState(false)
+  const [template, setTemplate] = useState<{ id: number; name: string; defaults: TripFormDefaults } | null>(null)
+  const [templateOf, setTemplateOf] = useState<Trip | null>(null)
   const [sourceRequest, setSourceRequest] = useState<JobRequest | null>(null)
   const [deleting, setDeleting] = useState<Trip | null>(null)
   const isNew = useIsNewUi()
@@ -96,8 +106,8 @@ export default function TripsPage() {
   const vehicles = useLookup('vehicles')
 
   // Yazılan süzgeçler (arama, yer, numaralar) yazmayı bitirince uygulanır.
-  const [debounced, debouncedGroup, dLoading, dDelivery, dTripNo, dDocNo, dInvoiceNo] = JSON.parse(
-    useDebounce(JSON.stringify([search, group, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo]))) as string[]
+  const [debounced, debouncedGroup, dLoading, dDelivery, dTripNo, dDocNo, dInvoiceNo, dTransport, dTrailer] = JSON.parse(
+    useDebounce(JSON.stringify([search, group, loadingPlace, deliveryPlace, tripNo, docNo, invoiceNo, transportMode, trailerType]))) as string[]
   const yesNo = (v: YesNo | '') => (v === 'yes' ? true : v === 'no' ? false : undefined)
   const filters = { search: debounced, status, customerId, from, to,
     invoiced: invoiced === 'yes' ? true : invoiced === 'no' ? false : undefined, missingCarrierInvoice: invoiced === 'carrier' || undefined,
@@ -105,14 +115,16 @@ export default function TripsPage() {
     commissionStatus: preset === 'commission' ? 'Pending' : undefined,
     carrierSupplierId: supplierId, vehicleId, ownership, hasCommission: yesNo(commission), hasDeliveryDocument: yesNo(documentState),
     loadingPlace: dLoading || undefined, deliveryPlace: dDelivery || undefined, tripNo: dTripNo || undefined,
-    deliveryDocumentNo: dDocNo || undefined, invoiceNo: dInvoiceNo || undefined, uetdsMissing: uetdsMissing === 'missing' || undefined }
+    deliveryDocumentNo: dDocNo || undefined, invoiceNo: dInvoiceNo || undefined, uetdsMissing: uetdsMissing === 'missing' || undefined,
+    transportMode: dTransport || undefined, trailerType: dTrailer || undefined, hasProblem: yesNo(problem) }
   const [page, setPage] = usePage([filters])
   // Seçim sayfalar arasında korunur, filtre değişince boşalır.
   const selection = useRowSelection<Trip>((t) => t.id, [filters])
 
   // Süzgeçleri adrese yaz (yalnızca değişince; diğer parametrelere dokunmadan).
   const urlState = JSON.stringify({ q: debounced, status, customerId, from, to, invoiced, list: preset, group: debouncedGroup, supplierId, vehicleId,
-    ownership, commission, document: documentState, loading: dLoading, delivery: dDelivery, tripNo: dTripNo, docNo: dDocNo, invoiceNo: dInvoiceNo, uetds: uetdsMissing })
+    ownership, commission, document: documentState, loading: dLoading, delivery: dDelivery, tripNo: dTripNo, docNo: dDocNo, invoiceNo: dInvoiceNo, uetds: uetdsMissing,
+    transport: dTransport, trailer: dTrailer, problem })
   useEffect(() => {
     const next = new URLSearchParams(params)
     next.delete('carrierInvoice')
@@ -126,6 +138,7 @@ export default function TripsPage() {
     setSearch(''); setStatus(''); setCustomerId(''); setFrom(''); setTo(''); setInvoiced(''); setPreset(''); setGroup('')
     setSupplierId(''); setVehicleId(''); setOwnership(''); setCommission(''); setDocumentState('')
     setLoadingPlace(''); setDeliveryPlace(''); setTripNo(''); setDocNo(''); setInvoiceNo(''); setUetdsMissing('')
+    setTransportMode(''); setTrailerType(''); setProblem('')
   }
   // Gerçekten hiç sefer yoksa (yalnız süzgeç/sekme yüzünden boş değilse) ilk adım kartı gösterilir.
   const dash = useQuery({ queryKey: ['dashboard'], queryFn: () => get<Dashboard>('/dashboard'), staleTime: 30_000 })
@@ -216,7 +229,8 @@ export default function TripsPage() {
     { label: 'Detay', icon: <Eye />, onClick: () => openDetail(t) },
     ...(can('operations') ? [
       { label: 'Düzenle', icon: <Pencil />, write: true, onClick: () => setEditing(t) },
-      { label: 'Kopyala (aynısından yeni sevkiyat)', icon: <Copy />, write: true, onClick: () => { setCopyOf(t); setEditing('new') } },
+      { label: 'Tekrarla (aynısından yeni sevkiyat)', icon: <Repeat2 />, write: true, onClick: () => { setCopyOf(t); setEditing('new') } },
+      { label: 'Şablon olarak kaydet', icon: <BookmarkPlus />, onClick: () => setTemplateOf(t) },
       { label: 'Şoför bilgisini kopyala', icon: <ClipboardCopy />, onClick: () => copyDriver(t) },
       { label: 'Sil', icon: <Trash2 />, write: true, danger: true, onClick: () => setDeleting(t) },
     ] : []),
@@ -267,7 +281,7 @@ export default function TripsPage() {
     { key: 'route', header: 'Güzergah', className: 'whitespace-normal! min-w-40', render: (t) => <span>{route(t.loadingCity, t.loadingAddress)} <span className="text-slate-500">→</span> {route(t.deliveryCity, t.deliveryAddress)}{t.customerReference && <span className="block text-sm text-slate-500">Ref: {t.customerReference}</span>}</span> },
     { key: 'vehicle', header: 'Araç / Şoför', sortKey: 'vehicle', render: (t) => <span><PlateBadge plate={t.vehiclePlate} />{t.carrierSupplierTitle && <span className="ml-1"><Badge tone="purple">Kiralık</Badge></span>}<span className="block text-sm text-slate-500">{t.carrierSupplierTitle ?? t.driverName}</span></span> },
     ...(detail ? detailColumns : []),
-    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{!detail && <InvoiceInfo t={t} />}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}{UETDS_READINESS && !isNew && <UetdsBadge missing={t.uetdsMissing} />}</> },
+    { key: 'status', header: 'Durum', sortKey: 'status', render: (t) => <><Badge tone={tripStatusTone[t.status]}>{tripStatusLabel[t.status]}</Badge>{!detail && <InvoiceInfo t={t} />}{t.isLegacy && <span className="mt-0.5 block"><Badge tone="gray">Eski kayıt</Badge></span>}<ProblemInfo t={t} /></> },
     { key: 'price', header: 'Tutar / Kâr', sortKey: 'salePrice', align: 'right', render: (t) => <>{tl(t.salePrice)}<span className={`block text-sm ${t.profit < 0 ? 'text-bad' : 'text-good'}`}><Word>Kâr </Word>{tl(t.profit)}</span>
       {!detail && t.terms && t.terms.commission > 0 && <span className="block text-sm text-slate-500"><Word>Kom. </Word>{tl(t.terms.commission)}<Word> · {commissionStatusLabel[t.terms.commissionStatus]}</Word></span>}</> },
     ...(detail ? detailMoneyColumns : []),
@@ -284,6 +298,7 @@ export default function TripsPage() {
           {isNew ? (
             <RowMenu items={rowMenuItems(t)} />
           ) : (<>
+            <IconButton write label="Tekrarla (aynısından yeni sevkiyat)" onClick={() => { setCopyOf(t); setEditing('new') }}><Repeat2 className="size-4" /></IconButton>
             <IconButton label="Şoför bilgisini kopyala" onClick={() => copyDriver(t)}><ClipboardCopy className="size-4" /></IconButton>
             <IconButton write label="Düzenle" onClick={() => setEditing(t)}><Pencil className="size-4" /></IconButton>
           </>)}
@@ -321,6 +336,10 @@ export default function TripsPage() {
           <input className="input" aria-label="Fatura no" placeholder="Fatura no (satış ya da taşeron)" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
           {UETDS_READINESS && <Select aria-label="U-ETDS hazırlığı" value={uetdsMissing} onChange={setUetdsMissing} placeholder="U-ETDS: tüm sevkiyatlar"
             options={[{ value: 'missing' as const, label: 'U-ETDS eksik olanlar' }]} />}
+          <OptionInput ariaLabel="Taşıma şekli" placeholder="Taşıma şekli (komple, parsiyel…)" value={transportMode} onChange={setTransportMode} list={transportModeOptions} />
+          <OptionInput ariaLabel="Dorse / kasa tipi" placeholder="Dorse / kasa tipi" value={trailerType} onChange={setTrailerType} list={trailerTypeOptions} />
+          <Select aria-label="İptal / sorun" value={problem} onChange={setProblem} placeholder="Sorun: tümü"
+            options={[{ value: 'yes' as const, label: 'İptal / sorun nedeni olanlar' }, { value: 'no' as const, label: 'Sorunsuz olanlar' }]} />
   </>
   const label = (list: { value: number; label: string }[] | undefined, id: number | '') => list?.find((x) => x.value === id)?.label ?? String(id)
   const lookupOpts = (d?: { id: number; label: string }[]) => d?.map((x) => ({ value: x.id, label: x.label }))
@@ -341,6 +360,9 @@ export default function TripsPage() {
     docNo && { label: `Evrak no: ${docNo}`, onClear: () => setDocNo('') },
     invoiceNo && { label: `Fatura no: ${invoiceNo}`, onClear: () => setInvoiceNo('') },
     uetdsMissing && { label: 'U-ETDS eksik olanlar', onClear: () => setUetdsMissing('') },
+    transportMode && { label: `Taşıma: ${transportMode}`, onClear: () => setTransportMode('') },
+    trailerType && { label: `Dorse: ${trailerType}`, onClear: () => setTrailerType('') },
+    problem && { label: problem === 'yes' ? 'İptal / sorunlu' : 'Sorunsuz', onClear: () => setProblem('') },
   ].filter(Boolean) as FilterChip[]
   // Tarih aralığı zaman düğmelerinden biri değilse çip olarak görünür.
   if ((from || to) && !periods.some((p) => p.from === from && p.to === to))
@@ -371,37 +393,21 @@ export default function TripsPage() {
 
   return (
     <>
-      <PageHeader title="Sevkiyatlar" subtitle="Sevkiyatların takibi, durum güncelleme, fatura ve kazanç"
-        actions={isNew ? <>
+      <PageHeader title="Sevkiyatlar"
+        actions={<>
+          {can('operations') && <Button write variant="secondary" icon={<LayoutTemplate className="size-4" />} onClick={() => setPickingTemplate(true)}
+            title="Kayıtlı şablondan (sık tekrarlanan iş) yeni sevkiyat">Şablondan</Button>}
           <MoreMenu items={[
             { label: 'Excel (liste)', icon: <Download />, onClick: () => download('/trips/export', query, 'sevkiyatlar.xlsx').catch(fail) },
             { label: 'Sevkiyat PDF', icon: <Printer />, onClick: () => openPdf(withQuery('/trips/pdf', filters), 'sevkiyat-listesi.pdf').catch(fail) },
             { label: 'İcmal (PDF)', icon: <FileText />, onClick: () => openPdf(withQuery('/trips/summary', { ...filters, format: 'pdf' }), 'icmal.pdf').catch(fail) },
-            { label: detail ? 'Kısa liste (özet sütunlar)' : 'Ayrıntılı liste (tüm sütunlar)', icon: <TableProperties />, onClick: () => setDetail(!detail), hidden: view !== 'list' },
+            { label: detail ? 'Kısa liste (özet sütunlar)' : 'Ayrıntılı liste (tüm sütunlar)', icon: <TableProperties />, onClick: () => setDetail(!detail), hidden: view !== 'list' || !isNew },
             { label: "Excel'den aktar", icon: <FileSpreadsheet />, write: true, perm: 'operations', onClick: () => setImportOpen(true) },
             { label: 'Fatura Kes', icon: <FileText />, write: true, perm: 'accounting', onClick: () => navigate('/faturalar/yeni') },
           ]} />
-          {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Sevkiyat Ekle</Button>}
-        </> : <>
-          <ExportButton url="/trips/export" params={query} fileName="sevkiyatlar.xlsx" />
-          <PdfButton url="/trips/pdf" params={filters} fileName="sevkiyat-listesi.pdf" label="Sevkiyat PDF" icon={<Printer className="size-4" />} />
-          <PdfButton url="/trips/summary" params={{ ...filters, format: 'pdf' }} fileName="icmal.pdf" label="İcmal" icon={<FileText className="size-4" />} />
-          {can('operations') && <ImportButton entity="trips" />}
-          {can('accounting') && <Button write variant="secondary" onClick={() => navigate('/faturalar/yeni')}>Fatura Kes</Button>}
-          {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Yeni Sevkiyat</Button>}
+          {can('operations') && <Button write icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>{isNew ? 'Sevkiyat Ekle' : 'Yeni Sevkiyat'}</Button>}
         </>} />
-      {(!isNew || view === 'board') && <div className="mb-4 flex flex-wrap items-center gap-2">
-        {viewToggle}
-        {view === 'list' && !isNew && <div role="radiogroup" aria-label="Sütunlar" className={clsx(segmentGroup, 'hidden sm:inline-flex')}>
-          {([[false, 'Özet', Rows3], [true, 'Detay', TableProperties]] as const).map(([on, label, Icon]) => (
-            <button key={label} role="radio" aria-checked={detail === on} onClick={() => setDetail(on)}
-              title={on ? 'Fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunları' : 'Kısa liste'}
-              className={segment(detail === on)}>
-              <Icon />{label}
-            </button>
-          ))}
-        </div>}
-      </div>}
+      {view === 'board' && <div className="mb-3 flex flex-wrap items-center gap-2">{viewToggle}</div>}
       {view === 'board' && <>
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-3xl">
           <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />
@@ -414,34 +420,42 @@ export default function TripsPage() {
         <FilterBar search={<SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres, sevkiyat no..." />}
           quick={<>{viewToggle}{periodButtons}</>} chips={chips} onOpen={() => setFilterOpen(true)} onClearAll={anyFilter ? clearFilters : undefined} />
       </div>}
-      {view === 'list' && <Card bodyClassName="p-0" title={isNew ? undefined : 'Sevkiyat Listesi'} icon={isNew ? undefined : <Truck className="size-4" />}
-        actions={isNew ? undefined : <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />}>
-        {!isNew && <><div className="border-b border-slate-100 px-4 pt-4 pb-3 sm:px-6">
-          <div role="radiogroup" aria-label="Dönem" className={clsx(segmentGroup, 'flex w-full sm:inline-flex sm:w-auto')}>
-            {periods.map((p) => {
-              const on = from === p.from && to === p.to
-              return (
-                <button key={p.label} role="radio" aria-checked={on} onClick={() => { setFrom(p.from); setTo(p.to) }}
-                  className={segment(on, 'flex-1 px-2 sm:flex-none sm:px-4')}>
-                  {p.label}
-                </button>
-              )
-            })}
+      {view === 'list' && !isNew && <div className="mb-3 space-y-2.5">
+        {/* Tek satır araç çubuğu: arama, dönem, görünüm, sütunlar, süzgeç. Süzgeç kutuları katlanır; açık süzgeçler çip olarak görünür. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchBox value={search} onChange={setSearch} placeholder="Müşteri, plaka, şoför, adres..." />
+          {periodButtons}
+          {viewToggle}
+          <div role="radiogroup" aria-label="Sütunlar" className={clsx(segmentGroup, 'hidden sm:inline-flex')}>
+            {([[false, 'Özet', Rows3], [true, 'Detay', TableProperties]] as const).map(([on, label, Icon]) => (
+              <button key={label} role="radio" aria-checked={detail === on} onClick={() => setDetail(on)}
+                title={on ? 'Fatura başlığı, ürün, açıklama, komisyon, masraf, fatura bilgisi ve kaydı giren sütunları' : 'Kısa liste'}
+                className={segment(detail === on)}>
+                <Icon />{label}
+              </button>
+            ))}
           </div>
+          <button type="button" aria-expanded={showMore} aria-controls="trip-filters" onClick={() => setShowMore(!showMore)}
+            className={clsx('inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3.5 text-[0.875rem] font-semibold',
+              showMore ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-white text-fg hover:bg-surface-2')}>
+            <SlidersHorizontal className="size-4" /> Süzgeç{chips.length > 0 && ` (${chips.length})`}
+          </button>
+          {anyFilter && <button type="button" onClick={clearFilters}
+            className="inline-flex min-h-10 items-center gap-1 px-1.5 text-[0.8125rem] font-medium text-muted underline underline-offset-2 hover:text-fg"><X className="size-4" />Süzgeci temizle</button>}
         </div>
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-100 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
-          {mainFilters}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 sm:px-6 py-2">
-          <Button size="sm" variant="ghost" icon={<SlidersHorizontal />} aria-expanded={showMore} aria-controls="trip-more-filters" onClick={() => setShowMore(!showMore)}>
-            Ayrıntılı süzgeç{advancedCount > 0 && ` (${advancedCount})`}
-          </Button>
-          {anyFilter && <Button size="sm" variant="ghost" icon={<X />} onClick={clearFilters}>Süzgeci temizle</Button>}
-        </div>
-        {showMore && <div id="trip-more-filters" className="grid grid-cols-1 gap-3 border-b border-slate-100 bg-slate-50/50 px-4 sm:px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
-          {moreFilters}
+        {showMore && <div id="trip-filters" className="grid grid-cols-1 gap-3 rounded-2xl border border-line bg-white p-4 shadow-xs sm:grid-cols-2 lg:grid-cols-4">
+          {mainFilters}{moreFilters}
         </div>}
-        </>}
+        {!showMore && chips.length > 0 && <div className="flex flex-wrap items-center gap-1.5" aria-label="Açık süzgeçler">
+          {chips.map((c) => (
+            <button key={c.label} type="button" onClick={c.onClear} title="Süzgeci kaldır"
+              className="inline-flex items-center gap-1 rounded-lg border border-accent/30 bg-accent-soft px-2 py-1 text-[0.8125rem] font-medium text-accent hover:bg-accent/15">
+              {c.label} <X className="size-3.5" aria-label="kaldır" />
+            </button>
+          ))}
+        </div>}
+      </div>}
+      {view === 'list' && <Card bodyClassName="p-0">
         {totals && totals.count > 0 && <EarningsStrip totals={totals} showMoney={can('accounting')}
           onUninvoiced={() => { setInvoiced('no'); setStatus('Delivered') }} />}
         <DataTable columns={columns} rows={data?.items} loading={isFetching} error={error} onRetry={refetch} rowKey={(t) => t.id}
@@ -489,8 +503,9 @@ export default function TripsPage() {
           ))} />
       </Card>}
 
-      {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? sourceRequest?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
-        defaults={sourceRequest ? {
+      {editing && <TripForm key={editing === 'new' ? `new-${copyOf?.id ?? sourceRequest?.id ?? ''}-${template?.id ?? ''}` : editing.id} trip={editing === 'new' ? null : editing} copyOf={copyOf}
+        fromTemplate={editing === 'new' && !copyOf ? template?.name : undefined}
+        defaults={template && !sourceRequest ? template.defaults : sourceRequest ? {
           jobRequestId: sourceRequest.id, customerId: sourceRequest.customerId,
           loadingAddress: sourceRequest.loadingAddress, deliveryAddress: sourceRequest.deliveryAddress,
           loadingDate: sourceRequest.date, cargoType: sourceRequest.cargoType ?? '',
@@ -509,9 +524,12 @@ export default function TripsPage() {
             deliveryLatitude: sourceRequest.deliveryLatitude ?? null, deliveryLongitude: sourceRequest.deliveryLongitude ?? null,
           },
         } : undefined}
-        onClose={() => { setEditing(null); setCopyOf(null); setSourceRequest(null) }}
+        onClose={() => { setEditing(null); setCopyOf(null); setSourceRequest(null); setTemplate(null) }}
         onDelete={(t) => { setEditing(null); setDeleting(t) }}
-        onCopy={(t) => { setCopyOf(t); setEditing('new') }} />}
+        onCopy={(t) => { setTemplate(null); setCopyOf(t); setEditing('new') }} />}
+      {pickingTemplate && <TemplatePicker onClose={() => setPickingTemplate(false)}
+        onPick={(t) => { setPickingTemplate(false); setCopyOf(null); setTemplate({ id: t.id, name: t.name, defaults: templateToDefaults(t) as TripFormDefaults }); setEditing('new') }} />}
+      {templateOf && <SaveTemplateDialog trip={templateOf} onClose={() => setTemplateOf(null)} />}
       {advancing && <ConfirmDialog open title="Durumu ilerlet" danger={false} confirmText="Durumu ilerlet" loading={advanceMut.isPending}
         message={<AdvanceSummary trips={advancing} />} onClose={() => setAdvancing(null)} onConfirm={() => advanceMut.mutate(advancing.map((t) => t.id))} />}
       {paying && <BulkSupplierPaymentDialog tripIds={paying} onClose={() => setPaying(null)} onDone={selection.clear} />}
@@ -566,6 +584,7 @@ const detailTabs: { value: string; label: string }[] = [
   { value: 'ozet', label: 'Özet' },
   { value: 'evrak', label: 'Evrak' },
   { value: 'kazanc', label: 'Kazanç' },
+  { value: 'gecmis', label: 'Durum geçmişi' },
 ]
 
 /** Çekmecedeki etiket–değer satırı. */
@@ -597,6 +616,7 @@ function TripDetail({ trip: t, tab }: { trip: Trip; tab: string }) {
       {UETDS_READINESS && <DetailRow label="U-ETDS">{t.uetdsMissing == null ? <Empty /> : <UetdsBadge missing={t.uetdsMissing} />}</DetailRow>}
     </dl>
   )
+  if (tab === 'gecmis') return <TripTimeline tripId={t.id} />
   if (tab === 'kazanc') return (
     <dl className="text-[0.9375rem]">
       <DetailRow label="Satış">{tl(t.salePrice)}</DetailRow>
@@ -628,6 +648,10 @@ function TripDetail({ trip: t, tab }: { trip: Trip; tab: string }) {
       <DetailRow label="Tutar">{tl(t.salePrice)}</DetailRow>
       {(t.cargoType || t.cargoQuantity != null) && <DetailRow label="Yük">
         {t.cargoType ?? ''}{t.cargoQuantity != null && ` ${t.cargoQuantity.toLocaleString('tr-TR')} ${t.cargoUnit ?? ''}`.trimEnd()}{t.cargoWeightKg != null && ` · ${t.cargoWeightKg.toLocaleString('tr-TR')} kg`}</DetailRow>}
+      {t.ops?.transportMode && <DetailRow label="Taşıma şekli">{t.ops.transportMode}</DetailRow>}
+      {t.ops?.trailerType && <DetailRow label="Dorse / kasa">{t.ops.trailerType}</DetailRow>}
+      {t.ops?.problemReason && <DetailRow label={t.status === 'Cancelled' ? 'İptal nedeni' : 'Sorun'}>
+        <span className="font-medium text-warn">{t.ops.problemReason}</span>{t.ops.problemNote && <span className="block text-sm text-muted">{t.ops.problemNote}</span>}</DetailRow>}
       {t.description && <DetailRow label="Açıklama"><span className="whitespace-pre-line">{t.description}</span></DetailRow>}
     </dl>
   )
@@ -729,3 +753,66 @@ const segment = (on: boolean, pad = 'px-4') => clsx(pad, 'inline-flex min-h-8 it
 
 /** Tutar hücresindeki sözcük ("Kâr", "Gider"): hücre Overpass Mono olsa da yazı normal kalır, yalnız rakam mono. */
 const Word = ({ children }: { children: ReactNode }) => <span className="font-sans tracking-normal">{children}</span>
+
+/** İptal / sorun nedeni varsa durum hücresinde kısa uyarı satırı. */
+function ProblemInfo({ t }: { t: Trip }) {
+  if (!t.ops?.problemReason) return null
+  return <span className="mt-0.5 flex max-w-48 items-center gap-1 text-sm font-medium text-warn" title={t.ops.problemNote ?? undefined}>
+    <TriangleAlert className="size-3.5 shrink-0" /><span className="truncate">{t.ops.problemReason}</span></span>
+}
+
+/** Süzgeç kutusu: serbest yazı + sektör önerileri (datalist). */
+function OptionInput({ ariaLabel, placeholder, value, onChange, list }: { ariaLabel: string; placeholder: string; value: string; onChange: (v: string) => void; list: SectorOption[] }) {
+  const id = `opt-${ariaLabel.replace(/\W+/g, '-')}`
+  return <>
+    <input className="input" aria-label={ariaLabel} placeholder={placeholder} list={id} value={value} onChange={(e) => onChange(e.target.value)} />
+    <datalist id={id}>{list.map((o) => <option key={o.value} value={o.value} />)}</datalist>
+  </>
+}
+
+/** "Şablondan": kayıtlı şablonlar (sık kullanılan önce); seçince yeni sevkiyat formu dolu açılır. Şablon buradan silinebilir. */
+function TemplatePicker({ onClose, onPick }: { onClose: () => void; onPick: (t: TripTemplate) => void }) {
+  const [q, setQ] = useState('')
+  const list = useQuery({ queryKey: ['trip-templates'], queryFn: () => get<TripTemplate[]>('/trip-templates') })
+  const [deleting, setDeleting] = useState<TripTemplate | null>(null)
+  const use = useSave((t: TripTemplate) => post<TripTemplate>(`/trip-templates/${t.id}/use`, {}), { invalidate: ['trip-templates'], onSuccess: onPick })
+  const remove = useSave((t: TripTemplate) => del(`/trip-templates/${t.id}`), {
+    invalidate: ['trip-templates'], success: 'Şablon silindi.', onSuccess: () => setDeleting(null),
+  })
+  const needle = q.trim().toLocaleLowerCase('tr')
+  const rows = (list.data ?? []).filter((t) => !needle || [t.name, t.customerTitle, t.loadingCity, t.deliveryCity, t.loadingAddress, t.deliveryAddress]
+    .some((x) => x?.toLocaleLowerCase('tr').includes(needle)))
+  return (
+    <Modal open onClose={onClose} title="Şablondan yeni sevkiyat" size="md" guard={false}
+      footer={<Button variant="secondary" onClick={onClose}>Kapat</Button>}>
+      <div className="space-y-3">
+        <SearchBox value={q} onChange={setQ} placeholder="Şablon, müşteri, güzergâh ara..." />
+        {list.isLoading ? <Loading /> : rows.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-[0.9375rem] text-muted">
+            {list.data?.length ? 'Aramaya uyan şablon yok.' : <>Henüz şablon yok. Bir sevkiyatı açıp <b>“Şablon olarak kaydet”</b> deyin; sonra buradan tek tıkla yeni sevkiyat açılır.</>}
+          </div>
+        ) : (
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line" aria-label="Şablonlar">
+            {rows.map((t) => (
+              <li key={t.id} className="flex items-center gap-2 bg-white px-3 py-2.5 hover:bg-surface-2">
+                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => use.mutate(t)} disabled={use.isPending}>
+                  <span className="block truncate font-semibold text-fg">{t.name}</span>
+                  <span className="block truncate text-sm text-muted">
+                    {[t.customerTitle, `${t.loadingCity || t.loadingAddress} → ${t.deliveryCity || t.deliveryAddress}`, t.transportMode, t.trailerType,
+                      t.salePrice != null ? tl(t.salePrice) : null].filter(Boolean).join(' · ')}
+                  </span>
+                </button>
+                {t.useCount > 0 && <span className="shrink-0 text-[0.75rem] tabular-nums text-muted">{t.useCount} kez</span>}
+                <IconButton write label={`“${t.name}” şablonunu sil`} onClick={() => setDeleting(t)}><Trash2 className="size-4" /></IconButton>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <ConfirmDialog open={!!deleting} title="Şablonu sil" loading={remove.isPending} confirmText="Sil"
+        message={<>“{deleting?.name}” şablonu silinecek. Bu şablondan açılmış sevkiyatlar etkilenmez.</>}
+        onClose={() => setDeleting(null)} onConfirm={() => deleting && remove.mutate(deleting)} />
+      {use.error ? <p className="mt-2 text-sm text-bad">{errorMessage(use.error)}</p> : null}
+    </Modal>
+  )
+}
