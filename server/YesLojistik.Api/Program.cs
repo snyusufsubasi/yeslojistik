@@ -183,6 +183,8 @@ app.MapGet("/api/health", async (AppDbContext db, MaintenanceState maintenance) 
     await db.Database.CanConnectAsync()
         ? Results.Ok(new { status = "ok", version, commit, maintenance = maintenance.IsOn, redirectTo = app.Configuration["App:RedirectTo"] })
         : Results.StatusCode(503)).AllowAnonymous();
+// Uyanık tutma (GitHub Actions keepawake.yml) için: veritabanına DOKUNMAZ, böylece Neon boşta uyuyabilir.
+app.MapGet("/api/ping", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 if (bundledPanel) app.MapBundledPanel();
 
