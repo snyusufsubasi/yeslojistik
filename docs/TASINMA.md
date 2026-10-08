@@ -1,5 +1,14 @@
 # Sunucu taşınması (Render ücretsiz veritabanı 28 Ekim'de sona eriyor)
 
+> **Durum (8 Eki 2026): veritabanı Neon'a taşındı.** Canlı veritabanı artık **Neon Free** (proje `yeslojistik`,
+> Frankfurt, PostgreSQL 18). Render web servisi ücretsiz planda kalır ve Neon'a `ConnectionStrings__Default` ile bağlanır
+> (`Host=…;SSL Mode=Require;Timeout=30;Command Timeout=60` biçiminde; `DATABASE_URL`'den önce okunur).
+> Eski Render veritabanı 28 Ekim'e kadar yedek olarak durur, sonra kendiliğinden silinir; ona yazılmaz.
+> Geri dönüş (yalnız 28 Ekim'den önce): Render'da `ConnectionStrings__Default` silinir → uygulama yeniden `DATABASE_URL`'e (Render) bağlanır.
+> Neon ücretsiz plan: 1 GB alan, ayda 100 CU-saat; 5 dk boşta kalınca uyur (ilk sorgu birkaç saniye gecikebilir).
+> Bu yüzden uyanık tutma (`keepawake.yml`) veritabanına dokunmayan `/api/ping` adresini çağırır.
+> Yedek (`backup.yml`) değişmedi: sunucudan alınır; sunucu imajında PostgreSQL 18 istemcisi var, tatbikat 18 ile yapılır.
+
 Amaç: veri kaybı olmadan yeni sunucuya geçmek. Eski adres yönlendirici olarak kalır; müşterilere gönderilmiş takip linkleri ve eski sürüm mobil uygulamalar çalışmaya devam eder.
 
 ## Hazırlık (birkaç gün önce)

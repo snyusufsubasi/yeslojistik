@@ -7,6 +7,7 @@
 #  - Şifreleme: deploy/backup-public-key.asc açık anahtarıyla (özel anahtar depoda DEĞİL; sahibinde). BACKUP_PASSPHRASE tanımlıysa
 #    onunla simetrik şifrelenir. Depo herkese açık olduğundan yedek dosyası mutlaka şifreli yüklenir.
 #  - Adres: BACKUP_URL secret'ı yoksa https://yeslojistik.onrender.com.
+# Canlı veritabanı Neon PostgreSQL 18 (8 Eki 2026); sunucu pg_dump 18 ile yedekler, tatbikat da 18 ile yapılır.
 # Şifre çözme: gpg --import ozel-anahtar.asc && gpg -d yedek.dump.gpg > yedek.dump  →  pg_restore (docs/YEDEK.md).
 name: Yedek
 
@@ -35,7 +36,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
@@ -93,7 +94,7 @@ jobs:
 
       - name: Geri yükleme tatbikatı
         run: |
-          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/b" postgres:16-alpine sh -c '
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/b" postgres:18-alpine sh -c '
             createdb -h localhost -U postgres tatbikat &&
             pg_restore -h localhost -U postgres -d tatbikat --no-owner --no-acl --exit-on-error /b/yedek.dump &&
             psql -h localhost -U postgres -d tatbikat -Atc "

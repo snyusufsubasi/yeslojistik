@@ -27,5 +27,6 @@ pg_restore -d <boş veritabanı> --no-owner --no-acl yedek.dump
 Canlıya geri yükleme `restore.yml` ile yapılır ve hâlâ `BACKUP_TOKEN` + `BACKUP_PASSPHRASE` ister (bilerek: yıkıcı işlem).
 
 ## Sınırlar
-- Yedek GitHub Actions artifact'ında durur (başka bir depolama yok). Render ücretsiz veritabanında PITR yok; ücretli plana geçince
-  Render'ın kendi günlük yedeği de olur.
+- Yedek GitHub Actions artifact'ında durur (başka bir depolama yok). Canlı veritabanı 8 Eki 2026'dan beri Neon Free (PostgreSQL 18);
+  Neon ücretsiz planda kısa süreli geri alma (anlık görüntü/PITR) sınırlıdır, asıl güvence bu gece yedeğidir.
+  Yedek PostgreSQL 18 biçimindedir: açmak için `pg_restore` 18 (veya üstü) gerekir.
