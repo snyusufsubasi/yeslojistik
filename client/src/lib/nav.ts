@@ -88,7 +88,6 @@ export const newNav: NavGroup[] = [
   { items: [
     { to: '/seferler', label: 'Sevkiyatlar', icon: Truck,
       badge: (d) => badge(d?.activeTripCount ?? 0, 'bekleyen ve yoldaki sevkiyat') },
-    { to: '/planlama', label: 'Planlama', icon: CalendarRange },
   ] },
   { title: 'Listeler', items: [
     { to: '/musteriler', label: 'Müşteri Listesi', icon: Users },
