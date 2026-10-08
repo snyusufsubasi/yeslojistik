@@ -755,7 +755,7 @@ export function TripTimeline({ tripId }: { tripId: number }) {
               {[e.userName ?? 'Bilinmiyor', tripEventSourceLabel[e.source]].filter(Boolean).join(' · ')}
               {e.note && e.note !== 'Kayıt oluşturuldu' && <span className="block text-slate-700">{e.note.replace(/^Sorun \/ iptal nedeni: /, '')}</span>}
             </div>
-            <span className="sr-only">{eventKindLabel[kind]}</span>
+            {kind === 'status' && <span className="sr-only">{eventKindLabel.status}</span>}
           </li>
         )
       })}
