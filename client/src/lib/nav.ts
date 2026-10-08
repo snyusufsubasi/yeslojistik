@@ -1,6 +1,6 @@
 import {
   Handshake, HandCoins, BarChart3, Building2, FileText, Home, Receipt, Settings, Truck, Users, Wallet, IdCard, Map as MapIcon,
-  HelpCircle, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun, Fuel, Wrench,
+  HelpCircle, CalendarRange, Landmark, ScrollText, Scale, ClipboardList, UserRound, Repeat, FileInput, FileSpreadsheet, ShieldCheck, Sun, Fuel, Wrench,
 } from 'lucide-react'
 import type { Alert, Dashboard } from '../api/types'
 import type { Permission } from './auth'
@@ -26,6 +26,7 @@ export const classicNav: NavGroup[] = [
     { to: '/is-talepleri', label: 'İş Talepleri', icon: ClipboardList },
     { to: '/seferler', label: 'Sevkiyatlar', icon: Truck,
       badge: (d) => badge(d?.activeTripCount ?? 0, 'bekleyen ve yoldaki sevkiyat') },
+    { to: '/planlama', label: 'Planlama', icon: CalendarRange },
   ] },
   { title: 'Cari', items: [
     { to: '/cari/musteriler', label: 'Müşteriler Cari', icon: Scale, perm: 'accounting',
@@ -87,6 +88,7 @@ export const newNav: NavGroup[] = [
   { items: [
     { to: '/seferler', label: 'Sevkiyatlar', icon: Truck,
       badge: (d) => badge(d?.activeTripCount ?? 0, 'bekleyen ve yoldaki sevkiyat') },
+    { to: '/planlama', label: 'Planlama', icon: CalendarRange },
   ] },
   { title: 'Listeler', items: [
     { to: '/musteriler', label: 'Müşteri Listesi', icon: Users },
