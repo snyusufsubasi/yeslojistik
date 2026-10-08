@@ -97,6 +97,7 @@ public class TripService(AppDbContext db, DriverNotifier notifier, CustomerNotif
             var type = q.TrailerType.Trim().ToLower();
             query = query.Where(t => t.TrailerType != null && t.TrailerType.ToLower() == type);
         }
+        if (!string.IsNullOrWhiteSpace(q.Agenda)) query = TripAgenda.Apply(query, q.Agenda, Clock.Today);
         if (q.HasProblem is { } hp) query = hp ? query.Where(t => t.ProblemReason != null) : query.Where(t => t.ProblemReason == null);
         if (q.CarrierInvoiced is { } ci)
             query = ci ? query.Where(t => t.CarrierInvoiceNo != null) : query.Where(t => t.CarrierSupplierId != null && t.CarrierInvoiceNo == null);

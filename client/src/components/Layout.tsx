@@ -278,7 +278,7 @@ function BottomBar({ onMenu, mirror }: { onMenu: () => void; mirror: boolean }) 
    * etkinlik tek kaynaktan (`slotActive`) hesaplanır ve `aria-current` doğrudan verilir.
    */
   const navSlots = [
-    { to: '/', label: 'Bugün', Icon: Home, end: true, paths: ['/'] },
+    { to: '/', label: 'Bugün', Icon: Home, end: true, paths: ['/', '/pano'] },
     { to: '/seferler', label: 'Sevkiyatlar', Icon: Truck, end: false },
     { to: '/faturalar', label: 'Faturalar', Icon: FileText, end: false },
     {

@@ -18,7 +18,8 @@ export const badge = (count: number, title: string): Badge | null => (count > 0 
  */
 export const classicNav: NavGroup[] = [
   { items: [
-    { to: '/', label: 'Ana Sayfa', icon: Home },
+    { to: '/', label: 'Bugün', icon: Sun },
+    { to: '/pano', label: 'Genel Bakış', icon: Home },
     { to: '/harita', label: 'Araç Takip Haritası', icon: MapIcon },
   ] },
   { title: 'Sevkiyat', items: [

@@ -1108,3 +1108,24 @@ export interface MirrorStatus {
   mirrorMode: boolean; lastAt: string | null; lastSummary: string | null
   spellingExceptions: Record<string, string>
 }
+
+/** "Bugün" ekranı (GET /api/today). */
+export type TodayAgenda = 'late' | 'loading' | 'delivery' | 'document' | 'invoice' | 'problem'
+export interface TodayItem {
+  title: string
+  subtitle?: string | null
+  link: string
+  date?: string | null
+  amount?: number | null
+  tone?: 'danger' | 'warning' | null
+  badge?: string | null
+}
+export interface TodaySection {
+  key: TodayAgenda | 'collections' | 'documents'
+  title: string
+  count: number
+  link?: string | null
+  items: TodayItem[]
+  total?: number | null
+}
+export interface Today { date: string; sections: TodaySection[] }

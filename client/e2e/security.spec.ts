@@ -63,7 +63,7 @@ test('İki adımlı doğrulama: arayüzden açılır, girişte kod istenir, kurt
   }
 
   await signIn()
-  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)|^Bugün$/ })).toBeVisible()
   await openSettingsTab(page, 'Güvenlik')
   await page.getByRole('button', { name: 'İki adımlı doğrulamayı aç' }).click()
   await expect(page.getByAltText('Doğrulama uygulaması için QR kod')).toBeVisible()
@@ -98,7 +98,7 @@ test('İki adımlı doğrulama: arayüzden açılır, girişte kod istenir, kurt
   // Açarken kullanılan adım yeniden kullanılamaz; bir sonraki adımın kodu kabul edilir.
   await page.getByLabel('Doğrulama kodu').fill(totp(secret, 1))
   await page.getByRole('button', { name: 'Doğrula' }).click()
-  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)|^Bugün$/ })).toBeVisible()
 
   // Kurtarma koduyla da girilir (bir kez).
   await page.request.post('/api/auth/logout')
@@ -106,7 +106,7 @@ test('İki adımlı doğrulama: arayüzden açılır, girişte kod istenir, kurt
   await signIn()
   await page.getByLabel('Doğrulama kodu').fill(recovery)
   await page.getByRole('button', { name: 'Doğrula' }).click()
-  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)|^Bugün$/ })).toBeVisible()
 
   // Temizlik: yönetici hesabıyla bu deneme kullanıcısını sil.
   await page.request.post('/api/auth/logout')

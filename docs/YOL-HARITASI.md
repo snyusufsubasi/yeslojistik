@@ -116,6 +116,7 @@ Müşteri paneli pratikortam'a göre çok zor buldu. Plan: menü ve sekmeler pra
 - **F4.2/F4.3 (6 Ekim):** `/mazotlar` (`FuelPage`) ve `/arac-masraflari` (`VehicleExpensesPage`); mazotta litre, km ve km başı maliyet.
 - **F5 telefon (6 Ekim, yalnız yeni görünüm):** 640px altında kart görünümü (`shell/MobileCards`), beş yuvalı alt şerit, tam ekran süzgeç, 44px dokunma hedefleri.
 - **F2 (6 Ekim):** Bugün ekranında "Onay Bekleyenler" sekmesi (`/?tab=approvals`, yalnız muhasebe); sevkiyat formu tek sayfa iki sütun.
+- **Faz 2A "Bugün" ekranı (8 Ekim):** girişten sonraki ilk ekran `/` artık istisna listesi (`TodayPage`, tek uç `GET /api/today`, `TodayService`): geciken, bugün yüklenecek, bugün teslim edilecek, sorunlu, teslim evrakı eksik, faturalanmayı bekleyen sevkiyatlar; vadesi geçen/bugün vadeli tahsilatlar (yalnız yönetici/muhasebe); 30 gün içinde dolan araç/şoför/firma belgeleri. Kartın "Tümünü gör"ü Sevkiyatlar'ı aynı sunucu süzgeciyle açar (`?bugun=late|loading|delivery|problem|document|invoice` → `TripQuery.Agenda`, `TripAgenda`). Eski rakam panosu "Genel Bakış" olarak `/pano`'da; "Onay Bekleyenler" `/?tab=approvals`'ta kaldı. Testler: `TodayTests`, `e2e/today.spec.ts`.
 - **Testler:** `client/e2e/new-ui/` altında 8 spec (bugün 5 yeni: `faturalandirilacaklar`, `mobile-cards`, `today-approvals`, `trip-form`, `trip-form-mobile`); toplam 58 `test(...)`. Bu makinede e2e koşulamıyor (yerelde .NET 10 SDK ve PostgreSQL yok), koşu CI'da.
 
 ### Kolaylaştırmada sıradakiler (6 Ekim)

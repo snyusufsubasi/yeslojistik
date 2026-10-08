@@ -116,7 +116,7 @@ test('kurulum sihirbazı: ana sayfadaki kart → firma bilgileri → adımlar at
   try {
     await putSettings(page, { ...original, taxNumber: null, address: null })
     await page.evaluate(() => localStorage.removeItem('yl.kurulum'))
-    await page.goto('/')
+    await page.goto('/pano')
     const card = page.getByRole('region', { name: 'Kuruluma başlayın' })
     await expect(card).toBeVisible()
     await card.getByRole('link', { name: 'Kurulum sihirbazını aç' }).click()
@@ -143,7 +143,7 @@ test('kurulum sihirbazı: ana sayfadaki kart → firma bilgileri → adımlar at
     // 5. adım: kayıt varsa örnek veri yüklenemez; boş başla
     await expect(page.getByRole('button', { name: 'Örnek verileri yükle' })).toBeDisabled()
     await page.getByRole('button', { name: 'Kurulumu bitir' }).click()
-    await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Günaydın|İyi (günler|akşamlar|geceler)|^Bugün$/ })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Kuruluma başlayın' })).toHaveCount(0)
     expect((await getSettings(page)).taxNumber).toBe(fakeVkn('123456789'))
   } finally {
