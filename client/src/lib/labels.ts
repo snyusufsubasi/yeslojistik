@@ -1,4 +1,4 @@
-import type { ApprovalStatus, CashAccountKind, CommissionStatus, DriverRating, InvoiceNoteKind, PurchaseInvoiceKind, InstrumentStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
+import type { ApprovalStatus, CashAccountKind, CommissionStatus, DriverRating, InvoiceNoteKind, PurchaseInvoiceKind, InstrumentStatus, AttachmentKind, DocumentType, ExpenseCategory, InvoiceStatus, MaintenanceType, PaymentMethod, SettlementDirection, SupplierKind, TodayAgenda, TripEventSource, TripStatus, UserRole, VehicleOwnership, VehicleStatus } from '../api/types'
 
 export const tripStatusLabel: Record<TripStatus, string> = {
   Planned: 'Planlandı',
@@ -252,4 +252,14 @@ export const purchaseInvoiceKindLabel: Record<PurchaseInvoiceKind, string> = {
 export const invoiceNoteKindLabel: Record<InvoiceNoteKind, string> = {
   Sale: 'Satış',
   Withholding: 'Tevkifat',
+}
+
+/** Sevkiyatlar listesindeki "Bugün" süzgeci (?bugun=…): Bugün ekranındaki kartın adı. */
+export const todayAgendaLabel: Record<TodayAgenda, string> = {
+  late: 'Gecikenler',
+  loading: 'Bugün yüklenecekler',
+  delivery: 'Bugün teslim edilecekler',
+  document: 'Teslim evrakı eksik',
+  invoice: 'Faturalanmayı bekleyenler',
+  problem: 'Sorunlu sevkiyatlar',
 }
