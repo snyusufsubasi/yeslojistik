@@ -15,6 +15,7 @@ public class MirrorWriteGuard(AppDbContext db) : IAsyncActionFilter
     [
         "/api/customers", "/api/suppliers", "/api/drivers", "/api/vehicles", "/api/trips", "/api/expenses", "/api/cash-accounts",
         "/api/staff", "/api/payments", "/api/supplier-payments", "/api/invoices", "/api/purchase-invoices", "/api/import", "/api/job-requests",
+        "/api/planning",
     ];
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
