@@ -1129,3 +1129,26 @@ export interface TodaySection {
   total?: number | null
 }
 export interface Today { date: string; sections: TodaySection[] }
+
+/** Planlama panosu (GET /api/planning). */
+export interface PlanningDoc { what: string; expiry: string }
+export interface PlanningVehicle {
+  id: number; plate: string; type: string; trailerPlate?: string | null; ownership: VehicleOwnership; supplierTitle?: string | null
+  status: VehicleStatus; defaultDriverId?: number | null; defaultDriverName?: string | null; documents?: PlanningDoc[] | null
+}
+export interface PlanningDriver { id: number; fullName: string; phone?: string | null; supplierTitle?: string | null; documents: PlanningDoc[] }
+export interface PlanningTrip {
+  id: number; externalRef?: string | null; vehicleId: number; driverId: number; driverName: string; customer: string
+  loadingCity?: string | null; deliveryCity?: string | null; loadingAddress: string; deliveryAddress: string
+  loadingDate: string; deliveryDate?: string | null; endDate: string; loadingTime?: string | null; status: TripStatus
+  conflict: boolean; problemReason?: string | null; canAssign: boolean; driverConflict: boolean; warnings?: string[] | null
+}
+export interface PlanningRequest {
+  id: number; customer: string; date: string; loadingAddress: string; deliveryAddress: string
+  vehicleType?: string | null; cargoType?: string | null; deliveryWindow?: string | null; salePrice?: number | null
+}
+export interface Planning {
+  from: string; to: string; today: string; vehicles: PlanningVehicle[]; trips: PlanningTrip[]; unassigned: PlanningRequest[]
+  conflictCount: number; drivers?: PlanningDriver[] | null; driverConflictCount: number; warningCount: number
+}
+export interface PlanningAssignResult { tripId: number; created: boolean; conflictsWith: number[]; driverConflictsWith?: number[] | null; warnings?: string[] | null }
