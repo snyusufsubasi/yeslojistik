@@ -4,6 +4,7 @@ import { Layout } from './components/Layout'
 import { ErrorState, Spinner } from './components/ui'
 import { useAuth, type Permission } from './lib/auth'
 import LoginPage from './pages/LoginPage'
+import LandingPage from './pages/LandingPage'
 import { useBranding } from './lib/branding'
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const TodayPage = lazy(() => import('./pages/TodayPage'))
@@ -38,16 +39,17 @@ const ForgotPasswordPage = lazy(() => import('./pages/PasswordResetPages').then(
 const ResetPasswordPage = lazy(() => import('./pages/PasswordResetPages').then((m) => ({ default: m.ResetPasswordPage })))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
 const AccountDeletionPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.AccountDeletionPage })))
-const LandingPage = lazy(() => import('./pages/LandingPage'))
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'))
 const ImportPage = lazy(() => import('./pages/ImportPage'))
 
 function RequireAuth() {
-  const { user, loading, unreachable, retry } = useAuth()
+  const { user, loading, unreachable, retry, hadSession } = useAuth()
   const location = useLocation()
+  // Ana sayfa: ziyaretçi tanıtımı oturum kontrolünü (/api/auth/me) BEKLEMEDEN görür. Sunucu yavaş ya da uyanıyor olsa da
+  // sayfa boş/dönen simge kalmaz. Bu tarayıcıda daha önce oturum açılmışsa kısa bekleme ekranı gösterilir, sonra panel açılır.
+  if (!user && location.pathname === '/' && (!hadSession || (!loading && !unreachable))) return <LandingPage />
   if (loading) return <Spinner className="h-screen items-center" />
   if (unreachable) return <ErrorState error={unreachable} onRetry={retry} className="h-screen justify-center" />
-  if (!user && location.pathname === '/') return <LandingPage />
   if (!user) return <Navigate to="/giris" replace state={{ from: location.pathname + location.search }} />
   if (user.role === 'Driver') return <DriverNotice />
   return <Layout />
