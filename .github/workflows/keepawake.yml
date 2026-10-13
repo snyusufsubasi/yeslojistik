@@ -1,12 +1,12 @@
-# Uyanık tutma: Render ücretsiz web servisi 15 dk boşta kalınca uyur (ilk açılış ~1 dk sürer).
-# İş saatlerinde (06:00–23:00 İstanbul) 10 dakikada bir /api/ping çağrılır. /api/ping veritabanına DOKUNMAZ,
-# böylece Neon (ücretsiz plan, 100 CU-saat/ay) boşta uyumaya devam eder. Not: GitHub zamanlanmış işleri birkaç dakika gecikebilir.
-name: Uyanık tut
+# Uyanık tutma: Kervan Pro (kervanpro.com) Render ücretsiz planda 15 dk boşta kalınca uyur (ilk açılış ~1 dk).
+# 10 dakikada bir /api/ping çağrılır. /api/ping veritabanına DOKUNMAZ; Neon boşta uyumaya devam eder.
+# yeslojistik Render servisi 13 Ekim 2026'da askıya alındı; bu iş artık Kervan Pro'yu uyanık tutuyor.
+# Bu depo herkese açık olduğu için Actions dakikası ücretsizdir. GitHub zamanlanmış işleri birkaç dakika gecikebilir.
+name: Uyanık tut (Kervan Pro)
 
 on:
-  # schedule kapatıldı (Actions dakikası bitti; prototip, ayna kapalı)
-  # - cron: "*/10 3-19 * * *" # 06:00–22:50 İstanbul (UTC+3)
-  # - cron: "0 20 * * *" # 23:00 İstanbul
+  schedule:
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions: {}
@@ -23,7 +23,7 @@ jobs:
       - name: Ping
         run: |
           for i in 1 2 3 4 5 6; do
-            curl -fsS --max-time 60 https://yeslojistik.net/api/ping && exit 0
+            curl -fsS --max-time 60 https://kervanpro.com/api/ping && exit 0
             sleep 10
           done
-          echo "::warning::Sunucu yanıt vermedi."
+          echo "::warning::Kervan Pro yanıt vermedi."
