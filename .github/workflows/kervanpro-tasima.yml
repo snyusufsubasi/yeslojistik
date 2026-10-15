@@ -1,0 +1,81 @@
+# YES Lojistik'i pratikortam'dan Kervan Pro'ya taşır (kervanpro repo: docs/TASIMA-YES.md).
+# pratikortam SALT OKUNUR. Önce mod=deneme (hiçbir şey yazılmaz), sonra mod=uygula.
+# Gerekli secret'lar: PRATIK_USER/PRATIK_PASS (ya da PASS), KP_PLATFORM_EMAIL, KP_PLATFORM_PASSWORD.
+# Firma yöneticisi parolası burada üretilir; sonuç ve parola yalnız Hark'ın anahtarıyla açılır, 1 günlük artifact. Loga veri yazılmaz.
+name: Kervan Pro'ya taşıma (YES Lojistik)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: "deneme ya da uygula"
+        default: deneme
+      pubkey_b64:
+        description: "Şifreleme için RSA açık anahtar (base64)"
+        required: true
+      admin_email:
+        description: "Açılacak firma yöneticisinin e-postası"
+        default: cyusufsubasi+yes@gmail.com
+
+permissions:
+  contents: read
+
+jobs:
+  tasi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: snyusufsubasi/kervanpro
+          path: kp
+      - name: Giriş bilgilerini hazırla
+        env:
+          S_PASS: ${{ secrets.PASS }}
+          S_PRATIK_USER: ${{ secrets.PRATIK_USER }}
+          S_PRATIK_PASS: ${{ secrets.PRATIK_PASS }}
+          S_PANEL_EMAIL: ${{ secrets.PANEL_EMAIL }}
+          S_PANEL_PASSWORD: ${{ secrets.PANEL_PASSWORD }}
+        run: bash tools/legacy/secrets.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet openpyxl
+      - name: Pratikortam'dan indir (salt okuma)
+        run: node tools/legacy/extract.mjs --out "$RUNNER_TEMP/pratik" > "$RUNNER_TEMP/extract.log" 2>&1
+      - name: Paketi hazırla
+        run: python3 tools/legacy/transform.py "$RUNNER_TEMP/pratik" --json > "$RUNNER_TEMP/transform.log" 2>&1
+      - name: Kervan Pro'ya gönder
+        env:
+          KP_PLATFORM_EMAIL: ${{ secrets.KP_PLATFORM_EMAIL }}
+          KP_PLATFORM_PASSWORD: ${{ secrets.KP_PLATFORM_PASSWORD }}
+          FIRMA_ADMIN_EMAIL: ${{ inputs.admin_email }}
+        run: |
+          PW="Yes$(openssl rand -hex 8)7k"; echo "::add-mask::$PW"
+          mkdir -p "$RUNNER_TEMP/out"; printf '%s\n%s\n' "$FIRMA_ADMIN_EMAIL" "$PW" > "$RUNNER_TEMP/out/yonetici.txt"
+          ARGS=""; if [ "${{ inputs.mod }}" = "uygula" ]; then ARGS="--uygula"; fi
+          FIRMA_ADMIN_PASSWORD="$PW" python3 kp/tools/tasima/gonder.py "$RUNNER_TEMP/pratik/aktar/ayna.json" --firma "YES LOJİSTİK" --yonetici "YES Lojistik Yöneticisi" $ARGS > "$RUNNER_TEMP/out/sonuc.txt" 2>&1 && echo "gönderim tamam" || echo "gönderim DUR (ayrıntı şifreli sonuçta)"
+          head -c 120 "$RUNNER_TEMP/out/sonuc.txt" | grep -o '^\(DENEME\|GERÇEK AKTARIM YAPILDI\|DUR: platform girişi olmadı[^.]*\)' || true
+      - name: Şifrele
+        if: always()
+        env:
+          PUB: ${{ inputs.pubkey_b64 }}
+        run: |
+          cd "$RUNNER_TEMP"; mkdir -p out; cp extract.log transform.log out/ 2>/dev/null || true
+          echo "$PUB" | base64 -d > pub.pem
+          tar czf paket.tgz -C out .
+          openssl rand -out key.bin 32
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in paket.tgz -out paket.tgz.enc -pass file:key.bin
+          openssl pkeyutl -encrypt -pubin -inkey pub.pem -in key.bin -out key.bin.enc
+          mkdir -p sifreli && mv paket.tgz.enc key.bin.enc sifreli/
+          rm -rf pratik out paket.tgz key.bin
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tasima-sonuc
+          path: ${{ runner.temp }}/sifreli
+          retention-days: 1
